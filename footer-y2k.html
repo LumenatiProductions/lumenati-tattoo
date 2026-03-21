@@ -1,0 +1,500 @@
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-footer {
+    background: #0a0a0a;
+    padding: 0;
+  }
+
+  /* ── Desktop ── */
+  .desktop {
+    position: relative;
+    width: 100%;
+    min-height: 600px;
+    background: #008080;
+    padding: 24px;
+    padding-bottom: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Desktop icons — left column ── */
+  .desktop-icons {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 1;
+  }
+
+  .desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    width: 70px;
+    cursor: pointer;
+  }
+
+  .desktop-icon-img {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .desktop-icon-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    text-align: center;
+    word-wrap: break-word;
+  }
+
+  .desktop-icon:hover .desktop-icon-label {
+    background: #000080;
+    color: #fff;
+  }
+
+  /* ── Right side icons ── */
+  .desktop-icons-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 1;
+  }
+
+  /* ── AIM Window ── */
+  .aim-window {
+    width: 100%;
+    max-width: 420px;
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+    font-family: Arial, Helvetica, sans-serif;
+    z-index: 2;
+  }
+
+  .aim-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #0a246a 0%, #3a6ea5 40%, #0a246a 100%);
+    height: 24px;
+  }
+
+  .aim-titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .aim-buddy-icon {
+    width: 14px;
+    height: 14px;
+    background: #FFD700;
+    border-radius: 50%;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .aim-titlebar-text {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .aim-titlebar-btns {
+    display: flex;
+    gap: 2px;
+  }
+
+  .aim-btn {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .aim-menubar {
+    display: flex;
+    padding: 1px 4px;
+    background: #ece9d8;
+    border-bottom: 1px solid #aca899;
+  }
+
+  .aim-menu-item {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    padding: 2px 8px;
+    cursor: default;
+  }
+
+  .aim-menu-item:hover {
+    background: #316ac5;
+    color: #fff;
+  }
+
+  .aim-body {
+    padding: 12px;
+    background: #fff;
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    min-height: 160px;
+  }
+
+  .aim-screenname {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 2px;
+  }
+
+  .aim-status-line {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    margin-bottom: 10px;
+  }
+
+  .aim-status-line .away { color: #cc0000; }
+
+  .aim-divider {
+    height: 1px;
+    background: #d4d0c8;
+    margin: 8px 0;
+  }
+
+  .aim-away-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    font-weight: bold;
+    color: #808080;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .aim-away-msg {
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .aim-away-msg a { color: #0000ff; text-decoration: underline; }
+  .aim-away-msg a:hover { color: #ff0000; }
+  .aim-away-msg .pink { color: #FF1493; font-weight: bold; }
+
+  .aim-info-block {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #444;
+    line-height: 1.7;
+  }
+
+  .aim-info-block a { color: #0000ff; text-decoration: underline; }
+  .aim-info-block a:hover { color: #ff0000; }
+
+  .aim-warn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #808080;
+    margin-top: 10px;
+  }
+
+  .aim-warn span { color: #008000; font-weight: bold; }
+
+  .aim-bottom {
+    padding: 6px 8px;
+    background: #ece9d8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .aim-bottom-btn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    padding: 3px 16px;
+    background: linear-gradient(180deg, #fff 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .aim-bottom-btn:hover {
+    background: linear-gradient(180deg, #fff 0%, #f0ece4 50%, #e0dcd0 100%);
+  }
+
+  /* ── Taskbar ── */
+  .taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(180deg, #3a6ea5 0%, #225599 2%, #1f4e8a 50%, #1a4480 100%);
+    border-top: 2px solid #5b96d4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 10;
+  }
+
+  .taskbar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Start button — XP green style */
+  .start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px 2px 6px;
+    background: linear-gradient(180deg, #3c9a3c 0%, #2d8e2d 50%, #1e7a1e 100%);
+    border: 1px solid #0a5c0a;
+    border-radius: 0 8px 8px 0;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+    cursor: pointer;
+    height: 30px;
+    letter-spacing: 0.02em;
+  }
+
+  .start-flag {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .start-flag div:nth-child(1) { background: #ff3030; }
+  .start-flag div:nth-child(2) { background: #30b030; }
+  .start-flag div:nth-child(3) { background: #3060ff; }
+  .start-flag div:nth-child(4) { background: #ffcc00; }
+
+  .taskbar-items {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+  }
+
+  .taskbar-item {
+    padding: 3px 12px;
+    background: linear-gradient(180deg, #3e80c0 0%, #2a6aaa 100%);
+    border: 1px solid;
+    border-color: #5b96d4 #1a4480 #1a4480 #5b96d4;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    height: 26px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .taskbar-item.active {
+    background: linear-gradient(180deg, #1a4480 0%, #2a5a90 100%);
+    border-color: #1a4480 #5b96d4 #5b96d4 #1a4480;
+  }
+
+  .taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: linear-gradient(180deg, #1a5aaa 0%, #0e4488 100%);
+    border-left: 1px solid #5b96d4;
+    height: 30px;
+  }
+
+  .taskbar-tray {
+    font-size: 11px;
+  }
+
+  .taskbar-clock {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .desktop { min-height: 500px; padding: 16px; padding-bottom: 44px; }
+    .desktop-icons, .desktop-icons-right { display: none; }
+    .aim-window { max-width: 100%; }
+    .aim-menubar { display: none; }
+    .taskbar-items { display: none; }
+    .start-btn { font-size: 10px; padding: 2px 8px 2px 4px; }
+  }
+</style>
+
+<footer class="lmn-footer">
+  <div class="desktop">
+
+    <!-- Desktop icons — left -->
+    <div class="desktop-icons">
+      <a class="desktop-icon" href="/">
+        <div class="desktop-icon-img">🖥️</div>
+        <span class="desktop-icon-label">My Computer</span>
+      </a>
+      <a class="desktop-icon" href="/book">
+        <div class="desktop-icon-img">📁</div>
+        <span class="desktop-icon-label">Book a Tattoo</span>
+      </a>
+      <a class="desktop-icon" href="mailto:hi@lumenatitattoo.com">
+        <div class="desktop-icon-img">📧</div>
+        <span class="desktop-icon-label">Email Us</span>
+      </a>
+      <a class="desktop-icon" href="https://www.instagram.com/lumenati.tattoo/" target="_blank">
+        <div class="desktop-icon-img">📷</div>
+        <span class="desktop-icon-label">Instagram</span>
+      </a>
+    </div>
+
+    <!-- Desktop icons — right -->
+    <div class="desktop-icons-right">
+      <a class="desktop-icon" href="/contact">
+        <div class="desktop-icon-img">📝</div>
+        <span class="desktop-icon-label">Contact</span>
+      </a>
+      <a class="desktop-icon" href="#">
+        <div class="desktop-icon-img">🗑️</div>
+        <span class="desktop-icon-label">Recycle Bin</span>
+      </a>
+    </div>
+
+    <!-- AIM Window — centered on desktop -->
+    <div class="aim-window">
+      <div class="aim-titlebar">
+        <div class="aim-titlebar-left">
+          <div class="aim-buddy-icon">🏃</div>
+          <span class="aim-titlebar-text">lumenati_tattoo - Buddy Info</span>
+        </div>
+        <div class="aim-titlebar-btns">
+          <div class="aim-btn">_</div>
+          <div class="aim-btn">□</div>
+          <div class="aim-btn">✕</div>
+        </div>
+      </div>
+
+      <div class="aim-menubar">
+        <span class="aim-menu-item">File</span>
+        <span class="aim-menu-item">Edit</span>
+        <span class="aim-menu-item">Actions</span>
+        <span class="aim-menu-item">Help</span>
+      </div>
+
+      <div class="aim-body">
+        <div class="aim-screenname">lumenati_tattoo</div>
+        <div class="aim-status-line">Status: <span class="away">Away</span> · Online since 1998</div>
+
+        <div class="aim-divider"></div>
+
+        <div class="aim-away-label">Away Message:</div>
+        <div class="aim-away-msg">
+          we're probably tattooing rn ✌️ <span class="pink">leave a message</span> or just come thru. walk-ins always welcome. flash on the wall. the door's open.
+        </div>
+
+        <div class="aim-divider"></div>
+
+        <div class="aim-info-block">
+          📍 3839 Jackson St, Denver CO 80205<br>
+          ✉️ <a href="mailto:hi@lumenatitattoo.com">hi@lumenatitattoo.com</a><br>
+          📷 <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank">@lumenati.tattoo</a>
+        </div>
+
+        <div class="aim-warn">Warning Level: <span>0%</span> · Idle: a long time</div>
+      </div>
+
+      <div class="aim-bottom">
+        <a href="mailto:hi@lumenatitattoo.com" class="aim-bottom-btn">Send IM</a>
+        <a href="/book" class="aim-bottom-btn">Get Info</a>
+      </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar">
+      <div class="taskbar-left">
+        <div class="start-btn">
+          <div class="start-flag"><div></div><div></div><div></div><div></div></div>
+          start
+        </div>
+        <div class="taskbar-items">
+          <a href="/" class="taskbar-item">📁 Home</a>
+          <a href="#" class="taskbar-item active">💬 AIM</a>
+          <a href="/book" class="taskbar-item">✏️ Book</a>
+        </div>
+      </div>
+      <div class="taskbar-right">
+        <span class="taskbar-tray">🔊 📶</span>
+        <span class="taskbar-clock" id="footer-clock">11:59 PM</span>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<script>
+(function() {
+  var el = document.getElementById('footer-clock');
+  if (!el) return;
+  function tick() {
+    var now = new Date();
+    var h = now.getHours();
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    el.textContent = h + ':' + m + ' ' + ampm;
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>

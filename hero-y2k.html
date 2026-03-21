@@ -26,8 +26,8 @@
   .lmn-hero {
     position: relative;
     width: 100%;
-    height: 100vh;
-    min-height: 520px;
+    height: 70vh;
+    min-height: 420px;
     overflow: hidden;
     background: #0a0a0a;
   }
@@ -441,9 +441,35 @@
     50% { opacity: 1; transform: scale(1.2) rotate(20deg); }
   }
 
+  /* ── Visitor counter ── */
+  .lmn-visitor {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #7FFF00;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 8px rgba(127,255,0,0.4);
+    z-index: 4;
+  }
+
+  .lmn-vnum {
+    display: inline-block;
+    background: #000;
+    border: 1px solid #333;
+    padding: 3px 5px;
+    margin: 0 1px;
+    font-size: 9px;
+    color: #7FFF00;
+    min-width: 16px;
+    text-align: center;
+  }
+
   /* ── Mobile ── */
   @media (max-width: 640px) {
-    .lmn-hero { height: 100vh; min-height: 480px; }
+    .lmn-hero { height: 80vh; min-height: 400px; }
     .lmn-hero-content { padding: 24px; }
     .lmn-hero-sub {
       flex-direction: column;
@@ -501,6 +527,11 @@
   <div class="lmn-corner br">▣ PAUSE<br>DV CAM</div>
 
   <div class="lmn-hero-content">
+
+    <!-- Visitor counter -->
+    <div class="lmn-visitor">
+      You are visitor # <span id="lmn-counter-nums"></span>
+    </div>
 
     <span class="lmn-eyebrow">:: now entering the crib ::</span>
 
@@ -561,5 +592,37 @@
     var sec = String(s % 60).padStart(2, '0');
     el.textContent = h + ':' + m + ':' + sec;
   }, 1000);
+})();
+
+// Visitor counter — fetches real count and renders as digit boxes
+(function() {
+  var container = document.getElementById('lmn-counter-nums');
+  if (!container) return;
+
+  function renderCount(num) {
+    var str = String(num).padStart(6, '0');
+    container.innerHTML = '';
+    for (var i = 0; i < str.length; i++) {
+      var span = document.createElement('span');
+      span.className = 'lmn-vnum';
+      span.textContent = str[i];
+      container.appendChild(span);
+    }
+  }
+
+  // Show placeholder while loading
+  renderCount(0);
+
+  fetch('https://hitcounter.pythonanywhere.com/count', {
+    credentials: 'include'
+  })
+    .then(function(res) { return res.text(); })
+    .then(function(count) {
+      renderCount(parseInt(count) || 0);
+    })
+    .catch(function() {
+      // Fallback to a fun static number
+      renderCount(4271);
+    });
 })();
 </script>
