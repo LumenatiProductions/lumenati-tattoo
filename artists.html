@@ -1,0 +1,615 @@
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-artists {
+    background: #0a0a0a;
+    padding: 64px 0 0;
+  }
+
+  .lmn-artists-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 16px;
+    padding: 0 48px 24px;
+    border-bottom: 1px solid #1e1e1e;
+  }
+
+  .lmn-artists-heading {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #f0ece4;
+    margin: 0;
+  }
+
+  .lmn-artists-count {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: #444;
+  }
+
+  .lmn-artist[data-color="0"] { --accent: #e05c2a; --bg: #1a0e09; --mid: #6b2e18; }
+  .lmn-artist[data-color="1"] { --accent: #d4a017; --bg: #191408; --mid: #6b510c; }
+  .lmn-artist[data-color="2"] { --accent: #4a9e6b; --bg: #09150f; --mid: #1e5c38; }
+  .lmn-artist[data-color="3"] { --accent: #4a7fc1; --bg: #090f19; --mid: #1e3d6b; }
+  .lmn-artist[data-color="4"] { --accent: #9b59b6; --bg: #120a19; --mid: #4a1e6b; }
+  .lmn-artist[data-color="5"] { --accent: #c0392b; --bg: #190808; --mid: #6b1414; }
+
+  .lmn-artist {
+    position: relative;
+    background: var(--bg);
+    border-bottom: 1px solid var(--mid);
+    overflow: hidden;
+  }
+
+  .lmn-artist::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    z-index: 1;
+  }
+
+  .lmn-artist-row {
+    display: flex;
+    align-items: stretch;
+    height: 140px;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+  }
+
+  .lmn-artist-row:hover { background: var(--mid); }
+
+  .lmn-artist-img-wrap {
+    width: 200px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .lmn-artist-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    transition: transform 0.5s ease;
+    filter: grayscale(15%);
+  }
+
+  .lmn-artist-row:hover .lmn-artist-img-wrap img {
+    transform: scale(1.04);
+    filter: grayscale(0%);
+  }
+
+  .lmn-artist-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    gap: 24px;
+    min-width: 0;
+  }
+
+  .lmn-artist-name {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: clamp(20px, 3vw, 38px);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--accent);
+    line-height: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lmn-artist-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .lmn-artist-meta-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .lmn-artist-ig {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .lmn-artist-ig:hover {
+    background: var(--accent);
+    color: #0a0a0a;
+  }
+
+  .lmn-artist-ig-handle {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: rgba(240,236,228,0.45);
+    display: block;
+    text-align: center;
+  }
+
+  .lmn-toggle {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--mid);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 300;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: border-color 0.3s, transform 0.3s;
+    animation: lmnPulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes lmnPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.08); }
+    50% { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+  }
+
+  .lmn-artist.is-open .lmn-toggle {
+    border-color: var(--accent);
+    transform: rotate(45deg);
+    animation: none;
+  }
+
+  .lmn-gallery-wrap {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lmn-artist.is-open .lmn-gallery-wrap {
+    max-height: 400px;
+  }
+
+  .lmn-carousel {
+    position: relative;
+    background: var(--bg);
+  }
+
+  .lmn-carousel-track-wrap { overflow: hidden; }
+
+  .lmn-carousel-track {
+    display: flex;
+    gap: 2px;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lmn-carousel-slide {
+    flex-shrink: 0;
+    width: calc(20% - 2px);
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: #111;
+  }
+
+  .lmn-carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+  }
+
+  .lmn-carousel-slide:hover img { transform: scale(1.05); }
+
+  .lmn-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.7);
+    border: 1px solid var(--mid);
+    color: #f0ece4;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 2;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
+  }
+
+  .lmn-carousel-btn:hover { background: var(--accent); border-color: var(--accent); }
+  .lmn-carousel-btn.prev { left: 8px; }
+  .lmn-carousel-btn.next { right: 8px; }
+
+  .lmn-gallery-footer {
+    padding: 14px 48px;
+    background: var(--mid);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--mid);
+  }
+
+  .lmn-gallery-footer-dots { display: flex; gap: 6px; }
+
+  .lmn-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(240,236,228,0.2);
+    transition: background 0.2s;
+  }
+
+  .lmn-dot.active { background: var(--accent); }
+
+  .lmn-gallery-footer a {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .lmn-gallery-footer a:hover { color: #f0ece4; }
+
+  /* ── MOBILE ─────────────────────────────────── */
+  @media (max-width: 640px) {
+    .lmn-artists-header { padding: 0 20px 20px; }
+
+    .lmn-artist-row { height: auto; min-height: 100px; }
+
+    .lmn-artist-img-wrap { width: 90px; }
+
+    .lmn-artist-img-wrap img { object-position: center center; }
+    .lmn-artist[data-color="0"] .lmn-artist-img-wrap img { object-position: calc(50% + 30px) center; }
+    .lmn-artist[data-color="1"] .lmn-artist-img-wrap img { object-position: calc(50% - 10px) center; }
+
+    .lmn-artist-info { padding: 16px 16px 16px 20px; gap: 12px; }
+
+    .lmn-artist-name { font-size: clamp(16px, 5vw, 24px); white-space: normal; }
+
+    .lmn-artist-meta { flex-direction: column; align-items: flex-end; gap: 10px; }
+
+    .lmn-artist-ig { font-size: 10px; padding: 6px 12px; letter-spacing: 0.12em; }
+
+    .lmn-artist-ig-handle { font-size: 9px; }
+
+    .lmn-carousel-slide { width: calc(33.33% - 2px); }
+
+    .lmn-gallery-footer { padding: 12px 16px; }
+
+    .lmn-artist.is-open .lmn-gallery-wrap { max-height: 600px; }
+  }
+</style>
+
+<section class="lmn-artists">
+
+  <div class="lmn-artists-header">
+    <h2 class="lmn-artists-heading">The Artists</h2>
+    <span class="lmn-artists-count">06</span>
+  </div>
+
+  <!-- J.D. PRUITT -->
+  <div class="lmn-artist" data-color="0">
+    <div class="lmn-artist-row" onclick="lmnToggle(this)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611195549239-HXGQN7P29G539SUXMKZG/Brogusky_v100.00_02_48_01.Still001.jpg?format=750w" alt="J.D. Pruitt">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">J.D. Pruitt</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/jd.pruitt/" target="_blank">Contact</a><span class="lmn-artist-ig-handle">@jd.pruitt</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752390583-0ELCUOH88L6OU2R5RK4L/Screen+Shot+2022-08-05+at+8.19.44+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752221177-WGN9PFXD07VOCL9PP1TN/Screen+Shot+2022-08-05+at+8.16.52+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752233182-UD5YZFH2P3ZA0YPEVF0V/Screen+Shot+2022-08-05+at+8.17.03+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752246532-QR941YT8CR71TQ9N7685/Screen+Shot+2022-08-05+at+8.17.18+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752198685-A7N9SM2K7R4SBIAFZZD4/Screen+Shot+2022-08-05+at+8.16.29+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752262966-SEBMRSZZZ6G6OHNO9NAH/Screen+Shot+2022-08-05+at+8.17.35+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752270846-MQ8GI0HAPUDD5R2DXYF4/Screen+Shot+2022-08-05+at+8.17.43+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752279373-JN6R6MY1YQH0MBRYIF1N/Screen+Shot+2022-08-05+at+8.17.52+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752293861-DTAR033DTWIJ4KBMI1ZE/Screen+Shot+2022-08-05+at+8.18.05+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752303149-2WM3EVPAVM8SVFG6XXKA/Screen+Shot+2022-08-05+at+8.18.17+PM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="lmnSlide(this,-1)">&#8592;</div>
+        <div class="lmn-carousel-btn next" onclick="lmnSlide(this,1)">&#8594;</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/jd.pruitt/" target="_blank">View more on Instagram →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ELECTRIC ELAINE -->
+  <div class="lmn-artist" data-color="1">
+    <div class="lmn-artist-row" onclick="lmnToggle(this)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">Electric Elaine</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/electricelaine/" target="_blank">Contact</a><span class="lmn-artist-ig-handle">@electricelaine</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753142890-HBGPGTFSCVFQQWP1TD9C/Screen+Shot+2022-08-05+at+8.32.14+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753158347-BDHQZ2D2EFU5BKGPAQ3W/Screen+Shot+2022-08-05+at+8.32.29+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753177501-BJYYGAGCNO41ZY0DFBJC/Screen+Shot+2022-08-05+at+8.32.49+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753202728-GD7W45OMQMIYBUYSDQ1J/Screen+Shot+2022-08-05+at+8.33.14+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753235260-ZIJQW748HBH7H8ZDYA67/Screen+Shot+2022-08-05+at+8.33.47+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753248551-DS5H4TP1TYEVCIQXX9RF/Screen+Shot+2022-08-05+at+8.34.01+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753265888-20LC5MFLSNFQNQT3E8PT/Screen+Shot+2022-08-05+at+8.34.17+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753280230-EBFHFZSPGL8D0P2OHTXT/Screen+Shot+2022-08-05+at+8.34.32+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753289465-EUKAG14DA979L7ZUUP2N/Screen+Shot+2022-08-05+at+8.34.41+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753297364-WMF45NBYKKQH6CTNRZNY/Screen+Shot+2022-08-05+at+8.34.50+PM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="lmnSlide(this,-1)">&#8592;</div>
+        <div class="lmn-carousel-btn next" onclick="lmnSlide(this,1)">&#8594;</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/electricelaine/" target="_blank">View more on Instagram →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHORTY -->
+  <div class="lmn-artist" data-color="2">
+    <div class="lmn-artist-row" onclick="lmnToggle(this)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/fc951337-5a90-4252-80f4-2244028060c8/Screenshot+2023-02-28+at+11.12.18+AM.png?format=750w" alt="ShorTy">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">ShorTy</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/shortyadtrtattoos/" target="_blank">Contact</a><span class="lmn-artist-ig-handle">@shortyadtrtattoos</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608146969-DJBYC1SK0ZPRSR84CUGU/Screenshot+2023-02-28+at+11.15.43+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608161761-YDF6HSVL5IHZFQHKKRG3/Screenshot+2023-02-28+at+11.15.58+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608175725-FDKFQIXN1XZHVWD52CIP/Screenshot+2023-02-28+at+11.16.12+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608189644-1OYNTQYTP0BEL8IYVAJB/Screenshot+2023-02-28+at+11.16.26+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608199340-56RG7NSDV89S281SL518/Screenshot+2023-02-28+at+11.16.36+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608219852-S835GRZQLQT9SZS782V1/Screenshot+2023-02-28+at+11.16.56+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608237069-4NFPYO9G7VMEQZVDMKLP/Screenshot+2023-02-28+at+11.17.13+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608251046-EFWJ3WLAGZJSFC9NMTHQ/Screenshot+2023-02-28+at+11.17.28+AM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="lmnSlide(this,-1)">&#8592;</div>
+        <div class="lmn-carousel-btn next" onclick="lmnSlide(this,1)">&#8594;</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/shortyadtrtattoos/" target="_blank">View more on Instagram →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- KING KALYPSO -->
+  <div class="lmn-artist" data-color="3">
+    <div class="lmn-artist-row" onclick="lmnToggle(this)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/ca8bb46a-a17e-4a6a-a8df-de579e4abfdb/Screenshot+2023-06-05+at+12.06.23+PM.png?format=750w" alt="King Kalypso">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">King Kalypso</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/king.kalypso/" target="_blank">Contact</a><span class="lmn-artist-ig-handle">@king.kalypso</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189416183-HJJDMW6JINWKL30U7AW8/Screenshot+2024-01-13+at+4.42.26%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189465143-ELRY3REIQWL8QWEOU0HJ/Screenshot+2024-01-13+at+4.44.15%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1685988779114-TELFXPAZP0XUJF6MRR6X/Screenshot+2023-06-05+at+12.04.18+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189462435-4V875IKQSIYAYNF83VKZ/Screenshot+2024-01-13+at+4.44.07%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1685988792376-9OUT8VAK9J3MOM66GYEX/Screenshot+2023-06-05+at+12.05.00+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189418871-AAUCEVSOYDMJ5QCH5703/Screenshot+2024-01-13+at+4.41.58%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189411751-7CKSJHEWR24AYP9GUCJV/Screenshot+2024-01-13+at+4.42.36%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1685988788109-T9TAXJ901BFISN3DQEIK/Screenshot+2023-06-05+at+12.04.36+PM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="lmnSlide(this,-1)">&#8592;</div>
+        <div class="lmn-carousel-btn next" onclick="lmnSlide(this,1)">&#8594;</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/king.kalypso/" target="_blank">View more on Instagram →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAM DURBIN-CLARK -->
+  <div class="lmn-artist" data-color="4">
+    <div class="lmn-artist-row" onclick="lmnToggle(this)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/d6cceb7c-127e-46a6-b2cb-3cfe895ae462/IMG_1805.jpg?format=750w" alt="Sam Durbin-Clark">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">Sam Durbin-Clark</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/sdurbytattoos/" target="_blank">Contact</a><span class="lmn-artist-ig-handle">@sdurbytattoos</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586692876-4IWBWRWZO0V6LWG7VKDX/IMG_2023.JPEG?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586787514-0FRJ1K1H0WJ0YQC9TUAN/IMG_2024.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586693069-2LQGS3FKC1FA2XLL2NG5/IMG_2022.JPEG?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586691965-BHTUFNWGLDEXGD95TXOV/IMG_5590.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1712081027319-Y3UPQGJKBB3YVOIA28UU/IMG_1794.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1712081027466-0IVF72LVGNX0JZQC3AQQ/IMG_1795.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1712081028142-8H44XDRKPLAO31J8BTYM/IMG_1796.JPEG?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738511823336-LHDTVT8QXJRGLCHCMLT4/Screenshot+2025-02-02+at+08.56.43.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="lmnSlide(this,-1)">&#8592;</div>
+        <div class="lmn-carousel-btn next" onclick="lmnSlide(this,1)">&#8594;</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/sdurbytattoos/" target="_blank">View more on Instagram →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOONIE B. JONES -->
+  <div class="lmn-artist" data-color="5">
+    <div class="lmn-artist-row" onclick="lmnToggle(this)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/938f112f-f860-4547-9510-4ef64b53c124/Screenshot+2025-02-02+at+08.55.10.png?format=750w" alt="Moonie B. Jones">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">Moonie B. Jones</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/puppie.pokes/" target="_blank">Contact</a><span class="lmn-artist-ig-handle">@puppie.pokes</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512073277-TU2JZXUXN4SZCBIBOBFW/Screenshot+2025-02-02+at+08.59.25.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512073521-X6PZ5B2EMRH6CGMU5VL4/Screenshot+2025-02-02+at+08.59.48.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512089569-SMLICJYEUFXM9LOCIWES/Screenshot+2025-02-02+at+09.01.17.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512130781-YOHVMMM1TA5QZ57A5QX3/Screenshot+2025-02-02+at+09.01.56.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512077019-R6SNP3L35548TST8E260/Screenshot+2025-02-02+at+09.00.14.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512170791-2J8BL0P286ZKYSQD3UQB/Screenshot+2025-02-02+at+09.02.39.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512205147-HFU2MZXM2RBT5HLUA2Y0/Screenshot+2025-02-02+at+09.02.31.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512214084-LJ51I888NMNRM79UFWST/Screenshot+2025-02-02+at+09.02.58.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="lmnSlide(this,-1)">&#8592;</div>
+        <div class="lmn-carousel-btn next" onclick="lmnSlide(this,1)">&#8594;</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/puppie.pokes/" target="_blank">View more on Instagram →</a>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+  var VISIBLE = 5;
+
+  function getSlides(carousel) {
+    return carousel.querySelectorAll('.lmn-carousel-slide');
+  }
+
+  function updateDots(carousel) {
+    var artist = carousel.closest('.lmn-artist');
+    var footer = artist.querySelector('.lmn-gallery-footer-dots');
+    var slides = getSlides(carousel);
+    var pages = Math.ceil(slides.length / VISIBLE);
+    var current = parseInt(carousel.dataset.index) || 0;
+    var page = Math.floor(current / VISIBLE);
+    footer.innerHTML = '';
+    for (var i = 0; i < pages; i++) {
+      var dot = document.createElement('div');
+      dot.className = 'lmn-dot' + (i === page ? ' active' : '');
+      footer.appendChild(dot);
+    }
+  }
+
+  function lmnSlide(btn, dir) {
+    btn.stopPropagation && btn.stopPropagation();
+    var carousel = btn.closest('.lmn-carousel');
+    var track = carousel.querySelector('.lmn-carousel-track');
+    var slides = getSlides(carousel);
+    var total = slides.length;
+    var max = total - VISIBLE;
+    var current = parseInt(carousel.dataset.index) || 0;
+    current = Math.min(Math.max(current + dir, 0), max);
+    carousel.dataset.index = current;
+    var slideW = slides[0].offsetWidth + 2;
+    track.style.transform = 'translateX(-' + (current * slideW) + 'px)';
+    updateDots(carousel);
+  }
+
+  document.querySelectorAll('.lmn-artist-ig').forEach(function(a) {
+    a.addEventListener('click', function(e) { e.stopPropagation(); });
+  });
+
+  document.querySelectorAll('.lmn-carousel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); });
+  });
+
+  function lmnToggle(row) {
+    var artist = row.parentElement;
+    var isOpen = artist.classList.contains('is-open');
+    document.querySelectorAll('.lmn-artist.is-open').forEach(function(a) {
+      a.classList.remove('is-open');
+    });
+    if (!isOpen) {
+      artist.classList.add('is-open');
+      var carousel = artist.querySelector('.lmn-carousel');
+      carousel.dataset.index = 0;
+      var track = carousel.querySelector('.lmn-carousel-track');
+      track.style.transform = 'translateX(0)';
+      updateDots(carousel);
+    }
+  }
+</script>

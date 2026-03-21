@@ -1,0 +1,164 @@
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-hero {
+    position: relative;
+    width: 100%;
+    height: 65vh;
+    min-height: 420px;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+
+  .lmn-video-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #000;
+  }
+
+  .lmn-video-wrap iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 177.78vh;
+    height: 56.25vw;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translate(-50%, -50%);
+    border: none;
+    pointer-events: none;
+  }
+
+  .lmn-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.35) 0%,
+      rgba(0,0,0,0.2) 40%,
+      rgba(0,0,0,0.75) 100%
+    );
+    z-index: 1;
+  }
+
+  .lmn-hero-content {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .lmn-eyebrow {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.9);
+    display: block;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+
+  .lmn-hero-title {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: clamp(72px, 14vw, 160px);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f0ece4;
+    line-height: 1;
+    margin: 0 0 24px;
+  }
+
+  .lmn-hero-sub {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .lmn-hero-body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+    color: rgba(240,236,228,0.95);
+    max-width: 480px;
+    margin: 0;
+  }
+
+  .lmn-hero-body strong {
+    color: #f0ece4;
+    font-weight: 800;
+  }
+
+  .lmn-btn {
+    display: inline-block;
+    padding: 16px 36px;
+    border: 2px solid rgba(240,236,228,0.9);
+    color: #f0ece4;
+    text-decoration: none;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .lmn-btn:hover {
+    background: #f0ece4;
+    color: #111;
+    border-color: #f0ece4;
+  }
+
+  @media (max-width: 640px) {
+    .lmn-hero-content {
+      padding: 24px;
+      text-align: center;
+      align-items: center;
+    }
+    .lmn-hero-sub {
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+  }
+</style>
+
+<section class="lmn-hero">
+
+  <div class="lmn-video-wrap">
+    <iframe
+      src="https://player.vimeo.com/video/504577755?h=e06358d89d&autoplay=1&loop=1&muted=1&background=1&autopause=0"
+      allow="autoplay; fullscreen"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <div class="lmn-overlay"></div>
+
+  <div class="lmn-hero-content">
+    <span class="lmn-eyebrow">Welcome to the warehouse · Denver, CO</span>
+    <h1 class="lmn-hero-title">Lumenati</h1>
+    <div class="lmn-hero-sub">
+      <p class="lmn-hero-body">
+        A <strong>custom tattoo studio</strong> run by artists.
+        Book directly with your artist on Instagram or via email.
+        Walk-ins and flash welcome.
+      </p>
+      <a href="/book" class="lmn-btn">Book a Tattoo</a>
+    </div>
+  </div>
+
+</section>

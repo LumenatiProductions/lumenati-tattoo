@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════
+   LUMENATI TATTOO — GLOBAL CUSTOM CSS
+   Paste into: Design → Custom CSS
+   ═══════════════════════════════════════════════ */
+
+/* ── HEADER ───────────────────────────────────── */
+
+.header {
+  background: #0a0a0a !important;
+  border-bottom: 1px solid #1a1a1a !important;
+}
+
+.header-title-logo img,
+.header-title img {
+  filter: brightness(0) invert(1) !important;
+  max-height: 56px !important;
+}
+
+.header-nav-item a,
+.header-nav-folder-title {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,236,228,0.6) !important;
+  text-decoration: none !important;
+  transition: color 0.2s !important;
+}
+
+.header-nav-item a:hover {
+  color: #f0ece4 !important;
+}
+
+.header-burger-btn .header-burger-btn-bar {
+  background: #f0ece4 !important;
+}
+
+/* ── FOOTER ───────────────────────────────────── */
+
+.footer-sections,
+footer,
+.site-footer {
+  background: #0a0a0a !important;
+  border-top: 1px solid #1a1a1a !important;
+}
+
+.footer-sections p,
+.footer-sections a,
+footer p,
+footer a {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-size: 13px !important;
+  color: rgba(240,236,228,0.6) !important;
+  text-decoration: none !important;
+  line-height: 1.8 !important;
+  transition: color 0.2s !important;
+}
+
+.footer-sections a:hover,
+footer a:hover {
+  color: #f0ece4 !important;
+}
+
+/* Protect footer buttons */
+.lmn-footer-contact,
+.lmn-footer-ig {
+  color: #0a0a0a !important;
+  background: #f0ece4 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.lmn-footer-ig {
+  color: #f0ece4 !important;
+  background: transparent !important;
+}
+
+/* ── RAINBOW SCROLLBAR ────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    to bottom,
+    #e05c2a,
+    #d4a017,
+    #4a9e6b,
+    #4a7fc1,
+    #9b59b6,
+    #c0392b,
+    #e05c2a
+  );
+  border-radius: 2px;
+}

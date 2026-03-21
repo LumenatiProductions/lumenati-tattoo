@@ -1,0 +1,181 @@
+/* ═══════════════════════════════════════════════
+   LUMENATI TATTOO — Y2K GLOBAL CUSTOM CSS
+   Paste into: Design → Custom CSS
+   ═══════════════════════════════════════════════ */
+
+/* ── FONTS (also add to Code Injection > Header) ── */
+/* <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Space+Mono:wght@400;700&family=Luckiest+Guy&display=swap" rel="stylesheet"> */
+
+/* ── HEADER ───────────────────────────────────── */
+
+.header {
+  background: #0a0a0a !important;
+  border-bottom: 2px solid #222 !important;
+  border-image: linear-gradient(90deg, #FF1493, #7FFF00, #1493FF, #9b59b6, #FF1493) 1 !important;
+}
+
+.header-title-logo img,
+.header-title img {
+  filter: brightness(0) invert(1) !important;
+  max-height: 56px !important;
+}
+
+.header-nav-item a,
+.header-nav-folder-title {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 8px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,236,228,0.5) !important;
+  text-decoration: none !important;
+  transition: color 0.2s, text-shadow 0.2s !important;
+}
+
+.header-nav-item a:hover {
+  color: #FF1493 !important;
+  text-shadow: 0 0 8px rgba(255,20,147,0.4) !important;
+}
+
+.header-burger-btn .header-burger-btn-bar {
+  background: #FF1493 !important;
+}
+
+/* ── FOOTER ───────────────────────────────────── */
+
+.footer-sections,
+footer,
+.site-footer {
+  background: #0a0a0a !important;
+  border-top: 2px solid #222 !important;
+  border-image: linear-gradient(90deg, #FF1493, #7FFF00, #1493FF, #9b59b6, #FF1493) 1 !important;
+}
+
+.footer-sections p,
+.footer-sections a,
+footer p,
+footer a {
+  font-family: 'VT323', monospace !important;
+  font-size: 18px !important;
+  color: rgba(240,236,228,0.5) !important;
+  text-decoration: none !important;
+  line-height: 1.8 !important;
+  transition: color 0.2s !important;
+}
+
+.footer-sections a:hover,
+footer a:hover {
+  color: #FF1493 !important;
+  text-shadow: 0 0 6px rgba(255,20,147,0.3) !important;
+}
+
+/* Footer buttons — gel style */
+.lmn-footer-contact {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 9px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.08em !important;
+  color: #fff !important;
+  background: linear-gradient(180deg, rgba(255,20,147,0.9) 0%, rgba(200,0,100,1) 50%, rgba(255,20,147,0.9) 51%, rgba(255,105,180,0.7) 100%) !important;
+  border: 2px solid rgba(255,255,255,0.2) !important;
+  border-radius: 16px !important;
+  padding: 10px 20px !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+  box-shadow: 0 2px 8px rgba(255,20,147,0.3) !important;
+  transition: all 0.2s !important;
+}
+
+.lmn-footer-contact:hover {
+  box-shadow: 0 4px 16px rgba(255,20,147,0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+.lmn-footer-ig {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 9px !important;
+  color: #7FFF00 !important;
+  background: transparent !important;
+  border: 1px solid rgba(127,255,0,0.3) !important;
+  border-radius: 16px !important;
+  padding: 10px 20px !important;
+  text-shadow: 0 0 6px rgba(127,255,0,0.3) !important;
+  transition: all 0.2s !important;
+}
+
+.lmn-footer-ig:hover {
+  background: rgba(127,255,0,0.1) !important;
+  border-color: #7FFF00 !important;
+}
+
+/* ── Y2K SCROLLBAR ────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    to bottom,
+    #FF1493,
+    #7FFF00,
+    #1493FF,
+    #FF9966,
+    #9b59b6,
+    #FF1493
+  );
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: 0 0 6px rgba(255,20,147,0.5);
+}
+
+/* ── CURSOR SPARKLE (add to Code Injection > Footer) ── */
+/*
+<script type="module">
+  import { fairyDustCursor } from 'https://unpkg.com/cursor-effects@latest/dist/esm.js';
+  new fairyDustCursor({ colors: ['#FF1493', '#7FFF00', '#1493FF', '#FF9966'] });
+</script>
+*/
+
+/* ── GLOBAL BACKGROUND ────────────────────────── */
+
+body {
+  background: #0a0a0a !important;
+}
+
+/* ── SCANLINE OVERLAY ON ALL PAGES ────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
+  );
+}
+
+/* ── SELECTION COLOR ──────────────────────────── */
+::selection {
+  background: #FF1493;
+  color: #fff;
+}
+
+::-moz-selection {
+  background: #FF1493;
+  color: #fff;
+}
+
+/* ── LINK STYLES (global) ─────────────────────── */
+a {
+  transition: color 0.2s, text-shadow 0.2s !important;
+}

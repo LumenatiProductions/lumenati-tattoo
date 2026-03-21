@@ -1,0 +1,286 @@
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-ka {
+    position: relative;
+    width: 100%;
+    height: 80vh;
+    min-height: 480px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    border-top: 3px solid #FF1493;
+    border-bottom: 3px solid #FF1493;
+  }
+
+  /* Photo — VHS treated */
+  .lmn-ka-bg {
+    position: absolute;
+    inset: -5%;
+    background: url('https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2e7e5fa0-6bd2-48d0-b9bd-9a794f90ae5a/IMG_0686.jpeg?content-type=image%2Fjpeg') center 30% / cover no-repeat;
+    filter: brightness(0.5) saturate(1.3) contrast(1.1);
+    transition: transform 12s ease, filter 0.6s ease;
+  }
+
+  .lmn-ka:hover .lmn-ka-bg {
+    transform: scale(1.03);
+    filter: brightness(0.45) saturate(1.4) contrast(1.2);
+  }
+
+  /* Scanlines */
+  .lmn-ka-scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 1px,
+      rgba(0,0,0,0.2) 1px,
+      rgba(0,0,0,0.2) 3px
+    );
+  }
+
+  /* Noise texture */
+  .lmn-ka-noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.12;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    animation: ka-noise 0.5s steps(3) infinite;
+  }
+
+  @keyframes ka-noise {
+    0% { transform: translate(0,0); }
+    33% { transform: translate(-1px,1px); }
+    66% { transform: translate(1px,-1px); }
+    100% { transform: translate(0,0); }
+  }
+
+  /* Vignette */
+  .lmn-ka-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.6);
+  }
+
+  /* Content */
+  .lmn-ka-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding: 0 6vw;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* "DRINK THE" — pixel font, outlined */
+  .lmn-ka-line1 {
+    display: block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(14px, 3vw, 32px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7FFF00;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(127,255,0,0.5);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: kaSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+    margin-bottom: 12px;
+  }
+
+  /* "KOOL AID." — massive bubbly text */
+  .lmn-ka-line2-wrap {
+    position: relative;
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px) rotate(-2deg);
+    animation: kaPosterIn 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s forwards;
+    padding-bottom: 16px;
+  }
+
+  .lmn-ka-line2 {
+    display: block;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(64px, 14vw, 200px);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    background: linear-gradient(
+      180deg,
+      #ff8ec8 0%,
+      #ff1493 25%,
+      #ff1493 50%,
+      #d4007a 75%,
+      #a0005a 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    -webkit-text-stroke: 0;
+    filter:
+      drop-shadow(0 2px 0 rgba(150,0,70,0.9))
+      drop-shadow(0 4px 0 rgba(120,0,55,0.8))
+      drop-shadow(0 6px 0 rgba(90,0,40,0.6))
+      drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+  }
+
+  .lmn-ka-line2 .dot {
+    -webkit-text-fill-color: #7FFF00;
+    filter: drop-shadow(0 0 6px rgba(127,255,0,0.4));
+  }
+
+  /* Tape marks — like a poster taped to a wall */
+  .lmn-ka-tape {
+    position: absolute;
+    width: 48px;
+    height: 20px;
+    background: rgba(255,255,200,0.12);
+    border: 1px solid rgba(255,255,200,0.08);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .lmn-ka-tape.tl { top: -8px; left: 10%; transform: rotate(-8deg); }
+  .lmn-ka-tape.tr { top: -6px; right: 12%; transform: rotate(5deg); }
+  .lmn-ka-tape.bl { bottom: -8px; left: 15%; transform: rotate(3deg); }
+  .lmn-ka-tape.br { bottom: -6px; right: 8%; transform: rotate(-6deg); }
+
+  /* Sticker decorations */
+  .lmn-ka-stickers {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .lmn-ka-sticker {
+    position: absolute;
+    font-size: 24px;
+    opacity: 0.5;
+    animation: kaStickerIn 0.5s ease forwards;
+    animation-delay: 0.8s;
+    opacity: 0;
+  }
+
+  .lmn-ka-sticker:nth-child(1) { top: 15%; left: 6%; transform: rotate(-12deg); font-size: 28px; animation-delay: 0.9s; }
+  .lmn-ka-sticker:nth-child(2) { top: 20%; right: 8%; transform: rotate(8deg); font-size: 20px; animation-delay: 1.1s; }
+  .lmn-ka-sticker:nth-child(3) { bottom: 18%; left: 8%; transform: rotate(15deg); font-size: 22px; animation-delay: 1.3s; }
+  .lmn-ka-sticker:nth-child(4) { bottom: 25%; right: 6%; transform: rotate(-5deg); font-size: 26px; animation-delay: 1s; }
+  .lmn-ka-sticker:nth-child(5) { top: 35%; left: 3%; transform: rotate(-20deg); font-size: 18px; animation-delay: 1.2s; }
+  .lmn-ka-sticker:nth-child(6) { bottom: 35%; right: 4%; transform: rotate(12deg); font-size: 16px; animation-delay: 1.4s; }
+
+  @keyframes kaStickerIn {
+    0% { opacity: 0; transform: scale(0.5) rotate(var(--r, 0deg)); }
+    100% { opacity: 0.4; transform: scale(1) rotate(var(--r, 0deg)); }
+  }
+
+  /* Bottom metadata */
+  .lmn-ka-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 28px;
+    opacity: 0;
+    animation: kaFadeIn 0.6s ease 0.8s forwards;
+  }
+
+  .lmn-ka-meta-line {
+    height: 1px;
+    width: 40px;
+    background: rgba(240,236,228,0.2);
+    flex-shrink: 0;
+  }
+
+  .lmn-ka-meta-text {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.3);
+  }
+
+  /* Corner tag — like a magazine page number */
+  .lmn-ka-corner {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    z-index: 3;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: rgba(240,236,228,0.12);
+    letter-spacing: 0.1em;
+    opacity: 0;
+    animation: kaFadeIn 1s ease 1.2s forwards;
+  }
+
+  @keyframes kaSlideUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes kaPosterIn {
+    to { opacity: 1; transform: translateY(0) rotate(-2deg); }
+  }
+
+  @keyframes kaFadeIn {
+    to { opacity: 1; }
+  }
+
+  @media (max-width: 640px) {
+    .lmn-ka { height: 60vh; min-height: 360px; }
+    .lmn-ka-sticker { display: none; }
+    .lmn-ka-tape { display: none; }
+    .lmn-ka-corner { display: none; }
+    .lmn-ka-line2 { -webkit-text-stroke: 1.5px rgba(100,0,50,0.4); }
+  }
+</style>
+
+<section class="lmn-ka">
+  <div class="lmn-ka-bg"></div>
+  <div class="lmn-ka-scanlines"></div>
+  <div class="lmn-ka-noise"></div>
+  <div class="lmn-ka-vignette"></div>
+
+  <!-- Tape marks -->
+  <div class="lmn-ka-tape tl"></div>
+  <div class="lmn-ka-tape tr"></div>
+  <div class="lmn-ka-tape bl"></div>
+  <div class="lmn-ka-tape br"></div>
+
+  <!-- Sticker deco -->
+  <div class="lmn-ka-stickers">
+    <span class="lmn-ka-sticker">⚡</span>
+    <span class="lmn-ka-sticker">✦</span>
+    <span class="lmn-ka-sticker">☠</span>
+    <span class="lmn-ka-sticker">💀</span>
+    <span class="lmn-ka-sticker">🔥</span>
+    <span class="lmn-ka-sticker">✦</span>
+  </div>
+
+  <div class="lmn-ka-content">
+    <span class="lmn-ka-line1">Drink the</span>
+    <div class="lmn-ka-line2-wrap">
+      <span class="lmn-ka-line2">Kool Aid<span class="dot">.</span></span>
+    </div>
+    <div class="lmn-ka-meta">
+      <div class="lmn-ka-meta-line"></div>
+      <span class="lmn-ka-meta-text">est. 2020 · Denver, CO</span>
+      <div class="lmn-ka-meta-line"></div>
+    </div>
+  </div>
+
+  <div class="lmn-ka-corner">pg. 03</div>
+</section>

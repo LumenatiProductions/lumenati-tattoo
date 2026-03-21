@@ -1,0 +1,174 @@
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-ka {
+    position: relative;
+    width: 100%;
+    height: 80vh;
+    min-height: 480px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+  }
+
+  /* Photo */
+  .lmn-ka-bg {
+    position: absolute;
+    inset: -5%;
+    background: url('https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2e7e5fa0-6bd2-48d0-b9bd-9a794f90ae5a/IMG_0686.jpeg?content-type=image%2Fjpeg') center 30% / cover no-repeat;
+    filter: brightness(0.35) saturate(0.5);
+    transition: transform 12s ease, filter 0.6s ease;
+  }
+
+  .lmn-ka:hover .lmn-ka-bg {
+    transform: scale(1.03);
+    filter: brightness(0.28) saturate(0.4);
+  }
+
+  /* Noise texture */
+  .lmn-ka-noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+  }
+
+  /* Diagonal gradient sweep */
+  .lmn-ka-sweep {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      115deg,
+      rgba(0,0,0,0.6) 0%,
+      rgba(0,0,0,0) 50%,
+      rgba(0,0,0,0.5) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* Content */
+  .lmn-ka-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding: 0 6vw;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* "DRINK THE" — outlined, smaller */
+  .lmn-ka-line1 {
+    display: block;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: clamp(28px, 5.5vw, 78px);
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(240,236,228,0.55);
+    line-height: 1;
+    opacity: 0;
+    transform: translateX(-40px);
+    animation: lmnSlideIn 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+  }
+
+  /* "KOOL AID." — massive, solid fill */
+  .lmn-ka-line2 {
+    display: block;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: clamp(68px, 14vw, 200px);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: #f0ece4;
+    line-height: 0.85;
+    opacity: 0;
+    transform: translateX(-40px);
+    animation: lmnSlideIn 0.7s cubic-bezier(0.16,1,0.3,1) 0.25s forwards;
+    text-shadow: 0 2px 80px rgba(0,0,0,0.6);
+  }
+
+  /* Period matches rest of text */
+  .lmn-ka-line2 .dot {
+    color: #f0ece4;
+  }
+
+  /* Bottom metadata row */
+  .lmn-ka-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+    opacity: 0;
+    animation: lmnFadeIn 0.6s ease 0.7s forwards;
+  }
+
+  .lmn-ka-meta-line {
+    height: 1px;
+    width: 48px;
+    background: rgba(240,236,228,0.3);
+    flex-shrink: 0;
+  }
+
+  .lmn-ka-meta-text {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.4);
+  }
+
+  /* Vertical text on right edge */
+  .lmn-ka-vertical {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    transform-origin: center;
+    z-index: 2;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.18);
+    white-space: nowrap;
+    opacity: 0;
+    animation: lmnFadeIn 1s ease 1s forwards;
+  }
+
+  @keyframes lmnSlideIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes lmnFadeIn {
+    to { opacity: 1; }
+  }
+
+  @media (max-width: 640px) {
+    .lmn-ka { height: 60vh; min-height: 360px; }
+    .lmn-ka-line1 { -webkit-text-stroke: 1px rgba(240,236,228,0.55); }
+    .lmn-ka-vertical { display: none; }
+    .lmn-ka-meta { margin-top: 20px; }
+  }
+</style>
+
+<section class="lmn-ka">
+  <div class="lmn-ka-bg"></div>
+  <div class="lmn-ka-noise"></div>
+  <div class="lmn-ka-sweep"></div>
+
+  <div class="lmn-ka-content">
+    <span class="lmn-ka-line1">Drink the</span>
+    <span class="lmn-ka-line2">Kool Aid<span class="dot">.</span></span>
+  </div>
+</section>
