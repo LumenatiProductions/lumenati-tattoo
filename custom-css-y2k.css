@@ -134,12 +134,14 @@ footer a:hover {
   box-shadow: 0 0 6px rgba(255,20,147,0.5);
 }
 
-/* ── CURSOR SPARKLE (add to Code Injection > Footer) ── */
-/*
+/* ── CURSOR SPARKLE ── */
+/* Add this to Code Injection > Footer:
+
 <script type="module">
   import { fairyDustCursor } from 'https://unpkg.com/cursor-effects@latest/dist/esm.js';
   new fairyDustCursor({ colors: ['#FF1493', '#7FFF00', '#1493FF', '#FF9966'] });
 </script>
+
 */
 
 /* ── GLOBAL BACKGROUND ────────────────────────── */

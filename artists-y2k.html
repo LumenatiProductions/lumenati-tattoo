@@ -155,11 +155,35 @@
     object-fit: cover;
     object-position: center 20%;
     display: block;
-    transition: transform 0.5s ease;
+    transition: transform 0.5s ease, filter 0.3s ease;
+    filter: saturate(1.4) contrast(1.15) brightness(0.95) sepia(0.15);
+  }
+
+  /* Scanline + vignette overlay on photos */
+  .lmn-artist-img-wrap {
+    position: relative;
+  }
+
+  .lmn-artist-img-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        rgba(0,0,0,0.1) 1px,
+        rgba(0,0,0,0.1) 2px
+      );
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+    pointer-events: none;
+    mix-blend-mode: multiply;
   }
 
   .lmn-win-content:hover .lmn-artist-img-wrap img {
     transform: scale(1.05);
+    filter: saturate(1.6) contrast(1.2) brightness(1) sepia(0.1);
   }
 
   /* ── Artist info ── */
@@ -378,6 +402,7 @@
 
     .lmn-artist-img-wrap { width: 80px; }
     .lmn-artist-img-wrap img { object-position: center center; }
+    .lmn-artist[data-color="0"] .lmn-artist-img-wrap img { object-position: calc(50% + 25px) center; }
 
     .lmn-artist-info { padding: 12px; gap: 8px; }
     .lmn-artist-name { font-size: clamp(20px, 5vw, 32px); white-space: normal; }

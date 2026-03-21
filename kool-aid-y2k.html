@@ -169,23 +169,8 @@
 
   .lmn-ka-sticker {
     position: absolute;
-    font-size: 24px;
-    opacity: 0.5;
-    animation: kaStickerIn 0.5s ease forwards;
-    animation-delay: 0.8s;
-    opacity: 0;
-  }
-
-  .lmn-ka-sticker:nth-child(1) { top: 15%; left: 6%; transform: rotate(-12deg); font-size: 28px; animation-delay: 0.9s; }
-  .lmn-ka-sticker:nth-child(2) { top: 20%; right: 8%; transform: rotate(8deg); font-size: 20px; animation-delay: 1.1s; }
-  .lmn-ka-sticker:nth-child(3) { bottom: 18%; left: 8%; transform: rotate(15deg); font-size: 22px; animation-delay: 1.3s; }
-  .lmn-ka-sticker:nth-child(4) { bottom: 25%; right: 6%; transform: rotate(-5deg); font-size: 26px; animation-delay: 1s; }
-  .lmn-ka-sticker:nth-child(5) { top: 35%; left: 3%; transform: rotate(-20deg); font-size: 18px; animation-delay: 1.2s; }
-  .lmn-ka-sticker:nth-child(6) { bottom: 35%; right: 4%; transform: rotate(12deg); font-size: 16px; animation-delay: 1.4s; }
-
-  @keyframes kaStickerIn {
-    0% { opacity: 0; transform: scale(0.5) rotate(var(--r, 0deg)); }
-    100% { opacity: 0.4; transform: scale(1) rotate(var(--r, 0deg)); }
+    opacity: 0.85;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.5));
   }
 
   /* Bottom metadata */
@@ -262,12 +247,14 @@
 
   <!-- Sticker deco -->
   <div class="lmn-ka-stickers">
-    <span class="lmn-ka-sticker">⚡</span>
-    <span class="lmn-ka-sticker">✦</span>
-    <span class="lmn-ka-sticker">☠</span>
-    <span class="lmn-ka-sticker">💀</span>
-    <span class="lmn-ka-sticker">🔥</span>
-    <span class="lmn-ka-sticker">✦</span>
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/aee321d1-09a4-468b-9d2a-d1ed38a0e51e/tongue.png?content-type=image%2Fpng" style="top:8%;left:4%;transform:rotate(-12deg);width:120px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/19e1b047-e9bf-4f59-922e-fba7f71e4f5a/8ball.png?content-type=image%2Fpng" style="top:15%;right:5%;transform:rotate(10deg);width:95px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2b01b762-c199-44b6-91d6-768fccba94b8/dice.png?content-type=image%2Fpng" style="bottom:15%;left:6%;transform:rotate(15deg);width:100px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/eba1fff5-91e6-4689-a7ed-b8bb61081424/popcicle.png?content-type=image%2Fpng" style="bottom:18%;right:4%;transform:rotate(-8deg);width:105px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/66407d19-b027-4e99-b15c-0bccb5b7a7b2/skateboard.png?content-type=image%2Fpng" style="top:32%;left:2%;transform:rotate(-22deg);width:110px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b901f345-749c-4049-8ee3-666050256ce4/rainbow.png?content-type=image%2Fpng" style="bottom:28%;right:2%;transform:rotate(14deg);width:115px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2d3e8467-385f-4fa2-b19e-35ab608790dc/heartlock.png?content-type=image%2Fpng" style="top:25%;right:18%;transform:rotate(-6deg);width:80px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/5e14ffdd-6e10-4602-b439-5c288fa74652/bow.png?content-type=image%2Fpng" style="bottom:35%;left:15%;transform:rotate(18deg);width:90px">
   </div>
 
   <div class="lmn-ka-content">
