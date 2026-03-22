@@ -146,9 +146,25 @@
   // Playlist — add more songs here
   var playlist=[
     {title:'The Offspring -- The Kids Aren\'t Alright (1998)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/kids-arent-alright.m4a'},
-    {title:'Goldfinger -- Superman (1996)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/goldfinger-superman.m4a'}
+    {title:'Goldfinger -- Superman (1996)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/goldfinger-superman.m4a'},
+    {title:'No Doubt -- Just a Girl (1995)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/no-doubt-just-a-girl.m4a'},
+    {title:'A Day to Remember -- You Should Have Killed Me When You Had the Chance',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/shorty-track.m4a'},
+    {title:'Outkast -- Ms. Jackson (2000)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/outkast-ms-jackson.m4a'},
+    {title:'Blink-182 -- Mutt (1999)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/blink182-mutt.m4a'},
+    {title:'Marilyn Manson -- The Dope Show (1998)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/manson-dope-show.m4a'}
   ];
-  var currentTrack=Math.floor(Math.random()*playlist.length);
+  // Map page paths to preferred starting track index
+  var pageTrackMap={
+    '/jd-pruitt':1,           // Goldfinger
+    '/electric-elaine':2,     // No Doubt
+    '/shorty':3,              // A Day to Remember
+    '/king-kalypso':4,        // Outkast
+    '/sam-durbin-clark':5,    // Blink-182
+    '/moonie-b-jones':6       // Marilyn Manson
+  };
+
+  var path=window.location.pathname.replace(/\/$/,'');
+  var currentTrack=(path in pageTrackMap)?pageTrackMap[path]:Math.floor(Math.random()*playlist.length);
 
   function loadTrack(i){
     currentTrack=i;
@@ -168,7 +184,7 @@
     if(isPlaying)doPlay();
   }
 
-  // Load random track on start
+  // Load track — artist room starts with their song, homepage is random
   loadTrack(currentTrack);
 
   function formatTime(s){if(isNaN(s))return'00:00';var m=Math.floor(s/60),sec=Math.floor(s%60);return(m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;}

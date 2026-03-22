@@ -447,7 +447,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 3px 4px;
-    background: linear-gradient(180deg, #FF1493 0%, #c8006e 100%);
+    background: linear-gradient(180deg, var(--lb-color, #FF1493) 0%, color-mix(in srgb, var(--lb-color, #FF1493) 60%, #000) 100%);
     height: 24px;
   }
 
@@ -565,10 +565,10 @@
 
   .lmn-now-playing-track span {
     font-family: 'VT323', monospace;
-    font-size: 10px;
+    font-size: 16px;
     color: #7FFF00;
     white-space: nowrap;
-    text-shadow: 0 0 4px rgba(127,255,0,0.5);
+    text-shadow: 0 0 6px rgba(127,255,0,0.5);
     letter-spacing: 0.05em;
   }
 
@@ -580,7 +580,7 @@
   /* Mobile adjustments */
   @media (max-width: 640px) {
     .lmn-now-playing { max-width: 140px; }
-    .lmn-now-playing-track span { font-size: 9px; }
+    .lmn-now-playing-track span { font-size: 13px; }
   }
 </style>
 
@@ -668,7 +668,7 @@
           <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; No Doubt -- Just a Girl</span><span>&gt; No Doubt -- Just a Girl</span></div></div>
         </div>
         <div class="lmn-artist-meta">
-          <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Elaine&#39;s room &gt;&gt;</a>
+          <a class="lmn-artist-room" href="/electric-elaine" onclick="event.stopPropagation()">Hang out in Elaine&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
         </div>
       </div>
@@ -719,10 +719,10 @@
       <div class="lmn-artist-info">
         <div class="lmn-name-group">
           <span class="lmn-artist-name">ShorTy</span>
-          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Sublime -- Santeria</span><span>&gt; Sublime -- Santeria</span></div></div>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; A Day to Remember -- YSHKMWYHC</span><span>&gt; A Day to Remember -- YSHKMWYHC</span></div></div>
         </div>
         <div class="lmn-artist-meta">
-          <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in ShorTy&#39;s room &gt;&gt;</a>
+          <a class="lmn-artist-room" href="/shorty" onclick="event.stopPropagation()">Hang out in ShorTy&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
         </div>
       </div>
@@ -774,7 +774,7 @@
           <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Outkast -- Ms. Jackson</span><span>&gt; Outkast -- Ms. Jackson</span></div></div>
         </div>
         <div class="lmn-artist-meta">
-          <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Kalypso&#39;s room &gt;&gt;</a>
+          <a class="lmn-artist-room" href="/king-kalypso" onclick="event.stopPropagation()">Hang out in Kalypso&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
         </div>
       </div>
@@ -823,10 +823,10 @@
       <div class="lmn-artist-info">
         <div class="lmn-name-group">
           <span class="lmn-artist-name">Sam Durbin-Clark</span>
-          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Blink-182 -- All the Small Things</span><span>&gt; Blink-182 -- All the Small Things</span></div></div>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Blink-182 -- Mutt</span><span>&gt; Blink-182 -- Mutt</span></div></div>
         </div>
         <div class="lmn-artist-meta">
-          <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Sam&#39;s room &gt;&gt;</a>
+          <a class="lmn-artist-room" href="/sam-durbin-clark" onclick="event.stopPropagation()">Hang out in Sam&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
         </div>
       </div>
@@ -875,10 +875,10 @@
       <div class="lmn-artist-info">
         <div class="lmn-name-group">
           <span class="lmn-artist-name">Moonie B. Jones</span>
-          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Fiona Apple -- Criminal</span><span>&gt; Fiona Apple -- Criminal</span></div></div>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Marilyn Manson -- The Dope Show</span><span>&gt; Marilyn Manson -- The Dope Show</span></div></div>
         </div>
         <div class="lmn-artist-meta">
-          <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Moonie&#39;s room &gt;&gt;</a>
+          <a class="lmn-artist-room" href="/moonie-b-jones" onclick="event.stopPropagation()">Hang out in Moonie&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
         </div>
       </div>
@@ -1039,6 +1039,9 @@
 
       e.stopPropagation();
       var carousel = slide.closest('.lmn-carousel');
+      var artist = slide.closest('.lmn-artist');
+      var accent = getComputedStyle(artist).getPropertyValue('--accent').trim();
+      lightbox.style.setProperty('--lb-color', accent);
       var allSlides = carousel.querySelectorAll('.lmn-carousel-slide');
       var idx = Array.prototype.indexOf.call(allSlides, slide);
       openLightbox(carousel, idx);
