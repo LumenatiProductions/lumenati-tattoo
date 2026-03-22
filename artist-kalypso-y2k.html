@@ -4,9 +4,9 @@
 <style>
   .construction-banner {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 9998;
     background: repeating-linear-gradient(
       -45deg,
@@ -15,23 +15,27 @@
       #000 20px,
       #000 40px
     );
-    padding: 4px 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    padding: 6px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    max-width: 90vw;
   }
 
   .construction-inner {
-    background: #000;
-    padding: 12px 20px;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 32px 40px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 16px;
-    flex-wrap: wrap;
+    text-align: center;
   }
 
   .construction-text {
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
+    font-size: 14px;
     color: #FFD700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -45,12 +49,9 @@
 
   .construction-sub {
     font-family: 'VT323', monospace;
-    font-size: 16px;
+    font-size: 22px;
     color: rgba(255,255,255,0.5);
   }
-
-  /* Push page content down so banner doesn't cover it */
-  .bedroom { padding-top: 70px !important; }
 
   @media (max-width: 640px) {
     .construction-text { font-size: 8px; }
