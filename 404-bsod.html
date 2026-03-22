@@ -1,0 +1,93 @@
+<!-- BSOD 404 Page — paste into a Code Block on your Squarespace 404 page -->
+<style>
+  *, *::before, *::after {
+    margin: 0; padding: 0; box-sizing: border-box;
+    border: none; outline: none; background: none;
+    font-family: inherit; font-size: inherit; color: inherit;
+    text-decoration: none; list-style: none;
+  }
+
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #0000AA !important; color: #FFFFFF !important;
+    font-family: "Lucida Console", "Courier New", monospace !important;
+    font-size: 16px; line-height: 1.4; cursor: default;
+    -webkit-font-smoothing: none;
+  }
+
+  header, footer, nav, .header, .footer, #header, #footer,
+  [data-section-id], .sqs-layout { display: none !important; }
+
+  .bsod {
+    position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #0000AA !important; color: #FFFFFF !important;
+    font-family: "Lucida Console", "Courier New", monospace !important;
+    font-size: 16px; line-height: 1.4;
+    padding: 4vh 4vw; z-index: 999999;
+    display: flex; flex-direction: column;
+    justify-content: flex-start; overflow: hidden; user-select: none;
+  }
+
+  .bsod-title {
+    background: #AAAAAA; color: #0000AA;
+    display: inline-block; padding: 2px 8px;
+    font-weight: bold; margin-bottom: 2em;
+    align-self: center; letter-spacing: 1px;
+  }
+
+  .bsod-body { white-space: pre-wrap; word-wrap: break-word; }
+  .bsod-body p { margin-bottom: 1.4em; }
+  .indent { padding-left: 3ch; }
+  .blink { animation: blink-cursor 1s step-end infinite; }
+  @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  @media (max-width: 600px) {
+    .bsod { font-size: 12px; padding: 3vh 3vw; }
+  }
+</style>
+
+<div class="bsod" id="bsod">
+  <span class="bsod-title">&nbsp;Lumenati Tattoo&nbsp;</span>
+  <div class="bsod-body">
+<p>A fatal exception 0E has occurred at 0028:C0034B03 in
+VXD TATTOO_NOT_FOUND(04) + 00001B03. The current page will
+be terminated.</p>
+
+<p>*  The page you are looking for is not available or has been moved.
+*  All unsaved tattoo ideas have been lost to the void.
+*  Your appointment is probably still fine though.</p>
+
+<p class="indent">NEEDLE_DRIVER_IRQL_NOT_LESS_OR_EQUAL
+INK_OVERFLOW_ERROR at 0x00000FFF
+STENCIL_BUFFER_UNDERRUN in module SKIN32.DLL
+TATTOO_NOT_FOUND - Error code: 0x00000404</p>
+
+<p>Beginning memory dump of tattoo flash drive...</p>
+
+<p class="indent">Physical memory dump: sector 0x0F04
+*** STOP: 0x0000000E (0xC0034B03, 0x00000000, 0x00000404)
+*** INK_CARTRIDGE_EMPTY - Address 0xBAADF00D
+*** BUZZING_INTENSIFIES at DERMIS.SYS offset +0x1337
+*** APPOINTMENT_SCHEDULER has performed an illegal operation
+Loading symbols for FLASH_SHEET.DRV ............ done
+Loading symbols for AFTERCARE_INSTRUCTIONS.SYS . done
+Loading symbols for CLIENT_REFERENCE_PICS.DLL .. failed
+Dumping physical memory to disk: [||||||||||||||||||] 100%</p>
+
+<p>Press any key to return home, or
+Press CTRL+ALT+DEL to restart your browser.
+
+<span class="blink">_</span></p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("keydown", function(e) {
+    if (e.ctrlKey && e.altKey && e.key === "Delete") return;
+    window.location.href = "/";
+  });
+  document.addEventListener("click", function() { window.location.href = "/"; });
+  document.addEventListener("wheel", function(e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchmove", function(e) { e.preventDefault(); }, { passive: false });
+</script>
