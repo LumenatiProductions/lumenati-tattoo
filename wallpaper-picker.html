@@ -1,0 +1,409 @@
+<!-- ── WALLPAPER PICKER — Win98 Display Properties ── -->
+<!-- Self-contained component. Include on any artist bedroom page. -->
+<!-- Targets elements matching [class*="-bedroom"] or .bedroom -->
+
+<style>
+  /* ── Desktop Icon ── */
+  .wp-desktop-icon {
+    position: fixed;
+    bottom: 60px;
+    right: 16px;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+
+  .wp-desktop-icon:hover {
+    background: rgba(0,0,128,0.25);
+    border: 1px dotted #fff;
+  }
+
+  .wp-desktop-icon:active {
+    background: rgba(0,0,128,0.4);
+  }
+
+  .wp-desktop-icon-img {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+  }
+
+  .wp-desktop-icon-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* ── Display Properties Window ── */
+  .wp-window {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    width: 210px;
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.35);
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .wp-window.open {
+    display: block;
+  }
+
+  /* ── Titlebar ── */
+  .wp-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #0a246a 0%, #3a6ea5 100%);
+    height: 24px;
+    cursor: default;
+  }
+
+  .wp-titlebar-text {
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .wp-titlebar-close {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .wp-titlebar-close:active {
+    border-color: #404040 #fff #fff #404040;
+  }
+
+  /* ── Body ── */
+  .wp-body {
+    padding: 10px 12px;
+  }
+
+  .wp-label {
+    font-size: 11px;
+    color: #000;
+    margin-bottom: 6px;
+  }
+
+  /* ── Preview monitor ── */
+  .wp-preview {
+    width: 100%;
+    height: 60px;
+    border: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wp-preview-screen {
+    width: 80%;
+    height: 42px;
+    border: 1px solid #404040;
+    transition: background 0.15s;
+  }
+
+  /* ── Swatch Grid ── */
+  .wp-swatches {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .wp-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s;
+  }
+
+  .wp-swatch:hover {
+    transform: scale(1.15);
+    z-index: 1;
+  }
+
+  .wp-swatch.selected {
+    border-color: #000 #000 #000 #000;
+    outline: 1px solid #fff;
+    outline-offset: -3px;
+  }
+
+  /* ── Buttons ── */
+  .wp-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  .wp-btn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    padding: 2px 12px;
+    min-width: 60px;
+    background: linear-gradient(180deg, #ece9d8 0%, #d4d0c8 100%);
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    cursor: pointer;
+    color: #000;
+    text-align: center;
+  }
+
+  .wp-btn:active {
+    border-color: #808080 #fff #fff #808080;
+    padding: 3px 11px 1px 13px;
+  }
+
+  .wp-btn:focus {
+    outline: 1px dotted #000;
+    outline-offset: -4px;
+  }
+</style>
+
+<!-- Desktop Icon -->
+<div class="wp-desktop-icon" onclick="wpOpen()">
+  <!-- 32x32 monitor icon as inline SVG -->
+  <svg class="wp-desktop-icon-img" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="26" height="19" rx="1" fill="#c0c0c0" stroke="#808080" stroke-width="1"/>
+    <rect x="5" y="5" width="22" height="15" fill="#008080"/>
+    <rect x="13" y="22" width="6" height="3" fill="#c0c0c0"/>
+    <rect x="9" y="25" width="14" height="2" rx="1" fill="#808080"/>
+    <rect x="6" y="6" width="3" height="3" fill="none" stroke="#fff" stroke-width="0.5"/>
+    <rect x="6" y="11" width="3" height="3" fill="none" stroke="#fff" stroke-width="0.5"/>
+  </svg>
+  <span class="wp-desktop-icon-label">Display</span>
+</div>
+
+<!-- Display Properties Window -->
+<div class="wp-window" id="wpWindow">
+  <div class="wp-titlebar" id="wpTitlebar">
+    <span class="wp-titlebar-text">Display Properties</span>
+    <button class="wp-titlebar-close" onclick="wpClose()">x</button>
+  </div>
+  <div class="wp-body">
+    <div class="wp-label">Desktop wallpaper:</div>
+    <div class="wp-preview">
+      <div class="wp-preview-screen" id="wpPreview"></div>
+    </div>
+    <div class="wp-label">Color:</div>
+    <div class="wp-swatches" id="wpSwatches"></div>
+    <div class="wp-buttons">
+      <button class="wp-btn" onclick="wpOk()">OK</button>
+      <button class="wp-btn" onclick="wpCancel()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ── Find the bedroom element ──
+  function getBedroom() {
+    return document.querySelector('[class*="-bedroom"]') || document.querySelector('.bedroom');
+  }
+
+  // ── Detect the artist's original background color ──
+  function getOriginalColor() {
+    var el = getBedroom();
+    if (!el) return '#008080';
+    var bg = getComputedStyle(el).backgroundColor;
+    // If it's a gradient, grab from inline/stylesheet
+    var raw = el.style.background || getComputedStyle(el).background || '';
+    // Try to extract first hex color from raw
+    var match = raw.match(/#[0-9a-fA-F]{3,8}/);
+    if (match) return match[0];
+    // Convert rgb to hex
+    var rgbMatch = bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      return '#' + [rgbMatch[1], rgbMatch[2], rgbMatch[3]].map(function(c) {
+        return parseInt(c).toString(16).padStart(2, '0');
+      }).join('');
+    }
+    return '#008080';
+  }
+
+  var originalBg = null; // set on first open
+  var savedColor = null; // color before opening (for cancel)
+  var currentColor = null;
+
+  // ── Color palette ──
+  var colors = []; // built on init
+
+  function buildColors() {
+    var artist = getOriginalColor();
+    colors = [
+      { hex: artist, label: 'Original' },
+      { hex: '#008080', label: 'Teal' },
+      { hex: '#000080', label: 'Navy' },
+      { hex: '#800080', label: 'Purple' },
+      { hex: '#008000', label: 'Forest' },
+      { hex: '#FF1493', label: 'Hot Pink' },
+      { hex: '#7FFF00', label: 'Lime' },
+      { hex: '#1493FF', label: 'Elec Blue' },
+      { hex: '#0a0a0a', label: 'Black' }
+    ];
+    // De-duplicate if artist color matches one of the presets
+    var seen = {};
+    colors = colors.filter(function(c) {
+      var key = c.hex.toLowerCase();
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  }
+
+  // ── Storage key (per-page) ──
+  function storageKey() {
+    return 'wp-color-' + location.pathname;
+  }
+
+  // ── Apply color to bedroom ──
+  function applyColor(hex) {
+    var el = getBedroom();
+    if (!el) return;
+    el.style.background = hex;
+  }
+
+  // ── Render swatches ──
+  function renderSwatches() {
+    var container = document.getElementById('wpSwatches');
+    container.innerHTML = '';
+    colors.forEach(function(c, i) {
+      var div = document.createElement('div');
+      div.className = 'wp-swatch';
+      if (currentColor && currentColor.toLowerCase() === c.hex.toLowerCase()) {
+        div.classList.add('selected');
+      }
+      div.style.background = c.hex;
+      div.title = c.label;
+      div.setAttribute('data-color', c.hex);
+      div.addEventListener('click', function() {
+        currentColor = c.hex;
+        applyColor(c.hex);
+        updatePreview();
+        // Update selected state
+        container.querySelectorAll('.wp-swatch').forEach(function(s) {
+          s.classList.toggle('selected', s.getAttribute('data-color') === c.hex);
+        });
+      });
+      container.appendChild(div);
+    });
+  }
+
+  function updatePreview() {
+    var preview = document.getElementById('wpPreview');
+    if (preview) preview.style.background = currentColor || '#008080';
+  }
+
+  // ── Drag support ──
+  var isDragging = false, dragOffX = 0, dragOffY = 0;
+  function initDrag() {
+    var bar = document.getElementById('wpTitlebar');
+    var win = document.getElementById('wpWindow');
+    bar.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.wp-titlebar-close')) return;
+      isDragging = true;
+      var rect = win.getBoundingClientRect();
+      dragOffX = e.clientX - rect.left;
+      dragOffY = e.clientY - rect.top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      win.style.left = (e.clientX - dragOffX) + 'px';
+      win.style.top = (e.clientY - dragOffY) + 'px';
+      win.style.transform = 'none';
+    });
+    document.addEventListener('mouseup', function() {
+      isDragging = false;
+    });
+  }
+
+  // ── Public API ──
+  window.wpOpen = function() {
+    buildColors();
+    savedColor = currentColor || localStorage.getItem(storageKey()) || colors[0].hex;
+    currentColor = savedColor;
+    updatePreview();
+    renderSwatches();
+    var win = document.getElementById('wpWindow');
+    // Reset position to center
+    win.style.left = '50%';
+    win.style.top = '50%';
+    win.style.transform = 'translate(-50%, -50%)';
+    win.classList.add('open');
+  };
+
+  window.wpClose = function() {
+    document.getElementById('wpWindow').classList.remove('open');
+  };
+
+  window.wpOk = function() {
+    if (currentColor) {
+      localStorage.setItem(storageKey(), currentColor);
+    }
+    wpClose();
+  };
+
+  window.wpCancel = function() {
+    if (savedColor) {
+      currentColor = savedColor;
+      applyColor(savedColor);
+    }
+    wpClose();
+  };
+
+  // ── Init: restore saved color on page load ──
+  function init() {
+    var saved = localStorage.getItem(storageKey());
+    if (saved) {
+      currentColor = saved;
+      applyColor(saved);
+    }
+    initDrag();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
