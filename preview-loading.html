@@ -1,0 +1,382 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumenati – Loading Screen Preview</title>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; min-height: 100vh; }</style>
+</head>
+<body>
+<!-- AOL Dial-Up Loading Screen — Paste into Squarespace Code Injection (Footer) -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+  #aol-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #000044;
+    z-index: 9999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: 'VT323', 'Courier New', monospace;
+    transition: opacity 0.8s ease;
+    opacity: 1;
+  }
+  #aol-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #aol-dialog {
+    background: #c0c0c0;
+    border: 3px outset #ffffff;
+    box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080, 4px 4px 0 rgba(0,0,0,0.4);
+    width: 460px;
+    max-width: 90vw;
+    padding: 0;
+    position: relative;
+  }
+
+  #aol-titlebar {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    color: #ffffff;
+    padding: 4px 8px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  #aol-titlebar span { font-weight: bold; letter-spacing: 1px; }
+
+  #aol-body { padding: 20px 24px 24px; }
+
+  #aol-logo { text-align: center; margin-bottom: 12px; }
+  #aol-logo .logo-text {
+    font-size: 48px; color: #000080;
+    font-weight: bold; letter-spacing: 3px; line-height: 1;
+  }
+  #aol-logo .logo-sub { font-size: 14px; color: #444; margin-top: 2px; }
+  #aol-logo .triangle { font-size: 56px; line-height: 1; display: block; color: #0055aa; }
+
+  #aol-steps { margin: 16px 0; min-height: 130px; }
+
+  .aol-step {
+    font-size: 20px; color: #222;
+    margin: 6px 0; opacity: 0;
+    transition: opacity 0.3s ease;
+    overflow: hidden;
+  }
+  .aol-step.visible { opacity: 1; }
+  .aol-step.done { color: #006600; }
+  .aol-step .check { margin-right: 4px; }
+  .aol-step.active { color: #000; }
+
+  .modem-noise {
+    font-size: 15px; color: #888;
+    display: block; margin: 2px 0 2px 24px;
+    letter-spacing: 2px; overflow: hidden;
+  }
+
+  #aol-progress-wrap {
+    background: #ffffff;
+    border: 2px inset #808080;
+    height: 22px; margin-top: 14px;
+    position: relative; overflow: hidden;
+  }
+  #aol-progress-bar {
+    background: linear-gradient(90deg, #0000aa, #0066cc, #0088ff);
+    height: 100%; width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  #aol-skip {
+    position: fixed; bottom: 20px; right: 20px;
+    color: rgba(255,255,255,0.4); font-family: 'VT323', monospace;
+    font-size: 20px; cursor: pointer;
+    text-decoration: underline; background: none;
+    border: none; padding: 8px 12px; z-index: 99999999;
+  }
+  #aol-skip:hover { color: #fff; }
+
+  #aol-welcome {
+    display: none; text-align: center;
+    font-size: 28px; color: #000080;
+    font-weight: bold; margin-top: 10px;
+    animation: aol-pulse 0.6s ease-in-out 2;
+  }
+
+  @keyframes aol-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  /* ── Login screen ── */
+  #aol-click-prompt {
+    position: fixed; inset: 0;
+    z-index: 99999998;
+    display: flex; align-items: center; justify-content: center;
+    background: #000044;
+    cursor: default;
+  }
+
+  #aol-login-box {
+    background: #c0c0c0;
+    border: 3px outset #ffffff;
+    box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080, 4px 4px 0 rgba(0,0,0,0.4);
+    width: 380px;
+    max-width: 90vw;
+  }
+
+  #aol-login-titlebar {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    color: #fff; padding: 4px 8px;
+    font-family: 'VT323', monospace;
+    font-size: 18px; font-weight: bold;
+    display: flex; justify-content: space-between; align-items: center;
+    letter-spacing: 1px;
+  }
+
+  #aol-login-body {
+    padding: 24px;
+    text-align: center;
+  }
+
+  #aol-login-logo {
+    margin-bottom: 20px;
+  }
+
+  #aol-login-fields {
+    margin-bottom: 16px;
+  }
+
+  .aol-field {
+    margin-bottom: 10px;
+    text-align: left;
+  }
+
+  .aol-field label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 12px;
+    color: #000;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .aol-input {
+    background: #fff;
+    border: 2px inset #808080;
+    padding: 5px 8px;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 14px;
+    color: #000;
+  }
+
+  #aol-login-btn {
+    background: linear-gradient(180deg, #fff 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 2px outset #fff;
+    padding: 6px 32px;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 14px; font-weight: bold;
+    color: #000;
+    cursor: pointer;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  #aol-login-btn:hover {
+    background: linear-gradient(180deg, #fff 0%, #f0ece4 50%, #e0dcd0 100%);
+  }
+
+  #aol-login-btn:active {
+    border-style: inset;
+  }
+
+  #aol-login-sound {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 500px) {
+    #aol-dialog { max-width: 94vw; }
+    #aol-logo .logo-text { font-size: 36px; }
+    #aol-logo .triangle { font-size: 40px; }
+    .aol-step { font-size: 16px; }
+    .modem-noise { font-size: 12px; }
+    #aol-welcome { font-size: 22px; }
+    #aol-body { padding: 14px 16px 18px; }
+  }
+</style>
+
+<div id="aol-overlay">
+  <div id="aol-dialog">
+    <div id="aol-titlebar">
+      <span>LumenatiOnline 3.0 - Sign On</span>
+      <span style="font-size:14px; cursor:default;">_ X</span>
+    </div>
+    <div id="aol-body">
+      <div id="aol-logo">
+        <div style="position:relative;display:inline-block;margin-bottom:8px;">
+          <span class="triangle">&#9650;</span>
+          <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati" style="position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);width:36px;height:auto;filter:brightness(0) invert(1);">
+        </div>
+        <div class="logo-sub">Lumenati OnLine</div>
+      </div>
+      <div id="aol-steps">
+        <div class="aol-step" id="aol-s1">Dialing 1-800-LUMENATI...</div>
+        <div class="modem-noise aol-step" id="aol-noise">BZZZT KRRRRR EEEE SHHHHH DRRRRR SQUEEEEE</div>
+        <div class="aol-step" id="aol-s2">Verifying you're cool enough...</div>
+        <div class="aol-step" id="aol-s3">Stealing mom's phone line...</div>
+        <div class="aol-step" id="aol-s4">Loading tattoo flash at 56kbps...</div>
+      </div>
+      <div id="aol-welcome">Welcome! You've got ink.</div>
+      <div id="aol-progress-wrap">
+        <div id="aol-progress-bar"></div>
+      </div>
+    </div>
+  </div>
+  <div id="aol-click-prompt">
+    <div id="aol-login-box">
+      <div id="aol-login-titlebar">
+        <span>Lumenati OnLine</span>
+        <span style="font-size:14px;cursor:default;">✕</span>
+      </div>
+      <div id="aol-login-body">
+        <div id="aol-login-logo">
+          <div style="position:relative;display:inline-block;">
+            <span style="font-size:100px;color:#0055aa;line-height:1;">&#9650;</span>
+            <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="" style="position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);width:60px;filter:brightness(0) invert(1);">
+          </div>
+          <div style="font-size:14px;color:#444;margin-top:4px;">Lumenati OnLine v3.0</div>
+        </div>
+        <div id="aol-login-fields">
+          <div class="aol-field">
+            <label>Screen Name</label>
+            <div class="aol-input">tattoo_kid_98</div>
+          </div>
+          <div class="aol-field">
+            <label>Password</label>
+            <div class="aol-input">••••••••</div>
+          </div>
+        </div>
+        <div id="aol-login-btn">Sign On</div>
+        <div id="aol-login-sound">🔊 Sound on for full experience</div>
+      </div>
+    </div>
+  </div>
+  <button id="aol-skip">Skip »</button>
+</div>
+
+<script>
+(function() {
+  if (sessionStorage.getItem('aol_test_ignore')) {
+    var el = document.getElementById('aol-overlay');
+    if (el) el.parentNode.removeChild(el);
+    return;
+  }
+
+  var overlay = document.getElementById('aol-overlay');
+  var bar = document.getElementById('aol-progress-bar');
+  var skip = document.getElementById('aol-skip');
+  var welcome = document.getElementById('aol-welcome');
+  var timers = [];
+
+  var dialupAudio;
+  function playDialUp() {
+    try {
+      dialupAudio = new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aol-dialup.mp3');
+      dialupAudio.volume = 0.5;
+      dialupAudio.play();
+    } catch(e) {}
+  }
+
+  function dismiss() {
+    timers.forEach(function(t) { clearTimeout(t); });
+    sessionStorage.setItem('aol_test_ignore', '1');
+    overlay.classList.add('fade-out');
+    if (dialupAudio) { try { dialupAudio.pause(); } catch(e) {} }
+    setTimeout(function() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }, 900);
+  }
+
+  skip.addEventListener('click', dismiss);
+
+  // Wait for click to start — this allows audio to play
+  var clickPrompt = document.getElementById('aol-click-prompt');
+  var started = false;
+
+  function startSequence() {
+    if (started) return;
+    started = true;
+    clickPrompt.style.display = 'none';
+    playDialUp();
+    runSteps();
+  }
+
+  var loginBtn = document.getElementById('aol-login-btn');
+  if (loginBtn) loginBtn.addEventListener('click', startSequence);
+  clickPrompt.addEventListener('click', function(e) {
+    if (e.target === clickPrompt) startSequence();
+  });
+
+  function runSteps() {
+  var steps = [
+    { id: 'aol-s1',    delay: 200,  progress: 5  },
+    { id: 'aol-noise', delay: 600,  progress: 15 },
+    { id: null,         delay: 1600, progress: 25 },
+    { id: 'aol-s1',    delay: 1800, progress: 30, done: true },
+    { id: 'aol-s2',    delay: 1900, progress: 35 },
+    { id: null,         delay: 2800, progress: 50 },
+    { id: 'aol-s2',    delay: 3000, progress: 55, done: true },
+    { id: 'aol-s3',    delay: 3100, progress: 60 },
+    { id: null,         delay: 3800, progress: 70 },
+    { id: 'aol-s3',    delay: 4000, progress: 75, done: true },
+    { id: 'aol-s4',    delay: 4100, progress: 80 },
+    { id: null,         delay: 4800, progress: 90 },
+    { id: 'aol-s4',    delay: 5000, progress: 95, done: true },
+    { id: 'welcome',   delay: 5200, progress: 100 },
+    { id: 'dismiss',   delay: 6500, progress: 100 }
+  ];
+
+  steps.forEach(function(step) {
+    var t = setTimeout(function() {
+      bar.style.width = step.progress + '%';
+
+      if (step.id === 'welcome') {
+        welcome.style.display = 'block';
+        try {
+          var welcomeSfx = new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aol-welcome.mp3');
+          welcomeSfx.volume = 0.8;
+          welcomeSfx.play();
+        } catch(e) {}
+        return;
+      }
+      if (step.id === 'dismiss') { dismiss(); return; }
+      if (!step.id) return;
+
+      var el = document.getElementById(step.id);
+      if (!el) return;
+
+      el.classList.add('visible');
+      if (step.done) {
+        el.classList.add('done');
+        el.classList.remove('active');
+        el.innerHTML = '<span class="check">&#10003;</span> ' + el.textContent.replace('...', ' - Done');
+      } else {
+        el.classList.add('active');
+      }
+    }, step.delay);
+    timers.push(t);
+  });
+  } // end runSteps
+})();
+</script>
+<div style="padding:48px;color:#f0ece4;font-family:VT323,monospace;font-size:24px;">You are now connected to the crib.</div>
+</body>
+</html>

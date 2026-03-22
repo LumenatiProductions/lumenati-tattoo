@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumenati – Y2K Hero Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; }
+</style>
+</head>
+<body>
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Space+Mono:wght@400;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="inflate-soft" x="-15%" y="-15%" width="130%" height="130%">
+      <feMorphology operator="dilate" radius="1.5" in="SourceAlpha" result="fat"/>
+      <feGaussianBlur in="fat" stdDeviation="5" result="bump"/>
+      <feSpecularLighting in="bump" specularConstant="2.5" specularExponent="22"
+          lighting-color="rgba(255,255,255,0.95)" surfaceScale="6" result="spec">
+        <fePointLight x="100" y="-50" z="250"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specClipped"/>
+      <feMerge>
+        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="specClipped"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<style>
+  .lmn-hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 520px;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+
+  .lmn-video-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #000;
+    filter: saturate(1.5) contrast(1.2) brightness(0.8);
+  }
+
+  .lmn-video-wrap iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 177.78vh;
+    height: 56.25vw;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translate(-50%, -50%);
+    border: none;
+    pointer-events: none;
+  }
+
+  .lmn-scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 1px,
+      rgba(0,0,0,0.3) 1px,
+      rgba(0,0,0,0.3) 3px
+    );
+  }
+
+  .lmn-rgb {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        to right,
+        rgba(255,0,0,0.06) 0%,
+        transparent 20%,
+        transparent 40%,
+        rgba(0,255,0,0.03) 50%,
+        transparent 60%,
+        transparent 80%,
+        rgba(0,0,255,0.06) 100%
+      );
+    mix-blend-mode: screen;
+  }
+
+  .lmn-tracking {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(255,255,255,0.06);
+    box-shadow:
+      0 -2px 8px rgba(255,255,255,0.04),
+      0 2px 8px rgba(255,255,255,0.04),
+      0 0 30px rgba(255,255,255,0.02);
+    animation: lmn-track 7s linear infinite;
+  }
+
+  .lmn-tracking2 {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(255,255,255,0.04);
+    animation: lmn-track 11s linear infinite;
+    animation-delay: -4s;
+  }
+
+  @keyframes lmn-track {
+    0% { top: -4px; opacity: 0; }
+    3% { opacity: 1; }
+    97% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  .lmn-noise {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.15;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    animation: lmn-noise-shift 0.5s steps(3) infinite;
+  }
+
+  @keyframes lmn-noise-shift {
+    0% { transform: translate(0, 0); }
+    33% { transform: translate(-2px, 1px); }
+    66% { transform: translate(1px, -1px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  .lmn-flicker {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    animation: lmn-flicker-anim 4s infinite;
+    background: transparent;
+  }
+
+  @keyframes lmn-flicker-anim {
+    0%, 100% { opacity: 0; }
+    4% { opacity: 0; }
+    4.5% { opacity: 0.03; background: rgba(255,255,255,0.04); }
+    5% { opacity: 0; }
+    54% { opacity: 0; }
+    54.5% { opacity: 0.02; background: rgba(200,200,255,0.03); }
+    55% { opacity: 0; }
+    78% { opacity: 0; }
+    78.2% { opacity: 0.04; background: rgba(255,255,255,0.02); }
+    78.5% { opacity: 0; }
+  }
+
+  .lmn-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.35) 0%,
+      rgba(0,0,0,0.1) 40%,
+      rgba(0,0,0,0.75) 100%
+    );
+    pointer-events: none;
+  }
+
+  .lmn-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 150px rgba(0,0,0,0.7),
+      inset 0 0 350px rgba(0,0,0,0.35);
+  }
+
+  .lmn-hero-content {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .lmn-eyebrow {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #7FFF00;
+    display: block;
+    margin-bottom: 24px;
+    text-shadow: 0 0 8px rgba(127,255,0,0.5);
+    animation: lmn-blink 3s step-end infinite;
+  }
+
+  @keyframes lmn-blink {
+    0%, 90% { opacity: 1; }
+    91%, 95% { opacity: 0; }
+    96%, 100% { opacity: 1; }
+  }
+
+  .lmn-hero-title-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .lmn-hero-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(64px, 14vw, 160px);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    margin: 0 0 8px;
+    background: radial-gradient(
+      ellipse at 30% 20%,
+      #ffb6d9 0%,
+      #ff69b4 20%,
+      #ff1493 45%,
+      #c8006e 70%,
+      #8b004d 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    -webkit-text-stroke: 3px rgba(100,0,50,0.5);
+    filter: url(#inflate-soft)
+      drop-shadow(0 2px 0 rgba(150,0,70,0.9))
+      drop-shadow(0 4px 0 rgba(120,0,55,0.8))
+      drop-shadow(0 6px 0 rgba(90,0,40,0.6))
+      drop-shadow(0 8px 0 rgba(60,0,25,0.4))
+      drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+    cursor: default;
+  }
+
+  .lmn-hero-title-glare {
+    position: absolute;
+    inset: 0;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(64px, 14vw, 160px);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    background: radial-gradient(
+      ellipse at 28% 15%,
+      rgba(255,255,255,0.9) 0%,
+      rgba(255,255,255,0.4) 12%,
+      rgba(255,255,255,0) 40%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  .lmn-hero-tagline {
+    font-family: 'VT323', monospace;
+    font-size: clamp(18px, 3vw, 32px);
+    color: rgba(240,236,228,0.7);
+    letter-spacing: 0.08em;
+    margin-bottom: 32px;
+  }
+
+  .lmn-hero-tagline .highlight {
+    color: #FF1493;
+    text-shadow: 0 0 6px rgba(255,20,147,0.4);
+  }
+
+  .lmn-marquee-wrap {
+    width: 100%;
+    overflow: hidden;
+    border-top: 1px solid rgba(240,236,228,0.1);
+    border-bottom: 1px solid rgba(240,236,228,0.1);
+    padding: 10px 0;
+    margin-bottom: 32px;
+  }
+
+  .lmn-marquee {
+    display: flex;
+    width: max-content;
+    animation: lmn-scroll 20s linear infinite;
+  }
+
+  .lmn-marquee span {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.25);
+    white-space: nowrap;
+    padding: 0 24px;
+  }
+
+  .lmn-marquee .accent {
+    color: #FF1493;
+    opacity: 0.6;
+  }
+
+  @keyframes lmn-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .lmn-hero-sub {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .lmn-hero-body {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    line-height: 1.5;
+    color: rgba(240,236,228,0.8);
+    max-width: 500px;
+    margin: 0;
+  }
+
+  .lmn-hero-body strong {
+    color: #7FFF00;
+    font-weight: 400;
+    text-shadow: 0 0 6px rgba(127,255,0,0.3);
+  }
+
+  .lmn-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    background: linear-gradient(
+      180deg,
+      rgba(255,20,147,0.9) 0%,
+      rgba(200,0,100,1) 50%,
+      rgba(255,20,147,0.9) 51%,
+      rgba(255,105,180,0.7) 100%
+    );
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    box-shadow:
+      0 2px 8px rgba(255,20,147,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .lmn-btn:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(255,105,180,1) 0%,
+      rgba(255,20,147,1) 50%,
+      rgba(255,105,180,1) 51%,
+      rgba(255,182,213,0.9) 100%
+    );
+    box-shadow:
+      0 4px 20px rgba(255,20,147,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.4);
+    transform: translateY(-1px);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+  }
+
+  .lmn-corner {
+    position: absolute;
+    z-index: 4;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: rgba(240,236,228,0.35);
+    letter-spacing: 0.05em;
+  }
+
+  .lmn-corner.tl { top: 24px; left: 28px; }
+  .lmn-corner.tr { top: 24px; right: 28px; text-align: right; }
+  .lmn-corner.bl { bottom: 24px; left: 28px; }
+  .lmn-corner.br { bottom: 24px; right: 28px; text-align: right; }
+
+  .lmn-corner .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #c0392b;
+    margin-right: 6px;
+    vertical-align: middle;
+    box-shadow: 0 0 6px rgba(192,57,43,0.8);
+    animation: lmn-rec-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lmn-rec-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .lmn-timestamp {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: rgba(240,236,228,0.25);
+    letter-spacing: 0.08em;
+  }
+
+  .lmn-stars {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .lmn-star {
+    position: absolute;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    animation: lmn-twinkle 2s ease-in-out infinite;
+  }
+
+  .lmn-star:nth-child(1) { top: 12%; left: 8%; animation-delay: 0s; color: #FF1493; }
+  .lmn-star:nth-child(2) { top: 25%; right: 12%; animation-delay: 0.7s; color: #7FFF00; }
+  .lmn-star:nth-child(3) { bottom: 30%; left: 15%; animation-delay: 1.2s; color: #1493FF; }
+  .lmn-star:nth-child(4) { top: 18%; right: 25%; animation-delay: 0.3s; font-size: 10px; }
+  .lmn-star:nth-child(5) { bottom: 22%; right: 8%; animation-delay: 1.8s; color: #FF9966; }
+  .lmn-star:nth-child(6) { top: 40%; left: 5%; animation-delay: 0.5s; font-size: 10px; color: #6F2DA8; }
+
+  @keyframes lmn-twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.2) rotate(20deg); }
+  }
+
+  @media (max-width: 640px) {
+    .lmn-hero { height: 100vh; min-height: 480px; }
+    .lmn-hero-content { padding: 24px; }
+    .lmn-hero-sub {
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .lmn-hero-title {
+      -webkit-text-stroke: 2px rgba(100,0,50,0.5);
+    }
+    .lmn-corner { font-size: 14px; }
+    .lmn-corner.tl { top: 16px; left: 16px; }
+    .lmn-corner.tr { top: 16px; right: 16px; }
+    .lmn-corner.bl { bottom: 16px; left: 16px; }
+    .lmn-corner.br { bottom: 16px; right: 16px; }
+    .lmn-star:nth-child(n+4) { display: none; }
+    .lmn-marquee span { font-size: 9px; }
+  }
+</style>
+
+<section class="lmn-hero">
+
+  <div class="lmn-video-wrap">
+    <iframe
+      src="https://player.vimeo.com/video/504577755?h=e06358d89d&autoplay=1&loop=1&muted=1&background=1&autopause=0"
+      allow="autoplay; fullscreen"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <div class="lmn-scanlines"></div>
+  <div class="lmn-rgb"></div>
+  <div class="lmn-tracking"></div>
+  <div class="lmn-tracking2"></div>
+  <div class="lmn-noise"></div>
+  <div class="lmn-flicker"></div>
+  <div class="lmn-overlay"></div>
+  <div class="lmn-vignette"></div>
+
+  <div class="lmn-stars">
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+  </div>
+
+  <div class="lmn-corner tl"><span class="dot"></span>REC</div>
+  <div class="lmn-corner tr">SP ▶<br><span class="lmn-timestamp" id="lmn-timecode">00:00:00</span></div>
+  <div class="lmn-corner bl">1998.06.22<br>Denver, CO</div>
+  <div class="lmn-corner br">▣ PAUSE<br>DV CAM</div>
+
+  <div class="lmn-hero-content">
+
+    <span class="lmn-eyebrow">:: now entering the crib ::</span>
+
+    <div class="lmn-hero-title-wrap">
+      <h1 class="lmn-hero-title">Lumenati</h1>
+      <span class="lmn-hero-title-glare" aria-hidden="true">Lumenati</span>
+    </div>
+
+    <p class="lmn-hero-tagline">
+      custom ink · no parents · <span class="highlight">no rules</span>
+    </p>
+
+    <div class="lmn-marquee-wrap">
+      <div class="lmn-marquee">
+        <span>Walk-ins welcome</span>
+        <span class="accent">★</span>
+        <span>Flash on the wall</span>
+        <span class="accent">★</span>
+        <span>DM your artist</span>
+        <span class="accent">★</span>
+        <span>No appointment needed</span>
+        <span class="accent">★</span>
+        <span>Open late</span>
+        <span class="accent">★</span>
+        <span>Walk-ins welcome</span>
+        <span class="accent">★</span>
+        <span>Flash on the wall</span>
+        <span class="accent">★</span>
+        <span>DM your artist</span>
+        <span class="accent">★</span>
+        <span>No appointment needed</span>
+        <span class="accent">★</span>
+        <span>Open late</span>
+        <span class="accent">★</span>
+      </div>
+    </div>
+
+    <div class="lmn-hero-sub">
+      <p class="lmn-hero-body">
+        Six artists. One house. Book through <strong>IG</strong> or just show up
+        — we've got flash on the wall and the door's always open.
+      </p>
+      <a href="/book" class="lmn-btn">Get Inked</a>
+    </div>
+
+  </div>
+
+</section>
+
+<script>
+(function() {
+  var el = document.getElementById('lmn-timecode');
+  if (!el) return;
+  var s = 0;
+  setInterval(function() {
+    s++;
+    var h = String(Math.floor(s / 3600)).padStart(2, '0');
+    var m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    var sec = String(s % 60).padStart(2, '0');
+    el.textContent = h + ':' + m + ':' + sec;
+  }, 1000);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2219 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumenati – Y2K Full Preview</title>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; }</style>
+</head>
+<body>
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Space+Mono:wght@400;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+
+<!-- SVG filter for bubbly text -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="inflate-soft" x="-15%" y="-15%" width="130%" height="130%">
+      <feMorphology operator="dilate" radius="1.5" in="SourceAlpha" result="fat"/>
+      <feGaussianBlur in="fat" stdDeviation="5" result="bump"/>
+      <feSpecularLighting in="bump" specularConstant="2.5" specularExponent="22"
+          lighting-color="rgba(255,255,255,0.95)" surfaceScale="6" result="spec">
+        <fePointLight x="100" y="-50" z="250"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specClipped"/>
+      <feMerge>
+        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="specClipped"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<style>
+  .lmn-hero {
+    position: relative;
+    width: 100%;
+    height: 70vh;
+    min-height: 420px;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+
+  /* ── Video background — oversaturated VHS look ── */
+  .lmn-video-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #000;
+    filter: saturate(1.5) contrast(1.2) brightness(0.8);
+  }
+
+  .lmn-video-wrap iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 177.78vh;
+    height: 56.25vw;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translate(-50%, -50%);
+    border: none;
+    pointer-events: none;
+  }
+
+  /* ── Heavy CRT scanlines ── */
+  .lmn-scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 1px,
+      rgba(0,0,0,0.3) 1px,
+      rgba(0,0,0,0.3) 3px
+    );
+  }
+
+  /* ── RGB color fringing ── */
+  .lmn-rgb {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        to right,
+        rgba(255,0,0,0.06) 0%,
+        transparent 20%,
+        transparent 40%,
+        rgba(0,255,0,0.03) 50%,
+        transparent 60%,
+        transparent 80%,
+        rgba(0,0,255,0.06) 100%
+      );
+    mix-blend-mode: screen;
+  }
+
+  /* ── VHS tracking line — slowly scrolls down ── */
+  .lmn-tracking {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(255,255,255,0.06);
+    box-shadow:
+      0 -2px 8px rgba(255,255,255,0.04),
+      0 2px 8px rgba(255,255,255,0.04),
+      0 0 30px rgba(255,255,255,0.02);
+    animation: lmn-track 7s linear infinite;
+  }
+
+  /* Second tracking line, offset */
+  .lmn-tracking2 {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(255,255,255,0.04);
+    animation: lmn-track 11s linear infinite;
+    animation-delay: -4s;
+  }
+
+  @keyframes lmn-track {
+    0% { top: -4px; opacity: 0; }
+    3% { opacity: 1; }
+    97% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* ── VHS noise/grain ── */
+  .lmn-noise {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.15;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    animation: lmn-noise-shift 0.5s steps(3) infinite;
+  }
+
+  @keyframes lmn-noise-shift {
+    0% { transform: translate(0, 0); }
+    33% { transform: translate(-2px, 1px); }
+    66% { transform: translate(1px, -1px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* ── Screen flicker ── */
+  .lmn-flicker {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    animation: lmn-flicker-anim 4s infinite;
+    background: transparent;
+  }
+
+  @keyframes lmn-flicker-anim {
+    0%, 100% { opacity: 0; }
+    4% { opacity: 0; }
+    4.5% { opacity: 0.03; background: rgba(255,255,255,0.04); }
+    5% { opacity: 0; }
+    54% { opacity: 0; }
+    54.5% { opacity: 0.02; background: rgba(200,200,255,0.03); }
+    55% { opacity: 0; }
+    78% { opacity: 0; }
+    78.2% { opacity: 0.04; background: rgba(255,255,255,0.02); }
+    78.5% { opacity: 0; }
+  }
+
+  /* ── Dark gradient overlay ── */
+  .lmn-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.35) 0%,
+      rgba(0,0,0,0.1) 40%,
+      rgba(0,0,0,0.75) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* ── CRT vignette — dark rounded edges ── */
+  .lmn-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 150px rgba(0,0,0,0.7),
+      inset 0 0 350px rgba(0,0,0,0.35);
+  }
+
+  /* ── Content ── */
+  .lmn-hero-content {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Eyebrow — pixel font */
+  .lmn-eyebrow {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #7FFF00;
+    display: block;
+    margin-bottom: 24px;
+    text-shadow: 0 0 8px rgba(127,255,0,0.5);
+    animation: lmn-blink 3s step-end infinite;
+  }
+
+  @keyframes lmn-blink {
+    0%, 90% { opacity: 1; }
+    91%, 95% { opacity: 0; }
+    96%, 100% { opacity: 1; }
+  }
+
+  /* Title — solid pink with extrusion */
+  .lmn-hero-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(64px, 14vw, 160px);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    margin: 0 0 8px;
+    background: linear-gradient(
+      180deg,
+      #ff8ec8 0%,
+      #ff1493 25%,
+      #ff1493 50%,
+      #d4007a 75%,
+      #a0005a 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    -webkit-text-stroke: 0;
+    filter:
+      drop-shadow(0 2px 0 rgba(150,0,70,0.9))
+      drop-shadow(0 4px 0 rgba(120,0,55,0.8))
+      drop-shadow(0 6px 0 rgba(90,0,40,0.6))
+      drop-shadow(0 8px 0 rgba(60,0,25,0.4))
+      drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+    cursor: default;
+  }
+
+  /* Tagline */
+  .lmn-hero-tagline {
+    font-family: 'VT323', monospace;
+    font-size: clamp(18px, 3vw, 32px);
+    color: rgba(240,236,228,0.7);
+    letter-spacing: 0.08em;
+    margin-bottom: 32px;
+  }
+
+  .lmn-hero-tagline .highlight {
+    color: #FF1493;
+    text-shadow: 0 0 6px rgba(255,20,147,0.4);
+  }
+
+  /* ── Marquee ticker ── */
+  .lmn-marquee-wrap {
+    width: 100%;
+    overflow: hidden;
+    border-top: 1px solid rgba(240,236,228,0.1);
+    border-bottom: 1px solid rgba(240,236,228,0.1);
+    padding: 10px 0;
+    margin-bottom: 32px;
+  }
+
+  .lmn-marquee {
+    display: flex;
+    width: max-content;
+    animation: lmn-scroll 20s linear infinite;
+  }
+
+  .lmn-marquee span {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.25);
+    white-space: nowrap;
+    padding: 0 24px;
+  }
+
+  .lmn-marquee .accent {
+    color: #FF1493;
+    opacity: 0.6;
+  }
+
+  @keyframes lmn-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── Info row ── */
+  .lmn-hero-sub {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .lmn-hero-body {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    line-height: 1.5;
+    color: rgba(240,236,228,0.8);
+    max-width: 500px;
+    margin: 0;
+  }
+
+  .lmn-hero-body strong {
+    color: #7FFF00;
+    font-weight: 400;
+    text-shadow: 0 0 6px rgba(127,255,0,0.3);
+  }
+
+  /* ── Y2K gel button ── */
+  .lmn-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    background: linear-gradient(
+      180deg,
+      rgba(255,20,147,0.9) 0%,
+      rgba(200,0,100,1) 50%,
+      rgba(255,20,147,0.9) 51%,
+      rgba(255,105,180,0.7) 100%
+    );
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    box-shadow:
+      0 2px 8px rgba(255,20,147,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .lmn-btn:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(255,105,180,1) 0%,
+      rgba(255,20,147,1) 50%,
+      rgba(255,105,180,1) 51%,
+      rgba(255,182,213,0.9) 100%
+    );
+    box-shadow:
+      0 4px 20px rgba(255,20,147,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.4);
+    transform: translateY(-1px);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+  }
+
+  /* ── Corner camcorder HUD ── */
+  .lmn-corner {
+    position: absolute;
+    z-index: 4;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: rgba(240,236,228,0.35);
+    letter-spacing: 0.05em;
+  }
+
+  .lmn-corner.tl { top: 24px; left: 28px; }
+  .lmn-corner.tr { top: 24px; right: 28px; text-align: right; }
+  .lmn-corner.bl { bottom: 24px; left: 28px; }
+  .lmn-corner.br { bottom: 24px; right: 28px; text-align: right; }
+
+  .lmn-corner .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #c0392b;
+    margin-right: 6px;
+    vertical-align: middle;
+    box-shadow: 0 0 6px rgba(192,57,43,0.8);
+    animation: lmn-rec-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes lmn-rec-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Camcorder timestamp counter */
+  .lmn-timestamp {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: rgba(240,236,228,0.25);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Twinkle stars ── */
+  .lmn-stars {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .lmn-star {
+    position: absolute;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    animation: lmn-twinkle 2s ease-in-out infinite;
+  }
+
+  .lmn-star:nth-child(1) { top: 12%; left: 8%; animation-delay: 0s; color: #FF1493; }
+  .lmn-star:nth-child(2) { top: 25%; right: 12%; animation-delay: 0.7s; color: #7FFF00; }
+  .lmn-star:nth-child(3) { bottom: 30%; left: 15%; animation-delay: 1.2s; color: #1493FF; }
+  .lmn-star:nth-child(4) { top: 18%; right: 25%; animation-delay: 0.3s; font-size: 10px; }
+  .lmn-star:nth-child(5) { bottom: 22%; right: 8%; animation-delay: 1.8s; color: #FF9966; }
+  .lmn-star:nth-child(6) { top: 40%; left: 5%; animation-delay: 0.5s; font-size: 10px; color: #6F2DA8; }
+
+  @keyframes lmn-twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.2) rotate(20deg); }
+  }
+
+  /* ── Stickers ── */
+  .lmn-stickers {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .lmn-sticker {
+    position: absolute;
+    opacity: 0.85;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.5));
+  }
+
+  /* ── Visitor counter ── */
+  .lmn-visitor {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #7FFF00;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 8px rgba(127,255,0,0.4);
+    z-index: 4;
+  }
+
+  .lmn-vnum {
+    display: inline-block;
+    background: #000;
+    border: 1px solid #333;
+    padding: 3px 5px;
+    margin: 0 1px;
+    font-size: 9px;
+    color: #7FFF00;
+    min-width: 16px;
+    text-align: center;
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .lmn-hero { height: 80vh; min-height: 400px; }
+    .lmn-hero-content { padding: 24px; }
+    .lmn-hero-sub {
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .lmn-hero-title {
+      -webkit-text-stroke: 2px rgba(100,0,50,0.5);
+    }
+    .lmn-corner { font-size: 14px; }
+    .lmn-corner.tl { top: 16px; left: 16px; }
+    .lmn-corner.tr { top: 16px; right: 16px; }
+    .lmn-corner.bl { bottom: 16px; left: 16px; }
+    .lmn-corner.br { bottom: 16px; right: 16px; }
+    .lmn-star:nth-child(n+4) { display: none; }
+    .lmn-marquee span { font-size: 9px; }
+  }
+</style>
+
+<section class="lmn-hero">
+
+  <!-- Video with VHS color treatment -->
+  <div class="lmn-video-wrap">
+    <iframe
+      src="https://player.vimeo.com/video/504577755?h=e06358d89d&autoplay=1&loop=1&muted=1&background=1&autopause=0"
+      allow="autoplay; fullscreen"
+      allowfullscreen>
+    </iframe>
+  </div>
+
+  <!-- VHS effect layers -->
+  <div class="lmn-scanlines"></div>
+  <div class="lmn-rgb"></div>
+  <div class="lmn-tracking"></div>
+  <div class="lmn-tracking2"></div>
+  <div class="lmn-noise"></div>
+  <div class="lmn-flicker"></div>
+  <div class="lmn-overlay"></div>
+  <div class="lmn-vignette"></div>
+
+  <!-- Twinkle stars -->
+  <div class="lmn-stars">
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+    <span class="lmn-star">✦</span>
+  </div>
+
+  <!-- Stickers -->
+  <div class="lmn-stickers">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/615b7726-7ce2-40de-a7db-6d2a4f652ee9/bolt.png?content-type=image%2Fpng" style="top:5%;left:3%;transform:rotate(-15deg);width:110px">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/9a259ce4-9ecd-47e5-979a-4f589c768ac6/cherries.png?content-type=image%2Fpng" style="top:10%;right:4%;transform:rotate(12deg);width:100px">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/65d984bb-1c14-455b-8172-99fc2d1fc11a/smilie.png?content-type=image%2Fpng" style="bottom:15%;left:5%;transform:rotate(8deg);width:95px">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f3de2916-5339-406a-94d5-f07a3df065f0/stars.png?content-type=image%2Fpng" style="bottom:18%;right:3%;transform:rotate(-10deg);width:115px">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/ff31be67-5474-45a2-ab25-09056d213eed/alien.png?content-type=image%2Fpng" style="top:35%;left:2%;transform:rotate(20deg);width:80px">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/c44db19e-4bd6-4f08-9d24-5bdec35a9c86/ufo.png?content-type=image%2Fpng" style="top:30%;right:8%;transform:rotate(-18deg);width:90px">
+    <img class="lmn-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/4fe88f1d-6ce4-4b01-bc10-a30469eff984/lipstick.png?content-type=image%2Fpng" style="bottom:30%;right:12%;transform:rotate(22deg);width:85px">
+  </div>
+
+  <!-- Camcorder HUD -->
+  <div class="lmn-corner tl"><span class="dot"></span>REC</div>
+  <div class="lmn-corner tr">SP ▶<br><span class="lmn-timestamp" id="lmn-timecode">00:00:00</span></div>
+  <div class="lmn-corner bl">1998.06.22<br>Denver, CO</div>
+  <div class="lmn-corner br">▣ PAUSE<br>DV CAM</div>
+
+  <div class="lmn-hero-content">
+
+    <!-- Visitor counter -->
+    <div class="lmn-visitor">
+      You are visitor # <span id="lmn-counter-nums"></span>
+    </div>
+
+    <span class="lmn-eyebrow">:: now entering the crib ::</span>
+
+    <h1 class="lmn-hero-title">Lumenati</h1>
+
+    <p class="lmn-hero-tagline">
+      custom ink · no parents · <span class="highlight">no rules</span>
+    </p>
+
+    <!-- Marquee ticker -->
+    <div class="lmn-marquee-wrap">
+      <div class="lmn-marquee">
+        <span>Walk-ins welcome</span>
+        <span class="accent">★</span>
+        <span>Flash on the wall</span>
+        <span class="accent">★</span>
+        <span>DM your artist</span>
+        <span class="accent">★</span>
+        <span>No appointment needed</span>
+        <span class="accent">★</span>
+        <span>Open late</span>
+        <span class="accent">★</span>
+        <span>Walk-ins welcome</span>
+        <span class="accent">★</span>
+        <span>Flash on the wall</span>
+        <span class="accent">★</span>
+        <span>DM your artist</span>
+        <span class="accent">★</span>
+        <span>No appointment needed</span>
+        <span class="accent">★</span>
+        <span>Open late</span>
+        <span class="accent">★</span>
+      </div>
+    </div>
+
+    <div class="lmn-hero-sub">
+      <p class="lmn-hero-body">
+        Six artists. One house. Book through <strong>IG</strong> or just show up
+        — we've got flash on the wall and the door's always open.
+      </p>
+      <a href="/book" class="lmn-btn">Get Inked</a>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- Running timecode counter -->
+<script>
+(function() {
+  var el = document.getElementById('lmn-timecode');
+  if (!el) return;
+  var s = 0;
+  setInterval(function() {
+    s++;
+    var h = String(Math.floor(s / 3600)).padStart(2, '0');
+    var m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    var sec = String(s % 60).padStart(2, '0');
+    el.textContent = h + ':' + m + ':' + sec;
+  }, 1000);
+})();
+
+// Visitor counter — fetches real count and renders as digit boxes
+(function() {
+  var container = document.getElementById('lmn-counter-nums');
+  if (!container) return;
+
+  function renderCount(num) {
+    var str = String(num).padStart(6, '0');
+    container.innerHTML = '';
+    for (var i = 0; i < str.length; i++) {
+      var span = document.createElement('span');
+      span.className = 'lmn-vnum';
+      span.textContent = str[i];
+      container.appendChild(span);
+    }
+  }
+
+  // Show placeholder while loading
+  renderCount(0);
+
+  fetch('https://hitcounter.pythonanywhere.com/count', {
+    credentials: 'include'
+  })
+    .then(function(res) { return res.text(); })
+    .then(function(count) {
+      renderCount(parseInt(count) || 0);
+    })
+    .catch(function() {
+      // Fallback to a fun static number
+      renderCount(4271);
+    });
+})();
+</script>
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-artists {
+    background: #0a0a0a;
+    padding: 48px 24px;
+  }
+
+  .lmn-artists-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 0 32px;
+  }
+
+  .lmn-artists-heading {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(11px, 2vw, 14px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7FFF00;
+    margin: 0;
+    text-shadow: 0 0 8px rgba(127,255,0,0.4);
+  }
+
+  .lmn-artists-count {
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    color: rgba(240,236,228,0.3);
+  }
+
+  /* ── Y2K accent colors (brighter for the theme) ── */
+  .lmn-artist[data-color="0"] { --accent: #FF1493; --accent-bg: rgba(255,20,147,0.08); --title-bg: linear-gradient(90deg, #FF1493, #c8006e); }
+  .lmn-artist[data-color="1"] { --accent: #FFD700; --accent-bg: rgba(255,215,0,0.08); --title-bg: linear-gradient(90deg, #FFD700, #b8960a); }
+  .lmn-artist[data-color="2"] { --accent: #7FFF00; --accent-bg: rgba(127,255,0,0.08); --title-bg: linear-gradient(90deg, #7FFF00, #4a9e00); }
+  .lmn-artist[data-color="3"] { --accent: #1493FF; --accent-bg: rgba(20,147,255,0.08); --title-bg: linear-gradient(90deg, #1493FF, #0066cc); }
+  .lmn-artist[data-color="4"] { --accent: #9b59b6; --accent-bg: rgba(155,89,182,0.08); --title-bg: linear-gradient(90deg, #9b59b6, #6f2da8); }
+  .lmn-artist[data-color="5"] { --accent: #FF6347; --accent-bg: rgba(255,99,71,0.08); --title-bg: linear-gradient(90deg, #FF6347, #cc3a22); }
+
+  /* ── Window frame ── */
+  .lmn-artist {
+    position: relative;
+    margin-bottom: 20px;
+    border: 2px solid #444;
+    border-radius: 0;
+    overflow: hidden;
+    background: #1a1a1a;
+    box-shadow:
+      1px 1px 0 #555,
+      2px 2px 0 #333,
+      3px 3px 8px rgba(0,0,0,0.5);
+  }
+
+  /* ── Title bar — Win98 style ── */
+  .lmn-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px;
+    background: var(--title-bg);
+    cursor: pointer;
+    user-select: none;
+    height: 28px;
+  }
+
+  .lmn-titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .lmn-titlebar-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .lmn-titlebar-text {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.05em;
+  }
+
+  .lmn-titlebar-btns {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .lmn-titlebar-btn {
+    width: 18px;
+    height: 16px;
+    background: #c0c0c0;
+    border: 1px solid;
+    border-color: #fff #808080 #808080 #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    color: #000;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .lmn-titlebar-btn:active {
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .lmn-titlebar-btn.close {
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  /* ── Window content area ── */
+  .lmn-win-content {
+    display: flex;
+    align-items: stretch;
+    height: 140px;
+    cursor: pointer;
+    transition: background 0.2s;
+    background: var(--accent-bg);
+  }
+
+  .lmn-win-content:hover {
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* ── Artist photo ── */
+  .lmn-artist-img-wrap {
+    width: 160px;
+    height: 140px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-right: 2px solid #333;
+  }
+
+  .lmn-artist-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    display: block;
+    transition: transform 0.5s ease, filter 0.3s ease;
+    filter: saturate(1.4) contrast(1.15) brightness(0.95) sepia(0.15);
+  }
+
+  /* Scanline + vignette overlay on photos */
+  .lmn-artist-img-wrap {
+    position: relative;
+  }
+
+  .lmn-artist-img-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        rgba(0,0,0,0.1) 1px,
+        rgba(0,0,0,0.1) 2px
+      );
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .lmn-win-content:hover .lmn-artist-img-wrap img {
+    transform: scale(1.05);
+    filter: saturate(1.6) contrast(1.2) brightness(1) sepia(0.1);
+  }
+
+  /* ── Artist info ── */
+  .lmn-artist-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .lmn-artist-name {
+    font-family: 'VT323', monospace;
+    font-size: clamp(28px, 4vw, 48px);
+    color: var(--accent);
+    line-height: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .lmn-artist-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .lmn-artist-meta-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── Gel-style contact button ── */
+  .lmn-artist-ig {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    background: linear-gradient(
+      180deg,
+      rgba(255,255,255,0.15) 0%,
+      rgba(255,255,255,0.05) 50%,
+      rgba(255,255,255,0.1) 51%,
+      rgba(255,255,255,0.15) 100%
+    );
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+    text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  .lmn-artist-ig:hover {
+    background: var(--accent);
+    color: #0a0a0a;
+    text-shadow: none;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .lmn-artist-ig-handle {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: rgba(240,236,228,0.35);
+    display: block;
+    text-align: center;
+  }
+
+  /* ── Expand toggle — looks like a Win98 button ── */
+  .lmn-toggle {
+    width: 26px;
+    height: 26px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .lmn-toggle:hover {
+    background: #d0d0d0;
+  }
+
+  .lmn-artist.is-open .lmn-toggle {
+    border-color: #808080 #fff #fff #808080;
+    background: #a0a0a0;
+  }
+
+  /* ── Gallery (expandable) ── */
+  .lmn-gallery-wrap {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lmn-artist.is-open .lmn-gallery-wrap {
+    max-height: 420px;
+  }
+
+  .lmn-carousel {
+    position: relative;
+    background: #111;
+    border-top: 2px solid #333;
+  }
+
+  .lmn-carousel-track-wrap { overflow: hidden; }
+
+  .lmn-carousel-track {
+    display: flex;
+    gap: 2px;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lmn-carousel-slide {
+    flex-shrink: 0;
+    width: calc(20% - 2px);
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: #111;
+  }
+
+  .lmn-carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+  }
+
+  .lmn-carousel-slide:hover img { transform: scale(1.05); }
+
+  /* ── Carousel buttons — Win98 style ── */
+  .lmn-carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    z-index: 2;
+    user-select: none;
+  }
+
+  .lmn-carousel-btn:active {
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .lmn-carousel-btn.prev { left: 6px; }
+  .lmn-carousel-btn.next { right: 6px; }
+
+  /* ── Gallery footer — status bar style ── */
+  .lmn-gallery-footer {
+    padding: 6px 12px;
+    background: #c0c0c0;
+    border-top: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .lmn-gallery-footer-dots { display: flex; gap: 4px; }
+
+  .lmn-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #808080;
+    transition: background 0.2s;
+  }
+
+  .lmn-dot.active { background: #000; }
+
+  .lmn-gallery-footer a {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #000;
+    text-decoration: underline;
+    transition: color 0.2s;
+  }
+
+  .lmn-gallery-footer a:hover { color: #0000ff; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 640px) {
+    .lmn-artists { padding: 32px 12px; }
+
+    .lmn-artist-img-wrap { width: 80px; }
+    .lmn-artist-img-wrap img { object-position: center center; }
+    .lmn-artist[data-color="0"] .lmn-artist-img-wrap img { object-position: calc(50% + 25px) center; }
+
+    .lmn-artist-info { padding: 12px; gap: 8px; }
+    .lmn-artist-name { font-size: clamp(20px, 5vw, 32px); white-space: normal; }
+
+    .lmn-artist-meta { flex-direction: column; align-items: flex-end; gap: 8px; }
+    .lmn-artist-ig { font-size: 7px; padding: 6px 10px; }
+    .lmn-artist-ig-handle { font-size: 12px; }
+
+    .lmn-carousel-slide { width: calc(33.33% - 2px); }
+    .lmn-artist.is-open .lmn-gallery-wrap { max-height: 600px; }
+
+    .lmn-titlebar-text { font-size: 7px; }
+  }
+</style>
+
+<section class="lmn-artists">
+
+  <div class="lmn-artists-header">
+    <h2 class="lmn-artists-heading">:: The Crew ::</h2>
+    <span class="lmn-artists-count">[ 06 ]</span>
+  </div>
+
+  <!-- J.D. PRUITT -->
+  <div class="lmn-artist" data-color="0">
+    <div class="lmn-titlebar" onclick="lmnToggle(this)">
+      <div class="lmn-titlebar-left">
+        <div class="lmn-titlebar-icon">✦</div>
+        <span class="lmn-titlebar-text">jd_pruitt_room.exe</span>
+      </div>
+      <div class="lmn-titlebar-btns">
+        <div class="lmn-titlebar-btn">_</div>
+        <div class="lmn-titlebar-btn">□</div>
+        <div class="lmn-titlebar-btn close">×</div>
+      </div>
+    </div>
+    <div class="lmn-win-content" onclick="lmnToggle(this.previousElementSibling)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611195549239-HXGQN7P29G539SUXMKZG/Brogusky_v100.00_02_48_01.Still001.jpg?format=750w" alt="J.D. Pruitt">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">J.D. Pruitt</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/jd.pruitt/" target="_blank" onclick="event.stopPropagation()">Contact</a><span class="lmn-artist-ig-handle">@jd.pruitt</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752390583-0ELCUOH88L6OU2R5RK4L/Screen+Shot+2022-08-05+at+8.19.44+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752221177-WGN9PFXD07VOCL9PP1TN/Screen+Shot+2022-08-05+at+8.16.52+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752233182-UD5YZFH2P3ZA0YPEVF0V/Screen+Shot+2022-08-05+at+8.17.03+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752246532-QR941YT8CR71TQ9N7685/Screen+Shot+2022-08-05+at+8.17.18+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752198685-A7N9SM2K7R4SBIAFZZD4/Screen+Shot+2022-08-05+at+8.16.29+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752262966-SEBMRSZZZ6G6OHNO9NAH/Screen+Shot+2022-08-05+at+8.17.35+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752270846-MQ8GI0HAPUDD5R2DXYF4/Screen+Shot+2022-08-05+at+8.17.43+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752279373-JN6R6MY1YQH0MBRYIF1N/Screen+Shot+2022-08-05+at+8.17.52+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752293861-DTAR033DTWIJ4KBMI1ZE/Screen+Shot+2022-08-05+at+8.18.05+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752303149-2WM3EVPAVM8SVFG6XXKA/Screen+Shot+2022-08-05+at+8.18.17+PM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="event.stopPropagation();lmnSlide(this,-1)">◀</div>
+        <div class="lmn-carousel-btn next" onclick="event.stopPropagation();lmnSlide(this,1)">▶</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/jd.pruitt/" target="_blank">view more →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ELECTRIC ELAINE -->
+  <div class="lmn-artist" data-color="1">
+    <div class="lmn-titlebar" onclick="lmnToggle(this)">
+      <div class="lmn-titlebar-left">
+        <div class="lmn-titlebar-icon">✦</div>
+        <span class="lmn-titlebar-text">electric_elaine_room.exe</span>
+      </div>
+      <div class="lmn-titlebar-btns">
+        <div class="lmn-titlebar-btn">_</div>
+        <div class="lmn-titlebar-btn">□</div>
+        <div class="lmn-titlebar-btn close">×</div>
+      </div>
+    </div>
+    <div class="lmn-win-content" onclick="lmnToggle(this.previousElementSibling)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">Electric Elaine</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/electricelaine/" target="_blank" onclick="event.stopPropagation()">Contact</a><span class="lmn-artist-ig-handle">@electricelaine</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753142890-HBGPGTFSCVFQQWP1TD9C/Screen+Shot+2022-08-05+at+8.32.14+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753158347-BDHQZ2D2EFU5BKGPAQ3W/Screen+Shot+2022-08-05+at+8.32.29+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753177501-BJYYGAGCNO41ZY0DFBJC/Screen+Shot+2022-08-05+at+8.32.49+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753202728-GD7W45OMQMIYBUYSDQ1J/Screen+Shot+2022-08-05+at+8.33.14+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753235260-ZIJQW748HBH7H8ZDYA67/Screen+Shot+2022-08-05+at+8.33.47+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753248551-DS5H4TP1TYEVCIQXX9RF/Screen+Shot+2022-08-05+at+8.34.01+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753265888-20LC5MFLSNFQNQT3E8PT/Screen+Shot+2022-08-05+at+8.34.17+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753280230-EBFHFZSPGL8D0P2OHTXT/Screen+Shot+2022-08-05+at+8.34.32+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753289465-EUKAG14DA979L7ZUUP2N/Screen+Shot+2022-08-05+at+8.34.41+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753297364-WMF45NBYKKQH6CTNRZNY/Screen+Shot+2022-08-05+at+8.34.50+PM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="event.stopPropagation();lmnSlide(this,-1)">◀</div>
+        <div class="lmn-carousel-btn next" onclick="event.stopPropagation();lmnSlide(this,1)">▶</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/electricelaine/" target="_blank">view more →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHORTY -->
+  <div class="lmn-artist" data-color="2">
+    <div class="lmn-titlebar" onclick="lmnToggle(this)">
+      <div class="lmn-titlebar-left">
+        <div class="lmn-titlebar-icon">✦</div>
+        <span class="lmn-titlebar-text">shorty_room.exe</span>
+      </div>
+      <div class="lmn-titlebar-btns">
+        <div class="lmn-titlebar-btn">_</div>
+        <div class="lmn-titlebar-btn">□</div>
+        <div class="lmn-titlebar-btn close">×</div>
+      </div>
+    </div>
+    <div class="lmn-win-content" onclick="lmnToggle(this.previousElementSibling)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/fc951337-5a90-4252-80f4-2244028060c8/Screenshot+2023-02-28+at+11.12.18+AM.png?format=750w" alt="ShorTy">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">ShorTy</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/shortyadtrtattoos/" target="_blank" onclick="event.stopPropagation()">Contact</a><span class="lmn-artist-ig-handle">@shortyadtrtattoos</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608146969-DJBYC1SK0ZPRSR84CUGU/Screenshot+2023-02-28+at+11.15.43+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608161761-YDF6HSVL5IHZFQHKKRG3/Screenshot+2023-02-28+at+11.15.58+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608175725-FDKFQIXN1XZHVWD52CIP/Screenshot+2023-02-28+at+11.16.12+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608189644-1OYNTQYTP0BEL8IYVAJB/Screenshot+2023-02-28+at+11.16.26+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608199340-56RG7NSDV89S281SL518/Screenshot+2023-02-28+at+11.16.36+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608219852-S835GRZQLQT9SZS782V1/Screenshot+2023-02-28+at+11.16.56+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608237069-4NFPYO9G7VMEQZVDMKLP/Screenshot+2023-02-28+at+11.17.13+AM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1677608251046-EFWJ3WLAGZJSFC9NMTHQ/Screenshot+2023-02-28+at+11.17.28+AM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="event.stopPropagation();lmnSlide(this,-1)">◀</div>
+        <div class="lmn-carousel-btn next" onclick="event.stopPropagation();lmnSlide(this,1)">▶</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/shortyadtrtattoos/" target="_blank">view more →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- KING KALYPSO -->
+  <div class="lmn-artist" data-color="3">
+    <div class="lmn-titlebar" onclick="lmnToggle(this)">
+      <div class="lmn-titlebar-left">
+        <div class="lmn-titlebar-icon">✦</div>
+        <span class="lmn-titlebar-text">king_kalypso_room.exe</span>
+      </div>
+      <div class="lmn-titlebar-btns">
+        <div class="lmn-titlebar-btn">_</div>
+        <div class="lmn-titlebar-btn">□</div>
+        <div class="lmn-titlebar-btn close">×</div>
+      </div>
+    </div>
+    <div class="lmn-win-content" onclick="lmnToggle(this.previousElementSibling)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/ca8bb46a-a17e-4a6a-a8df-de579e4abfdb/Screenshot+2023-06-05+at+12.06.23+PM.png?format=750w" alt="King Kalypso">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">King Kalypso</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/king.kalypso/" target="_blank" onclick="event.stopPropagation()">Contact</a><span class="lmn-artist-ig-handle">@king.kalypso</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189416183-HJJDMW6JINWKL30U7AW8/Screenshot+2024-01-13+at+4.42.26%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189465143-ELRY3REIQWL8QWEOU0HJ/Screenshot+2024-01-13+at+4.44.15%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1685988779114-TELFXPAZP0XUJF6MRR6X/Screenshot+2023-06-05+at+12.04.18+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189462435-4V875IKQSIYAYNF83VKZ/Screenshot+2024-01-13+at+4.44.07%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1685988792376-9OUT8VAK9J3MOM66GYEX/Screenshot+2023-06-05+at+12.05.00+PM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189418871-AAUCEVSOYDMJ5QCH5703/Screenshot+2024-01-13+at+4.41.58%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1705189411751-7CKSJHEWR24AYP9GUCJV/Screenshot+2024-01-13+at+4.42.36%E2%80%AFPM.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1685988788109-T9TAXJ901BFISN3DQEIK/Screenshot+2023-06-05+at+12.04.36+PM.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="event.stopPropagation();lmnSlide(this,-1)">◀</div>
+        <div class="lmn-carousel-btn next" onclick="event.stopPropagation();lmnSlide(this,1)">▶</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/king.kalypso/" target="_blank">view more →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAM DURBIN-CLARK -->
+  <div class="lmn-artist" data-color="4">
+    <div class="lmn-titlebar" onclick="lmnToggle(this)">
+      <div class="lmn-titlebar-left">
+        <div class="lmn-titlebar-icon">✦</div>
+        <span class="lmn-titlebar-text">sam_durby_room.exe</span>
+      </div>
+      <div class="lmn-titlebar-btns">
+        <div class="lmn-titlebar-btn">_</div>
+        <div class="lmn-titlebar-btn">□</div>
+        <div class="lmn-titlebar-btn close">×</div>
+      </div>
+    </div>
+    <div class="lmn-win-content" onclick="lmnToggle(this.previousElementSibling)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/d6cceb7c-127e-46a6-b2cb-3cfe895ae462/IMG_1805.jpg?format=750w" alt="Sam Durbin-Clark">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">Sam Durbin-Clark</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/sdurbytattoos/" target="_blank" onclick="event.stopPropagation()">Contact</a><span class="lmn-artist-ig-handle">@sdurbytattoos</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586692876-4IWBWRWZO0V6LWG7VKDX/IMG_2023.JPEG?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586787514-0FRJ1K1H0WJ0YQC9TUAN/IMG_2024.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586693069-2LQGS3FKC1FA2XLL2NG5/IMG_2022.JPEG?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1714586691965-BHTUFNWGLDEXGD95TXOV/IMG_5590.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1712081027319-Y3UPQGJKBB3YVOIA28UU/IMG_1794.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1712081027466-0IVF72LVGNX0JZQC3AQQ/IMG_1795.jpg?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1712081028142-8H44XDRKPLAO31J8BTYM/IMG_1796.JPEG?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738511823336-LHDTVT8QXJRGLCHCMLT4/Screenshot+2025-02-02+at+08.56.43.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="event.stopPropagation();lmnSlide(this,-1)">◀</div>
+        <div class="lmn-carousel-btn next" onclick="event.stopPropagation();lmnSlide(this,1)">▶</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/sdurbytattoos/" target="_blank">view more →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOONIE B. JONES -->
+  <div class="lmn-artist" data-color="5">
+    <div class="lmn-titlebar" onclick="lmnToggle(this)">
+      <div class="lmn-titlebar-left">
+        <div class="lmn-titlebar-icon">✦</div>
+        <span class="lmn-titlebar-text">moonie_room.exe</span>
+      </div>
+      <div class="lmn-titlebar-btns">
+        <div class="lmn-titlebar-btn">_</div>
+        <div class="lmn-titlebar-btn">□</div>
+        <div class="lmn-titlebar-btn close">×</div>
+      </div>
+    </div>
+    <div class="lmn-win-content" onclick="lmnToggle(this.previousElementSibling)">
+      <div class="lmn-artist-img-wrap">
+        <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/938f112f-f860-4547-9510-4ef64b53c124/Screenshot+2025-02-02+at+08.55.10.png?format=750w" alt="Moonie B. Jones">
+      </div>
+      <div class="lmn-artist-info">
+        <span class="lmn-artist-name">Moonie B. Jones</span>
+        <div class="lmn-artist-meta">
+          <div class="lmn-artist-meta-group"><a class="lmn-artist-ig" href="https://www.instagram.com/puppie.pokes/" target="_blank" onclick="event.stopPropagation()">Contact</a><span class="lmn-artist-ig-handle">@puppie.pokes</span></div>
+          <div class="lmn-toggle">+</div>
+        </div>
+      </div>
+    </div>
+    <div class="lmn-gallery-wrap">
+      <div class="lmn-carousel" data-index="0">
+        <div class="lmn-carousel-track-wrap">
+          <div class="lmn-carousel-track">
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512073277-TU2JZXUXN4SZCBIBOBFW/Screenshot+2025-02-02+at+08.59.25.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512073521-X6PZ5B2EMRH6CGMU5VL4/Screenshot+2025-02-02+at+08.59.48.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512089569-SMLICJYEUFXM9LOCIWES/Screenshot+2025-02-02+at+09.01.17.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512130781-YOHVMMM1TA5QZ57A5QX3/Screenshot+2025-02-02+at+09.01.56.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512077019-R6SNP3L35548TST8E260/Screenshot+2025-02-02+at+09.00.14.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512170791-2J8BL0P286ZKYSQD3UQB/Screenshot+2025-02-02+at+09.02.39.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512205147-HFU2MZXM2RBT5HLUA2Y0/Screenshot+2025-02-02+at+09.02.31.png?format=500w" alt=""></div>
+            <div class="lmn-carousel-slide"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1738512214084-LJ51I888NMNRM79UFWST/Screenshot+2025-02-02+at+09.02.58.png?format=500w" alt=""></div>
+          </div>
+        </div>
+        <div class="lmn-carousel-btn prev" onclick="event.stopPropagation();lmnSlide(this,-1)">◀</div>
+        <div class="lmn-carousel-btn next" onclick="event.stopPropagation();lmnSlide(this,1)">▶</div>
+      </div>
+      <div class="lmn-gallery-footer">
+        <div class="lmn-gallery-footer-dots"></div>
+        <a href="https://www.instagram.com/puppie.pokes/" target="_blank">view more →</a>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+  var VISIBLE = 5;
+
+  function getSlides(carousel) {
+    return carousel.querySelectorAll('.lmn-carousel-slide');
+  }
+
+  function updateDots(carousel) {
+    var artist = carousel.closest('.lmn-artist');
+    var footer = artist.querySelector('.lmn-gallery-footer-dots');
+    var slides = getSlides(carousel);
+    var pages = Math.ceil(slides.length / VISIBLE);
+    var current = parseInt(carousel.dataset.index) || 0;
+    var page = Math.floor(current / VISIBLE);
+    footer.innerHTML = '';
+    for (var i = 0; i < pages; i++) {
+      var dot = document.createElement('div');
+      dot.className = 'lmn-dot' + (i === page ? ' active' : '');
+      footer.appendChild(dot);
+    }
+  }
+
+  function lmnSlide(btn, dir) {
+    var carousel = btn.closest('.lmn-carousel');
+    var track = carousel.querySelector('.lmn-carousel-track');
+    var slides = getSlides(carousel);
+    var total = slides.length;
+    var max = total - VISIBLE;
+    var current = parseInt(carousel.dataset.index) || 0;
+    current = Math.min(Math.max(current + dir, 0), max);
+    carousel.dataset.index = current;
+    var slideW = slides[0].offsetWidth + 2;
+    track.style.transform = 'translateX(-' + (current * slideW) + 'px)';
+    updateDots(carousel);
+  }
+
+  function lmnToggle(titlebar) {
+    var artist = titlebar.closest('.lmn-artist');
+    var isOpen = artist.classList.contains('is-open');
+    document.querySelectorAll('.lmn-artist.is-open').forEach(function(a) {
+      a.classList.remove('is-open');
+    });
+    if (!isOpen) {
+      artist.classList.add('is-open');
+      var carousel = artist.querySelector('.lmn-carousel');
+      carousel.dataset.index = 0;
+      var track = carousel.querySelector('.lmn-carousel-track');
+      track.style.transform = 'translateX(0)';
+      updateDots(carousel);
+    }
+  }
+</script>
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-ka {
+    position: relative;
+    width: 100%;
+    height: 80vh;
+    min-height: 480px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    border-top: 3px solid #FF1493;
+    border-bottom: 3px solid #FF1493;
+  }
+
+  /* Photo — VHS treated */
+  .lmn-ka-bg {
+    position: absolute;
+    inset: -5%;
+    background: url('https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2e7e5fa0-6bd2-48d0-b9bd-9a794f90ae5a/IMG_0686.jpeg?content-type=image%2Fjpeg') center 30% / cover no-repeat;
+    filter: brightness(0.5) saturate(1.3) contrast(1.1);
+    transition: transform 12s ease, filter 0.6s ease;
+  }
+
+  .lmn-ka:hover .lmn-ka-bg {
+    transform: scale(1.03);
+    filter: brightness(0.45) saturate(1.4) contrast(1.2);
+  }
+
+  /* Scanlines */
+  .lmn-ka-scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 1px,
+      rgba(0,0,0,0.2) 1px,
+      rgba(0,0,0,0.2) 3px
+    );
+  }
+
+  /* Noise texture */
+  .lmn-ka-noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.12;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    animation: ka-noise 0.5s steps(3) infinite;
+  }
+
+  @keyframes ka-noise {
+    0% { transform: translate(0,0); }
+    33% { transform: translate(-1px,1px); }
+    66% { transform: translate(1px,-1px); }
+    100% { transform: translate(0,0); }
+  }
+
+  /* Vignette */
+  .lmn-ka-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.6);
+  }
+
+  /* Content */
+  .lmn-ka-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding: 0 6vw;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* "DRINK THE" — pixel font, outlined */
+  .lmn-ka-line1 {
+    display: block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(14px, 3vw, 32px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7FFF00;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(127,255,0,0.5);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: kaSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
+    margin-bottom: 12px;
+  }
+
+  /* "KOOL AID." — massive bubbly text */
+  .lmn-ka-line2-wrap {
+    position: relative;
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px) rotate(-2deg);
+    animation: kaPosterIn 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s forwards;
+    padding-bottom: 16px;
+  }
+
+  .lmn-ka-line2 {
+    display: block;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(64px, 14vw, 200px);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    background: linear-gradient(
+      180deg,
+      #ff8ec8 0%,
+      #ff1493 25%,
+      #ff1493 50%,
+      #d4007a 75%,
+      #a0005a 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    -webkit-text-stroke: 0;
+    filter:
+      drop-shadow(0 2px 0 rgba(150,0,70,0.9))
+      drop-shadow(0 4px 0 rgba(120,0,55,0.8))
+      drop-shadow(0 6px 0 rgba(90,0,40,0.6))
+      drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+  }
+
+  .lmn-ka-line2 .dot {
+    -webkit-text-fill-color: #7FFF00;
+    filter: drop-shadow(0 0 6px rgba(127,255,0,0.4));
+  }
+
+  /* Tape marks — like a poster taped to a wall */
+  .lmn-ka-tape {
+    position: absolute;
+    width: 48px;
+    height: 20px;
+    background: rgba(255,255,200,0.12);
+    border: 1px solid rgba(255,255,200,0.08);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .lmn-ka-tape.tl { top: -8px; left: 10%; transform: rotate(-8deg); }
+  .lmn-ka-tape.tr { top: -6px; right: 12%; transform: rotate(5deg); }
+  .lmn-ka-tape.bl { bottom: -8px; left: 15%; transform: rotate(3deg); }
+  .lmn-ka-tape.br { bottom: -6px; right: 8%; transform: rotate(-6deg); }
+
+  /* Sticker decorations */
+  .lmn-ka-stickers {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .lmn-ka-sticker {
+    position: absolute;
+    opacity: 0.85;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.5));
+  }
+
+  /* Bottom metadata */
+  .lmn-ka-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 28px;
+    opacity: 0;
+    animation: kaFadeIn 0.6s ease 0.8s forwards;
+  }
+
+  .lmn-ka-meta-line {
+    height: 1px;
+    width: 40px;
+    background: rgba(240,236,228,0.2);
+    flex-shrink: 0;
+  }
+
+  .lmn-ka-meta-text {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(240,236,228,0.3);
+  }
+
+  /* Corner tag — like a magazine page number */
+  .lmn-ka-corner {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    z-index: 3;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: rgba(240,236,228,0.12);
+    letter-spacing: 0.1em;
+    opacity: 0;
+    animation: kaFadeIn 1s ease 1.2s forwards;
+  }
+
+  @keyframes kaSlideUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes kaPosterIn {
+    to { opacity: 1; transform: translateY(0) rotate(-2deg); }
+  }
+
+  @keyframes kaFadeIn {
+    to { opacity: 1; }
+  }
+
+  @media (max-width: 640px) {
+    .lmn-ka { height: 60vh; min-height: 360px; }
+    .lmn-ka-sticker { display: none; }
+    .lmn-ka-tape { display: none; }
+    .lmn-ka-corner { display: none; }
+    .lmn-ka-line2 { -webkit-text-stroke: 1.5px rgba(100,0,50,0.4); }
+  }
+</style>
+
+<section class="lmn-ka">
+  <div class="lmn-ka-bg"></div>
+  <div class="lmn-ka-scanlines"></div>
+  <div class="lmn-ka-noise"></div>
+  <div class="lmn-ka-vignette"></div>
+
+  <!-- Tape marks -->
+  <div class="lmn-ka-tape tl"></div>
+  <div class="lmn-ka-tape tr"></div>
+  <div class="lmn-ka-tape bl"></div>
+  <div class="lmn-ka-tape br"></div>
+
+  <!-- Sticker deco -->
+  <div class="lmn-ka-stickers">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/aee321d1-09a4-468b-9d2a-d1ed38a0e51e/tongue.png?content-type=image%2Fpng" style="top:8%;left:4%;transform:rotate(-12deg);width:120px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/19e1b047-e9bf-4f59-922e-fba7f71e4f5a/8ball.png?content-type=image%2Fpng" style="top:15%;right:5%;transform:rotate(10deg);width:95px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2b01b762-c199-44b6-91d6-768fccba94b8/dice.png?content-type=image%2Fpng" style="bottom:15%;left:6%;transform:rotate(15deg);width:100px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/eba1fff5-91e6-4689-a7ed-b8bb61081424/popcicle.png?content-type=image%2Fpng" style="bottom:18%;right:4%;transform:rotate(-8deg);width:105px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/66407d19-b027-4e99-b15c-0bccb5b7a7b2/skateboard.png?content-type=image%2Fpng" style="top:32%;left:2%;transform:rotate(-22deg);width:110px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b901f345-749c-4049-8ee3-666050256ce4/rainbow.png?content-type=image%2Fpng" style="bottom:28%;right:2%;transform:rotate(14deg);width:115px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/2d3e8467-385f-4fa2-b19e-35ab608790dc/heartlock.png?content-type=image%2Fpng" style="top:25%;right:18%;transform:rotate(-6deg);width:80px">
+    <img class="lmn-ka-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/5e14ffdd-6e10-4602-b439-5c288fa74652/bow.png?content-type=image%2Fpng" style="bottom:35%;left:15%;transform:rotate(18deg);width:90px">
+  </div>
+
+  <div class="lmn-ka-content">
+    <span class="lmn-ka-line1">Drink the</span>
+    <div class="lmn-ka-line2-wrap">
+      <span class="lmn-ka-line2">Kool Aid<span class="dot">.</span></span>
+    </div>
+    <div class="lmn-ka-meta">
+      <div class="lmn-ka-meta-line"></div>
+      <span class="lmn-ka-meta-text">est. 2020 · Denver, CO</span>
+      <div class="lmn-ka-meta-line"></div>
+    </div>
+  </div>
+
+  <div class="lmn-ka-corner">pg. 03</div>
+</section>
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<style>
+  .lmn-footer {
+    background: #0a0a0a;
+    padding: 0;
+  }
+
+  /* ── Desktop ── */
+  .desktop {
+    position: relative;
+    width: 100%;
+    min-height: 600px;
+    background: #008080;
+    padding: 24px;
+    padding-bottom: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Desktop icons — left column ── */
+  .desktop-icons {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 1;
+  }
+
+  .desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    width: 70px;
+    cursor: pointer;
+  }
+
+  .desktop-icon-img {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .desktop-icon-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    text-align: center;
+    word-wrap: break-word;
+  }
+
+  .desktop-icon:hover .desktop-icon-label {
+    background: #000080;
+    color: #fff;
+  }
+
+  /* ── Right side icons ── */
+  .desktop-icons-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 1;
+  }
+
+  /* ── AIM Window ── */
+  .aim-window {
+    width: 100%;
+    max-width: 420px;
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+    font-family: Arial, Helvetica, sans-serif;
+    z-index: 2;
+  }
+
+  .aim-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #0a246a 0%, #3a6ea5 40%, #0a246a 100%);
+    height: 24px;
+  }
+
+  .aim-titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .aim-buddy-icon {
+    width: 14px;
+    height: 14px;
+    background: #FFD700;
+    border-radius: 50%;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .aim-titlebar-text {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .aim-titlebar-btns {
+    display: flex;
+    gap: 2px;
+  }
+
+  .aim-btn {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .aim-menubar {
+    display: flex;
+    padding: 1px 4px;
+    background: #ece9d8;
+    border-bottom: 1px solid #aca899;
+  }
+
+  .aim-menu-item {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    padding: 2px 8px;
+    cursor: default;
+  }
+
+  .aim-menu-item:hover {
+    background: #316ac5;
+    color: #fff;
+  }
+
+  .aim-body {
+    padding: 12px;
+    background: #fff;
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    min-height: 160px;
+  }
+
+  .aim-screenname {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 2px;
+  }
+
+  .aim-status-line {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    margin-bottom: 10px;
+  }
+
+  .aim-status-line .away { color: #cc0000; }
+
+  .aim-divider {
+    height: 1px;
+    background: #d4d0c8;
+    margin: 8px 0;
+  }
+
+  .aim-away-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    font-weight: bold;
+    color: #808080;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .aim-away-msg {
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .aim-away-msg a { color: #0000ff; text-decoration: underline; }
+  .aim-away-msg a:hover { color: #ff0000; }
+  .aim-away-msg .pink { color: #FF1493; font-weight: bold; }
+
+  .aim-info-block {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #444;
+    line-height: 1.7;
+  }
+
+  .aim-info-block a { color: #0000ff; text-decoration: underline; }
+  .aim-info-block a:hover { color: #ff0000; }
+
+  .aim-warn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #808080;
+    margin-top: 10px;
+  }
+
+  .aim-warn span { color: #008000; font-weight: bold; }
+
+  .aim-bottom {
+    padding: 6px 8px;
+    background: #ece9d8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .aim-bottom-btn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    padding: 3px 16px;
+    background: linear-gradient(180deg, #fff 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .aim-bottom-btn:hover {
+    background: linear-gradient(180deg, #fff 0%, #f0ece4 50%, #e0dcd0 100%);
+  }
+
+  /* ── Taskbar ── */
+  .taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(180deg, #3a6ea5 0%, #225599 2%, #1f4e8a 50%, #1a4480 100%);
+    border-top: 2px solid #5b96d4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 10;
+  }
+
+  .taskbar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Start button — XP green style */
+  .start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px 2px 6px;
+    background: linear-gradient(180deg, #3c9a3c 0%, #2d8e2d 50%, #1e7a1e 100%);
+    border: 1px solid #0a5c0a;
+    border-radius: 0 8px 8px 0;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+    cursor: pointer;
+    height: 30px;
+    letter-spacing: 0.02em;
+  }
+
+  .start-flag {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .start-flag div:nth-child(1) { background: #ff3030; }
+  .start-flag div:nth-child(2) { background: #30b030; }
+  .start-flag div:nth-child(3) { background: #3060ff; }
+  .start-flag div:nth-child(4) { background: #ffcc00; }
+
+  .taskbar-items {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+  }
+
+  .taskbar-item {
+    padding: 3px 12px;
+    background: linear-gradient(180deg, #3e80c0 0%, #2a6aaa 100%);
+    border: 1px solid;
+    border-color: #5b96d4 #1a4480 #1a4480 #5b96d4;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    height: 26px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .taskbar-item.active {
+    background: linear-gradient(180deg, #1a4480 0%, #2a5a90 100%);
+    border-color: #1a4480 #5b96d4 #5b96d4 #1a4480;
+  }
+
+  .taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: linear-gradient(180deg, #1a5aaa 0%, #0e4488 100%);
+    border-left: 1px solid #5b96d4;
+    height: 30px;
+  }
+
+  .taskbar-tray {
+    font-size: 11px;
+  }
+
+  .taskbar-clock {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .desktop { min-height: 500px; padding: 16px; padding-bottom: 44px; }
+    .desktop-icons, .desktop-icons-right { display: none; }
+    .aim-window { max-width: 100%; }
+    .aim-menubar { display: none; }
+    .taskbar-items { display: none; }
+    .start-btn { font-size: 10px; padding: 2px 8px 2px 4px; }
+  }
+</style>
+
+<footer class="lmn-footer">
+  <div class="desktop">
+
+    <!-- Desktop icons — left -->
+    <div class="desktop-icons">
+      <a class="desktop-icon" href="/">
+        <div class="desktop-icon-img">🖥️</div>
+        <span class="desktop-icon-label">My Computer</span>
+      </a>
+      <a class="desktop-icon" href="/book">
+        <div class="desktop-icon-img">📁</div>
+        <span class="desktop-icon-label">Book a Tattoo</span>
+      </a>
+      <a class="desktop-icon" href="mailto:hi@lumenatitattoo.com">
+        <div class="desktop-icon-img">📧</div>
+        <span class="desktop-icon-label">Email Us</span>
+      </a>
+      <a class="desktop-icon" href="https://www.instagram.com/lumenati.tattoo/" target="_blank">
+        <div class="desktop-icon-img">📷</div>
+        <span class="desktop-icon-label">Instagram</span>
+      </a>
+    </div>
+
+    <!-- Desktop icons — right -->
+    <div class="desktop-icons-right">
+      <a class="desktop-icon" href="/contact">
+        <div class="desktop-icon-img">📝</div>
+        <span class="desktop-icon-label">Contact</span>
+      </a>
+      <a class="desktop-icon" href="#">
+        <div class="desktop-icon-img">🗑️</div>
+        <span class="desktop-icon-label">Recycle Bin</span>
+      </a>
+    </div>
+
+    <!-- AIM Window — centered on desktop -->
+    <div class="aim-window">
+      <div class="aim-titlebar">
+        <div class="aim-titlebar-left">
+          <div class="aim-buddy-icon">🏃</div>
+          <span class="aim-titlebar-text">lumenati_tattoo - Buddy Info</span>
+        </div>
+        <div class="aim-titlebar-btns">
+          <div class="aim-btn">_</div>
+          <div class="aim-btn">□</div>
+          <div class="aim-btn">✕</div>
+        </div>
+      </div>
+
+      <div class="aim-menubar">
+        <span class="aim-menu-item">File</span>
+        <span class="aim-menu-item">Edit</span>
+        <span class="aim-menu-item">Actions</span>
+        <span class="aim-menu-item">Help</span>
+      </div>
+
+      <div class="aim-body">
+        <div class="aim-screenname">lumenati_tattoo</div>
+        <div class="aim-status-line">Status: <span class="away">Away</span> · Online since 1998</div>
+
+        <div class="aim-divider"></div>
+
+        <div class="aim-away-label">Away Message:</div>
+        <div class="aim-away-msg">
+          we're probably tattooing rn ✌️ <span class="pink">leave a message</span> or just come thru. walk-ins always welcome. flash on the wall. the door's open.
+        </div>
+
+        <div class="aim-divider"></div>
+
+        <div class="aim-info-block">
+          📍 3839 Jackson St, Denver CO 80205<br>
+          ✉️ <a href="mailto:hi@lumenatitattoo.com">hi@lumenatitattoo.com</a><br>
+          📷 <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank">@lumenati.tattoo</a>
+        </div>
+
+        <div class="aim-warn">Warning Level: <span>0%</span> · Idle: a long time</div>
+      </div>
+
+      <div class="aim-bottom">
+        <a href="mailto:hi@lumenatitattoo.com" class="aim-bottom-btn">Send IM</a>
+        <a href="/book" class="aim-bottom-btn">Get Info</a>
+      </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar">
+      <div class="taskbar-left">
+        <div class="start-btn">
+          <div class="start-flag"><div></div><div></div><div></div><div></div></div>
+          start
+        </div>
+        <div class="taskbar-items">
+          <a href="/" class="taskbar-item">📁 Home</a>
+          <a href="#" class="taskbar-item active">💬 AIM</a>
+          <a href="/book" class="taskbar-item">✏️ Book</a>
+        </div>
+      </div>
+      <div class="taskbar-right">
+        <span class="taskbar-tray">🔊 📶</span>
+        <span class="taskbar-clock" id="footer-clock">11:59 PM</span>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<script>
+(function() {
+  var el = document.getElementById('footer-clock');
+  if (!el) return;
+  function tick() {
+    var now = new Date();
+    var h = now.getHours();
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    el.textContent = h + ':' + m + ' ' + ampm;
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+
+</body>
+</html>

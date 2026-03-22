@@ -1,3 +1,14 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Menu Preview</title>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; min-height: 100vh; color: #f0ece4; font-family: VT323, monospace; padding: 48px; }</style>
+</head>
+<body>
+<h1 style="font-size: 32px; margin-bottom: 16px;">Right-click anywhere on this page</h1>
+<p style="font-size: 20px; color: rgba(240,236,228,0.5);">Custom Y2K context menu should appear.</p>
 <!-- Y2K Context Menu — Squarespace Code Injection (Footer) -->
 <script>
 (function() {
@@ -8,6 +19,7 @@
   var menu = document.createElement('div');
   menu.id = 'y2k-ctx';
   menu.innerHTML = [
+    '<div class="y2k-ctx-item" data-action="source">View Source</div>',
     '<div class="y2k-ctx-item" data-action="fav">Add to Favorites &#11088;</div>',
     '<div class="y2k-ctx-sep"></div>',
     '<div class="y2k-ctx-item" data-action="book">Book a Tattoo &#9999;&#65039;</div>',
@@ -139,3 +151,5 @@
   });
 })();
 </script>
+</body>
+</html>

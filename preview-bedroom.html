@@ -1,0 +1,1469 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.D. Pruitt – Bedroom</title>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; }</style>
+</head>
+<body>
+<!-- ─── ARTIST BEDROOM PAGE — J.D. PRUITT ─── -->
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Luckiest+Guy&display=swap" rel="stylesheet">
+
+<style>
+  .bedroom {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #FF1493 0%, #c44a1e 25%, #e06830 50%, #d45520 75%, #c8006e 100%);
+    padding: 24px;
+    padding-bottom: 52px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 16px;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Wallpaper — subtle pattern in their color ── */
+  .bedroom::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(255,200,100,0.1) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Artist name header ── */
+  .bedroom-header {
+    width: 100%;
+    text-align: center;
+    padding: 16px 0 8px;
+    z-index: 1;
+  }
+
+  .bedroom-name {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(36px, 8vw, 64px);
+    text-transform: uppercase;
+    line-height: 1.2;
+    padding-bottom: 8px;
+    background: linear-gradient(180deg, #ffee58 0%, #fdd835 25%, #fdd835 50%, #f9a825 75%, #c49000 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter:
+      drop-shadow(0 2px 0 rgba(196,144,0,0.9))
+      drop-shadow(0 4px 0 rgba(160,120,0,0.7))
+      drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+  }
+
+  .bedroom-handle {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fff;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Win98 window base ── */
+  .br-win {
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+    z-index: 1;
+    max-width: 100%;
+  }
+
+  .br-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #FF1493 0%, #c8006e 100%);
+    height: 24px;
+  }
+
+  .br-titlebar-text {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .br-titlebar-btns {
+    display: flex;
+    gap: 2px;
+  }
+
+  .br-btn {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-size: 10px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* ── Profile photo window ── */
+  .br-profile {
+    width: 280px;
+  }
+
+  .br-profile-img {
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    overflow: hidden;
+  }
+
+  .br-profile-img img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    filter: saturate(1.4) contrast(1.15) brightness(0.95) sepia(0.15);
+  }
+
+  .br-profile-status {
+    padding: 8px 12px;
+    background: #ece9d8;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #444;
+    border-top: 1px solid #aca899;
+  }
+
+  /* ── AIM contact window ── */
+  .br-aim {
+    width: 280px;
+  }
+
+  .br-aim-body {
+    padding: 12px;
+    background: #fff;
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .br-aim-sn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 6px;
+  }
+
+  .br-aim-status {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    margin-bottom: 10px;
+  }
+
+  .br-aim-status .online { color: #008000; }
+
+  .br-aim-msg {
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    padding: 8px;
+    background: rgba(0,0,0,0.02);
+    border: 1px solid #e0e0e0;
+  }
+
+  .br-aim-msg .pink { color: #FF1493; font-weight: bold; }
+
+  .br-aim-links {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .br-aim-links a {
+    color: #0000FF !important;
+    text-decoration: underline !important;
+    font-weight: bold !important;
+  }
+
+  .br-aim-links a:hover { color: #FF0000 !important; }
+
+  .br-aim-btns {
+    padding: 6px 8px;
+    background: #ece9d8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .br-aim-btn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    padding: 3px 16px;
+    background: linear-gradient(180deg, #fff 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    text-decoration: none !important;
+    display: inline-block;
+  }
+
+  .br-aim-btn:hover {
+    background: linear-gradient(180deg, #fff 0%, #f0ece4 50%, #e0dcd0 100%);
+  }
+
+  /* ── Portfolio / My Pictures window ── */
+  .br-portfolio {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .br-portfolio-grid {
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    background: #fff;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .br-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: 1px solid #c0c0c0;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .br-thumb:hover {
+    transform: scale(1.05);
+    z-index: 2;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .br-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .br-portfolio-status {
+    padding: 4px 8px;
+    background: #ece9d8;
+    border-top: 1px solid #aca899;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Wall poster ── */
+  .bedroom-wall-poster {
+    position: absolute;
+    top: 8%;
+    right: 10%;
+    width: 200px;
+    z-index: 0;
+    transform: rotate(2deg);
+    box-shadow: 3px 4px 12px rgba(0,0,0,0.5);
+    border: 3px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+  }
+
+  .bedroom-wall-poster img {
+    width: 100%;
+    display: block;
+    filter: saturate(1.2) contrast(1.1) brightness(0.9);
+  }
+
+  .wall-poster-tack {
+    position: absolute;
+    top: -5px;
+    left: 15%;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ff4444, #cc0000);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    z-index: 2;
+  }
+
+  /* ── Polaroid row — thumbtacked ── */
+  .bedroom-polaroid-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    z-index: 1;
+    flex-wrap: wrap;
+    padding: 16px 0 8px;
+    overflow: visible;
+  }
+
+  .bedroom-polaroid {
+    position: relative;
+    background: #fff;
+    padding: 8px 8px 32px;
+    box-shadow: 2px 3px 8px rgba(0,0,0,0.4);
+    transform-origin: top center;
+    transition: transform 0.3s ease;
+    cursor: default;
+  }
+
+  .bedroom-polaroid:hover {
+    animation: polaroid-swing 0.6s ease-in-out;
+  }
+
+  @keyframes polaroid-swing {
+    0% { transform: rotate(var(--r, 0deg)); }
+    25% { transform: rotate(calc(var(--r, 0deg) + 8deg)); }
+    50% { transform: rotate(calc(var(--r, 0deg) - 6deg)); }
+    75% { transform: rotate(calc(var(--r, 0deg) + 3deg)); }
+    100% { transform: rotate(var(--r, 0deg)); }
+  }
+
+  .polaroid-tack {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #aaa, #888 40%, #666);
+    border: 1px solid #555;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.4);
+    z-index: 2;
+  }
+
+  .bedroom-polaroid img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+    filter: saturate(1.3) contrast(1.1) sepia(0.1);
+  }
+
+  .bedroom-polaroid-label {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+    font-size: 11px;
+    color: #333;
+  }
+
+  /* ── Desktop icons ── */
+  .bedroom-icons {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 50;
+  }
+
+  .br-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none !important;
+    width: 80px;
+    padding: 10px 8px;
+    cursor: pointer;
+  }
+
+  .br-icon:hover {
+    background: rgba(0,0,128,0.5);
+    outline: 1px dotted rgba(255,255,255,0.5);
+  }
+
+  .br-icon-img {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    image-rendering: pixelated;
+  }
+
+  .br-icon-img svg {
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+  }
+
+  .br-icon-img, .br-icon-label {
+    pointer-events: none;
+  }
+
+  .br-icon-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    text-align: center;
+  }
+
+  .br-icon:hover .br-icon-label {
+    background: #000080;
+    color: #fff;
+  }
+
+  /* ── Stickers ── */
+  .bedroom-sticker {
+    position: absolute;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 0;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.4));
+  }
+
+  /* ── Poster on the wall ── */
+  .bedroom-poster {
+    position: absolute;
+    z-index: 0;
+    opacity: 0.15;
+    pointer-events: none;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 120px;
+    color: #FF1493;
+    text-transform: uppercase;
+    transform: rotate(-8deg);
+    top: 15%;
+    right: -5%;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Taskbar ── */
+  .bedroom-taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(180deg, #FF1493 0%, #c8006e 50%, #8b004d 100%);
+    border-top: 2px solid #ff69b4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 10;
+  }
+
+  .br-start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px 2px 6px;
+    background: linear-gradient(180deg, #ff3d8f 0%, #FF1493 50%, #c8006e 100%);
+    border: 1px solid #8b004d;
+    border-radius: 0 8px 8px 0;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+    height: 30px;
+  }
+
+  .br-taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: rgba(0,0,0,0.15);
+    border-left: 1px solid #ff69b4;
+    height: 30px;
+  }
+
+  .br-taskbar-clock {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  /* ── Back button ── */
+  .bedroom-back {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 5;
+  }
+
+  .bedroom-back a {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.4) !important;
+    text-decoration: none !important;
+    padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .bedroom-back a:hover {
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* ── JD's Winamp ── */
+  .jd-winamp {
+    position: fixed;
+    bottom: 50px;
+    right: 16px;
+    width: 240px;
+    background: #232323;
+    border: 2px solid;
+    border-color: #444 #111 #111 #444;
+    z-index: 100;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+  }
+
+  .jd-winamp-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 6px;
+    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
+    font-size: 9px;
+    color: #ccc;
+    letter-spacing: 2px;
+  }
+
+  .jd-winamp-btns { font-size: 10px; color: #888; }
+
+  .jd-winamp-display {
+    background: #000;
+    margin: 3px;
+    padding: 6px;
+    border: 1px solid #111;
+  }
+
+  .jd-winamp-marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 11px;
+    color: #00FF00;
+    text-shadow: 0 0 4px rgba(0,255,0,0.4);
+    margin-bottom: 6px;
+  }
+
+  .jd-winamp-marquee span {
+    display: inline-block;
+    animation: jd-marquee 12s linear infinite;
+  }
+
+  @keyframes jd-marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  .jd-winamp-eq {
+    display: flex;
+    gap: 3px;
+    height: 20px;
+    align-items: flex-end;
+  }
+
+  .jd-eq-bar {
+    flex: 1;
+    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
+    animation: jd-eq-bounce 0.5s ease-in-out infinite alternate;
+    min-height: 3px;
+  }
+
+  .jd-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
+  .jd-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
+  .jd-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
+  .jd-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
+  .jd-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
+  .jd-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
+  .jd-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
+  .jd-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
+  .jd-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
+  .jd-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
+  .jd-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
+  .jd-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
+
+  @keyframes jd-eq-bounce {
+    0% { height: 20%; }
+    100% { height: 100%; }
+  }
+
+  .jd-winamp-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px;
+    background: #2a2a20;
+    font-size: 14px;
+    color: #aaa;
+  }
+
+  .jd-winamp-controls span {
+    cursor: pointer;
+  }
+
+  .jd-winamp-controls span:hover { color: #00FF00; }
+
+  /* ── Mobile ── */
+  @media (max-width: 768px) {
+    .bedroom { padding: 16px 12px 52px; }
+    .bedroom-icons { display: none; }
+    .bedroom-poster { display: none; }
+    .bedroom-sticker { width: 50px !important; }
+    .br-profile, .br-aim { width: 100%; }
+    .br-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
+    .bedroom-back { top: 12px; right: 12px; }
+    .bedroom-wall-poster { display: none; }
+    .jd-winamp { display: none; }
+    .bedroom-polaroid img { width: 100px; height: 100px; }
+    .bedroom-polaroid { padding: 5px 5px 24px; }
+  }
+</style>
+
+<section class="bedroom">
+
+  <!-- Wallpaper glow -->
+  <div class="bedroom-poster">JD</div>
+
+  <!-- Wall posters -->
+  <div class="bedroom-wall-poster" style="top:18%;right:3%;transform:rotate(2deg);width:180px;">
+    <div class="wall-poster-tack"></div>
+    <div class="wall-poster-tack" style="right:15%;left:auto;"></div>
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/1baed3f4-49f8-4ea7-9f2b-c74bcfbbe11f/2020-shof-chad-muska-7.jpg?content-type=image%2Fjpeg" alt="">
+  </div>
+  <div class="bedroom-wall-poster" style="top:3%;right:15%;transform:rotate(-3deg);width:160px;">
+    <div class="wall-poster-tack"></div>
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/00b460b5-ddc9-4665-907e-61f3e2435883/5ce32701d9308a7a9fe6d804ebde8159.jpg?content-type=image%2Fjpeg" alt="">
+  </div>
+  <div class="bedroom-wall-poster" style="top:calc(22% - 70px);left:8%;transform:rotate(4deg);width:300px;">
+    <div class="wall-poster-tack"></div>
+    <div class="wall-poster-tack" style="right:15%;left:auto;"></div>
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b8c4c7ae-9332-4eaa-a638-ea973619ef2e/LovePark.jpg?content-type=image%2Fjpeg" alt="">
+  </div>
+  <div class="bedroom-wall-poster" style="top:55%;left:4%;transform:rotate(-5deg);width:140px;">
+    <div class="wall-poster-tack"></div>
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/3c3e28d8-8e66-488e-b612-fdeb451fe974/7-jeron-wilson-ortiz-tws-june-94-12-6-119559.jpg?content-type=image%2Fjpeg" alt="">
+  </div>
+
+  <!-- Polaroid row — thumbtacked along the bottom -->
+  <div class="bedroom-polaroid-row">
+    <div class="bedroom-polaroid" style="--r:-4deg;transform:rotate(-4deg);">
+      <div class="polaroid-tack"></div>
+      <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/16f2df4e-5453-4695-aa5d-441d24e5661c/DSCF4790.jpeg?content-type=image%2Fjpeg" alt="">
+      <span class="bedroom-polaroid-label">@ the shop</span>
+    </div>
+    <div class="bedroom-polaroid" style="--r:3deg;transform:rotate(3deg);">
+      <div class="polaroid-tack"></div>
+      <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/c7e6cd68-8151-4425-8973-59e6d57ba689/IMG_7191.jpeg?content-type=image%2Fjpeg" alt="">
+      <span class="bedroom-polaroid-label"><3 Penny</span>
+    </div>
+    <div class="bedroom-polaroid" style="--r:-2deg;transform:rotate(-2deg);">
+      <div class="polaroid-tack"></div>
+      <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f24f1d15-aad6-4396-af36-66ce365aa22a/JD1.jpg?content-type=image%2Fjpeg" alt="">
+      <span class="bedroom-polaroid-label">vibes :)</span>
+    </div>
+  </div>
+
+  <!-- Stickers -->
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/615b7726-7ce2-40de-a7db-6d2a4f652ee9/bolt.png?content-type=image%2Fpng" style="top:6%;right:6%;transform:rotate(-12deg);width:120px">
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/19e1b047-e9bf-4f59-922e-fba7f71e4f5a/8ball.png?content-type=image%2Fpng" style="top:45%;left:2%;transform:rotate(15deg);width:100px">
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/66407d19-b027-4e99-b15c-0bccb5b7a7b2/skateboard.png?content-type=image%2Fpng" style="top:20%;right:2%;transform:rotate(-20deg);width:110px">
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b901f345-749c-4049-8ee3-666050256ce4/rainbow.png?content-type=image%2Fpng" style="top:55%;right:8%;transform:rotate(8deg);width:105px">
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/65d984bb-1c14-455b-8172-99fc2d1fc11a/smilie.png?content-type=image%2Fpng" style="top:30%;left:3%;transform:rotate(-8deg);width:90px">
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/aee321d1-09a4-468b-9d2a-d1ed38a0e51e/tongue.png?content-type=image%2Fpng" style="bottom:20%;right:4%;transform:rotate(14deg);width:95px">
+  <img class="bedroom-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f3de2916-5339-406a-94d5-f07a3df065f0/stars.png?content-type=image%2Fpng" style="top:8%;left:15%;transform:rotate(6deg);width:100px">
+
+  <!-- Desktop icons -->
+  <div class="bedroom-icons">
+    <a class="br-icon" href="/">
+      <div class="br-icon-img"><svg viewBox="0 0 32 32"><rect x="4" y="6" width="24" height="18" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="6" y="8" width="20" height="12" fill="#008080"/><rect x="8" y="22" width="16" height="3" fill="#c0c0c0" stroke="#000" stroke-width="0.5"/></svg></div>
+      <span class="br-icon-label">Home</span>
+    </a>
+    <a class="br-icon" href="https://www.instagram.com/jd.pruitt/" target="_blank">
+      <div class="br-icon-img"><svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="#fff" stroke-width="2"/><circle cx="23" cy="9" r="2" fill="#fff"/></svg></div>
+      <span class="br-icon-label">Instagram</span>
+    </a>
+    <a class="br-icon" href="/book">
+      <div class="br-icon-img"><svg viewBox="0 0 32 32"><rect x="6" y="4" width="20" height="24" fill="#ffff88" stroke="#000" stroke-width="1"/><line x1="10" y1="10" x2="22" y2="10" stroke="#000" stroke-width="1"/><line x1="10" y1="14" x2="22" y2="14" stroke="#000" stroke-width="1"/><line x1="10" y1="18" x2="18" y2="18" stroke="#000" stroke-width="1"/><path d="M 20 20 L 26 26 L 24 28 L 18 22 Z" fill="#cc8800" stroke="#000" stroke-width="0.5"/></svg></div>
+      <span class="br-icon-label">Book</span>
+    </a>
+    <div class="br-icon" style="cursor:pointer" id="jd-games-icon">
+      <div class="br-icon-img"><svg viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="14" rx="3" fill="#444" stroke="#000" stroke-width="1"/><circle cx="11" cy="17" r="3" fill="#222" stroke="#888" stroke-width="0.5"/><rect x="9" y="15" width="4" height="1" fill="#888"/><rect x="10" y="14" width="1" height="4" fill="#888"/><circle cx="21" cy="14" r="1.5" fill="#cc0000"/><circle cx="24" cy="17" r="1.5" fill="#0000cc"/><circle cx="21" cy="20" r="1.5" fill="#00cc00"/></svg></div>
+      <span class="br-icon-label">Games</span>
+    </div>
+    <div class="br-icon" style="cursor:pointer" id="jd-skate-icon">
+      <div class="br-icon-img"><svg viewBox="0 0 32 32"><polygon points="6,4 26,16 6,28" fill="#fff" stroke="#000" stroke-width="1"/></svg></div>
+      <span class="br-icon-label">Skate</span>
+    </div>
+  </div>
+
+  <!-- Back button -->
+  <div class="bedroom-back">
+    <a href="/">← Back to the crib</a>
+  </div>
+
+  <!-- Header -->
+  <div class="bedroom-header">
+    <h1 class="bedroom-name">J.D. Pruitt</h1>
+    <div class="bedroom-handle">@jd.pruitt // skater // gamer // bold color tattoos</div>
+  </div>
+
+  <!-- Profile photo window -->
+  <div class="br-win br-profile">
+    <div class="br-titlebar">
+      <span class="br-titlebar-text">jd_pruitt.jpg</span>
+      <div class="br-titlebar-btns">
+        <div class="br-btn">_</div>
+        <div class="br-btn">□</div>
+        <div class="br-btn">✕</div>
+      </div>
+    </div>
+    <div class="br-profile-img">
+      <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611195549239-HXGQN7P29G539SUXMKZG/Brogusky_v100.00_02_48_01.Still001.jpg?format=750w" alt="J.D. Pruitt">
+    </div>
+    <div class="br-profile-status">- 750 x 750 · JPEG · 142 KB</div>
+  </div>
+
+  <!-- AIM contact window -->
+  <div class="br-win br-aim">
+    <div class="br-titlebar">
+      <span class="br-titlebar-text">jd_pruitt - Buddy Info</span>
+      <div class="br-titlebar-btns">
+        <div class="br-btn">_</div>
+        <div class="br-btn">□</div>
+        <div class="br-btn">✕</div>
+      </div>
+    </div>
+    <div class="br-aim-body">
+      <div class="br-aim-sn">jd_pruitt</div>
+      <div class="br-aim-status">Status: <span class="online">Online</span></div>
+      <div class="br-aim-msg">
+        what's up, I'm JD. i do <span class="pink">big bold colorful tattoos</span>. when i'm not tattooing i'm probably skating or gaming. DM me to book something rad or just swing by the shop -- i'm the nice one :)
+      </div>
+      <div class="br-aim-links">
+        IG: <a href="https://www.instagram.com/jd.pruitt/" target="_blank">@jd.pruitt</a><br>
+        Lumenati Tattoo // Denver, CO
+      </div>
+    </div>
+    <div class="br-aim-btns">
+      <a href="https://www.instagram.com/jd.pruitt/" target="_blank" class="br-aim-btn">Send IM</a>
+      <a href="/book" class="br-aim-btn">Book</a>
+    </div>
+  </div>
+
+  <!-- Portfolio / My Pictures window -->
+  <div class="br-win br-portfolio">
+    <div class="br-titlebar">
+      <span class="br-titlebar-text">C:\JD_Pruitt\My Pictures</span>
+      <div class="br-titlebar-btns">
+        <div class="br-btn">_</div>
+        <div class="br-btn">□</div>
+        <div class="br-btn">✕</div>
+      </div>
+    </div>
+    <div class="br-portfolio-grid">
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752390583-0ELCUOH88L6OU2R5RK4L/Screen+Shot+2022-08-05+at+8.19.44+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752221177-WGN9PFXD07VOCL9PP1TN/Screen+Shot+2022-08-05+at+8.16.52+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752233182-UD5YZFH2P3ZA0YPEVF0V/Screen+Shot+2022-08-05+at+8.17.03+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752246532-QR941YT8CR71TQ9N7685/Screen+Shot+2022-08-05+at+8.17.18+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752198685-A7N9SM2K7R4SBIAFZZD4/Screen+Shot+2022-08-05+at+8.16.29+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752262966-SEBMRSZZZ6G6OHNO9NAH/Screen+Shot+2022-08-05+at+8.17.35+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752270846-MQ8GI0HAPUDD5R2DXYF4/Screen+Shot+2022-08-05+at+8.17.43+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752279373-JN6R6MY1YQH0MBRYIF1N/Screen+Shot+2022-08-05+at+8.17.52+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752293861-DTAR033DTWIJ4KBMI1ZE/Screen+Shot+2022-08-05+at+8.18.05+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659752303149-2WM3EVPAVM8SVFG6XXKA/Screen+Shot+2022-08-05+at+8.18.17+PM.png?format=500w" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f08e09dc-f26d-48d9-8f79-d67573eb04ac/Screenshot+2026-03-21+at+7.41.29%E2%80%AFPM.png?content-type=image%2Fpng" alt=""></div>
+      <div class="br-thumb"><img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/c75231ec-8d1b-4f0d-ba60-46f69e8b577d/Screenshot+2026-03-21+at+7.40.36%E2%80%AFPM.png?content-type=image%2Fpng" alt=""></div>
+    </div>
+    <div class="br-portfolio-status">
+      <span>12 objects</span>
+      <span>- 4.2 MB</span>
+    </div>
+  </div>
+
+  <!-- JD's Winamp -->
+  <div class="jd-winamp">
+    <div class="jd-winamp-bar">
+      <span class="jd-winamp-title">WINAMP</span>
+      <span class="jd-winamp-btns">_ x</span>
+    </div>
+    <div class="jd-winamp-display">
+      <div class="jd-winamp-marquee">
+        <span>Goldfinger -- Superman (Tony Hawk's Pro Skater OST) ***</span>
+      </div>
+      <div class="jd-winamp-eq">
+        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
+        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
+        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
+        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
+      </div>
+    </div>
+    <div class="jd-winamp-controls">
+      <span>|&lt;&lt;</span> <span class="jd-play-btn">&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
+    </div>
+  </div>
+
+  <!-- Taskbar -->
+  <div class="bedroom-taskbar">
+    <div class="br-start-btn">
+      J.D.'s Room
+    </div>
+    <div class="br-taskbar-right">
+      <span style="font-size:11px">SND NET</span>
+      <span class="br-taskbar-clock" id="br-clock">11:59 PM</span>
+    </div>
+  </div>
+
+</section>
+
+<!-- Hidden Video Player — Windows Media Player style -->
+<div id="jd-video-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+  <div style="background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.3);max-width:95vw;width:560px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;background:linear-gradient(180deg,#0a246a 0%,#3a6ea5 40%,#0a246a 100%);height:24px;">
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">Windows Media Player — jd_skate_edit.avi</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#fff;cursor:pointer;padding:0 4px;" onclick="document.getElementById('jd-video-overlay').style.display='none';document.getElementById('jd-vimeo').src=document.getElementById('jd-vimeo').src;">✕</span>
+    </div>
+    <div style="display:flex;padding:1px 4px;background:#ece9d8;border-bottom:1px solid #aca899;gap:0;">
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">File</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">View</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">Play</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">Help</span>
+    </div>
+    <div style="margin:4px;border:1px solid;border-color:#808080 #fff #fff #808080;overflow:hidden;position:relative;padding-top:56.25%;background:#000;">
+      <iframe id="jd-vimeo" src="https://player.vimeo.com/video/504588258?autoplay=1&loop=1&muted=1&background=1&autopause=0" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;" allow="autoplay;fullscreen" allowfullscreen></iframe>
+    </div>
+    <div style="padding:6px 8px;background:#ece9d8;border-top:1px solid #aca899;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-family:Tahoma,sans-serif;font-size:10px;color:#444;">Playing - jd_skate_edit.avi</span>
+      <span id="jd-unmute-btn" style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 12px;background:linear-gradient(180deg,#fff 0%,#ece9d8 50%,#d4d0c8 100%);border:1px solid;border-color:#fff #404040 #404040 #fff;cursor:pointer;">Unmute</span>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden Game -->
+<div id="jd-game-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.3);max-width:95vw;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;background:linear-gradient(180deg,#FF1493 0%,#c8006e 100%);height:24px;">
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">breakout.exe — JD's Arcade</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#fff;cursor:pointer;padding:0 4px;" onclick="document.getElementById('jd-game-overlay').style.display='none';window.skateRunning=false;clearInterval(window.skateInt);window.skateInt=null;">✕</span>
+    </div>
+    <div style="padding:4px;background:#ece9d8;">
+      <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;border:1px solid;border-color:#808080 #fff #fff #808080;background:#000;"></canvas>
+    </div>
+    <div style="padding:4px 8px;background:#ece9d8;border-top:1px solid #aca899;font-family:Tahoma,sans-serif;font-size:10px;color:#444;display:flex;justify-content:space-between;">
+      <span>Score: <span id="jd-br-score">0</span></span>
+      <span>Lives: <span id="jd-br-lives">3</span></span>
+      <span>SPACE to ollie</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var canvas = document.getElementById('jd-skate-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = 400, H = 320;
+
+  // SFX
+  var sfxCtx;
+  function getSfx() { if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); return sfxCtx; }
+  function playSfx(freq, dur, type, vol) {
+    try {
+      var c = getSfx(), o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'square'; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.15, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(); o.stop(c.currentTime + dur);
+    } catch(e) {}
+  }
+  function sfxJump() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(600, 0.1, 'square', 0.1);}, 50); }
+  function sfxCollect() { playSfx(800, 0.08, 'square', 0.1); setTimeout(function(){playSfx(1200, 0.1, 'square', 0.1);}, 60); }
+  function sfxHit() { playSfx(150, 0.3, 'sawtooth', 0.15); }
+  function sfxGrind() { playSfx(200, 0.05, 'sawtooth', 0.06); }
+  function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
+
+  // Game state
+  var score, lives, speed, frame, gameOver, started;
+  var player, ground, obstacles, collectibles, rails, particles, buildings;
+  var GRAVITY = 0.6;
+  var GROUND_Y = 270;
+  var scrollX = 0;
+
+  // Colors
+  var ORANGE = '#FF1493';
+  var PINK = '#FF1493';
+  var LIME = '#7FFF00';
+  var CYAN = '#00FFFF';
+  var YELLOW = '#FFD700';
+  var PURPLE = '#9b59b6';
+  var SKY_TOP = '#1a0a2e';
+  var SKY_BOT = '#2d1b69';
+
+  function init() {
+    if(window.skateInt){clearInterval(window.skateInt);window.skateInt=null;}
+    score = 0; lives = 3; speed = 4; frame = 0; gameOver = false; started = true;
+    scrollX = 0;
+    document.getElementById('jd-br-score').textContent = '0';
+    document.getElementById('jd-br-lives').textContent = '3';
+    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0 };
+    obstacles = [];
+    collectibles = [];
+    rails = [];
+    particles = [];
+    buildings = [];
+    // Seed initial buildings
+    for (var i = 0; i < 10; i++) {
+      buildings.push(makeBuilding(i * 80));
+    }
+    // Seed initial obstacles/collectibles
+    spawnInitial();
+    window.skateRunning = true;
+    if(!window.skateInt){window.skateInt=setInterval(loop,16);}
+  }
+
+  function makeBuilding(x) {
+    var h = 40 + Math.random() * 80;
+    var colors = ['#1a1a3e', '#2a1a4e', '#1a2a3e', '#2e1a2e', '#1a1a2a'];
+    return { x: x, w: 30 + Math.random() * 40, h: h, color: colors[Math.floor(Math.random() * colors.length)] };
+  }
+
+  function spawnInitial() {
+    for (var i = 0; i < 5; i++) {
+      var sx = 300 + i * 150 + Math.random() * 80;
+      spawnAt(sx);
+    }
+  }
+
+  function spawnAt(sx) {
+    var r = Math.random();
+    if (r < 0.45) {
+      // Obstacle
+      var types = ['hydrant', 'trashcan', 'cone'];
+      var type = types[Math.floor(Math.random() * types.length)];
+      obstacles.push(makeObstacle(type, sx));
+    } else if (r < 0.75) {
+      // Collectible (tattoo machine)
+      var cy = GROUND_Y - 40 - Math.random() * 30;
+      collectibles.push({ x: sx, y: cy, w: 12, h: 16, collected: false });
+    } else {
+      // Grind rail
+      var rw = 60 + Math.random() * 40;
+      var ry = GROUND_Y - 30 - Math.random() * 20;
+      rails.push({ x: sx, y: ry, w: rw, scored: false });
+    }
+  }
+
+  function makeObstacle(type, x) {
+    if (type === 'hydrant') return { type: 'hydrant', x: x, y: GROUND_Y - 18, w: 12, h: 18, color: '#FF3333' };
+    if (type === 'trashcan') return { type: 'trashcan', x: x, y: GROUND_Y - 22, w: 16, h: 22, color: '#888' };
+    return { type: 'cone', x: x, y: GROUND_Y - 14, w: 12, h: 14, color: YELLOW };
+  }
+
+  function spawnParticles(x, y, color, count) {
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: -Math.random() * 3 - 1,
+        life: 20 + Math.random() * 15,
+        color: color,
+        size: 2 + Math.random() * 2
+      });
+    }
+  }
+
+  function jump() {
+    if (gameOver) return;
+    if (player.onGround || player.grinding) {
+      player.vy = -10;
+      player.onGround = false;
+      sfxJump();
+      if (player.grinding) {
+        player.grinding = false;
+        player.grindRail = null;
+      }
+    }
+  }
+
+  // Input
+  document.addEventListener('keydown', function(e) {
+    if (!window.skateRunning) return;
+    if (e.code === 'Space' || e.key === ' ') {
+      e.preventDefault();
+      jump();
+    }
+  });
+  canvas.addEventListener('click', function() {
+    if (gameOver) { init(); return; }
+    jump();
+  });
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    if (gameOver) { init(); return; }
+    jump();
+  }, { passive: false });
+
+  function update() {
+    frame++;
+    scrollX += speed;
+
+
+    // Player physics
+    if (!player.grinding) {
+      player.vy += GRAVITY;
+      player.y += player.vy;
+    }
+
+    // Ground collision
+    if (player.y >= GROUND_Y - player.h) {
+      player.y = GROUND_Y - player.h;
+      player.vy = 0;
+      if (!player.onGround) {
+        // Landing particles
+        spawnParticles(player.x + player.w / 2, GROUND_Y, ORANGE, 4);
+      }
+      player.onGround = true;
+      player.grinding = false;
+      player.grindRail = null;
+    }
+
+    // Invincibility timer
+    if (player.invincible > 0) player.invincible--;
+
+    // Rail grinding
+    if (!player.onGround && player.vy > 0) {
+      for (var i = 0; i < rails.length; i++) {
+        var rail = rails[i];
+        var rx = rail.x - scrollX;
+        if (player.x + player.w > rx && player.x < rx + rail.w) {
+          var railTop = rail.y;
+          if (player.y + player.h >= railTop && player.y + player.h <= railTop + 8) {
+            player.y = railTop - player.h;
+            player.vy = 0;
+            player.grinding = true;
+            player.grindRail = rail;
+            if (!rail.scored) {
+              rail.scored = true;
+              score += 25;
+              document.getElementById('jd-br-score').textContent = score;
+              spawnParticles(player.x + player.w / 2, railTop, CYAN, 8);
+            }
+            // Continuous grind sparks + sfx
+            if (frame % 6 === 0) sfxGrind();
+            if (frame % 3 === 0) {
+              spawnParticles(player.x + player.w / 2, railTop + 2, YELLOW, 1);
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // Check if player fell off rail
+    if (player.grinding && player.grindRail) {
+      var grx = player.grindRail.x - scrollX;
+      if (player.x > grx + player.grindRail.w || player.x + player.w < grx) {
+        player.grinding = false;
+        player.grindRail = null;
+      }
+    }
+
+    // Obstacle collision
+    for (var i = obstacles.length - 1; i >= 0; i--) {
+      var ob = obstacles[i];
+      var ox = ob.x - scrollX;
+      if (ox < -50) { obstacles.splice(i, 1); continue; }
+      if (player.invincible > 0) continue;
+      // Collision check
+      if (player.x + player.w - 4 > ox && player.x + 4 < ox + ob.w &&
+          player.y + player.h > ob.y && player.y < ob.y + ob.h) {
+        lives--;
+        sfxHit();
+        document.getElementById('jd-br-lives').textContent = lives;
+        player.invincible = 90;
+        spawnParticles(ox + ob.w / 2, ob.y, '#FF0000', 10);
+        obstacles.splice(i, 1);
+        if (lives <= 0) {
+          gameOver = true;
+          sfxGameOver();
+          return;
+        }
+      }
+    }
+
+    // Collectible collision
+    for (var i = collectibles.length - 1; i >= 0; i--) {
+      var col = collectibles[i];
+      var cx = col.x - scrollX;
+      if (cx < -50) { collectibles.splice(i, 1); continue; }
+      if (col.collected) continue;
+      if (player.x + player.w > cx && player.x < cx + col.w &&
+          player.y + player.h > col.y && player.y < col.y + col.h) {
+        col.collected = true;
+        score += 10;
+        sfxCollect();
+        document.getElementById('jd-br-score').textContent = score;
+        spawnParticles(cx + col.w / 2, col.y + col.h / 2, LIME, 10);
+      }
+    }
+
+    // Remove off-screen rails
+    for (var i = rails.length - 1; i >= 0; i--) {
+      if (rails[i].x - scrollX < -120) rails.splice(i, 1);
+    }
+    // Remove collected collectibles off screen
+    for (var i = collectibles.length - 1; i >= 0; i--) {
+      if (collectibles[i].collected && collectibles[i].x - scrollX < -50) collectibles.splice(i, 1);
+    }
+
+    // Spawn new stuff ahead
+    var furthest = 0;
+    for (var i = 0; i < obstacles.length; i++) { if (obstacles[i].x > furthest) furthest = obstacles[i].x; }
+    for (var i = 0; i < collectibles.length; i++) { if (collectibles[i].x > furthest) furthest = collectibles[i].x; }
+    for (var i = 0; i < rails.length; i++) { if (rails[i].x > furthest) furthest = rails[i].x; }
+    while (furthest < scrollX + W + 400) {
+      furthest += 120 + Math.random() * 100;
+      spawnAt(furthest);
+    }
+
+    // Spawn buildings
+    var lastB = buildings[buildings.length - 1];
+    while (lastB.x - scrollX * 0.3 < W + 100) {
+      var nb = makeBuilding(lastB.x + lastB.w + 5 + Math.random() * 15);
+      buildings.push(nb);
+      lastB = nb;
+    }
+    // Remove old buildings
+    while (buildings.length > 0 && buildings[0].x + buildings[0].w - scrollX * 0.3 < -50) {
+      buildings.shift();
+    }
+
+    // Update particles
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.15;
+      p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    // Sky gradient
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, SKY_TOP);
+    grad.addColorStop(1, SKY_BOT);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    ctx.fillStyle = '#fff';
+    for (var i = 0; i < 30; i++) {
+      var sx = ((i * 137 + 50) % W + W) % W;
+      var sy = ((i * 91 + 20) % (GROUND_Y - 80));
+      var twinkle = Math.sin(frame * 0.05 + i) > 0.5 ? 2 : 1;
+      ctx.fillRect(sx, sy, twinkle, twinkle);
+    }
+
+    // Buildings (parallax)
+    for (var i = 0; i < buildings.length; i++) {
+      var b = buildings[i];
+      var bx = b.x - scrollX * 0.3;
+      if (bx > W + 50 || bx + b.w < -50) continue;
+      var by = GROUND_Y - b.h;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(bx, by, b.w, b.h);
+      // Windows
+      ctx.fillStyle = (Math.sin(frame * 0.02 + i) > 0) ? '#FFFF66' : '#333';
+      for (var wy = by + 6; wy < GROUND_Y - 10; wy += 12) {
+        for (var wx = bx + 5; wx < bx + b.w - 5; wx += 10) {
+          ctx.fillRect(wx, wy, 4, 4);
+        }
+      }
+    }
+
+    // Ground - sidewalk
+    ctx.fillStyle = '#555';
+    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+    // Sidewalk lines
+    ctx.fillStyle = '#666';
+    ctx.fillRect(0, GROUND_Y, W, 2);
+    // Dashes
+    ctx.fillStyle = '#777';
+    for (var i = 0; i < 20; i++) {
+      var dx = (i * 40 - (scrollX % 40) + 800) % 800 - 400 + W;
+      if (dx > W) dx -= 800;
+      ctx.fillRect(dx, GROUND_Y + 15, 20, 2);
+    }
+
+    // Grind rails
+    for (var i = 0; i < rails.length; i++) {
+      var rail = rails[i];
+      var rx = rail.x - scrollX;
+      if (rx > W + 10 || rx + rail.w < -10) continue;
+      // Rail posts
+      ctx.fillStyle = '#888';
+      ctx.fillRect(rx + 2, rail.y, 3, GROUND_Y - rail.y);
+      ctx.fillRect(rx + rail.w - 5, rail.y, 3, GROUND_Y - rail.y);
+      // Rail bar
+      ctx.fillStyle = rail.scored ? CYAN : '#ccc';
+      ctx.fillRect(rx, rail.y, rail.w, 3);
+      // Highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(rx, rail.y, rail.w, 1);
+    }
+
+    // Obstacles
+    for (var i = 0; i < obstacles.length; i++) {
+      var ob = obstacles[i];
+      var ox = ob.x - scrollX;
+      if (ox > W + 10 || ox + ob.w < -10) continue;
+      drawObstacle(ob, ox);
+    }
+
+    // Collectibles (tattoo machines)
+    for (var i = 0; i < collectibles.length; i++) {
+      var col = collectibles[i];
+      if (col.collected) continue;
+      var cx = col.x - scrollX;
+      if (cx > W + 10 || cx + col.w < -10) continue;
+      drawTattooMachine(cx, col.y);
+    }
+
+    // Player (skateboarder)
+    drawPlayer();
+
+    // Particles
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.globalAlpha = p.life / 30;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+
+    // Score display on canvas
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('SCORE: ' + score, 8, 14);
+
+    // Game over screen
+    if (gameOver) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = ORANGE;
+      ctx.font = 'bold 28px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', W / 2, H / 2 - 30);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('Score: ' + score, W / 2, H / 2 + 5);
+      ctx.fillStyle = YELLOW;
+      ctx.font = '12px monospace';
+      ctx.fillText('Click to play again', W / 2, H / 2 + 35);
+    }
+
+    // Start screen
+    if (!started) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = ORANGE;
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SK8 OR DIE', W / 2, H / 2 - 30);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px monospace';
+      ctx.fillText('SPACE or TAP to ollie', W / 2, H / 2 + 10);
+      ctx.fillStyle = YELLOW;
+      ctx.fillText('Collect tattoo machines +10pts', W / 2, H / 2 + 30);
+      ctx.fillStyle = CYAN;
+      ctx.fillText('Grind rails +25pts', W / 2, H / 2 + 48);
+    }
+  }
+
+  function drawPlayer() {
+    var px = player.x, py = player.y;
+    var blink = player.invincible > 0 && Math.floor(frame / 4) % 2 === 0;
+    if (blink) return; // flash when invincible
+
+    // Skateboard (board)
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(px - 2, py + 16, 24, 3);
+    // Wheels
+    ctx.fillStyle = YELLOW;
+    ctx.fillRect(px, py + 19, 4, 3);
+    ctx.fillRect(px + 16, py + 19, 4, 3);
+
+    // Body (stick figure style with rectangles)
+    ctx.fillStyle = ORANGE;
+    // Torso
+    ctx.fillRect(px + 8, py + 4, 4, 10);
+    // Head
+    ctx.fillRect(px + 6, py, 8, 6);
+    // Arms
+    if (player.onGround || player.grinding) {
+      ctx.fillRect(px + 4, py + 6, 4, 3);
+      ctx.fillRect(px + 12, py + 6, 4, 3);
+    } else {
+      // Arms up while jumping
+      ctx.fillRect(px + 3, py + 2, 4, 3);
+      ctx.fillRect(px + 13, py + 2, 4, 3);
+    }
+    // Legs
+    ctx.fillRect(px + 6, py + 13, 3, 4);
+    ctx.fillRect(px + 11, py + 13, 3, 4);
+
+    // Hat/cap detail
+    ctx.fillStyle = PINK;
+    ctx.fillRect(px + 5, py, 10, 2);
+
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(px + 11, py + 2, 2, 2);
+  }
+
+  function drawObstacle(ob, ox) {
+    if (ob.type === 'hydrant') {
+      // Fire hydrant
+      ctx.fillStyle = '#FF3333';
+      ctx.fillRect(ox + 2, ob.y + 4, 8, 14);
+      ctx.fillRect(ox, ob.y + 6, 12, 4);
+      ctx.fillRect(ox + 3, ob.y, 6, 5);
+      // Cap
+      ctx.fillStyle = '#CC0000';
+      ctx.fillRect(ox + 4, ob.y, 4, 2);
+    } else if (ob.type === 'trashcan') {
+      // Trash can
+      ctx.fillStyle = '#777';
+      ctx.fillRect(ox + 1, ob.y + 3, 14, 19);
+      ctx.fillStyle = '#999';
+      ctx.fillRect(ox, ob.y, 16, 4);
+      // Lines
+      ctx.fillStyle = '#666';
+      ctx.fillRect(ox + 1, ob.y + 10, 14, 1);
+      ctx.fillRect(ox + 1, ob.y + 16, 14, 1);
+    } else if (ob.type === 'cone') {
+      // Traffic cone
+      ctx.fillStyle = YELLOW;
+      ctx.fillRect(ox + 1, ob.y + 10, 10, 4);
+      ctx.fillRect(ox + 3, ob.y + 5, 6, 5);
+      ctx.fillRect(ox + 4, ob.y, 4, 5);
+      // Stripes
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(ox + 2, ob.y + 7, 8, 2);
+    }
+  }
+
+  function drawTattooMachine(cx, cy) {
+    // Tattoo machine body
+    ctx.fillStyle = PURPLE;
+    ctx.fillRect(cx, cy + 2, 10, 10);
+    // Grip
+    ctx.fillStyle = '#8B5CF6';
+    ctx.fillRect(cx + 2, cy + 12, 6, 4);
+    // Needle
+    ctx.fillStyle = '#ccc';
+    ctx.fillRect(cx + 4, cy + 16, 2, 4);
+    // Top coils
+    ctx.fillStyle = PINK;
+    ctx.fillRect(cx + 1, cy, 3, 3);
+    ctx.fillRect(cx + 6, cy, 3, 3);
+    // Bobbing glow
+    if (Math.sin(frame * 0.1) > 0) {
+      ctx.fillStyle = 'rgba(155, 89, 182, 0.3)';
+      ctx.fillRect(cx - 2, cy - 2, 16, 24);
+    }
+  }
+
+  function loop() {
+    if (!window.skateRunning) return;
+    if (started && !gameOver) update();
+    draw();
+    
+  }
+
+  // Start when overlay opens
+  var obs = new MutationObserver(function() {
+    if (document.getElementById('jd-game-overlay').style.display === 'flex') init();
+  });
+  var overlay = document.getElementById('jd-game-overlay');
+  if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['style'] });
+})();
+</script>
+<script>
+// Icon click handlers
+document.getElementById('jd-games-icon').addEventListener('click', function() {
+  document.getElementById('jd-game-overlay').style.display = 'flex';
+});
+document.getElementById('jd-skate-icon').addEventListener('click', function() {
+  document.getElementById('jd-video-overlay').style.display = 'flex';
+});
+// Unmute via Vimeo postMessage API
+var jdMuted = true;
+document.getElementById('jd-unmute-btn').addEventListener('click', function() {
+  var iframe = document.getElementById('jd-vimeo');
+  var btn = document.getElementById('jd-unmute-btn');
+  if (jdMuted) {
+    iframe.contentWindow.postMessage('{"method":"setVolume","value":1}', '*');
+    btn.textContent = 'Mute';
+    jdMuted = false;
+  } else {
+    iframe.contentWindow.postMessage('{"method":"setVolume","value":0}', '*');
+    btn.textContent = 'Unmute';
+    jdMuted = true;
+  }
+});
+</script>
+
+<script>
+(function() {
+  var el = document.getElementById('br-clock');
+  if (!el) return;
+  function tick() {
+    var now = new Date();
+    var h = now.getHours();
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    el.textContent = h + ':' + m + ' ' + ampm;
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+
+</body>
+</html>

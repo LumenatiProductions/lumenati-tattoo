@@ -1,3 +1,15 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumenati – Easter Eggs Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Luckiest+Guy&display=swap" rel="stylesheet">
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; min-height: 200vh; color: #f0ece4; font-family: VT323, monospace; padding: 48px; }</style>
+</head>
+<body>
+<h1 style="font-family: Luckiest Guy; font-size: 48px; color: #FF1493; margin-bottom: 24px;">Easter Eggs Preview</h1>
+<p style="font-size: 22px; color: rgba(240,236,228,0.5);">Hit play on Winamp. Clippy in 3 seconds.</p>
 <!-- WINAMP PLAYER WIDGET — paste into Squarespace Code Injection (Footer) or a Code Block -->
 <div id="winamp-player">
   <div id="winamp-titlebar">
@@ -244,28 +256,24 @@
 
   /* ── MARQUEE ── */
   #winamp-marquee-wrap {
-    overflow: hidden !important;
-    width: 100% !important;
-    height: 16px !important;
-    margin-bottom: 4px !important;
+    overflow: hidden;
+    width: 100%;
+    height: 13px;
+    margin-bottom: 4px;
   }
 
   #winamp-marquee {
-    display: inline-block !important;
-    white-space: nowrap !important;
-    animation: winamp-scroll 12s linear infinite !important;
+    display: inline-block;
+    white-space: nowrap;
+    animation: winamp-scroll 12s linear infinite;
   }
 
   #winamp-marquee-text {
-    color: #00FF00 !important;
-    font-size: 11px !important;
-    letter-spacing: 1px !important;
-    text-shadow: 0 0 4px rgba(0,255,0,0.3) !important;
-    padding-right: 60px !important;
-    line-height: 16px !important;
-    font-family: 'Share Tech Mono', 'Courier New', monospace !important;
-    text-decoration: none !important;
-    font-weight: normal !important;
+    color: #00FF00;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 4px rgba(0,255,0,0.3);
+    padding-right: 60px;
   }
 
   @keyframes winamp-scroll {
@@ -677,3 +685,174 @@
 
 })();
 </script>
+<!-- Clippy Easter Egg - Add via Code Injection (Footer) in Squarespace -->
+<div id="clippy-container" aria-hidden="true">
+  <div id="clippy-bubble">
+    <div id="clippy-bubble-text">It looks like you're trying to get a tattoo! Would you like help?</div>
+    <div id="clippy-buttons">
+      <a href="/book" id="clippy-btn-book">Get Inked &rarr;</a>
+      <button id="clippy-btn-dismiss">Go away</button>
+    </div>
+    <div id="clippy-bubble-tail"></div>
+  </div>
+  <div id="clippy-character">
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/e64042c5-f1a0-4370-b0a3-3706e10268c8/Clippy.webp?content-type=image%2Fwebp" alt="Clippy" id="clippy-img">
+  </div>
+</div>
+
+<style>
+  #clippy-container {
+    position: fixed;
+    bottom: 0;
+    left: 24px;
+    z-index: 999999;
+    transform: translateY(200px);
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #clippy-container.clippy-visible {
+    transform: translateY(0);
+  }
+
+  #clippy-container.clippy-hiding {
+    transform: translateY(200px);
+    transition: transform 0.4s ease-in;
+  }
+
+  #clippy-bubble {
+    position: relative;
+    background: #FFFFCC;
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 14px 16px 12px;
+    margin-bottom: 8px;
+    max-width: 220px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  #clippy-container.clippy-visible #clippy-bubble {
+    opacity: 1;
+    transform: scale(1);
+    transition-delay: 0.4s;
+  }
+
+  #clippy-bubble-tail {
+    position: absolute;
+    bottom: -10px;
+    left: 24px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #000;
+  }
+
+  #clippy-bubble-tail::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: -8px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #FFFFCC;
+  }
+
+  #clippy-bubble-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #000;
+    margin-bottom: 12px;
+  }
+
+  #clippy-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  #clippy-btn-book {
+    background: #222;
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  #clippy-btn-book:hover {
+    background: #444;
+    color: #fff;
+  }
+
+  #clippy-btn-dismiss {
+    background: transparent;
+    color: #555;
+    border: 1px solid #999;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  #clippy-btn-dismiss:hover {
+    background: #eee;
+    color: #000;
+  }
+
+  #clippy-character {
+    animation: clippy-bob 3s ease-in-out infinite;
+    cursor: pointer;
+  }
+
+  #clippy-img {
+    display: block;
+    width: 100px;
+    height: auto;
+    filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.1));
+  }
+
+  @keyframes clippy-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+
+  @media (max-width: 640px) {
+    #clippy-container { left: 12px; }
+    #clippy-character { transform-origin: bottom left; scale: 0.75; }
+    #clippy-bubble { max-width: 180px; padding: 10px 12px; }
+    #clippy-bubble-text { font-size: 12px; }
+    #clippy-buttons { flex-direction: column; gap: 6px; }
+    #clippy-btn-book, #clippy-btn-dismiss { text-align: center; }
+  }
+</style>
+
+<script>
+  (function() {
+    if (sessionStorage.getItem('clippy-dismissed')) return;
+    var container = document.getElementById('clippy-container');
+    var dismissBtn = document.getElementById('clippy-btn-dismiss');
+    setTimeout(function() {
+      container.classList.add('clippy-visible');
+    }, 3000);
+    dismissBtn.addEventListener('click', function() {
+      container.classList.remove('clippy-visible');
+      container.classList.add('clippy-hiding');
+      sessionStorage.setItem('clippy-dismissed', '1');
+      setTimeout(function() { container.style.display = 'none'; }, 500);
+    });
+  })();
+</script>
+
+</body>
+</html>

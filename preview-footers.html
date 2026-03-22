@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumenati – Footer Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Space+Mono:wght@400;700&family=Luckiest+Guy&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: 'VT323', monospace; color: #f0ece4; }
+
+  .option {
+    border: 1px solid #1e1e1e;
+    margin: 40px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .option-label {
+    padding: 12px 16px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #FF1493;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #1e1e1e;
+    background: #111;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     1. AIM AWAY MESSAGE
+     ═══════════════════════════════════════ -->
+<div class="option">
+  <div class="option-label">1 — AIM Away Message</div>
+  <style>
+    .footer-aim {
+      background: #0a0a0a;
+      padding: 48px 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .aim-window {
+      width: 100%;
+      max-width: 500px;
+      border: 2px solid #444;
+      background: #1a1a1a;
+      box-shadow: 2px 2px 0 #555, 3px 3px 8px rgba(0,0,0,0.5);
+    }
+
+    .aim-titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+      background: linear-gradient(90deg, #1493FF, #0066cc);
+      height: 26px;
+    }
+
+    .aim-titlebar-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: #fff;
+      text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
+    }
+
+    .aim-titlebar-btns {
+      display: flex;
+      gap: 3px;
+    }
+
+    .aim-titlebar-btn {
+      width: 16px;
+      height: 14px;
+      background: #c0c0c0;
+      border: 1px solid;
+      border-color: #fff #808080 #808080 #fff;
+      font-family: 'VT323', monospace;
+      font-size: 11px;
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .aim-body {
+      padding: 20px;
+      border-top: 2px solid #333;
+    }
+
+    .aim-status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: #FFD700;
+      margin-bottom: 16px;
+      text-shadow: 0 0 6px rgba(255,215,0,0.4);
+    }
+
+    .aim-status .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #FFD700;
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: aim-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes aim-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .aim-message {
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      color: rgba(240,236,228,0.7);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid #222;
+    }
+
+    .aim-message em {
+      color: #FF1493;
+      font-style: normal;
+    }
+
+    .aim-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .aim-info a {
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      color: #1493FF;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+
+    .aim-info a:hover { color: #FF1493; }
+
+    .aim-info span {
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      color: rgba(240,236,228,0.35);
+    }
+
+    .aim-bottom {
+      padding: 8px 12px;
+      background: #c0c0c0;
+      border-top: 2px solid;
+      border-color: #808080 #fff #fff #808080;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: #444;
+      text-align: center;
+    }
+  </style>
+  <footer class="footer-aim">
+    <div class="aim-window">
+      <div class="aim-titlebar">
+        <span class="aim-titlebar-text">lumenati_tattoo - Away Message</span>
+        <div class="aim-titlebar-btns">
+          <div class="aim-titlebar-btn">_</div>
+          <div class="aim-titlebar-btn">×</div>
+        </div>
+      </div>
+      <div class="aim-body">
+        <div class="aim-status"><span class="dot"></span>Away</div>
+        <div class="aim-message">
+          we're probably tattooing rn. <em>leave a message</em> or just come thru.<br><br>
+          📍 3839 Jackson St, Denver CO 80205<br>
+          ✉️ hi@lumenatitattoo.com
+        </div>
+        <div class="aim-info">
+          <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank">@lumenati.tattoo</a>
+          <a href="mailto:hi@lumenatitattoo.com">send an IM →</a>
+          <span>© 1998 lumenati tattoo. all rights reserved lol</span>
+        </div>
+      </div>
+      <div class="aim-bottom">AOL Instant Messenger™</div>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════
+     2. WINDOWS 98 TASKBAR
+     ═══════════════════════════════════════ -->
+<div class="option">
+  <div class="option-label">2 — Windows 98 Taskbar</div>
+  <style>
+    .footer-taskbar {
+      background: #0a0a0a;
+      padding: 48px 0 0;
+    }
+
+    .taskbar-info {
+      padding: 24px 32px;
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    .taskbar-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .taskbar-col-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: #7FFF00;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      text-shadow: 0 0 6px rgba(127,255,0,0.4);
+    }
+
+    .taskbar-col a, .taskbar-col span {
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      color: rgba(240,236,228,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .taskbar-col a:hover {
+      color: #FF1493;
+    }
+
+    .taskbar {
+      background: #c0c0c0;
+      border-top: 2px solid;
+      border-color: #fff #808080 #808080 #fff;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 36px;
+    }
+
+    .taskbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .start-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: #c0c0c0;
+      border: 2px solid;
+      border-color: #fff #808080 #808080 #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: #000;
+      cursor: pointer;
+      height: 28px;
+    }
+
+    .start-btn:active {
+      border-color: #808080 #fff #fff #808080;
+    }
+
+    .start-flag {
+      width: 16px;
+      height: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+    }
+
+    .start-flag div:nth-child(1) { background: #ff0000; }
+    .start-flag div:nth-child(2) { background: #00ff00; }
+    .start-flag div:nth-child(3) { background: #0000ff; }
+    .start-flag div:nth-child(4) { background: #ffff00; }
+
+    .taskbar-items {
+      display: flex;
+      gap: 3px;
+    }
+
+    .taskbar-item {
+      padding: 2px 12px;
+      background: #c0c0c0;
+      border: 2px solid;
+      border-color: #808080 #fff #fff #808080;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: #000;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+
+    .taskbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 8px;
+      border: 2px solid;
+      border-color: #808080 #fff #fff #808080;
+      height: 24px;
+    }
+
+    .taskbar-clock {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: #000;
+    }
+
+    .taskbar-tray {
+      display: flex;
+      gap: 4px;
+      font-size: 10px;
+    }
+  </style>
+  <footer class="footer-taskbar">
+    <div class="taskbar-info">
+      <div class="taskbar-col">
+        <span class="taskbar-col-title">Location</span>
+        <span>3839 Jackson St</span>
+        <span>Denver, CO 80205</span>
+      </div>
+      <div class="taskbar-col">
+        <span class="taskbar-col-title">Contact</span>
+        <a href="mailto:hi@lumenatitattoo.com">hi@lumenatitattoo.com</a>
+        <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank">@lumenati.tattoo</a>
+      </div>
+      <div class="taskbar-col">
+        <span class="taskbar-col-title">Navigate</span>
+        <a href="/">Home</a>
+        <a href="/book">Book a Tattoo</a>
+        <a href="/contact">Contact</a>
+      </div>
+    </div>
+    <div class="taskbar">
+      <div class="taskbar-left">
+        <div class="start-btn">
+          <div class="start-flag"><div></div><div></div><div></div><div></div></div>
+          Start
+        </div>
+        <div class="taskbar-items">
+          <a href="/" class="taskbar-item">📁 Home</a>
+          <a href="/book" class="taskbar-item">✏️ Book</a>
+          <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank" class="taskbar-item">📷 IG</a>
+        </div>
+      </div>
+      <div class="taskbar-right">
+        <div class="taskbar-tray">🔊 📶</div>
+        <div class="taskbar-clock" id="taskbar-time">11:59 PM</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════
+     3. GEOCITIES GUESTBOOK
+     ═══════════════════════════════════════ -->
+<div class="option">
+  <div class="option-label">3 — GeoCities Guestbook</div>
+  <style>
+    .footer-geo {
+      background: #0a0a0a;
+      padding: 48px 24px;
+      text-align: center;
+      border-top: 2px dashed #333;
+    }
+
+    .geo-counter {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: #7FFF00;
+      letter-spacing: 0.1em;
+      margin-bottom: 24px;
+      text-shadow: 0 0 8px rgba(127,255,0,0.4);
+    }
+
+    .geo-counter .num {
+      display: inline-block;
+      background: #000;
+      border: 1px solid #333;
+      padding: 4px 6px;
+      margin: 0 1px;
+      font-size: 10px;
+      color: #7FFF00;
+      min-width: 18px;
+    }
+
+    .geo-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0;
+      color: rgba(240,236,228,0.2);
+      font-size: 10px;
+      letter-spacing: 0.5em;
+    }
+
+    .geo-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .geo-links a {
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      color: #1493FF;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+
+    .geo-links a:hover { color: #FF1493; }
+
+    .geo-info {
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      color: rgba(240,236,228,0.4);
+      line-height: 1.8;
+      margin-bottom: 24px;
+    }
+
+    .geo-badges {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .geo-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      padding: 6px 10px;
+      border: 1px solid #333;
+      color: rgba(240,236,228,0.4);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .geo-badge.netscape { border-color: #4a9e6b; color: #4a9e6b; }
+    .geo-badge.webring { border-color: #FF1493; color: #FF1493; }
+    .geo-badge.y2k { border-color: #FFD700; color: #FFD700; }
+
+    .geo-copyright {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: rgba(240,236,228,0.15);
+      letter-spacing: 0.1em;
+      margin-top: 16px;
+    }
+
+    .geo-marquee-wrap {
+      overflow: hidden;
+      margin-bottom: 20px;
+      border-top: 1px solid #1e1e1e;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 8px 0;
+    }
+
+    .geo-marquee {
+      display: flex;
+      width: max-content;
+      animation: geo-scroll 25s linear infinite;
+    }
+
+    .geo-marquee span {
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      color: rgba(240,236,228,0.2);
+      white-space: nowrap;
+      padding: 0 20px;
+    }
+
+    .geo-marquee .pink { color: rgba(255,20,147,0.4); }
+
+    @keyframes geo-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+  </style>
+  <footer class="footer-geo">
+    <div class="geo-counter">
+      You are visitor #
+      <span class="num">0</span><span class="num">0</span><span class="num">4</span><span class="num">2</span><span class="num">7</span><span class="num">1</span>
+    </div>
+
+    <div class="geo-links">
+      <a href="/">Home</a>
+      <a href="/book">Book</a>
+      <a href="/contact">Contact</a>
+      <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank">Instagram</a>
+      <a href="mailto:hi@lumenatitattoo.com">Email</a>
+    </div>
+
+    <div class="geo-divider">✦ ✦ ✦ ✦ ✦</div>
+
+    <div class="geo-info">
+      3839 Jackson St · Denver, CO 80205<br>
+      hi@lumenatitattoo.com · @lumenati.tattoo
+    </div>
+
+    <div class="geo-marquee-wrap">
+      <div class="geo-marquee">
+        <span>Thanks for stopping by</span>
+        <span class="pink">★</span>
+        <span>Sign our guestbook</span>
+        <span class="pink">★</span>
+        <span>Add us to your bookmarks</span>
+        <span class="pink">★</span>
+        <span>Tell your friends</span>
+        <span class="pink">★</span>
+        <span>Thanks for stopping by</span>
+        <span class="pink">★</span>
+        <span>Sign our guestbook</span>
+        <span class="pink">★</span>
+        <span>Add us to your bookmarks</span>
+        <span class="pink">★</span>
+        <span>Tell your friends</span>
+        <span class="pink">★</span>
+      </div>
+    </div>
+
+    <div class="geo-badges">
+      <span class="geo-badge netscape">Best viewed in Netscape Navigator 4.0</span>
+      <span class="geo-badge webring">← Denver Tattoo Webring →</span>
+      <span class="geo-badge y2k">Y2K Compliant ✓</span>
+    </div>
+
+    <div class="geo-copyright">© 1998 Lumenati Tattoo · All rights reserved</div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════
+     4. CD JEWEL CASE LINER NOTES
+     ═══════════════════════════════════════ -->
+<div class="option">
+  <div class="option-label">4 — CD Jewel Case Liner Notes</div>
+  <style>
+    .footer-cd {
+      background: #0a0a0a;
+      padding: 48px 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .cd-case {
+      width: 100%;
+      max-width: 600px;
+      background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+      border: 1px solid #333;
+      padding: 32px;
+      position: relative;
+    }
+
+    /* Translucent plastic sheen */
+    .cd-case::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .cd-title {
+      font-family: 'Luckiest Guy', cursive;
+      font-size: 28px;
+      color: #FF1493;
+      text-align: center;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cd-subtitle {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: rgba(240,236,228,0.3);
+      text-align: center;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .cd-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #333, transparent);
+      margin: 16px 0;
+    }
+
+    .cd-tracks {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .cd-track {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .cd-track-num {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: rgba(240,236,228,0.25);
+      width: 24px;
+      flex-shrink: 0;
+    }
+
+    .cd-track-name {
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      color: rgba(240,236,228,0.6);
+      flex: 1;
+    }
+
+    .cd-track-name a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .cd-track-name a:hover { color: #FF1493; }
+
+    .cd-track-dots {
+      flex: 1;
+      border-bottom: 1px dotted rgba(240,236,228,0.1);
+      margin: 0 8px;
+      min-width: 20px;
+    }
+
+    .cd-track-meta {
+      font-family: 'VT323', monospace;
+      font-size: 14px;
+      color: rgba(240,236,228,0.25);
+      flex-shrink: 0;
+    }
+
+    .cd-credits {
+      font-family: 'VT323', monospace;
+      font-size: 14px;
+      color: rgba(240,236,228,0.25);
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .cd-barcode {
+      margin-top: 20px;
+      text-align: right;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: rgba(240,236,228,0.15);
+    }
+
+    .cd-barcode-lines {
+      display: flex;
+      justify-content: flex-end;
+      gap: 2px;
+      margin-bottom: 4px;
+    }
+
+    .cd-barcode-line {
+      width: 2px;
+      background: rgba(240,236,228,0.15);
+    }
+  </style>
+  <footer class="footer-cd">
+    <div class="cd-case">
+      <div class="cd-title">Lumenati</div>
+      <div class="cd-subtitle">Denver, CO · Self-Titled · 2020</div>
+      <div class="cd-divider"></div>
+      <div class="cd-tracks">
+        <div class="cd-track">
+          <span class="cd-track-num">01</span>
+          <span class="cd-track-name"><a href="https://www.instagram.com/jd.pruitt/" target="_blank">J.D. Pruitt</a></span>
+          <span class="cd-track-dots"></span>
+          <span class="cd-track-meta">@jd.pruitt</span>
+        </div>
+        <div class="cd-track">
+          <span class="cd-track-num">02</span>
+          <span class="cd-track-name"><a href="https://www.instagram.com/electricelaine/" target="_blank">Electric Elaine</a></span>
+          <span class="cd-track-dots"></span>
+          <span class="cd-track-meta">@electricelaine</span>
+        </div>
+        <div class="cd-track">
+          <span class="cd-track-num">03</span>
+          <span class="cd-track-name"><a href="https://www.instagram.com/shortyadtrtattoos/" target="_blank">ShorTy</a></span>
+          <span class="cd-track-dots"></span>
+          <span class="cd-track-meta">@shortyadtrtattoos</span>
+        </div>
+        <div class="cd-track">
+          <span class="cd-track-num">04</span>
+          <span class="cd-track-name"><a href="https://www.instagram.com/king.kalypso/" target="_blank">King Kalypso</a></span>
+          <span class="cd-track-dots"></span>
+          <span class="cd-track-meta">@king.kalypso</span>
+        </div>
+        <div class="cd-track">
+          <span class="cd-track-num">05</span>
+          <span class="cd-track-name"><a href="https://www.instagram.com/sdurbytattoos/" target="_blank">Sam Durbin-Clark</a></span>
+          <span class="cd-track-dots"></span>
+          <span class="cd-track-meta">@sdurbytattoos</span>
+        </div>
+        <div class="cd-track">
+          <span class="cd-track-num">06</span>
+          <span class="cd-track-name"><a href="https://www.instagram.com/puppie.pokes/" target="_blank">Moonie B. Jones</a></span>
+          <span class="cd-track-dots"></span>
+          <span class="cd-track-meta">@puppie.pokes</span>
+        </div>
+      </div>
+      <div class="cd-divider"></div>
+      <div class="cd-credits">
+        3839 Jackson St · Denver, CO 80205<br>
+        hi@lumenatitattoo.com · @lumenati.tattoo<br><br>
+        All ink original. No flash was harmed in the making of this studio.<br>
+        © 1998 Lumenati Productions. Unauthorized tattooing is encouraged.
+      </div>
+      <div class="cd-barcode">
+        <div class="cd-barcode-lines">
+          <div class="cd-barcode-line" style="height:20px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:1px"></div>
+          <div class="cd-barcode-line" style="height:20px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:3px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:1px"></div>
+          <div class="cd-barcode-line" style="height:20px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:1px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:3px"></div>
+          <div class="cd-barcode-line" style="height:20px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:1px"></div>
+          <div class="cd-barcode-line" style="height:20px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:2px"></div>
+          <div class="cd-barcode-line" style="height:20px;width:1px"></div>
+          <div class="cd-barcode-line" style="height:20px"></div>
+        </div>
+        LMN-001-98
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════
+     5. ZINE BACK COVER
+     ═══════════════════════════════════════ -->
+<div class="option">
+  <div class="option-label">5 — Zine Back Cover</div>
+  <style>
+    .footer-zine {
+      background: #0a0a0a;
+      position: relative;
+      padding: 48px 24px 32px;
+    }
+
+    /* Torn paper edge */
+    .footer-zine::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 0;
+      right: 0;
+      height: 16px;
+      background: #0a0a0a;
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 16'%3E%3Cpath d='M0,8 Q30,2 60,8 Q90,14 120,8 Q150,3 180,8 Q210,13 240,8 Q270,2 300,8 Q330,14 360,8 Q390,4 420,8 Q450,12 480,8 Q510,3 540,8 Q570,13 600,8 Q630,2 660,8 Q690,14 720,8 Q750,4 780,8 Q810,12 840,8 Q870,3 900,8 Q930,14 960,8 Q990,2 1020,8 Q1050,13 1080,8 Q1110,4 1140,8 Q1170,12 1200,8 L1200,16 L0,16 Z' fill='white'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 16'%3E%3Cpath d='M0,8 Q30,2 60,8 Q90,14 120,8 Q150,3 180,8 Q210,13 240,8 Q270,2 300,8 Q330,14 360,8 Q390,4 420,8 Q450,12 480,8 Q510,3 540,8 Q570,13 600,8 Q630,2 660,8 Q690,14 720,8 Q750,4 780,8 Q810,12 840,8 Q870,3 900,8 Q930,14 960,8 Q990,2 1020,8 Q1050,13 1080,8 Q1110,4 1140,8 Q1170,12 1200,8 L1200,16 L0,16 Z' fill='white'/%3E%3C/svg%3E");
+      mask-size: 100% 100%;
+      -webkit-mask-size: 100% 100%;
+    }
+
+    /* Cut here line */
+    .zine-cut {
+      border-top: 2px dashed rgba(240,236,228,0.15);
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .zine-cut-label {
+      position: absolute;
+      top: -8px;
+      right: 24px;
+      background: #0a0a0a;
+      padding: 0 8px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: rgba(240,236,228,0.2);
+      letter-spacing: 0.1em;
+    }
+
+    .zine-content {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+      max-width: 700px;
+      margin: 0 auto 32px;
+    }
+
+    .zine-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .zine-col-title {
+      font-family: 'Luckiest Guy', cursive;
+      font-size: 18px;
+      color: #FF1493;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .zine-col a, .zine-col span {
+      font-family: 'Special Elite', serif;
+      font-size: 15px;
+      color: rgba(240,236,228,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .zine-col a:hover { color: #FF1493; }
+
+    /* Stickers scattered */
+    .zine-stickers {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .zine-sticker {
+      font-size: 20px;
+      padding: 6px 12px;
+      border: 1px solid #222;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.02);
+      transform: rotate(var(--r, 0deg));
+      opacity: 0.5;
+    }
+
+    .zine-mailing {
+      text-align: center;
+      font-family: 'Special Elite', serif;
+      font-size: 14px;
+      color: rgba(240,236,228,0.3);
+      line-height: 1.8;
+      padding: 16px;
+      border: 1px dashed rgba(240,236,228,0.1);
+      max-width: 300px;
+      margin: 0 auto 20px;
+    }
+
+    .zine-mailing strong {
+      color: rgba(240,236,228,0.5);
+      font-weight: normal;
+    }
+
+    .zine-bottom {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: rgba(240,236,228,0.12);
+      letter-spacing: 0.1em;
+    }
+  </style>
+  <footer class="footer-zine">
+    <div class="zine-cut">
+      <span class="zine-cut-label">✂ cut here</span>
+    </div>
+
+    <div class="zine-content">
+      <div class="zine-col">
+        <span class="zine-col-title">Find Us</span>
+        <span>3839 Jackson St</span>
+        <span>Denver, CO 80205</span>
+        <a href="mailto:hi@lumenatitattoo.com">hi@lumenatitattoo.com</a>
+      </div>
+      <div class="zine-col">
+        <span class="zine-col-title">Follow</span>
+        <a href="https://www.instagram.com/lumenati.tattoo/" target="_blank">@lumenati.tattoo</a>
+        <a href="/book">Book a session</a>
+        <a href="/contact">Get in touch</a>
+      </div>
+    </div>
+
+    <div class="zine-stickers">
+      <span class="zine-sticker" style="--r: -5deg">⚡ INK</span>
+      <span class="zine-sticker" style="--r: 3deg">💀 NO REGRETS</span>
+      <span class="zine-sticker" style="--r: -8deg">🔥 WALK-INS OK</span>
+      <span class="zine-sticker" style="--r: 4deg">✦ DENVER</span>
+    </div>
+
+    <div class="zine-mailing">
+      <strong>RETURN TO:</strong><br>
+      Lumenati Tattoo<br>
+      3839 Jackson St<br>
+      Denver, CO 80205
+    </div>
+
+    <div class="zine-bottom">Issue #01 · 1998 · Lumenati Zine · Free (steal this)</div>
+  </footer>
+</div>
+
+<script>
+  // Taskbar clock
+  function updateClock() {
+    var el = document.getElementById('taskbar-time');
+    if (!el) return;
+    var now = new Date();
+    var h = now.getHours();
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    el.textContent = h + ':' + m + ' ' + ampm;
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+</script>
+
+</body>
+</html>

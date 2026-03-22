@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - elaine</title>
+<style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; }</style>
+</head>
+<body>
+<!-- --- ARTIST BEDROOM PAGE -- ELECTRIC ELAINE --- -->
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Luckiest+Guy&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+  .ee-bedroom {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background: #FFD700;
+    padding: 24px;
+    padding-bottom: 52px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 16px;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* -- Wallpaper -- subtle pattern in gold */
+  .ee-bedroom::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(255,180,0,0.12) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* -- Artist name header -- */
+  .ee-bedroom-header {
+    width: 100%;
+    text-align: center;
+    padding: 16px 0 8px;
+    z-index: 1;
+  }
+
+  .ee-bedroom-name {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(36px, 8vw, 64px);
+    text-transform: uppercase;
+    line-height: 1.2;
+    padding-bottom: 8px;
+    background: linear-gradient(180deg, #FF69B4 0%, #FF1493 25%, #FF1493 50%, #cc0066 75%, #990052 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter:
+      drop-shadow(0 2px 0 rgba(153,0,82,0.9))
+      drop-shadow(0 4px 0 rgba(120,0,60,0.7))
+      drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+  }
+
+  .ee-bedroom-handle {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fff;
+    letter-spacing: 0.1em;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  /* -- Win98 window base -- */
+  .ee-win {
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+    z-index: 1;
+    max-width: 100%;
+  }
+
+  .ee-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #FFD700 0%, #b8960a 100%);
+    height: 24px;
+  }
+
+  .ee-titlebar-text {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .ee-titlebar-btns {
+    display: flex;
+    gap: 2px;
+  }
+
+  .ee-btn {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-size: 10px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* -- Profile photo window -- */
+  .ee-profile {
+    width: 280px;
+  }
+
+  .ee-profile-img {
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    overflow: hidden;
+  }
+
+  .ee-profile-img img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    filter: saturate(1.4) contrast(1.15) brightness(0.95) sepia(0.15);
+  }
+
+  .ee-profile-status {
+    padding: 8px 12px;
+    background: #ece9d8;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #444;
+    border-top: 1px solid #aca899;
+  }
+
+  /* -- AIM contact window -- */
+  .ee-aim {
+    width: 280px;
+  }
+
+  .ee-aim-body {
+    padding: 12px;
+    background: #fff;
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .ee-aim-sn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 6px;
+  }
+
+  .ee-aim-status {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    margin-bottom: 10px;
+  }
+
+  .ee-aim-status .online { color: #008000; }
+
+  .ee-aim-msg {
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.5;
+    margin-bottom: 10px;
+    padding: 8px;
+    background: rgba(0,0,0,0.02);
+    border: 1px solid #e0e0e0;
+  }
+
+  .ee-aim-msg .pink { color: #FF1493; font-weight: bold; }
+
+  .ee-aim-links {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .ee-aim-links a {
+    color: #0000FF !important;
+    text-decoration: underline !important;
+    font-weight: bold !important;
+  }
+
+  .ee-aim-links a:hover { color: #FF0000 !important; }
+
+  .ee-aim-btns {
+    padding: 6px 8px;
+    background: #ece9d8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .ee-aim-btn {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    padding: 3px 16px;
+    background: linear-gradient(180deg, #fff 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    text-decoration: none !important;
+    display: inline-block;
+  }
+
+  .ee-aim-btn:hover {
+    background: linear-gradient(180deg, #fff 0%, #f0ece4 50%, #e0dcd0 100%);
+  }
+
+  /* -- Portfolio / My Pictures window -- */
+  .ee-portfolio {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .ee-portfolio-grid {
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    background: #fff;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .ee-thumb {
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: 1px solid #c0c0c0;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .ee-thumb:hover {
+    transform: scale(1.05);
+    z-index: 2;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .ee-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ee-portfolio-status {
+    padding: 4px 8px;
+    background: #ece9d8;
+    border-top: 1px solid #aca899;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 10px;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* -- Poster on the wall -- */
+  .ee-poster {
+    position: absolute;
+    z-index: 0;
+    opacity: 0.12;
+    pointer-events: none;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 120px;
+    color: #FF1493;
+    text-transform: uppercase;
+    transform: rotate(-8deg);
+    top: 15%;
+    right: -5%;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+
+  /* -- Polaroid row -- thumbtacked -- */
+  .ee-polaroid-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    z-index: 1;
+    flex-wrap: wrap;
+    padding: 16px 0 8px;
+    overflow: visible;
+  }
+
+  .ee-polaroid {
+    position: relative;
+    background: #fff;
+    padding: 8px 8px 32px;
+    box-shadow: 2px 3px 8px rgba(0,0,0,0.4);
+    transform-origin: top center;
+    transition: transform 0.3s ease;
+    cursor: default;
+  }
+
+  .ee-polaroid:hover {
+    animation: ee-polaroid-swing 0.6s ease-in-out;
+  }
+
+  @keyframes ee-polaroid-swing {
+    0% { transform: rotate(var(--r, 0deg)); }
+    25% { transform: rotate(calc(var(--r, 0deg) + 8deg)); }
+    50% { transform: rotate(calc(var(--r, 0deg) - 6deg)); }
+    75% { transform: rotate(calc(var(--r, 0deg) + 3deg)); }
+    100% { transform: rotate(var(--r, 0deg)); }
+  }
+
+  .ee-polaroid-tack {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #aaa, #888 40%, #666);
+    border: 1px solid #555;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.4);
+    z-index: 2;
+  }
+
+  .ee-polaroid img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+    filter: saturate(1.3) contrast(1.1) sepia(0.1);
+  }
+
+  .ee-polaroid-label {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+    font-size: 11px;
+    color: #333;
+  }
+
+  /* -- Desktop icons -- */
+  .ee-icons {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 50;
+  }
+
+  .ee-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none !important;
+    width: 80px;
+    padding: 10px 8px;
+    cursor: pointer;
+  }
+
+  .ee-icon:hover {
+    background: rgba(0,0,128,0.5);
+    outline: 1px dotted rgba(255,255,255,0.5);
+  }
+
+  .ee-icon-img {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    image-rendering: pixelated;
+  }
+
+  .ee-icon-img svg {
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+  }
+
+  .ee-icon-img, .ee-icon-label {
+    pointer-events: none;
+  }
+
+  .ee-icon-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    text-align: center;
+  }
+
+  .ee-icon:hover .ee-icon-label {
+    background: #000080;
+    color: #fff;
+  }
+
+  /* -- Stickers -- */
+  .ee-sticker {
+    position: absolute;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 0;
+    filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.4));
+  }
+
+  /* -- Taskbar -- */
+  .ee-taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(180deg, #FFD700 0%, #b8960a 50%, #8a7008 100%);
+    border-top: 2px solid #ffe44d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 10;
+  }
+
+  .ee-start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px 2px 6px;
+    background: linear-gradient(180deg, #ffe44d 0%, #FFD700 50%, #b8960a 100%);
+    border: 1px solid #8a7008;
+    border-radius: 0 8px 8px 0;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+    height: 30px;
+  }
+
+  .ee-taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: rgba(0,0,0,0.15);
+    border-left: 1px solid #ffe44d;
+    height: 30px;
+  }
+
+  .ee-taskbar-clock {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  /* -- Back button -- */
+  .ee-back {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 5;
+  }
+
+  .ee-back a {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.4) !important;
+    text-decoration: none !important;
+    padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .ee-back a:hover {
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* -- Elaine's Winamp -- */
+  .ee-winamp {
+    position: fixed;
+    bottom: 50px;
+    right: 16px;
+    width: 240px;
+    background: #232323;
+    border: 2px solid;
+    border-color: #444 #111 #111 #444;
+    z-index: 100;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+  }
+
+  .ee-winamp-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 6px;
+    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
+    font-size: 9px;
+    color: #ccc;
+    letter-spacing: 2px;
+  }
+
+  .ee-winamp-btns { font-size: 10px; color: #888; }
+
+  .ee-winamp-display {
+    background: #000;
+    margin: 3px;
+    padding: 6px;
+    border: 1px solid #111;
+  }
+
+  .ee-winamp-marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 11px;
+    color: #00FF00;
+    text-shadow: 0 0 4px rgba(0,255,0,0.4);
+    margin-bottom: 6px;
+  }
+
+  .ee-winamp-marquee span {
+    display: inline-block;
+    animation: ee-marquee 12s linear infinite;
+  }
+
+  @keyframes ee-marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  .ee-winamp-eq {
+    display: flex;
+    gap: 3px;
+    height: 20px;
+    align-items: flex-end;
+  }
+
+  .ee-eq-bar {
+    flex: 1;
+    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
+    animation: ee-eq-bounce 0.5s ease-in-out infinite alternate;
+    min-height: 3px;
+  }
+
+  .ee-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
+  .ee-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
+  .ee-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
+  .ee-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
+  .ee-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
+  .ee-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
+  .ee-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
+  .ee-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
+  .ee-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
+  .ee-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
+  .ee-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
+  .ee-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
+
+  @keyframes ee-eq-bounce {
+    0% { height: 20%; }
+    100% { height: 100%; }
+  }
+
+  .ee-winamp-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px;
+    background: #2a2a20;
+    font-size: 14px;
+    color: #aaa;
+  }
+
+  .ee-winamp-controls span {
+    cursor: pointer;
+  }
+
+  .ee-winamp-controls span:hover { color: #00FF00; }
+
+  /* -- Mobile -- */
+  @media (max-width: 768px) {
+    .ee-bedroom { padding: 16px 12px 52px; }
+    .ee-icons { display: none; }
+    .ee-poster { display: none; }
+    .ee-sticker { width: 50px !important; }
+    .ee-profile, .ee-aim { width: 100%; }
+    .ee-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
+    .ee-back { top: 12px; right: 12px; }
+    .ee-winamp { display: none; }
+    .ee-polaroid img { width: 100px; height: 100px; }
+    .ee-polaroid { padding: 5px 5px 24px; }
+  }
+</style>
+
+<section class="ee-bedroom">
+
+  <!-- Wallpaper ghost text -->
+  <div class="ee-poster">EE</div>
+
+  <!-- Polaroid row -- thumbtacked -->
+  <div class="ee-polaroid-row">
+    <div class="ee-polaroid" style="--r:-4deg;transform:rotate(-4deg);">
+      <div class="ee-polaroid-tack"></div>
+      <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
+      <span class="ee-polaroid-label">girls night</span>
+    </div>
+    <div class="ee-polaroid" style="--r:3deg;transform:rotate(3deg);">
+      <div class="ee-polaroid-tack"></div>
+      <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
+      <span class="ee-polaroid-label"><3 bff</span>
+    </div>
+    <div class="ee-polaroid" style="--r:-2deg;transform:rotate(-2deg);">
+      <div class="ee-polaroid-tack"></div>
+      <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
+      <span class="ee-polaroid-label">that's so raven</span>
+    </div>
+  </div>
+
+  <!-- Stickers -- cherries, bow, lipstick, flower, rainbow, stars -->
+  <img class="ee-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/9a259ce4-9ecd-47e5-979a-4f589c768ac6/cherries.png?content-type=image%2Fpng" style="top:6%;right:6%;transform:rotate(-12deg);width:120px">
+  <img class="ee-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/5e14ffdd-6e10-4602-b439-5c288fa74652/bow.png?content-type=image%2Fpng" style="top:45%;left:2%;transform:rotate(15deg);width:100px">
+  <img class="ee-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/4fe88f1d-6ce4-4b01-bc10-a30469eff984/lipstick.png?content-type=image%2Fpng" style="top:20%;right:2%;transform:rotate(-20deg);width:110px">
+  <img class="ee-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/309f3269-1ecc-44e0-9745-3620cac337ea/flower.png?content-type=image%2Fpng" style="top:55%;right:8%;transform:rotate(8deg);width:105px">
+  <img class="ee-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b901f345-749c-4049-8ee3-666050256ce4/rainbow.png?content-type=image%2Fpng" style="top:30%;left:3%;transform:rotate(-8deg);width:90px">
+  <img class="ee-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f3de2916-5339-406a-94d5-f07a3df065f0/stars.png?content-type=image%2Fpng" style="top:8%;left:15%;transform:rotate(6deg);width:100px">
+
+  <!-- Desktop icons -->
+  <div class="ee-icons">
+    <a class="ee-icon" href="/">
+      <div class="ee-icon-img"><svg viewBox="0 0 32 32"><rect x="4" y="6" width="24" height="18" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="6" y="8" width="20" height="12" fill="#008080"/><rect x="8" y="22" width="16" height="3" fill="#c0c0c0" stroke="#000" stroke-width="0.5"/></svg></div>
+      <span class="ee-icon-label">Home</span>
+    </a>
+    <a class="ee-icon" href="https://www.instagram.com/electricelaine/" target="_blank">
+      <div class="ee-icon-img"><svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="#fff" stroke-width="2"/><circle cx="23" cy="9" r="2" fill="#fff"/></svg></div>
+      <span class="ee-icon-label">Instagram</span>
+    </a>
+    <a class="ee-icon" href="/book">
+      <div class="ee-icon-img"><svg viewBox="0 0 32 32"><rect x="6" y="4" width="20" height="24" fill="#ffff88" stroke="#000" stroke-width="1"/><line x1="10" y1="10" x2="22" y2="10" stroke="#000" stroke-width="1"/><line x1="10" y1="14" x2="22" y2="14" stroke="#000" stroke-width="1"/><line x1="10" y1="18" x2="18" y2="18" stroke="#000" stroke-width="1"/><path d="M 20 20 L 26 26 L 24 28 L 18 22 Z" fill="#cc8800" stroke="#000" stroke-width="0.5"/></svg></div>
+      <span class="ee-icon-label">Book</span>
+    </a>
+  </div>
+
+  <!-- Back button -->
+  <div class="ee-back">
+    <a href="/">← Back to the crib</a>
+  </div>
+
+  <!-- Header -->
+  <div class="ee-bedroom-header">
+    <h1 class="ee-bedroom-name">Electric Elaine</h1>
+    <div class="ee-bedroom-handle">@electricelaine // neon queen // bold lines // electric ink</div>
+  </div>
+
+  <!-- Profile photo window -->
+  <div class="ee-win ee-profile">
+    <div class="ee-titlebar">
+      <span class="ee-titlebar-text">electric_elaine.jpg</span>
+      <div class="ee-titlebar-btns">
+        <div class="ee-btn">_</div>
+        <div class="ee-btn">□</div>
+        <div class="ee-btn">X</div>
+      </div>
+    </div>
+    <div class="ee-profile-img">
+      <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
+    </div>
+    <div class="ee-profile-status">- 750 x 750 -- JPEG -- 142 KB</div>
+  </div>
+
+  <!-- AIM contact window -->
+  <div class="ee-win ee-aim">
+    <div class="ee-titlebar">
+      <span class="ee-titlebar-text">electric_elaine - Buddy Info</span>
+      <div class="ee-titlebar-btns">
+        <div class="ee-btn">_</div>
+        <div class="ee-btn">□</div>
+        <div class="ee-btn">X</div>
+      </div>
+    </div>
+    <div class="ee-aim-body">
+      <div class="ee-aim-sn">electric_elaine</div>
+      <div class="ee-aim-status">Status: <span class="online">Online</span></div>
+      <div class="ee-aim-msg">
+        hey it's elaine. i do <span class="pink">electric bold tattoos</span>. probably watching TRL or painting my nails rn. DM me to book or just come by the shop -- good vibes only :)
+      </div>
+      <div class="ee-aim-links">
+        IG: <a href="https://www.instagram.com/electricelaine/" target="_blank">@electricelaine</a><br>
+        Lumenati Tattoo // Denver, CO
+      </div>
+    </div>
+    <div class="ee-aim-btns">
+      <a href="https://www.instagram.com/electricelaine/" target="_blank" class="ee-aim-btn">Send IM</a>
+      <a href="/book" class="ee-aim-btn">Book</a>
+    </div>
+  </div>
+
+  <!-- Portfolio / My Pictures window -->
+  <div class="ee-win ee-portfolio">
+    <div class="ee-titlebar">
+      <span class="ee-titlebar-text">C:\Electric_Elaine\My Pictures</span>
+      <div class="ee-titlebar-btns">
+        <div class="ee-btn">_</div>
+        <div class="ee-btn">□</div>
+        <div class="ee-btn">X</div>
+      </div>
+    </div>
+    <div class="ee-portfolio-grid">
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753142890-HBGPGTFSCVFQQWP1TD9C/Screen+Shot+2022-08-05+at+8.32.14+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753158347-BDHQZ2D2EFU5BKGPAQ3W/Screen+Shot+2022-08-05+at+8.32.29+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753177501-BJYYGAGCNO41ZY0DFBJC/Screen+Shot+2022-08-05+at+8.32.49+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753202728-GD7W45OMQMIYBUYSDQ1J/Screen+Shot+2022-08-05+at+8.33.14+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753235260-ZIJQW748HBH7H8ZDYA67/Screen+Shot+2022-08-05+at+8.33.47+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753248551-DS5H4TP1TYEVCIQXX9RF/Screen+Shot+2022-08-05+at+8.34.01+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753265888-20LC5MFLSNFQNQT3E8PT/Screen+Shot+2022-08-05+at+8.34.17+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753280230-EBFHFZSPGL8D0P2OHTXT/Screen+Shot+2022-08-05+at+8.34.32+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753289465-EUKAG14DA979L7ZUUP2N/Screen+Shot+2022-08-05+at+8.34.41+PM.png?format=500w" alt=""></div>
+      <div class="ee-thumb"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1659753297364-WMF45NBYKKQH6CTNRZNY/Screen+Shot+2022-08-05+at+8.34.50+PM.png?format=500w" alt=""></div>
+    </div>
+    <div class="ee-portfolio-status">
+      <span>10 objects</span>
+      <span>- 3.8 MB</span>
+    </div>
+  </div>
+
+  <!-- Elaine's Winamp -->
+  <div class="ee-winamp">
+    <div class="ee-winamp-bar">
+      <span class="ee-winamp-title">WINAMP</span>
+      <span class="ee-winamp-btns">_ x</span>
+    </div>
+    <div class="ee-winamp-display">
+      <div class="ee-winamp-marquee">
+        <span>No Doubt -- Just a Girl (1995) ***</span>
+      </div>
+      <div class="ee-winamp-eq">
+        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
+        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
+        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
+        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
+      </div>
+    </div>
+    <div class="ee-winamp-controls">
+      <span>|&lt;&lt;</span> <span>&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
+    </div>
+  </div>
+
+  <!-- Taskbar -->
+  <div class="ee-taskbar">
+    <div class="ee-start-btn">
+      Elaine's Room
+    </div>
+    <div class="ee-taskbar-right">
+      <span style="font-size:11px">SND NET</span>
+      <span class="ee-taskbar-clock" id="ee-clock">11:59 PM</span>
+    </div>
+  </div>
+
+</section>
+
+<script>
+(function() {
+  // Clock
+  function updateClock() {
+    var el = document.getElementById('ee-clock');
+    if (!el) return;
+    var now = new Date();
+    var h = now.getHours();
+    var m = now.getMinutes();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    el.textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+})();
+</script>
+
+</body>
+</html>
