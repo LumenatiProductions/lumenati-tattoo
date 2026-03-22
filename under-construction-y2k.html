@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!--
+  ============================================================
+  UNDER CONSTRUCTION — Y2K ARTIST BEDROOM TEMPLATE
+  ============================================================
+  TO CUSTOMIZE FOR EACH ARTIST, change these two things:
+
+  1. ARTIST NAME — search for "ARTIST_NAME" and replace with:
+     - Electric Elaine
+     - ShorTy
+     - King Kalypso
+     - Sam Durbin-Clark
+     - Moonie B. Jones
+
+  2. ARTIST COLOR — search for "ARTIST_COLOR" and replace with:
+     - Electric Elaine:    #FFD700
+     - ShorTy:             #7FFF00
+     - King Kalypso:       #1493FF
+     - Sam Durbin-Clark:   #9b59b6
+     - Moonie B. Jones:    #FF6347
+
+  3. STICKERS — swap sticker URLs in the "STICKER SECTION" below.
+     Sticker assignments:
+     - Electric Elaine:    bolt, stars, rainbow, smilie, sunset
+     - ShorTy:             skateboard, dice, alien, 8ball, popcicle
+     - King Kalypso:       planet, ufo, 8ball, bolt, tongue
+     - Sam Durbin-Clark:   flower, moon, heartlock, berry, bow
+     - Moonie B. Jones:    cherries, lipstick, moon, stars, smilie
+  ============================================================
+-->
+
+<!-- ARTIST_NAME: Electric Elaine -->
+<!-- ARTIST_COLOR: #FFD700 -->
+
+<title>Electric Elaine's Room - Under Construction</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Luckiest+Guy&display=swap" rel="stylesheet">
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ─────────────────────────────────────────────
+     ARTIST_COLOR: change all instances of #FFD700
+     to the artist's color
+     ───────────────────────────────────────────── */
+
+  body {
+    background: #0a0a0a;
+    overflow-x: hidden;
+  }
+
+  .bedroom {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    /* ARTIST_COLOR gradient */
+    background: linear-gradient(135deg,
+      #FFD700 0%,
+      color-mix(in srgb, #FFD700 70%, #000) 50%,
+      color-mix(in srgb, #FFD700 50%, #000) 100%
+    );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px 60px;
+    overflow: hidden;
+  }
+
+  /* Wallpaper overlay */
+  .bedroom::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(255,255,255,0.08) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Main content ── */
+  .content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 700px;
+  }
+
+  /* ── Room title — ARTIST_NAME ── */
+  .room-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(36px, 8vw, 72px);
+    text-transform: uppercase;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    /* ARTIST_COLOR gold text gradient */
+    background: linear-gradient(180deg, #fff 0%, #FFD700 40%, color-mix(in srgb, #FFD700 70%, #000) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter:
+      drop-shadow(0 2px 0 rgba(0,0,0,0.5))
+      drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  }
+
+  /* ── UNDER CONSTRUCTION blink ── */
+  .under-construction {
+    font-family: 'VT323', monospace;
+    font-size: clamp(28px, 6vw, 56px);
+    color: #fff;
+    text-shadow:
+      0 0 10px #FFD700,
+      0 0 20px #FFD700,
+      0 0 40px rgba(255,215,0,0.5);
+    letter-spacing: 0.15em;
+    margin-bottom: 24px;
+    animation: blink-text 1s steps(1) infinite;
+  }
+
+  @keyframes blink-text {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ── Caution stripes barrier ── */
+  .caution-barrier {
+    width: 100%;
+    max-width: 600px;
+    height: 40px;
+    margin: 0 auto 32px;
+    border: 3px solid #000;
+    border-radius: 4px;
+    background: repeating-linear-gradient(
+      -45deg,
+      #FFD700,
+      #FFD700 20px,
+      #111 20px,
+      #111 40px
+    );
+    background-size: 56.57px 56.57px;
+    animation: stripe-scroll 1.5s linear infinite;
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  @keyframes stripe-scroll {
+    0% { background-position: 0 0; }
+    100% { background-position: 56.57px 0; }
+  }
+
+  /* ── Subtitle ── */
+  .subtitle {
+    font-family: 'VT323', monospace;
+    font-size: clamp(18px, 3vw, 26px);
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 32px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  }
+
+  /* ── Back link ── */
+  .back-link {
+    display: inline-block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    color: #000;
+    background: #fff;
+    padding: 10px 20px;
+    border: 2px solid #000;
+    border-radius: 0;
+    text-decoration: none;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .back-link:hover {
+    /* ARTIST_COLOR */
+    background: #FFD700;
+    color: #000;
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+  }
+
+  /* ── CSS Construction Worker ── */
+  .construction-worker {
+    position: relative;
+    width: 60px;
+    height: 90px;
+    margin: 0 auto 30px;
+    animation: worker-bob 0.4s steps(2) infinite;
+  }
+
+  @keyframes worker-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  /* Hard hat */
+  .worker-hat {
+    position: absolute;
+    top: 0;
+    left: 10px;
+    width: 40px;
+    height: 14px;
+    /* ARTIST_COLOR */
+    background: #FFD700;
+    border: 2px solid #000;
+    border-radius: 4px 4px 0 0;
+  }
+  .worker-hat::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -6px;
+    width: 52px;
+    height: 6px;
+    /* ARTIST_COLOR brim */
+    background: color-mix(in srgb, #FFD700 80%, #000);
+    border: 2px solid #000;
+  }
+
+  /* Head */
+  .worker-head {
+    position: absolute;
+    top: 20px;
+    left: 14px;
+    width: 32px;
+    height: 20px;
+    background: #f4c28a;
+    border: 2px solid #000;
+  }
+  /* Eyes */
+  .worker-head::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 5px;
+    width: 6px;
+    height: 6px;
+    background: #000;
+    box-shadow: 14px 0 0 #000;
+  }
+
+  /* Body */
+  .worker-body {
+    position: absolute;
+    top: 40px;
+    left: 12px;
+    width: 36px;
+    height: 28px;
+    background: #e67e22;
+    border: 2px solid #000;
+  }
+  /* Safety vest stripe */
+  .worker-body::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: #FFD700;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+  }
+
+  /* Legs */
+  .worker-legs {
+    position: absolute;
+    top: 68px;
+    left: 14px;
+    width: 12px;
+    height: 20px;
+    background: #2c3e50;
+    border: 2px solid #000;
+    box-shadow: 18px 0 0 #2c3e50;
+  }
+  .worker-legs::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: -2px;
+    width: 16px;
+    height: 24px;
+    border: 2px solid #000;
+    border-left: none;
+    border-right: none;
+    box-shadow: 18px 0 0 transparent;
+  }
+  /* boots */
+  .worker-legs::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: -4px;
+    width: 16px;
+    height: 6px;
+    background: #333;
+    border: 2px solid #000;
+    box-shadow: 22px 0 0 #333;
+  }
+
+  /* Jackhammer */
+  .jackhammer {
+    position: absolute;
+    top: 42px;
+    right: -14px;
+    width: 10px;
+    height: 40px;
+    background: #7f8c8d;
+    border: 2px solid #000;
+    animation: hammer-shake 0.15s steps(2) infinite;
+    transform-origin: top center;
+  }
+  .jackhammer::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -3px;
+    width: 16px;
+    height: 10px;
+    background: #bdc3c7;
+    border: 2px solid #000;
+    border-radius: 2px;
+  }
+  /* Drill bit */
+  .jackhammer::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 1px;
+    width: 6px;
+    height: 12px;
+    background: #555;
+    border: 2px solid #000;
+    clip-path: polygon(0 0, 100% 0, 60% 100%, 40% 100%);
+  }
+
+  /* Vibration sparks */
+  .sparks {
+    position: absolute;
+    bottom: -4px;
+    right: -20px;
+    width: 4px;
+    height: 4px;
+    background: #FFD700;
+    border-radius: 50%;
+    box-shadow:
+      6px -2px 0 #FFD700,
+      -4px -6px 0 #FFD700,
+      8px -8px 0 #FFD700;
+    animation: spark-flash 0.2s steps(1) infinite;
+  }
+
+  @keyframes hammer-shake {
+    0% { transform: translateX(-1px); }
+    50% { transform: translateX(1px); }
+  }
+
+  @keyframes spark-flash {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Arms */
+  .worker-arms {
+    position: absolute;
+    top: 44px;
+    right: -6px;
+    width: 20px;
+    height: 8px;
+    background: #f4c28a;
+    border: 2px solid #000;
+    animation: arm-pump 0.4s steps(2) infinite;
+  }
+  .worker-arms::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -44px;
+    width: 16px;
+    height: 8px;
+    background: #f4c28a;
+    border: 2px solid #000;
+  }
+
+  @keyframes arm-pump {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(2px); }
+  }
+
+  /* ── Scattered stickers ── */
+  .sticker {
+    position: absolute;
+    z-index: 1;
+    pointer-events: none;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+    animation: sticker-float 4s ease-in-out infinite;
+  }
+  .sticker img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  @keyframes sticker-float {
+    0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+    50% { transform: translateY(-8px) rotate(var(--rot, 0deg)); }
+  }
+
+  .sticker-1 { top: 8%; left: 5%; width: 60px; height: 60px; --rot: -15deg; animation-delay: 0s; }
+  .sticker-2 { top: 15%; right: 8%; width: 55px; height: 55px; --rot: 12deg; animation-delay: 0.7s; }
+  .sticker-3 { bottom: 18%; left: 8%; width: 50px; height: 50px; --rot: -8deg; animation-delay: 1.4s; }
+  .sticker-4 { bottom: 12%; right: 5%; width: 65px; height: 65px; --rot: 20deg; animation-delay: 2.1s; }
+  .sticker-5 { top: 45%; left: 3%; width: 45px; height: 45px; --rot: -22deg; animation-delay: 2.8s; }
+
+  /* ── Taskbar ── */
+  /* ARTIST_COLOR: change gradient colors */
+  .bedroom-taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(180deg,
+      #FFD700 0%,
+      color-mix(in srgb, #FFD700 60%, #000) 50%,
+      color-mix(in srgb, #FFD700 40%, #000) 100%
+    );
+    border-top: 2px solid color-mix(in srgb, #FFD700 80%, #fff);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 10;
+  }
+
+  .br-start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px 2px 6px;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, #FFD700 80%, #fff) 0%,
+      #FFD700 50%,
+      color-mix(in srgb, #FFD700 60%, #000) 100%
+    );
+    border: 1px solid color-mix(in srgb, #FFD700 30%, #000);
+    border-radius: 0 8px 8px 0;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #000;
+    text-shadow: 1px 1px 1px rgba(255,255,255,0.4);
+    height: 30px;
+    cursor: default;
+  }
+
+  .br-taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: rgba(0,0,0,0.15);
+    border-left: 1px solid color-mix(in srgb, #FFD700 80%, #fff);
+    height: 30px;
+  }
+
+  .br-taskbar-clock {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #000;
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.3);
+  }
+
+  /* ── Second caution bar at bottom ── */
+  .caution-bottom {
+    width: 100%;
+    max-width: 600px;
+    height: 20px;
+    margin: 24px auto 0;
+    border: 2px solid #000;
+    border-radius: 2px;
+    background: repeating-linear-gradient(
+      -45deg,
+      #FFD700,
+      #FFD700 12px,
+      #111 12px,
+      #111 24px
+    );
+    background-size: 33.94px 33.94px;
+    animation: stripe-scroll 1.5s linear infinite;
+  }
+</style>
+</head>
+<body>
+
+<section class="bedroom">
+
+  <!-- ═══════════════════════════════════════════
+       STICKER SECTION
+       Electric Elaine stickers: bolt, stars, rainbow, smilie, sunset
+       ═══════════════════════════════════════════ -->
+  <div class="sticker sticker-1">
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/615b7726-7ce2-40de-a7db-6d2a4f652ee9/bolt.png?content-type=image%2Fpng" alt="">
+  </div>
+  <div class="sticker sticker-2">
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f3de2916-5339-406a-94d5-f07a3df065f0/stars.png?content-type=image%2Fpng" alt="">
+  </div>
+  <div class="sticker sticker-3">
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b901f345-749c-4049-8ee3-666050256ce4/rainbow.png?content-type=image%2Fpng" alt="">
+  </div>
+  <div class="sticker sticker-4">
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/65d984bb-1c14-455b-8172-99fc2d1fc11a/smilie.png?content-type=image%2Fpng" alt="">
+  </div>
+  <div class="sticker sticker-5">
+    <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/35a2197f-9c58-43f1-917f-a5a7f59543e2/sunset.png?content-type=image%2Fpng" alt="">
+  </div>
+
+  <div class="content">
+
+    <!-- CSS Construction Worker -->
+    <div class="construction-worker">
+      <div class="worker-hat"></div>
+      <div class="worker-head"></div>
+      <div class="worker-body"></div>
+      <div class="worker-arms"></div>
+      <div class="jackhammer">
+        <div class="sparks"></div>
+      </div>
+      <div class="worker-legs"></div>
+    </div>
+
+    <!-- Caution barrier -->
+    <div class="caution-barrier"></div>
+
+    <!-- ARTIST_NAME: change "Electric Elaine" below -->
+    <h1 class="room-title">Electric Elaine's Room</h1>
+
+    <div class="under-construction">UNDER CONSTRUCTION</div>
+
+    <p class="subtitle">Check back soon -- we're setting up the room</p>
+
+    <div class="caution-bottom"></div>
+
+    <div style="margin-top: 32px;">
+      <a href="/" class="back-link">Back to the crib</a>
+    </div>
+
+  </div>
+
+  <!-- Taskbar -->
+  <!-- ARTIST_NAME: change the start button text -->
+  <div class="bedroom-taskbar">
+    <div class="br-start-btn">
+      Elaine's Room
+    </div>
+    <div class="br-taskbar-right">
+      <span style="font-size:11px">SND NET</span>
+      <span class="br-taskbar-clock" id="br-clock">11:59 PM</span>
+    </div>
+  </div>
+
+</section>
+
+<script>
+  // Live clock
+  function updateClock() {
+    var now = new Date();
+    var h = now.getHours();
+    var m = now.getMinutes();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    m = m < 10 ? '0' + m : m;
+    document.getElementById('br-clock').textContent = h + ':' + m + ' ' + ampm;
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+</script>
+
+</body>
+</html>
