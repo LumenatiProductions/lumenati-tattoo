@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOS Boot Sequence</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  /* ---- overlay ---- */
+  #dos-boot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: #000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 48px 56px;
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    line-height: 1.6;
+    color: #7FFF00;
+    cursor: default;
+    overflow: hidden;
+    transition: opacity .35s ease;
+  }
+  #dos-boot-overlay.dismissed {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ---- scanlines ---- */
+  #dos-boot-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.25) 2px,
+      rgba(0, 0, 0, 0.25) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* subtle screen flicker */
+  #dos-boot-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #dos-boot-lines {
+    position: relative;
+    z-index: 2;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .boot-line {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+  }
+  .boot-line.visible {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* blinking cursor on the last line */
+  .blink-cursor::after {
+    content: '_';
+    animation: blink-caret .6s step-end infinite;
+  }
+  @keyframes blink-caret {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0; }
+  }
+
+  /* typewriter: each character revealed via clip-path */
+  .boot-line.visible .line-text {
+    display: inline-block;
+    overflow: hidden;
+    white-space: pre;
+    /* width animated by JS */
+    width: 0;
+  }
+
+  /* ---- demo page behind overlay (for testing) ---- */
+  body {
+    background: #111;
+    color: #ccc;
+    font-family: sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .page-content {
+    text-align: center;
+    opacity: 0;
+    transition: opacity .5s ease .35s;
+  }
+  .page-content.show { opacity: 1; }
+</style>
+</head>
+
+<!--
+  CONFIG: Set data-artist on the overlay div to change the artist name.
+  Example: data-artist="Razor Mike"
+-->
+<body>
+
+<div class="page-content" id="pageContent">
+  <h1 style="font-family:'VT323',monospace;color:#7FFF00;font-size:40px;">Welcome to the bedroom.</h1>
+</div>
+
+<div id="dos-boot-overlay" data-artist="Johnny Doom">
+  <div id="dos-boot-lines"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---- config ---- */
+  var LINE_DELAY   = 300;   // ms between lines
+  var CHAR_SPEED   = 18;    // ms per character typewriter
+  var BEEP_VOLUME  = 0.06;  // 0-1
+
+  /* ---- elements ---- */
+  var overlay  = document.getElementById('dos-boot-overlay');
+  var linesBox = document.getElementById('dos-boot-lines');
+  var artist   = overlay.getAttribute('data-artist') || 'ARTIST';
+
+  /* ---- session guard ---- */
+  var storageKey = 'dos-boot-seen--' + artist.replace(/\s+/g, '_');
+  if (sessionStorage.getItem(storageKey)) {
+    overlay.remove();
+    document.getElementById('pageContent').classList.add('show');
+    return;
+  }
+
+  /* ---- build lines ---- */
+  var lines = [
+    'C:\\> loading ' + artist + '.exe',
+    'Mounting flash drive... OK',
+    'Loading tattoo portfolio... OK',
+    'Initializing bedroom... OK',
+    'Setting vibe to maximum... OK',
+    artist + "'s room is ready.",
+    '',
+    'Press any key to continue'
+  ];
+
+  /* pre-create DOM nodes */
+  var lineEls = [];
+  lines.forEach(function (text, i) {
+    var span = document.createElement('span');
+    span.className = 'boot-line';
+    if (i === lines.length - 1) span.classList.add('blink-cursor');
+    var inner = document.createElement('span');
+    inner.className = 'line-text';
+    inner.textContent = text;
+    span.appendChild(inner);
+    span.appendChild(document.createTextNode('\n'));
+    linesBox.appendChild(span);
+    lineEls.push({ el: span, inner: inner, text: text });
+  });
+
+  /* ---- Web Audio beep ---- */
+  var audioCtx = null;
+  function beep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc  = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 880;
+      gain.gain.value = BEEP_VOLUME;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.045);
+    } catch (_) { /* silent fail */ }
+  }
+
+  /* ---- typewriter reveal ---- */
+  function typewriteLine(entry, cb) {
+    var el    = entry.el;
+    var inner = entry.inner;
+    var len   = entry.text.length;
+    el.classList.add('visible');
+    if (len === 0) { inner.style.width = '0'; if (cb) cb(); return; }
+
+    /* measure full width */
+    inner.style.width = 'auto';
+    var fullW = inner.offsetWidth;
+    inner.style.width = '0';
+
+    var charIndex = 0;
+    var interval = setInterval(function () {
+      charIndex++;
+      inner.style.width = (fullW * charIndex / len) + 'px';
+      if (charIndex >= len) {
+        clearInterval(interval);
+        inner.style.width = 'auto';
+        if (cb) cb();
+      }
+    }, CHAR_SPEED);
+  }
+
+  /* ---- sequence ---- */
+  var currentLine = 0;
+  var sequenceDone = false;
+
+  function showNextLine() {
+    if (currentLine >= lineEls.length) { sequenceDone = true; return; }
+    var entry = lineEls[currentLine];
+    if (entry.text.length > 0) beep();
+    typewriteLine(entry, function () {
+      currentLine++;
+      if (currentLine < lineEls.length) {
+        setTimeout(showNextLine, LINE_DELAY);
+      } else {
+        sequenceDone = true;
+      }
+    });
+  }
+
+  setTimeout(showNextLine, 400);
+
+  /* ---- dismiss ---- */
+  function dismiss() {
+    if (!sequenceDone) return;
+    sessionStorage.setItem(storageKey, '1');
+    overlay.classList.add('dismissed');
+    document.getElementById('pageContent').classList.add('show');
+    setTimeout(function () { overlay.remove(); }, 400);
+  }
+
+  document.addEventListener('keydown', function handler() {
+    dismiss();
+    document.removeEventListener('keydown', handler);
+  });
+  overlay.addEventListener('click', dismiss);
+})();
+</script>
+</body>
+</html>
