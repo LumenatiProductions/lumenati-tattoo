@@ -525,106 +525,6 @@
     background: rgba(255,255,255,0.05);
   }
 
-  /* ── JD's Winamp ── */
-  .jd-winamp {
-    position: fixed;
-    bottom: 50px;
-    right: 16px;
-    width: 240px;
-    background: #232323;
-    border: 2px solid;
-    border-color: #444 #111 #111 #444;
-    z-index: 100;
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-  }
-
-  .jd-winamp-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2px 6px;
-    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
-    font-size: 9px;
-    color: #ccc;
-    letter-spacing: 2px;
-  }
-
-  .jd-winamp-btns { font-size: 10px; color: #888; }
-
-  .jd-winamp-display {
-    background: #000;
-    margin: 3px;
-    padding: 6px;
-    border: 1px solid #111;
-  }
-
-  .jd-winamp-marquee {
-    overflow: hidden;
-    white-space: nowrap;
-    font-size: 11px;
-    color: #00FF00;
-    text-shadow: 0 0 4px rgba(0,255,0,0.4);
-    margin-bottom: 6px;
-  }
-
-  .jd-winamp-marquee span {
-    display: inline-block;
-    animation: jd-marquee 12s linear infinite;
-  }
-
-  @keyframes jd-marquee {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-  }
-
-  .jd-winamp-eq {
-    display: flex;
-    gap: 3px;
-    height: 20px;
-    align-items: flex-end;
-  }
-
-  .jd-eq-bar {
-    flex: 1;
-    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
-    animation: jd-eq-bounce 0.5s ease-in-out infinite alternate;
-    min-height: 3px;
-  }
-
-  .jd-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
-  .jd-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
-  .jd-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
-  .jd-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
-  .jd-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
-  .jd-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
-  .jd-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
-  .jd-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
-  .jd-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
-  .jd-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
-  .jd-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
-  .jd-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
-
-  @keyframes jd-eq-bounce {
-    0% { height: 20%; }
-    100% { height: 100%; }
-  }
-
-  .jd-winamp-controls {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    padding: 4px;
-    background: #2a2a20;
-    font-size: 14px;
-    color: #aaa;
-  }
-
-  .jd-winamp-controls span {
-    cursor: pointer;
-  }
-
-  .jd-winamp-controls span:hover { color: #00FF00; }
-
   /* ── Mobile ── */
   @media (max-width: 768px) {
     .bedroom { padding: 16px 12px 52px; }
@@ -635,7 +535,6 @@
     .br-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
     .bedroom-back { top: 12px; right: 12px; }
     .bedroom-wall-poster { display: none; }
-    .jd-winamp { display: none; }
     .bedroom-polaroid img { width: 100px; height: 100px; }
     .bedroom-polaroid { padding: 5px 5px 24px; }
   }
@@ -799,28 +698,6 @@
     <div class="br-portfolio-status">
       <span>12 objects</span>
       <span>- 4.2 MB</span>
-    </div>
-  </div>
-
-  <!-- JD's Winamp -->
-  <div class="jd-winamp">
-    <div class="jd-winamp-bar">
-      <span class="jd-winamp-title">WINAMP</span>
-      <span class="jd-winamp-btns">_ x</span>
-    </div>
-    <div class="jd-winamp-display">
-      <div class="jd-winamp-marquee">
-        <span>Goldfinger -- Superman (Tony Hawk's Pro Skater OST) ***</span>
-      </div>
-      <div class="jd-winamp-eq">
-        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
-        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
-        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
-        <div class="jd-eq-bar"></div><div class="jd-eq-bar"></div><div class="jd-eq-bar"></div>
-      </div>
-    </div>
-    <div class="jd-winamp-controls">
-      <span>|&lt;&lt;</span> <span class="jd-play-btn">&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
     </div>
   </div>
 
