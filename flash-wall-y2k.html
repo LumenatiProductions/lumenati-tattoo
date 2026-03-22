@@ -1,0 +1,702 @@
+<!-- ─── PASTE EVERYTHING BELOW INTO SQUARESPACE CODE BLOCK ─── -->
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Luckiest+Guy&display=swap" rel="stylesheet">
+
+<!-- SVG filter for bubbly text -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="inflate-flash" x="-15%" y="-15%" width="130%" height="130%">
+      <feMorphology operator="dilate" radius="1.5" in="SourceAlpha" result="fat"/>
+      <feGaussianBlur in="fat" stdDeviation="5" result="bump"/>
+      <feSpecularLighting in="bump" specularConstant="2.5" specularExponent="22"
+          lighting-color="rgba(255,255,255,0.95)" surfaceScale="6" result="spec">
+        <fePointLight x="100" y="-50" z="250"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specClipped"/>
+      <feMerge>
+        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="specClipped"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<style>
+  /* ── Reset & page wrapper ── */
+  .flash-wall-page {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    /* Cork background */
+    background:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E"),
+      linear-gradient(145deg, #c4956a 0%, #b8845c 20%, #a87748 40%, #c09060 60%, #b07a4e 80%, #c89868 100%);
+    background-size: 200px 200px, cover;
+  }
+
+  /* ── Cork texture overlay ── */
+  .flash-wall-page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(210,170,120,0.3) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(180,140,90,0.25) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Desktop layout ── */
+  .flash-wall-desktop {
+    position: relative;
+    min-height: 100vh;
+    padding: 24px 100px 60px 100px;
+    z-index: 1;
+  }
+
+  /* ── Desktop icons — left column ── */
+  .fw-desktop-icons {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    z-index: 50;
+  }
+
+  .fw-desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    width: 70px;
+    cursor: pointer;
+  }
+
+  .fw-desktop-icon-img {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+  }
+
+  .fw-icon-inner {
+    width: 20px;
+    height: 16px;
+    position: relative;
+  }
+
+  /* CSS-only icons */
+  .fw-icon-computer .fw-icon-inner {
+    background: #c0c0c0;
+    border: 1px solid #808080;
+    border-radius: 1px;
+  }
+  .fw-icon-computer .fw-icon-inner::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 3px;
+    background: #c0c0c0;
+    border: 1px solid #808080;
+  }
+
+  .fw-icon-folder .fw-icon-inner {
+    background: #FFD700;
+    border: 1px solid #b8960a;
+    border-radius: 0 2px 2px 2px;
+    width: 22px;
+    height: 14px;
+  }
+  .fw-icon-folder .fw-icon-inner::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 0;
+    width: 10px;
+    height: 5px;
+    background: #FFD700;
+    border: 1px solid #b8960a;
+    border-bottom: none;
+    border-radius: 2px 2px 0 0;
+  }
+
+  .fw-icon-mail .fw-icon-inner {
+    background: #fff;
+    border: 1px solid #808080;
+    width: 20px;
+    height: 14px;
+  }
+  .fw-icon-mail .fw-icon-inner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    border-bottom: 2px solid #808080;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    box-sizing: border-box;
+  }
+
+  .fw-icon-camera .fw-icon-inner {
+    background: #666;
+    border: 1px solid #444;
+    border-radius: 2px;
+    width: 20px;
+    height: 14px;
+  }
+  .fw-icon-camera .fw-icon-inner::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #222;
+    border: 1px solid #888;
+  }
+
+  .fw-icon-notepad .fw-icon-inner {
+    background: #fff;
+    border: 1px solid #808080;
+    width: 16px;
+    height: 18px;
+  }
+  .fw-icon-notepad .fw-icon-inner::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    height: 1px;
+    background: #ccc;
+    box-shadow: 0 3px 0 #ccc, 0 6px 0 #ccc, 0 9px 0 #ccc;
+  }
+
+  .fw-icon-trash .fw-icon-inner {
+    background: #c0c0c0;
+    border: 1px solid #808080;
+    width: 14px;
+    height: 18px;
+    border-radius: 0 0 2px 2px;
+  }
+  .fw-icon-trash .fw-icon-inner::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -2px;
+    right: -2px;
+    height: 3px;
+    background: #c0c0c0;
+    border: 1px solid #808080;
+  }
+
+  .fw-desktop-icon-label {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    text-align: center;
+    word-wrap: break-word;
+    text-decoration: none;
+    line-height: 1.3;
+  }
+
+  .fw-desktop-icon:hover .fw-desktop-icon-label {
+    background: #000080;
+    color: #fff;
+  }
+
+  /* ── Page header ── */
+  .flash-wall-header {
+    text-align: center;
+    padding: 40px 20px 10px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .flash-wall-title {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: clamp(48px, 8vw, 80px);
+    color: #FF69B4;
+    margin: 0;
+    line-height: 1.1;
+    filter: url(#inflate-flash);
+    text-shadow:
+      3px 3px 0 #cc3388,
+      -1px -1px 0 #ff99cc,
+      0 0 20px rgba(255,105,180,0.4);
+    letter-spacing: 0.02em;
+  }
+
+  .flash-wall-subtitle {
+    font-family: 'VT323', monospace;
+    font-size: clamp(18px, 3vw, 28px);
+    color: #fff;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    margin: 8px 0 0;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Flash grid ── */
+  .flash-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px 24px;
+    max-width: 960px;
+    margin: 36px auto 60px;
+    padding: 0 20px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── Flash card ── */
+  .flash-card {
+    position: relative;
+    width: 200px;
+    background: #fff;
+    border: 1px solid #d4c9b8;
+    box-shadow:
+      2px 2px 6px rgba(0,0,0,0.25),
+      0 1px 2px rgba(0,0,0,0.15);
+    padding: 10px 10px 8px;
+    justify-self: center;
+    cursor: default;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .flash-card:hover {
+    transform: scale(1.05) !important;
+    box-shadow:
+      4px 4px 12px rgba(0,0,0,0.35),
+      0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+  }
+
+  /* ── Thumbtack ── */
+  .thumbtack {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #e8e0d0, #b0a090 40%, #8a7a68 70%, #6a5a48);
+    border: 1px solid #5a4a38;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.4),
+      inset 0 1px 2px rgba(255,255,255,0.3);
+    z-index: 5;
+  }
+
+  .thumbtack::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.6), transparent);
+  }
+
+  /* ── Placeholder image ── */
+  .flash-img {
+    width: 100%;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    margin-bottom: 8px;
+    border: 1px dashed rgba(0,0,0,0.1);
+  }
+
+  /* ── Price tag ── */
+  .flash-price {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: #333;
+    text-align: center;
+    margin: 0;
+    line-height: 1;
+  }
+
+  /* ── Status badge ── */
+  .flash-badge {
+    display: block;
+    text-align: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+    padding: 4px 0;
+    margin-top: 6px;
+    border: 1px solid;
+  }
+
+  .flash-badge.available {
+    color: #2e7d32;
+    border-color: #2e7d32;
+    background: rgba(46,125,50,0.08);
+  }
+
+  .flash-badge.claimed {
+    color: #c62828;
+    border-color: #c62828;
+    background: rgba(198,40,40,0.08);
+    text-decoration: line-through;
+  }
+
+  /* ── Back link ── */
+  .flash-back-link {
+    text-align: center;
+    padding: 0 20px 40px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .flash-back-link a {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: #fff;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    text-decoration: none;
+    border-bottom: 2px dashed rgba(255,255,255,0.4);
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .flash-back-link a:hover {
+    color: #FF69B4;
+    border-color: #FF69B4;
+  }
+
+  /* ── Y2K Stickers ── */
+  .fw-sticker {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.3));
+  }
+
+  /* ── Taskbar ── */
+  .fw-taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: linear-gradient(180deg, #a07850 0%, #8b6840 2%, #7a5c38 50%, #6e5030 100%);
+    border-top: 2px solid #c09868;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 100;
+  }
+
+  .fw-taskbar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .fw-start-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px 2px 6px;
+    background: linear-gradient(180deg, #3c9a3c 0%, #2d8e2d 50%, #1e7a1e 100%);
+    border: 1px solid #0a5c0a;
+    border-radius: 0 8px 8px 0;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+    cursor: pointer;
+    height: 30px;
+    letter-spacing: 0.02em;
+  }
+
+  .fw-start-flag {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .fw-start-flag div:nth-child(1) { background: #ff3030; }
+  .fw-start-flag div:nth-child(2) { background: #30b030; }
+  .fw-start-flag div:nth-child(3) { background: #3060ff; }
+  .fw-start-flag div:nth-child(4) { background: #ffcc00; }
+
+  .fw-taskbar-items {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+  }
+
+  .fw-taskbar-item {
+    padding: 3px 12px;
+    background: linear-gradient(180deg, #9a7850 0%, #886840 100%);
+    border: 1px solid;
+    border-color: #c09868 #5a4020 #5a4020 #c09868;
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    height: 26px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .fw-taskbar-item.active {
+    background: linear-gradient(180deg, #5a4020 0%, #6e5030 100%);
+    border-color: #5a4020 #c09868 #c09868 #5a4020;
+  }
+
+  .fw-taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: linear-gradient(180deg, #7a5838 0%, #604020 100%);
+    border-left: 1px solid #c09868;
+    height: 30px;
+  }
+
+  .fw-taskbar-clock {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .fw-taskbar-tray {
+    font-family: 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    color: #fff;
+  }
+
+  /* ── Volume icon (CSS) ── */
+  .fw-tray-vol {
+    display: inline-block;
+    width: 12px;
+    height: 10px;
+    border-right: 2px solid #fff;
+    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    position: relative;
+    margin-right: 4px;
+  }
+  .fw-tray-vol::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 2px;
+    width: 4px;
+    height: 6px;
+    background: #fff;
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 900px) {
+    .flash-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px 16px;
+    }
+    .flash-wall-desktop {
+      padding: 24px 20px 60px 20px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .fw-desktop-icons { display: none !important; }
+    .flash-wall-desktop { padding: 16px 8px 52px; }
+    .flash-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px 12px;
+      padding: 0 8px;
+    }
+    .flash-card {
+      width: 100%;
+      max-width: 180px;
+    }
+    .flash-wall-title { font-size: 36px; }
+    .flash-wall-subtitle { font-size: 16px; }
+    .fw-taskbar-items { display: none; }
+    .fw-start-btn { font-size: 10px; padding: 2px 8px 2px 4px; }
+    .fw-sticker { width: 40px; height: 40px; }
+  }
+
+  @media (max-width: 480px) {
+    .flash-card { max-width: 160px; }
+    .flash-img { height: 140px; }
+  }
+</style>
+
+<div class="flash-wall-page">
+  <div class="flash-wall-desktop">
+
+    <!-- Desktop icons — left -->
+    <div class="fw-desktop-icons">
+      <a class="fw-desktop-icon" href="/">
+        <div class="fw-desktop-icon-img fw-icon-computer"><div class="fw-icon-inner"></div></div>
+        <span class="fw-desktop-icon-label">Home</span>
+      </a>
+      <a class="fw-desktop-icon" href="/book">
+        <div class="fw-desktop-icon-img fw-icon-folder"><div class="fw-icon-inner"></div></div>
+        <span class="fw-desktop-icon-label">Book a Tattoo</span>
+      </a>
+      <a class="fw-desktop-icon" href="mailto:hi@lumenatitattoo.com">
+        <div class="fw-desktop-icon-img fw-icon-mail"><div class="fw-icon-inner"></div></div>
+        <span class="fw-desktop-icon-label">Email Us</span>
+      </a>
+      <a class="fw-desktop-icon" href="https://www.instagram.com/lumenati.tattoo/" target="_blank">
+        <div class="fw-desktop-icon-img fw-icon-camera"><div class="fw-icon-inner"></div></div>
+        <span class="fw-desktop-icon-label">Instagram</span>
+      </a>
+      <a class="fw-desktop-icon" href="/contact">
+        <div class="fw-desktop-icon-img fw-icon-notepad"><div class="fw-icon-inner"></div></div>
+        <span class="fw-desktop-icon-label">Contact</span>
+      </a>
+      <a class="fw-desktop-icon" href="#">
+        <div class="fw-desktop-icon-img fw-icon-trash"><div class="fw-icon-inner"></div></div>
+        <span class="fw-desktop-icon-label">Recycle Bin</span>
+      </a>
+    </div>
+
+    <!-- Header -->
+    <div class="flash-wall-header">
+      <h1 class="flash-wall-title">Flash Wall</h1>
+      <p class="flash-wall-subtitle">grab one off the wall -- walk-ins welcome</p>
+    </div>
+
+    <!-- Flash Grid -->
+    <div class="flash-grid" id="flash-grid">
+      <!-- Cards injected by JS -->
+    </div>
+
+    <!-- Back link -->
+    <div class="flash-back-link">
+      <a href="/">&lt;&lt; back to home</a>
+    </div>
+
+    <!-- Y2K Stickers — scattered -->
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/19e1b047-e9bf-4f59-922e-fba7f71e4f5a/8ball.png?content-type=image%2Fpng" alt="" style="top:80px;right:60px;transform:rotate(12deg);">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/9b93a939-1946-4820-bc6d-f3789c290026/moon.png?content-type=image%2Fpng" alt="" style="top:200px;left:110px;transform:rotate(-18deg);width:50px;height:50px;">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/9a259ce4-9ecd-47e5-979a-4f589c768ac6/cherries.png?content-type=image%2Fpng" alt="" style="bottom:180px;right:40px;transform:rotate(8deg);width:55px;height:55px;">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/615b7726-7ce2-40de-a7db-6d2a4f652ee9/bolt.png?content-type=image%2Fpng" alt="" style="top:50%;left:95px;transform:rotate(-10deg);width:45px;height:45px;">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/ff31be67-5474-45a2-ab25-09056d213eed/alien.png?content-type=image%2Fpng" alt="" style="top:320px;right:30px;transform:rotate(22deg);width:50px;height:50px;">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/309f3269-1ecc-44e0-9745-3620cac337ea/flower.png?content-type=image%2Fpng" alt="" style="bottom:260px;left:105px;transform:rotate(15deg);width:55px;height:55px;">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/65d984bb-1c14-455b-8172-99fc2d1fc11a/smilie.png?content-type=image%2Fpng" alt="" style="top:140px;right:20px;transform:rotate(-8deg);width:48px;height:48px;">
+    <img class="fw-sticker" src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f3de2916-5339-406a-94d5-f07a3df065f0/stars.png?content-type=image%2Fpng" alt="" style="bottom:120px;left:108px;transform:rotate(20deg);width:50px;height:50px;">
+
+  </div>
+
+  <!-- Taskbar -->
+  <div class="fw-taskbar">
+    <div class="fw-taskbar-left">
+      <div class="fw-start-btn">
+        <div class="fw-start-flag"><div></div><div></div><div></div><div></div></div>
+        start
+      </div>
+      <div class="fw-taskbar-items">
+        <a href="/" class="fw-taskbar-item">Home</a>
+        <a href="#" class="fw-taskbar-item active">Flash Wall</a>
+        <a href="/book" class="fw-taskbar-item">Book</a>
+      </div>
+    </div>
+    <div class="fw-taskbar-right">
+      <span class="fw-taskbar-tray"><span class="fw-tray-vol"></span></span>
+      <span class="fw-taskbar-clock" id="fw-clock">11:59 PM</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ── Flash card data ── */
+  var cards = [
+    { id: '01', color: '#FF69B4', price: '$80',  status: 'available' },
+    { id: '02', color: '#7B68EE', price: '$120', status: 'available' },
+    { id: '03', color: '#20B2AA', price: '$100', status: 'claimed'   },
+    { id: '04', color: '#FF6347', price: '$80',  status: 'available' },
+    { id: '05', color: '#FFD700', price: '$150', status: 'available' },
+    { id: '06', color: '#9370DB', price: '$200', status: 'claimed'   },
+    { id: '07', color: '#3CB371', price: '$80',  status: 'available' },
+    { id: '08', color: '#FF8C00', price: '$100', status: 'available' },
+    { id: '09', color: '#4682B4', price: '$120', status: 'claimed'   },
+    { id: '10', color: '#DC143C', price: '$250', status: 'available' },
+    { id: '11', color: '#8FBC8F', price: '$80',  status: 'available' },
+    { id: '12', color: '#DA70D6', price: '$150', status: 'available' }
+  ];
+
+  /* Seeded pseudo-random for consistent rotations */
+  var rotations = [-3, 4, -2, 5, -4, 1, -5, 3, -1, 2, -3, 4];
+
+  var grid = document.getElementById('flash-grid');
+  if (!grid) return;
+
+  cards.forEach(function(card, i) {
+    var rot = rotations[i];
+    var div = document.createElement('div');
+    div.className = 'flash-card';
+    div.style.transform = 'rotate(' + rot + 'deg)';
+
+    div.innerHTML =
+      '<div class="thumbtack"></div>' +
+      '<div class="flash-img" style="background:' + card.color + ';">FLASH #' + card.id + '</div>' +
+      '<div class="flash-price">' + card.price + '</div>' +
+      '<div class="flash-badge ' + card.status + '">' + card.status.toUpperCase() + '</div>';
+
+    grid.appendChild(div);
+  });
+
+  /* ── Clock ── */
+  var clockEl = document.getElementById('fw-clock');
+  if (!clockEl) return;
+  function tick() {
+    var now = new Date();
+    var h = now.getHours();
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    clockEl.textContent = h + ':' + m + ' ' + ampm;
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
