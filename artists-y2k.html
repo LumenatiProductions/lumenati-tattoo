@@ -417,6 +417,106 @@
 
   .lmn-gallery-footer a:hover { color: #0000ff; }
 
+  /* ── Lightbox ── */
+  .lmn-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.9);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .lmn-lightbox.open { display: flex; }
+
+  .lmn-lightbox-win {
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    max-width: 90vw;
+    max-height: 90vh;
+    cursor: default;
+    position: relative;
+  }
+
+  .lmn-lightbox-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #FF1493 0%, #c8006e 100%);
+    height: 24px;
+  }
+
+  .lmn-lightbox-titlebar span {
+    font-family: Tahoma, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .lmn-lightbox-close {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-family: Tahoma, sans-serif;
+    font-size: 10px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .lmn-lightbox img {
+    display: block;
+    max-width: 85vw;
+    max-height: 75vh;
+    object-fit: contain;
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .lmn-lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    font-family: Tahoma, sans-serif;
+    font-size: 14px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .lmn-lightbox-nav:active { border-color: #808080 #fff #fff #808080; }
+  .lmn-lightbox-prev { left: 12px; }
+  .lmn-lightbox-next { right: 12px; }
+
+  .lmn-lightbox-status {
+    padding: 4px 8px;
+    background: #ece9d8;
+    border-top: 1px solid #aca899;
+    font-family: Tahoma, sans-serif;
+    font-size: 10px;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+  }
+
   /* ── MOBILE ── */
   @media (max-width: 640px) {
     .lmn-artists { padding: 32px 12px; }
@@ -437,6 +537,50 @@
     .lmn-artist.is-open .lmn-gallery-wrap { max-height: 600px; }
 
     .lmn-titlebar-text { font-size: 7px; }
+  }
+
+  /* ── Name group wrapper ── */
+  .lmn-name-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  /* ── Now Playing marquee ── */
+  .lmn-now-playing {
+    overflow: hidden;
+    max-width: 260px;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .lmn-now-playing-track {
+    display: flex;
+    gap: 48px;
+    width: max-content;
+    animation: lmn-marquee 12s linear infinite;
+  }
+
+  .lmn-now-playing-track span {
+    font-family: 'VT323', monospace;
+    font-size: 10px;
+    color: #7FFF00;
+    white-space: nowrap;
+    text-shadow: 0 0 4px rgba(127,255,0,0.5);
+    letter-spacing: 0.05em;
+  }
+
+  @keyframes lmn-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(calc(-50% - 24px)); }
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 640px) {
+    .lmn-now-playing { max-width: 140px; }
+    .lmn-now-playing-track span { font-size: 9px; }
   }
 </style>
 
@@ -465,7 +609,10 @@
         <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611195549239-HXGQN7P29G539SUXMKZG/Brogusky_v100.00_02_48_01.Still001.jpg?format=750w" alt="J.D. Pruitt">
       </div>
       <div class="lmn-artist-info">
-        <span class="lmn-artist-name">J.D. Pruitt</span>
+        <div class="lmn-name-group">
+          <span class="lmn-artist-name">J.D. Pruitt</span>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Goldfinger -- Superman</span><span>&gt; Goldfinger -- Superman</span></div></div>
+        </div>
         <div class="lmn-artist-meta">
           <a class="lmn-artist-room" href="/jd-pruitt" onclick="event.stopPropagation()">Hang out in JD&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
@@ -516,7 +663,10 @@
         <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1613669123888-Z0O5Y0G5BSFMQV8OW68G/IMG_3297.jpg?format=750w" alt="Electric Elaine">
       </div>
       <div class="lmn-artist-info">
-        <span class="lmn-artist-name">Electric Elaine</span>
+        <div class="lmn-name-group">
+          <span class="lmn-artist-name">Electric Elaine</span>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; No Doubt -- Just a Girl</span><span>&gt; No Doubt -- Just a Girl</span></div></div>
+        </div>
         <div class="lmn-artist-meta">
           <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Elaine&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
@@ -567,7 +717,10 @@
         <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/fc951337-5a90-4252-80f4-2244028060c8/Screenshot+2023-02-28+at+11.12.18+AM.png?format=750w" alt="ShorTy">
       </div>
       <div class="lmn-artist-info">
-        <span class="lmn-artist-name">ShorTy</span>
+        <div class="lmn-name-group">
+          <span class="lmn-artist-name">ShorTy</span>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Sublime -- Santeria</span><span>&gt; Sublime -- Santeria</span></div></div>
+        </div>
         <div class="lmn-artist-meta">
           <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in ShorTy&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
@@ -616,7 +769,10 @@
         <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/ca8bb46a-a17e-4a6a-a8df-de579e4abfdb/Screenshot+2023-06-05+at+12.06.23+PM.png?format=750w" alt="King Kalypso">
       </div>
       <div class="lmn-artist-info">
-        <span class="lmn-artist-name">King Kalypso</span>
+        <div class="lmn-name-group">
+          <span class="lmn-artist-name">King Kalypso</span>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Outkast -- Ms. Jackson</span><span>&gt; Outkast -- Ms. Jackson</span></div></div>
+        </div>
         <div class="lmn-artist-meta">
           <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Kalypso&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
@@ -665,7 +821,10 @@
         <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/d6cceb7c-127e-46a6-b2cb-3cfe895ae462/IMG_1805.jpg?format=750w" alt="Sam Durbin-Clark">
       </div>
       <div class="lmn-artist-info">
-        <span class="lmn-artist-name">Sam Durbin-Clark</span>
+        <div class="lmn-name-group">
+          <span class="lmn-artist-name">Sam Durbin-Clark</span>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Blink-182 -- All the Small Things</span><span>&gt; Blink-182 -- All the Small Things</span></div></div>
+        </div>
         <div class="lmn-artist-meta">
           <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Sam&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
@@ -714,7 +873,10 @@
         <img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/938f112f-f860-4547-9510-4ef64b53c124/Screenshot+2025-02-02+at+08.55.10.png?format=750w" alt="Moonie B. Jones">
       </div>
       <div class="lmn-artist-info">
-        <span class="lmn-artist-name">Moonie B. Jones</span>
+        <div class="lmn-name-group">
+          <span class="lmn-artist-name">Moonie B. Jones</span>
+          <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Fiona Apple -- Criminal</span><span>&gt; Fiona Apple -- Criminal</span></div></div>
+        </div>
         <div class="lmn-artist-meta">
           <a class="lmn-artist-room" href="#" onclick="event.stopPropagation()">Hang out in Moonie&#39;s room &gt;&gt;</a>
           <div class="lmn-toggle">+</div>
@@ -746,6 +908,23 @@
   </div>
 
 </section>
+
+<!-- Lightbox -->
+<div class="lmn-lightbox" id="lmnLightbox">
+  <div class="lmn-lightbox-win">
+    <div class="lmn-lightbox-titlebar">
+      <span id="lmnLightboxTitle">image_01.jpg</span>
+      <div class="lmn-lightbox-close" id="lmnLightboxClose">×</div>
+    </div>
+    <img id="lmnLightboxImg" src="" alt="">
+    <div class="lmn-lightbox-status">
+      <span id="lmnLightboxCounter">1 / 10</span>
+      <span>500w</span>
+    </div>
+  </div>
+  <div class="lmn-lightbox-nav lmn-lightbox-prev" id="lmnLightboxPrev">◀</div>
+  <div class="lmn-lightbox-nav lmn-lightbox-next" id="lmnLightboxNext">▶</div>
+</div>
 
 <script>
   var VISIBLE = 5;
@@ -798,4 +977,101 @@
       updateDots(carousel);
     }
   }
+
+  /* ── Lightbox ── */
+  (function() {
+    var lightbox = document.getElementById('lmnLightbox');
+    var lbImg = document.getElementById('lmnLightboxImg');
+    var lbTitle = document.getElementById('lmnLightboxTitle');
+    var lbCounter = document.getElementById('lmnLightboxCounter');
+    var lbClose = document.getElementById('lmnLightboxClose');
+    var lbPrev = document.getElementById('lmnLightboxPrev');
+    var lbNext = document.getElementById('lmnLightboxNext');
+
+    var currentImages = [];
+    var currentIndex = 0;
+
+    function padNum(n) {
+      return n < 10 ? '0' + n : '' + n;
+    }
+
+    function showImage(idx) {
+      currentIndex = idx;
+      lbImg.src = currentImages[idx];
+      lbTitle.textContent = 'image_' + padNum(idx + 1) + '.jpg';
+      lbCounter.textContent = (idx + 1) + ' / ' + currentImages.length;
+    }
+
+    function openLightbox(carousel, imgIndex) {
+      var slides = carousel.querySelectorAll('.lmn-carousel-slide img');
+      currentImages = [];
+      slides.forEach(function(img) {
+        currentImages.push(img.src);
+      });
+      showImage(imgIndex);
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function prevImage() {
+      showImage(currentIndex <= 0 ? currentImages.length - 1 : currentIndex - 1);
+    }
+
+    function nextImage() {
+      showImage(currentIndex >= currentImages.length - 1 ? 0 : currentIndex + 1);
+    }
+
+    // Click on carousel slide images — use event delegation on the section
+    document.querySelector('.lmn-artists').addEventListener('click', function(e) {
+      // Only trigger on img inside .lmn-carousel-slide
+      var img = e.target;
+      if (img.tagName !== 'IMG') return;
+      var slide = img.closest('.lmn-carousel-slide');
+      if (!slide) return;
+
+      // Don't fire if a carousel button was clicked (shouldn't reach here, but safety)
+      if (e.target.closest('.lmn-carousel-btn')) return;
+
+      e.stopPropagation();
+      var carousel = slide.closest('.lmn-carousel');
+      var allSlides = carousel.querySelectorAll('.lmn-carousel-slide');
+      var idx = Array.prototype.indexOf.call(allSlides, slide);
+      openLightbox(carousel, idx);
+    });
+
+    lbClose.addEventListener('click', function(e) {
+      e.stopPropagation();
+      closeLightbox();
+    });
+
+    lbPrev.addEventListener('click', function(e) {
+      e.stopPropagation();
+      prevImage();
+    });
+
+    lbNext.addEventListener('click', function(e) {
+      e.stopPropagation();
+      nextImage();
+    });
+
+    // Click outside the window to close
+    lightbox.addEventListener('click', function(e) {
+      if (e.target === lightbox) {
+        closeLightbox();
+      }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') nextImage();
+    });
+  })();
 </script>

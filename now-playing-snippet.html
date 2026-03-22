@@ -1,0 +1,126 @@
+<!-- ============================================================
+     NOW PLAYING — Scrolling song titles for artist cards
+     ============================================================
+
+     INSTRUCTIONS:
+
+     1. ADD THE CSS — Paste the <style> block below into the existing
+        <style> tag in artists-y2k.html, right before the closing </style>.
+
+     2. MODIFY EACH ARTIST CARD — In each card's .lmn-artist-info div,
+        wrap the <span class="lmn-artist-name"> in a new
+        <div class="lmn-name-group"> and add the now-playing line after it.
+
+        BEFORE (example for JD Pruitt):
+          <div class="lmn-artist-info">
+            <span class="lmn-artist-name">J.D. Pruitt</span>
+            <div class="lmn-artist-meta">
+
+        AFTER:
+          <div class="lmn-artist-info">
+            <div class="lmn-name-group">
+              <span class="lmn-artist-name">J.D. Pruitt</span>
+              <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Goldfinger -- Superman</span><span>&gt; Goldfinger -- Superman</span></div></div>
+            </div>
+            <div class="lmn-artist-meta">
+
+     3. Repeat for all 6 artists using the HTML snippets below.
+
+     ============================================================ -->
+
+
+<!-- ======================== CSS ======================== -->
+<!-- Paste this inside your existing <style> tag, before </style> -->
+
+<style>
+  /* ── Name group wrapper ── */
+  .lmn-name-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  /* ── Now Playing marquee ── */
+  .lmn-now-playing {
+    overflow: hidden;
+    max-width: 260px;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .lmn-now-playing-track {
+    display: flex;
+    gap: 48px;
+    width: max-content;
+    animation: lmn-marquee 12s linear infinite;
+  }
+
+  .lmn-now-playing-track span {
+    font-family: 'VT323', monospace;
+    font-size: 10px;
+    color: #7FFF00;
+    white-space: nowrap;
+    text-shadow: 0 0 4px rgba(127,255,0,0.5);
+    letter-spacing: 0.05em;
+  }
+
+  @keyframes lmn-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(calc(-50% - 24px)); }
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 640px) {
+    .lmn-now-playing { max-width: 140px; }
+    .lmn-now-playing-track span { font-size: 9px; }
+  }
+</style>
+
+
+<!-- ======================== HTML SNIPPETS ======================== -->
+<!-- For each artist, replace the bare <span class="lmn-artist-name">
+     with the corresponding block below. -->
+
+
+<!-- ── J.D. PRUITT (line ~468) ── -->
+<div class="lmn-name-group">
+  <span class="lmn-artist-name">J.D. Pruitt</span>
+  <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Goldfinger -- Superman</span><span>&gt; Goldfinger -- Superman</span></div></div>
+</div>
+
+
+<!-- ── ELECTRIC ELAINE (line ~519) ── -->
+<div class="lmn-name-group">
+  <span class="lmn-artist-name">Electric Elaine</span>
+  <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; No Doubt -- Just a Girl</span><span>&gt; No Doubt -- Just a Girl</span></div></div>
+</div>
+
+
+<!-- ── SHORTY (line ~570) ── -->
+<div class="lmn-name-group">
+  <span class="lmn-artist-name">ShorTy</span>
+  <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Sublime -- Santeria</span><span>&gt; Sublime -- Santeria</span></div></div>
+</div>
+
+
+<!-- ── KING KALYPSO (line ~619) ── -->
+<div class="lmn-name-group">
+  <span class="lmn-artist-name">King Kalypso</span>
+  <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Outkast -- Ms. Jackson</span><span>&gt; Outkast -- Ms. Jackson</span></div></div>
+</div>
+
+
+<!-- ── SAM DURBIN-CLARK (line ~668) ── -->
+<div class="lmn-name-group">
+  <span class="lmn-artist-name">Sam Durbin-Clark</span>
+  <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Blink-182 -- All the Small Things</span><span>&gt; Blink-182 -- All the Small Things</span></div></div>
+</div>
+
+
+<!-- ── MOONIE B. JONES (line ~717) ── -->
+<div class="lmn-name-group">
+  <span class="lmn-artist-name">Moonie B. Jones</span>
+  <div class="lmn-now-playing"><div class="lmn-now-playing-track"><span>&gt; Fiona Apple -- Criminal</span><span>&gt; Fiona Apple -- Criminal</span></div></div>
+</div>
