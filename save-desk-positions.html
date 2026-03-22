@@ -1,0 +1,95 @@
+<!--
+  Save & Restore Dragged Item Positions
+  Drop this script block at the end of each artist bedroom page,
+  AFTER the existing drag script.
+-->
+<script>
+(function() {
+  var SELECTORS = '.br-win, .bedroom-sticker, .bedroom-wall-poster, .bedroom-polaroid, .bedroom-poster';
+  var STORAGE_KEY = 'bedroom-positions:' + location.pathname;
+
+  function getItems() {
+    return document.querySelectorAll(SELECTORS);
+  }
+
+  /* ── Save ── */
+  function savePositions() {
+    var items = getItems();
+    var data = [];
+    for (var i = 0; i < items.length; i++) {
+      var el = items[i];
+      data.push({
+        left: el.style.left || '',
+        top: el.style.top || '',
+        right: el.style.right || '',
+        bottom: el.style.bottom || '',
+        zIndex: el.style.zIndex || '',
+        position: el.style.position || ''
+      });
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) { /* storage full or blocked */ }
+  }
+
+  /* ── Restore ── */
+  function restorePositions() {
+    var raw;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
+    if (!raw) return;
+
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return; }
+
+    var items = getItems();
+    for (var i = 0; i < items.length && i < data.length; i++) {
+      var d = data[i];
+      if (!d.left && !d.top) continue;          // item was never moved
+      items[i].style.position = d.position || 'absolute';
+      items[i].style.left     = d.left;
+      items[i].style.top      = d.top;
+      items[i].style.right    = d.right  || 'auto';
+      items[i].style.bottom   = d.bottom || 'auto';
+      if (d.zIndex) items[i].style.zIndex = d.zIndex;
+    }
+  }
+
+  /* ── Hook into mouseup to save after every drag ── */
+  document.addEventListener('mouseup', function() {
+    // Short delay so the drag script finishes first
+    setTimeout(savePositions, 50);
+  });
+
+  /* ── Restore on load ── */
+  restorePositions();
+
+  /* ── Reset button ── */
+  var btn = document.createElement('button');
+  btn.textContent = 'Reset Room';
+  btn.style.cssText = [
+    'position:fixed',
+    'bottom:12px',
+    'right:12px',
+    'z-index:9999',
+    'padding:6px 14px',
+    'font-family:inherit',
+    'font-size:11px',
+    'letter-spacing:.5px',
+    'text-transform:uppercase',
+    'background:#111',
+    'color:#ccc',
+    'border:1px solid #333',
+    'border-radius:4px',
+    'cursor:pointer',
+    'opacity:.55',
+    'transition:opacity .2s'
+  ].join(';');
+  btn.addEventListener('mouseenter', function() { btn.style.opacity = '1'; });
+  btn.addEventListener('mouseleave', function() { btn.style.opacity = '.55'; });
+  btn.addEventListener('click', function() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    location.reload();
+  });
+  document.body.appendChild(btn);
+})();
+</script>

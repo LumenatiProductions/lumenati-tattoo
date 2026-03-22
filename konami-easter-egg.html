@@ -1,0 +1,147 @@
+<!-- KONAMI CODE EASTER EGG — Paste into Squarespace Code Injection Footer -->
+<script>
+(function() {
+  const KONAMI = [38,38,40,40,37,39,37,39,66,65];
+  const STICKERS = [
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/19e1b047-e9bf-4f59-922e-fba7f71e4f5a/8ball.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/615b7726-7ce2-40de-a7db-6d2a4f652ee9/bolt.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/9a259ce4-9ecd-47e5-979a-4f589c768ac6/cherries.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/65d984bb-1c14-455b-8172-99fc2d1fc11a/smilie.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/f3de2916-5339-406a-94d5-f07a3df065f0/stars.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b901f345-749c-4049-8ee3-666050256ce4/rainbow.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/aee321d1-09a4-468b-9d2a-d1ed38a0e51e/tongue.png?content-type=image%2Fpng',
+    'https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/66407d19-b027-4e99-b15c-0bccb5b7a7b2/skateboard.png?content-type=image%2Fpng'
+  ];
+
+  var pos = 0;
+  var active = false;
+
+  document.addEventListener('keydown', function(e) {
+    if (active) return;
+    if (e.keyCode === KONAMI[pos]) {
+      pos++;
+      if (pos === KONAMI.length) {
+        pos = 0;
+        triggerEasterEgg();
+      }
+    } else {
+      pos = e.keyCode === KONAMI[0] ? 1 : 0;
+    }
+  });
+
+  function playChime() {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var notes = [
+      { f: 523.25, t: 0,    d: 0.1  },  // C5
+      { f: 659.25, t: 0.1,  d: 0.1  },  // E5
+      { f: 783.99, t: 0.2,  d: 0.1  },  // G5
+      { f: 1046.5, t: 0.3,  d: 0.15 },  // C6
+      { f: 783.99, t: 0.45, d: 0.1  },  // G5
+      { f: 1046.5, t: 0.55, d: 0.3  },  // C6
+      { f: 1318.5, t: 0.55, d: 0.3  },  // E6
+      { f: 1568.0, t: 0.55, d: 0.4  },  // G6
+    ];
+    notes.forEach(function(n) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = n.f;
+      gain.gain.setValueAtTime(0.08, ctx.currentTime + n.t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + n.t + n.d + 0.1);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + n.t);
+      osc.stop(ctx.currentTime + n.t + n.d + 0.15);
+    });
+  }
+
+  function triggerEasterEgg() {
+    active = true;
+    playChime();
+
+    // Create overlay container
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:999999;overflow:hidden;';
+    document.body.appendChild(overlay);
+
+    var COUNT = 35;
+    var stickers = [];
+    var W = window.innerWidth;
+    var H = window.innerHeight;
+    var GRAVITY = 980;
+    var BOUNCE = 0.55;
+    var FLOOR = H - 20;
+
+    for (var i = 0; i < COUNT; i++) {
+      var size = 40 + Math.random() * 60;
+      var x = Math.random() * (W - size);
+      var y = -size - Math.random() * 400;
+      var vx = (Math.random() - 0.5) * 200;
+      var vy = Math.random() * 100 + 50;
+      var rot = Math.random() * 360;
+      var rotV = (Math.random() - 0.5) * 360;
+      var src = STICKERS[Math.floor(Math.random() * STICKERS.length)];
+
+      var img = document.createElement('img');
+      img.src = src;
+      img.style.cssText = 'position:absolute;top:0;left:0;width:' + size + 'px;height:' + size + 'px;object-fit:contain;will-change:transform;';
+      overlay.appendChild(img);
+
+      stickers.push({
+        el: img, x: x, y: y, vx: vx, vy: vy,
+        rot: rot, rotV: rotV, size: size
+      });
+    }
+
+    var lastTime = null;
+    var elapsed = 0;
+    var fading = false;
+
+    function frame(ts) {
+      if (!lastTime) lastTime = ts;
+      var dt = Math.min((ts - lastTime) / 1000, 0.05);
+      lastTime = ts;
+      elapsed += dt;
+
+      for (var i = 0; i < stickers.length; i++) {
+        var s = stickers[i];
+        s.vy += GRAVITY * dt;
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+        s.rot += s.rotV * dt;
+
+        // Bounce off floor
+        if (s.y + s.size > FLOOR) {
+          s.y = FLOOR - s.size;
+          s.vy = -Math.abs(s.vy) * BOUNCE;
+          s.rotV *= 0.8;
+          if (Math.abs(s.vy) < 30) s.vy = 0;
+        }
+
+        // Bounce off walls
+        if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx) * BOUNCE; }
+        if (s.x + s.size > W) { s.x = W - s.size; s.vx = -Math.abs(s.vx) * BOUNCE; }
+
+        s.el.style.transform = 'translate3d(' + s.x + 'px,' + s.y + 'px,0) rotate(' + s.rot + 'deg)';
+      }
+
+      // Start fade at 5 seconds
+      if (elapsed >= 5 && !fading) {
+        fading = true;
+        overlay.style.transition = 'opacity 1s ease-out';
+        overlay.style.opacity = '0';
+        setTimeout(function() {
+          overlay.remove();
+          active = false;
+        }, 1000);
+      }
+
+      if (!fading) {
+        requestAnimationFrame(frame);
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+})();
+</script>

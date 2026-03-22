@@ -1,0 +1,58 @@
+/* ============================================
+   CUSTOM CURSOR — Y2K Tattoo Needle
+   Pixel art SVG cursors via data URIs
+   ============================================ */
+
+/* --- Default cursor: tattoo needle (angled) --- */
+*,
+html,
+body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3C!-- needle tip (pink) --%3E%3Crect x='2' y='2' width='4' height='4' fill='%23FF1493'/%3E%3Crect x='6' y='6' width='4' height='4' fill='%23FF1493'/%3E%3C!-- needle shaft --%3E%3Crect x='10' y='10' width='4' height='4' fill='%23222'/%3E%3Crect x='14' y='14' width='4' height='4' fill='%23222'/%3E%3C!-- grip body --%3E%3Crect x='18' y='18' width='4' height='4' fill='%23555'/%3E%3Crect x='22' y='22' width='4' height='4' fill='%23555'/%3E%3Crect x='26' y='26' width='4' height='4' fill='%23555'/%3E%3C!-- grip texture lines --%3E%3Crect x='19' y='18' width='1' height='4' fill='%23777'/%3E%3Crect x='23' y='22' width='1' height='4' fill='%23777'/%3E%3Crect x='27' y='26' width='1' height='4' fill='%23777'/%3E%3C!-- black outline pixels --%3E%3Crect x='0' y='2' width='2' height='4' fill='%23000'/%3E%3Crect x='2' y='0' width='4' height='2' fill='%23000'/%3E%3Crect x='6' y='2' width='2' height='4' fill='%23000'/%3E%3Crect x='2' y='6' width='4' height='2' fill='%23000'/%3E%3Crect x='4' y='6' width='2' height='4' fill='%23000'/%3E%3Crect x='6' y='4' width='4' height='2' fill='%23000'/%3E%3Crect x='10' y='6' width='2' height='4' fill='%23000'/%3E%3Crect x='6' y='10' width='4' height='2' fill='%23000'/%3E%3C/svg%3E") 2 2, auto;
+}
+
+/* --- Pointer cursor: tattoo needle rotated with hand icon feel --- */
+a,
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+label[for],
+select,
+summary,
+.sqs-block-button-element,
+.header-nav-item a,
+.header-menu-nav-item a,
+[data-squarespace-customization],
+a *,
+button * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3C!-- pointer needle tip (pink) --%3E%3Crect x='4' y='0' width='4' height='4' fill='%23FF1493'/%3E%3Crect x='4' y='4' width='4' height='4' fill='%23FF1493'/%3E%3Crect x='8' y='4' width='4' height='4' fill='%23FF1493'/%3E%3C!-- shaft --%3E%3Crect x='8' y='8' width='4' height='4' fill='%23222'/%3E%3Crect x='12' y='12' width='4' height='4' fill='%23222'/%3E%3C!-- grip --%3E%3Crect x='16' y='16' width='4' height='4' fill='%23555'/%3E%3Crect x='20' y='20' width='4' height='4' fill='%23555'/%3E%3Crect x='24' y='24' width='4' height='4' fill='%23555'/%3E%3C!-- grip texture --%3E%3Crect x='17' y='16' width='1' height='4' fill='%23777'/%3E%3Crect x='21' y='20' width='1' height='4' fill='%23777'/%3E%3Crect x='25' y='24' width='1' height='4' fill='%23777'/%3E%3C!-- outline --%3E%3Crect x='2' y='0' width='2' height='4' fill='%23000'/%3E%3Crect x='4' y='-1' width='4' height='1' fill='%23000'/%3E%3Crect x='8' y='0' width='2' height='4' fill='%23000'/%3E%3Crect x='2' y='4' width='2' height='4' fill='%23000'/%3E%3Crect x='8' y='2' width='4' height='2' fill='%23000'/%3E%3Crect x='12' y='4' width='2' height='4' fill='%23000'/%3E%3C!-- star sparkle --%3E%3Crect x='14' y='2' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='12' y='4' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='16' y='4' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='14' y='6' width='2' height='2' fill='%23FF1493'/%3E%3C/svg%3E") 5 1, pointer;
+}
+
+/* --- Crosshair cursor: pixelated target for images --- */
+img,
+figure,
+.sqs-gallery-block-grid .slide,
+.sqs-gallery-block-slideshow .slide,
+.summary-thumbnail,
+[data-image],
+[data-src],
+.portfolio-hover,
+canvas,
+video,
+svg:not(:root) {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3C!-- vertical crosshair line --%3E%3Crect x='15' y='4' width='2' height='8' fill='%23000'/%3E%3Crect x='15' y='20' width='2' height='8' fill='%23000'/%3E%3C!-- horizontal crosshair line --%3E%3Crect x='4' y='15' width='8' height='2' fill='%23000'/%3E%3Crect x='20' y='15' width='8' height='2' fill='%23000'/%3E%3C!-- center diamond (pink) --%3E%3Crect x='15' y='13' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='13' y='15' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='17' y='15' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='15' y='17' width='2' height='2' fill='%23FF1493'/%3E%3Crect x='15' y='15' width='2' height='2' fill='%23fff'/%3E%3C!-- corner brackets --%3E%3Crect x='4' y='4' width='4' height='2' fill='%23FF1493'/%3E%3Crect x='4' y='4' width='2' height='4' fill='%23FF1493'/%3E%3Crect x='24' y='4' width='4' height='2' fill='%23FF1493'/%3E%3Crect x='26' y='4' width='2' height='4' fill='%23FF1493'/%3E%3Crect x='4' y='26' width='4' height='2' fill='%23FF1493'/%3E%3Crect x='4' y='24' width='2' height='4' fill='%23FF1493'/%3E%3Crect x='24' y='26' width='4' height='2' fill='%23FF1493'/%3E%3Crect x='26' y='24' width='2' height='4' fill='%23FF1493'/%3E%3C/svg%3E") 16 16, crosshair;
+}
+
+/* --- Text cursor: keep native for inputs/textareas --- */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+textarea,
+[contenteditable="true"] {
+  cursor: text !important;
+}
