@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C:\My_Music</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #008080;
+    font-family: 'MS Sans Serif', 'Microsoft Sans Serif', Tahoma, Geneva, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .win98-window {
+    width: 520px;
+    max-width: 100%;
+    background: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    border-left: 2px solid #ffffff;
+    border-right: 2px solid #404040;
+    border-bottom: 2px solid #404040;
+    box-shadow:
+      inset 1px 1px 0 #dfdfdf,
+      inset -1px -1px 0 #808080,
+      2px 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .titlebar {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    padding: 3px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 22px;
+  }
+
+  .titlebar-text {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 2px;
+  }
+
+  .titlebar-buttons {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .titlebar-btn {
+    width: 16px;
+    height: 14px;
+    background: #c0c0c0;
+    border-top: 1px solid #ffffff;
+    border-left: 1px solid #ffffff;
+    border-right: 1px solid #404040;
+    border-bottom: 1px solid #404040;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    cursor: default;
+  }
+
+  .titlebar-btn span {
+    margin-top: -2px;
+  }
+
+  .menubar {
+    background: #c0c0c0;
+    padding: 2px 6px;
+    font-size: 11px;
+    border-bottom: 1px solid #808080;
+    display: flex;
+    gap: 12px;
+  }
+
+  .menubar span {
+    cursor: default;
+  }
+
+  .menubar span:first-child::first-letter {
+    text-decoration: underline;
+  }
+
+  .window-body {
+    padding: 12px;
+    background: #c0c0c0;
+    border-top: 1px solid #dfdfdf;
+  }
+
+  .cd-shelf {
+    background: #ffffff;
+    border-top: 2px solid #808080;
+    border-left: 2px solid #808080;
+    border-right: 2px solid #ffffff;
+    border-bottom: 2px solid #ffffff;
+    padding: 16px 12px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: visible;
+    align-items: flex-end;
+  }
+
+  .cd-shelf::-webkit-scrollbar {
+    height: 16px;
+  }
+
+  .cd-shelf::-webkit-scrollbar-track {
+    background: #c0c0c0;
+    border: 1px solid #808080;
+  }
+
+  .cd-shelf::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    border-left: 2px solid #ffffff;
+    border-right: 2px solid #404040;
+    border-bottom: 2px solid #404040;
+  }
+
+  /* --- CD Case --- */
+  .cd-case {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    position: relative;
+    perspective: 300px;
+    cursor: default;
+  }
+
+  .cd-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease;
+  }
+
+  .cd-case:hover .cd-inner {
+    transform: rotateY(-25deg) translateX(-4px);
+  }
+
+  /* The disc underneath */
+  .cd-disc {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%,
+      rgba(255,255,255,0.4) 0%,
+      transparent 20%,
+      transparent 28%,
+      rgba(255,255,255,0.15) 30%,
+      transparent 32%
+    );
+    box-shadow:
+      inset 0 0 8px rgba(0,0,0,0.3),
+      0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .cd-disc::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    border: 2px solid #ccc;
+    box-shadow: inset 0 0 2px rgba(0,0,0,0.3);
+  }
+
+  /* Plastic cover */
+  .cd-cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.35) 0%,
+      rgba(255,255,255,0.08) 30%,
+      rgba(200,220,240,0.12) 50%,
+      rgba(255,255,255,0.05) 70%,
+      rgba(255,255,255,0.25) 100%
+    );
+    border: 1px solid rgba(180,180,180,0.6);
+    border-radius: 1px;
+    box-shadow:
+      inset 0 0 20px rgba(255,255,255,0.15),
+      1px 1px 4px rgba(0,0,0,0.25);
+    z-index: 2;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transform-origin: left center;
+  }
+
+  .cd-case:hover .cd-cover {
+    box-shadow:
+      inset 0 0 20px rgba(255,255,255,0.15),
+      3px 1px 8px rgba(0,0,0,0.3);
+  }
+
+  /* Spine */
+  .cd-spine {
+    position: absolute;
+    top: 0;
+    right: -10px;
+    width: 10px;
+    height: 80px;
+    background: linear-gradient(90deg, #d8d8d8, #b0b0b0);
+    border-right: 1px solid #999;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #999;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .cd-spine span {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 6px;
+    font-weight: bold;
+    color: #222;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    transform: rotate(180deg);
+    line-height: 10px;
+  }
+
+  /* Album label inside case */
+  .cd-label {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    font-size: 6px;
+    color: #333;
+    text-align: center;
+    z-index: 1;
+    line-height: 1.2;
+    padding: 2px;
+    background: rgba(255,255,255,0.5);
+  }
+
+  /* Disc colors per album */
+  .cd-case:nth-child(1) .cd-disc { background-color: #3399ff; }
+  .cd-case:nth-child(2) .cd-disc { background-color: #55cc44; }
+  .cd-case:nth-child(3) .cd-disc { background-color: #ffaa00; }
+  .cd-case:nth-child(4) .cd-disc { background-color: #cc3333; }
+  .cd-case:nth-child(5) .cd-disc { background-color: #9944cc; }
+
+  .statusbar {
+    background: #c0c0c0;
+    border-top: 1px solid #808080;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: #000;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .statusbar-section {
+    border-top: 1px solid #808080;
+    border-left: 1px solid #808080;
+    border-right: 1px solid #ffffff;
+    border-bottom: 1px solid #ffffff;
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+
+  /* Mobile */
+  @media (max-width: 540px) {
+    .win98-window {
+      width: 100%;
+    }
+
+    .cd-shelf {
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+      overflow-y: auto;
+      max-height: 500px;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .cd-case {
+      width: 100px;
+      height: 100px;
+    }
+
+    .cd-spine {
+      height: 100px;
+    }
+
+    .cd-disc {
+      top: 10px;
+      left: 10px;
+      width: 80px;
+      height: 80px;
+    }
+
+    .cd-disc::after {
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="win98-window">
+  <div class="titlebar">
+    <span class="titlebar-text">C:\My_Music</span>
+    <div class="titlebar-buttons">
+      <div class="titlebar-btn"><span>_</span></div>
+      <div class="titlebar-btn"><span>[]</span></div>
+      <div class="titlebar-btn"><span>X</span></div>
+    </div>
+  </div>
+  <div class="menubar">
+    <span>File</span>
+    <span>Edit</span>
+    <span>View</span>
+    <span>Help</span>
+  </div>
+  <div class="window-body">
+    <div class="cd-shelf">
+
+      <div class="cd-case">
+        <div class="cd-inner">
+          <div class="cd-disc"></div>
+          <div class="cd-cover"></div>
+          <div class="cd-label">Enema of the State</div>
+        </div>
+        <div class="cd-spine"><span>Blink-182</span></div>
+      </div>
+
+      <div class="cd-case">
+        <div class="cd-inner">
+          <div class="cd-disc"></div>
+          <div class="cd-cover"></div>
+          <div class="cd-label">Dookie</div>
+        </div>
+        <div class="cd-spine"><span>Green Day</span></div>
+      </div>
+
+      <div class="cd-case">
+        <div class="cd-inner">
+          <div class="cd-disc"></div>
+          <div class="cd-cover"></div>
+          <div class="cd-label">40oz to Freedom</div>
+        </div>
+        <div class="cd-spine"><span>Sublime</span></div>
+      </div>
+
+      <div class="cd-case">
+        <div class="cd-inner">
+          <div class="cd-disc"></div>
+          <div class="cd-cover"></div>
+          <div class="cd-label">Punk in Drublic</div>
+        </div>
+        <div class="cd-spine"><span>NOFX</span></div>
+      </div>
+
+      <div class="cd-case">
+        <div class="cd-inner">
+          <div class="cd-disc"></div>
+          <div class="cd-cover"></div>
+          <div class="cd-label">...And Out Come the Wolves</div>
+        </div>
+        <div class="cd-spine"><span>Rancid</span></div>
+      </div>
+
+    </div>
+  </div>
+  <div class="statusbar">
+    <span class="statusbar-section">5 object(s)</span>
+    <span class="statusbar-section">420 MB</span>
+  </div>
+</div>
+
+</body>
+</html>
