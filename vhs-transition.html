@@ -7,18 +7,16 @@
   z-index: 999999;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  background: #000;
 }
 #vhs-overlay.active {
   opacity: 1;
   pointer-events: all;
 }
-#vhs-overlay.fade-out {
-  opacity: 0;
-}
 #vhs-canvas {
   width: 100%; height: 100%;
   display: block;
+  image-rendering: pixelated;
 }
 </style>
 
@@ -32,205 +30,95 @@
   var canvas = document.getElementById('vhs-canvas');
   var ctx = canvas.getContext('2d');
   var animFrame = null;
-  var audioCtx = null;
+
+  // Render at low res for speed — scale up with CSS pixelated
+  var SCALE = 4;
 
   function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = Math.ceil(window.innerWidth / SCALE);
+    canvas.height = Math.ceil(window.innerHeight / SCALE);
   }
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
-  /* --- VHS Static Rendering --- */
   function drawStatic() {
     var w = canvas.width;
     var h = canvas.height;
     var imgData = ctx.createImageData(w, h);
     var data = imgData.data;
     var len = data.length;
-    var time = Date.now();
 
-    /* Random noise pixels — sample every 2px for perf on large screens */
     for (var i = 0; i < len; i += 4) {
       var v = (Math.random() * 255) | 0;
-      data[i]     = v;  /* R */
-      data[i + 1] = v;  /* G */
-      data[i + 2] = v;  /* B */
+      data[i] = v;
+      data[i + 1] = v;
+      data[i + 2] = v;
       data[i + 3] = 255;
     }
 
     ctx.putImageData(imgData, 0, 0);
 
-    /* --- Horizontal tracking lines --- */
-    ctx.save();
-    ctx.globalCompositeOperation = 'source-over';
-
-    /* Thick slow-sweep band */
-    var bandY = ((time * 0.15) % (h + 120)) - 60;
-    var grad = ctx.createLinearGradient(0, bandY - 40, 0, bandY + 40);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(0.3, 'rgba(255,255,255,0.12)');
-    grad.addColorStop(0.5, 'rgba(255,255,255,0.25)');
-    grad.addColorStop(0.7, 'rgba(255,255,255,0.12)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, bandY - 40, w, 80);
-
-    /* Second thinner tracking line moving faster */
-    var bandY2 = ((time * 0.35) % (h + 60)) - 30;
-    var grad2 = ctx.createLinearGradient(0, bandY2 - 15, 0, bandY2 + 15);
-    grad2.addColorStop(0, 'rgba(0,0,0,0)');
-    grad2.addColorStop(0.5, 'rgba(200,200,200,0.18)');
-    grad2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad2;
-    ctx.fillRect(0, bandY2 - 15, w, 30);
-
-    /* Thin scanlines */
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    for (var y = 0; y < h; y += 4) {
-      ctx.fillRect(0, y, w, 1);
-    }
-
-    ctx.restore();
-
-    /* --- RGB color fringing --- */
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.08;
-
-    /* Red shift left */
-    ctx.fillStyle = 'red';
-    var fringeOffset = 2 + Math.sin(time * 0.01) * 3;
-    ctx.fillRect(-fringeOffset, 0, w, h);
-
-    /* Cyan shift right */
-    ctx.fillStyle = 'cyan';
-    ctx.fillRect(fringeOffset, 0, w, h);
-
-    /* Random RGB bars */
-    for (var b = 0; b < 3; b++) {
-      var barY = (Math.random() * h) | 0;
-      var barH = 1 + (Math.random() * 3) | 0;
-      ctx.globalAlpha = 0.15 + Math.random() * 0.15;
-      ctx.fillStyle = ['#ff0000','#00ff00','#0000ff'][b];
-      ctx.fillRect(0, barY, w, barH);
-    }
-
-    ctx.restore();
-
-    /* --- Horizontal distortion / shift glitch --- */
-    if (Math.random() < 0.3) {
-      var sliceY = (Math.random() * h) | 0;
-      var sliceH = 5 + (Math.random() * 30) | 0;
-      var shift = ((Math.random() - 0.5) * 40) | 0;
-      try {
-        var slice = ctx.getImageData(0, sliceY, w, sliceH);
-        ctx.putImageData(slice, shift, sliceY);
-      } catch(e) {}
-    }
+    // Tracking line
+    var bandY = (Date.now() * 0.05 % h) | 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(0, bandY, w, 2);
 
     animFrame = requestAnimationFrame(drawStatic);
   }
 
-  /* --- White noise audio burst (Web Audio API) --- */
-  function playStaticSound(durationMs) {
+  function playStaticSound(ms) {
     try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      var dur = durationMs / 1000;
-      var sampleRate = audioCtx.sampleRate;
-      var bufferSize = (sampleRate * dur) | 0;
-      var buffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
-      var channel = buffer.getChannelData(0);
-
-      for (var i = 0; i < bufferSize; i++) {
-        channel[i] = (Math.random() * 2 - 1) * 0.3;
-      }
-
-      /* Apply quick fade-in/fade-out envelope to avoid clicks */
-      var fadeLen = Math.min(bufferSize, (sampleRate * 0.02) | 0);
-      for (var f = 0; f < fadeLen; f++) {
-        var env = f / fadeLen;
-        channel[f] *= env;
-        channel[bufferSize - 1 - f] *= env;
-      }
-
-      var source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-
-      /* Bandpass filter for that classic TV static tone */
-      var filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 4000;
-      filter.Q.value = 0.5;
-
-      var gain = audioCtx.createGain();
-      gain.gain.value = 0.25;
-
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
-      source.start();
+      var ac = new (window.AudioContext || window.webkitAudioContext)();
+      var dur = ms / 1000;
+      var sr = ac.sampleRate;
+      var buf = ac.createBuffer(1, (sr * dur) | 0, sr);
+      var ch = buf.getChannelData(0);
+      for (var i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * 0.15;
+      // Fade edges
+      var fade = Math.min(ch.length, (sr * 0.01) | 0);
+      for (var f = 0; f < fade; f++) { ch[f] *= f / fade; ch[ch.length - 1 - f] *= f / fade; }
+      var src = ac.createBufferSource();
+      src.buffer = buf;
+      src.connect(ac.destination);
+      src.start();
     } catch(e) {}
   }
 
-  /* --- Start / stop animation --- */
   function showStatic() {
     resizeCanvas();
     overlay.classList.add('active');
-    overlay.classList.remove('fade-out');
     drawStatic();
   }
 
-  function hideStatic(fadeMs) {
-    overlay.style.transition = 'opacity ' + (fadeMs || 150) + 'ms ease';
-    overlay.classList.add('fade-out');
-    setTimeout(function() {
-      if (animFrame) cancelAnimationFrame(animFrame);
-      animFrame = null;
-      overlay.classList.remove('active', 'fade-out');
-      overlay.style.transition = '';
-    }, (fadeMs || 150) + 50);
+  function hideStatic() {
+    if (animFrame) cancelAnimationFrame(animFrame);
+    animFrame = null;
+    overlay.classList.remove('active');
   }
 
-  /* --- Intercept internal link clicks --- */
+  // Intercept internal links
   document.addEventListener('click', function(e) {
     var link = e.target.closest('a');
     if (!link) return;
     var href = link.getAttribute('href');
-    if (!href) return;
-
-    /* Only intercept internal navigation (starts with /) */
-    /* Skip anchors, external links, tel/mailto, javascript, new-tab links */
-    if (href.charAt(0) !== '/') return;
-    if (href.indexOf('#') === 0) return;
-    if (link.target === '_blank') return;
-    if (link.hasAttribute('download')) return;
+    if (!href || href.charAt(0) !== '/' || link.target === '_blank') return;
 
     e.preventDefault();
-
-    /* Mark that arriving page should show exit static */
     sessionStorage.setItem('vhs-arriving', '1');
-
-    /* Show static + play sound */
     showStatic();
-    playStaticSound(400);
+    playStaticSound(200);
 
-    /* Navigate after 400ms */
     setTimeout(function() {
       window.location.href = href;
-    }, 400);
+    }, 200);
   });
 
-  /* --- Arriving page: show static then fade out --- */
+  // Arriving page
   if (sessionStorage.getItem('vhs-arriving') === '1') {
     sessionStorage.removeItem('vhs-arriving');
     showStatic();
-    playStaticSound(300);
-    setTimeout(function() {
-      hideStatic(200);
-    }, 300);
+    playStaticSound(150);
+    setTimeout(hideStatic, 150);
   }
 
 })();
