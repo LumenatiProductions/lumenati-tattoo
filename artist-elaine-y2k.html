@@ -495,105 +495,382 @@
     background: rgba(255,255,255,0.05);
   }
 
-  /* -- Elaine's Winamp -- */
-  .ee-winamp {
-    position: fixed;
-    bottom: 50px;
-    right: 16px;
-    width: 240px;
-    background: #232323;
-    border: 2px solid;
-    border-color: #444 #111 #111 #444;
-    z-index: 100;
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-  }
 
-  .ee-winamp-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2px 6px;
-    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
-    font-size: 9px;
-    color: #ccc;
-    letter-spacing: 2px;
-  }
+/* ── iTunes 1.0 Player Widget ── */
+@media (max-width: 768px) {
+  .ee-itunes-player { display: none !important; }
+}
 
-  .ee-winamp-btns { font-size: 10px; color: #888; }
+.ee-itunes-player {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 240px;
+  z-index: 99998;
+  font-family: "Lucida Grande", "Geneva", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  color: #222;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.45),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+  /* brushed metal background */
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(255,255,255,0.03) 1px,
+      rgba(255,255,255,0.03) 2px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.015) 2px,
+      rgba(0,0,0,0.015) 3px
+    ),
+    linear-gradient(
+      180deg,
+      #d4d4d4 0%,
+      #c8c8c8 8%,
+      #bebebe 20%,
+      #c5c5c5 40%,
+      #b8b8b8 60%,
+      #c2c2c2 80%,
+      #b0b0b0 100%
+    );
+  border: 1px solid #888;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
-  .ee-winamp-display {
-    background: #000;
-    margin: 3px;
-    padding: 6px;
-    border: 1px solid #111;
-  }
+/* ── Title Bar ── */
+.ee-itunes-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: linear-gradient(
+    180deg,
+    #e8e8e8 0%,
+    #d0d0d0 40%,
+    #b8b8b8 100%
+  );
+  border-bottom: 1px solid #999;
+  height: 18px;
+}
 
-  .ee-winamp-marquee {
-    overflow: hidden;
-    white-space: nowrap;
-    font-size: 11px;
-    color: #00FF00;
-    text-shadow: 0 0 4px rgba(0,255,0,0.4);
-    margin-bottom: 6px;
-  }
+.ee-itunes-traffic {
+  display: flex;
+  gap: 4px;
+}
 
-  .ee-winamp-marquee span {
-    display: inline-block;
-    animation: ee-marquee 12s linear infinite;
-  }
+.ee-itunes-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.3);
+}
 
-  @keyframes ee-marquee {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-  }
+.ee-itunes-dot-close {
+  background: radial-gradient(circle at 35% 35%, #ff7f6e, #e24b3a);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
+}
 
-  .ee-winamp-eq {
-    display: flex;
-    gap: 3px;
-    height: 20px;
-    align-items: flex-end;
-  }
+.ee-itunes-dot-minimize {
+  background: radial-gradient(circle at 35% 35%, #ffd24e, #e5a800);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
+}
 
-  .ee-eq-bar {
-    flex: 1;
-    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
-    animation: ee-eq-bounce 0.5s ease-in-out infinite alternate;
-    min-height: 3px;
-  }
+.ee-itunes-dot-zoom {
+  background: radial-gradient(circle at 35% 35%, #73e85f, #2ebe0e);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
+}
 
-  .ee-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
-  .ee-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
-  .ee-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
-  .ee-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
-  .ee-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
-  .ee-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
-  .ee-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
-  .ee-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
-  .ee-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
-  .ee-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
-  .ee-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
-  .ee-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
+.ee-itunes-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #444;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  letter-spacing: 0.3px;
+}
 
-  @keyframes ee-eq-bounce {
-    0% { height: 20%; }
-    100% { height: 100%; }
-  }
+/* ── Song Display Area ── */
+.ee-itunes-display {
+  margin: 6px 8px 4px;
+  background: #1a1a2e;
+  border-radius: 3px;
+  border: 1px solid #666;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  padding: 5px 6px;
+  overflow: hidden;
+  height: 18px;
+  position: relative;
+}
 
-  .ee-winamp-controls {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    padding: 4px;
-    background: #2a2a20;
-    font-size: 14px;
-    color: #aaa;
-  }
+.ee-itunes-marquee-track {
+  overflow: hidden;
+  width: 100%;
+  height: 16px;
+  position: relative;
+}
 
-  .ee-winamp-controls span {
-    cursor: pointer;
-  }
+.ee-itunes-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  color: #5ce65c;
+  font-size: 11px;
+  font-family: "Monaco", "Courier New", monospace;
+  line-height: 16px;
+  animation: ee-itunes-scroll 10s linear infinite;
+  padding-left: 100%;
+}
 
-  .ee-winamp-controls span:hover { color: #00FF00; }
+@keyframes ee-itunes-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ── Time + Progress Row ── */
+.ee-itunes-progress-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px 2px;
+  gap: 6px;
+}
+
+.ee-itunes-time {
+  font-size: 10px;
+  font-family: "Monaco", "Courier New", monospace;
+  color: #333;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+  min-width: 30px;
+  text-align: center;
+}
+
+.ee-itunes-progress-wrap {
+  flex: 1;
+  height: 8px;
+  background: linear-gradient(180deg, #999 0%, #bbb 50%, #aaa 100%);
+  border-radius: 4px;
+  border: 1px solid #777;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.ee-itunes-progress-fill {
+  width: 58%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(
+    180deg,
+    #6ec6f8 0%,
+    #3da1e0 30%,
+    #2b89cc 60%,
+    #1a6eb5 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+/* ── Transport Controls ── */
+.ee-itunes-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px 3px;
+  gap: 4px;
+}
+
+.ee-itunes-btn {
+  width: 26px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Aqua gel button */
+  background: linear-gradient(
+    180deg,
+    #b0ddf7 0%,
+    #7ec3ee 15%,
+    #4da6e0 50%,
+    #3991d0 55%,
+    #5aade5 85%,
+    #7ec8f5 100%
+  );
+  border: 1px solid #2e7ab8;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.55);
+  position: relative;
+  overflow: hidden;
+}
+
+.ee-itunes-btn::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 15%;
+  right: 15%;
+  height: 40%;
+  border-radius: 0 0 50% 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.65) 0%,
+    rgba(255,255,255,0.0) 100%
+  );
+}
+
+.ee-itunes-btn-play {
+  width: 32px;
+  height: 22px;
+}
+
+/* Transport icons via CSS shapes */
+.ee-itunes-icon {
+  position: relative;
+  z-index: 1;
+}
+
+/* Previous: two left triangles */
+.ee-itunes-icon-prev {
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 6px solid #fff;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.3));
+  margin-left: 2px;
+}
+.ee-itunes-icon-prev::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 5px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 6px solid #fff;
+}
+
+/* Play (paused indicator — two bars for "now playing") */
+.ee-itunes-icon-pause {
+  width: 3px;
+  height: 10px;
+  background: #fff;
+  box-shadow: 5px 0 0 #fff;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.3));
+}
+
+/* Next: two right triangles */
+.ee-itunes-icon-next {
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid #fff;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.3));
+  margin-right: 2px;
+}
+.ee-itunes-icon-next::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: 5px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid #fff;
+}
+
+/* ── Volume Row ── */
+.ee-itunes-volume-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px 6px;
+  gap: 5px;
+}
+
+.ee-itunes-vol-label {
+  font-size: 8px;
+  color: #555;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.ee-itunes-vol-icon-quiet {
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid #666;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  position: relative;
+}
+.ee-itunes-vol-icon-quiet::before {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -1px;
+  width: 0; height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-right: 4px solid #666;
+}
+
+.ee-itunes-vol-icon-loud {
+  width: 6px;
+  height: 8px;
+  border-right: 2px solid #666;
+  position: relative;
+}
+.ee-itunes-vol-icon-loud::before {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 0;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 5px solid #666;
+}
+
+.ee-itunes-vol-track {
+  flex: 1;
+  height: 6px;
+  background: linear-gradient(180deg, #999 0%, #bbb 50%, #aaa 100%);
+  border-radius: 3px;
+  border: 1px solid #777;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.ee-itunes-vol-fill {
+  width: 72%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    #6ec6f8 0%,
+    #3da1e0 30%,
+    #2b89cc 60%,
+    #1a6eb5 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+/* ── Bottom Edge ── */
+.ee-itunes-footer {
+  height: 3px;
+  background: linear-gradient(180deg, #aaa 0%, #999 100%);
+  border-top: 1px solid #888;
+}
+
 
   /* -- Mobile -- */
   @media (max-width: 768px) {
@@ -604,7 +881,7 @@
     .ee-profile, .ee-aim { width: 100%; }
     .ee-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
     .ee-back { top: 12px; right: 12px; }
-    .ee-winamp { display: none; }
+    .ee-itunes-player { display: none; }
     .ee-polaroid img { width: 100px; height: 100px; }
     .ee-polaroid { padding: 5px 5px 24px; }
   }
@@ -740,27 +1017,61 @@
     </div>
   </div>
 
-  <!-- Elaine's Winamp -->
-  <div class="ee-winamp">
-    <div class="ee-winamp-bar">
-      <span class="ee-winamp-title">WINAMP</span>
-      <span class="ee-winamp-btns">_ x</span>
+  <!-- Elaine's iTunes Player -->
+<!-- iTUNES 1.0 PLAYER WIDGET — paste into Squarespace Code Injection (Footer) or a Code Block -->
+<div class="ee-itunes-player">
+
+  <!-- Title Bar -->
+  <div class="ee-itunes-titlebar">
+    <div class="ee-itunes-traffic">
+      <div class="ee-itunes-dot ee-itunes-dot-close"></div>
+      <div class="ee-itunes-dot ee-itunes-dot-minimize"></div>
+      <div class="ee-itunes-dot ee-itunes-dot-zoom"></div>
     </div>
-    <div class="ee-winamp-display">
-      <div class="ee-winamp-marquee">
-        <span>No Doubt -- Just a Girl (1995) ***</span>
-      </div>
-      <div class="ee-winamp-eq">
-        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
-        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
-        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
-        <div class="ee-eq-bar"></div><div class="ee-eq-bar"></div><div class="ee-eq-bar"></div>
-      </div>
-    </div>
-    <div class="ee-winamp-controls">
-      <span>|&lt;&lt;</span> <span>&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
+    <span class="ee-itunes-title">iTunes</span>
+    <div style="width:38px;"></div>
+  </div>
+
+  <!-- Song Display -->
+  <div class="ee-itunes-display">
+    <div class="ee-itunes-marquee-track">
+      <span class="ee-itunes-marquee">No Doubt -- Just a Girl (1995)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;No Doubt -- Just a Girl (1995)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
     </div>
   </div>
+
+  <!-- Time + Progress -->
+  <div class="ee-itunes-progress-row">
+    <span class="ee-itunes-time">2:34</span>
+    <div class="ee-itunes-progress-wrap">
+      <div class="ee-itunes-progress-fill"></div>
+    </div>
+    <span class="ee-itunes-time">4:24</span>
+  </div>
+
+  <!-- Transport Controls -->
+  <div class="ee-itunes-controls">
+    <button class="ee-itunes-btn" aria-label="Previous" type="button">
+      <span class="ee-itunes-icon ee-itunes-icon-prev"></span>
+    </button>
+    <button class="ee-itunes-btn ee-itunes-btn-play" aria-label="Pause" type="button">
+      <span class="ee-itunes-icon ee-itunes-icon-pause"></span>
+    </button>
+    <button class="ee-itunes-btn" aria-label="Next" type="button">
+      <span class="ee-itunes-icon ee-itunes-icon-next"></span>
+    </button>
+  </div>
+
+  <!-- Volume -->
+  <div class="ee-itunes-volume-row">
+    <div class="ee-itunes-vol-icon-quiet"></div>
+    <div class="ee-itunes-vol-track">
+      <div class="ee-itunes-vol-fill"></div>
+    </div>
+    <div class="ee-itunes-vol-icon-loud"></div>
+  </div>
+
+  <div class="ee-itunes-footer"></div>
+</div>
 
   <!-- Taskbar -->
   <div class="ee-taskbar">

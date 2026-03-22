@@ -495,105 +495,399 @@
     background: rgba(255,255,255,0.05);
   }
 
-  /* ── ShorTy's Winamp ── */
-  .st-winamp {
+
+  .st-wmp {
     position: fixed;
-    bottom: 50px;
-    right: 16px;
+    bottom: 20px;
+    right: 20px;
     width: 240px;
-    background: #232323;
-    border: 2px solid;
-    border-color: #444 #111 #111 #444;
-    z-index: 100;
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-  }
-
-  .st-winamp-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2px 6px;
-    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
-    font-size: 9px;
-    color: #ccc;
-    letter-spacing: 2px;
-  }
-
-  .st-winamp-btns { font-size: 10px; color: #888; }
-
-  .st-winamp-display {
-    background: #000;
-    margin: 3px;
-    padding: 6px;
-    border: 1px solid #111;
-  }
-
-  .st-winamp-marquee {
+    font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(180deg, #1a2a4a 0%, #0d1a2f 40%, #0a1420 100%);
+    border-radius: 8px;
+    border: 1px solid #2a4a7a;
+    box-shadow: 0 0 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(100,150,220,0.15);
     overflow: hidden;
-    white-space: nowrap;
+    z-index: 9999;
+    user-select: none;
+  }
+
+  @media (max-width: 768px) {
+    .st-wmp {
+      display: none;
+    }
+  }
+
+  /* Title bar */
+  .st-wmp-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: linear-gradient(180deg, #2a4a80 0%, #1a3060 50%, #162a55 100%);
+    border-bottom: 1px solid #0a1a30;
+  }
+
+  .st-wmp-titlebar-text {
     font-size: 11px;
-    color: #00FF00;
-    text-shadow: 0 0 4px rgba(0,255,0,0.4);
-    margin-bottom: 6px;
+    font-weight: bold;
+    color: #c0d4f0;
+    letter-spacing: 0.3px;
   }
 
-  .st-winamp-marquee span {
-    display: inline-block;
-    animation: st-marquee 12s linear infinite;
-  }
-
-  @keyframes st-marquee {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-  }
-
-  .st-winamp-eq {
+  .st-wmp-titlebar-btns {
     display: flex;
-    gap: 3px;
-    height: 20px;
-    align-items: flex-end;
+    gap: 2px;
   }
 
-  .st-eq-bar {
-    flex: 1;
-    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
-    animation: st-eq-bounce 0.5s ease-in-out infinite alternate;
-    min-height: 3px;
-  }
-
-  .st-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
-  .st-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
-  .st-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
-  .st-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
-  .st-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
-  .st-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
-  .st-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
-  .st-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
-  .st-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
-  .st-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
-  .st-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
-  .st-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
-
-  @keyframes st-eq-bounce {
-    0% { height: 20%; }
-    100% { height: 100%; }
-  }
-
-  .st-winamp-controls {
+  .st-wmp-titlebar-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #3a5a90 0%, #1a3060 100%);
+    border: 1px solid #4a6a9a;
     display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 4px;
-    background: #2a2a20;
-    font-size: 14px;
-    color: #aaa;
+    cursor: default;
   }
 
-  .st-winamp-controls span {
-    cursor: pointer;
+  .st-wmp-titlebar-btn::after {
+    content: '';
+    display: block;
   }
 
-  .st-winamp-controls span:hover { color: #00FF00; }
+  .st-wmp-btn-min::after {
+    width: 6px;
+    height: 1px;
+    background: #a0c0e8;
+    margin-top: 4px;
+  }
+
+  .st-wmp-btn-close::after {
+    width: 7px;
+    height: 7px;
+    background: transparent;
+    border: none;
+    /* X shape via box-shadow */
+    box-shadow: none;
+    position: relative;
+  }
+
+  .st-wmp-btn-close {
+    position: relative;
+  }
+
+  .st-wmp-btn-close::before,
+  .st-wmp-btn-close::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 1px;
+    background: #a0c0e8;
+    top: 50%;
+    left: 50%;
+  }
+
+  .st-wmp-btn-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .st-wmp-btn-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  /* Visualization area */
+  .st-wmp-vis {
+    height: 48px;
+    margin: 6px 8px 4px;
+    background: linear-gradient(180deg, #000810 0%, #001028 50%, #000a18 100%);
+    border-radius: 3px;
+    border: 1px solid #1a2a45;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Fake visualizer bars */
+  .st-wmp-vis-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 32px;
+    padding: 0 8px;
+  }
+
+  .st-wmp-vis-bar {
+    width: 3px;
+    border-radius: 1px 1px 0 0;
+    background: linear-gradient(180deg, #4a90d9 0%, #1a4a8a 60%, #0a2a5a 100%);
+    opacity: 0.8;
+  }
+
+  /* Song info */
+  .st-wmp-info {
+    padding: 2px 8px;
+  }
+
+  .st-wmp-song {
+    font-size: 10px;
+    color: #7aa8d8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    padding: 2px 4px;
+    background: rgba(0,8,20,0.4);
+    border-radius: 2px;
+    border: 1px solid #12243d;
+  }
+
+  /* Seek bar area */
+  .st-wmp-seek-area {
+    padding: 5px 8px 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .st-wmp-time {
+    font-size: 9px;
+    color: #5a8ab8;
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+  }
+
+  .st-wmp-time-right {
+    text-align: right;
+  }
+
+  .st-wmp-seek {
+    flex: 1;
+    height: 6px;
+    background: linear-gradient(180deg, #0a1828 0%, #0e2038 100%);
+    border-radius: 3px;
+    border: 1px solid #1a304a;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .st-wmp-seek-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 38%;
+    background: linear-gradient(180deg, #3a80cc 0%, #2260a0 50%, #1a4a80 100%);
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(60,130,210,0.3);
+  }
+
+  .st-wmp-seek-thumb {
+    position: absolute;
+    right: -4px;
+    top: -3px;
+    width: 8px;
+    height: 12px;
+    background: linear-gradient(180deg, #c0d8f0 0%, #6a9acc 50%, #4a7ab0 100%);
+    border-radius: 2px;
+    border: 1px solid #3a6a9a;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  /* Transport controls */
+  .st-wmp-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px 8px;
+  }
+
+  .st-wmp-ctrl-btn {
+    width: 28px;
+    height: 22px;
+    background: linear-gradient(180deg, #2a4a78 0%, #1a3058 50%, #142848 100%);
+    border: 1px solid #3a5a88;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(120,170,230,0.15);
+    position: relative;
+  }
+
+  .st-wmp-ctrl-btn:hover {
+    background: linear-gradient(180deg, #3a5a88 0%, #2a4068 50%, #1a3458 100%);
+  }
+
+  .st-wmp-btn-play {
+    width: 34px;
+    height: 26px;
+    background: linear-gradient(180deg, #305a90 0%, #1e3e6a 50%, #163058 100%);
+    border-color: #4a6a9a;
+  }
+
+  .st-wmp-btn-play:hover {
+    background: linear-gradient(180deg, #3a6a9a 0%, #2a4a78 50%, #1e3e68 100%);
+  }
+
+  /* Button icons via CSS shapes */
+
+  /* Prev: two small left-pointing triangles + bar */
+  .st-wmp-icon-prev {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 5px 4px 0;
+    border-color: transparent #8ab0d8 transparent transparent;
+    position: relative;
+  }
+  .st-wmp-icon-prev::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 5px 4px 0;
+    border-color: transparent #8ab0d8 transparent transparent;
+    left: 3px;
+    top: -4px;
+  }
+  .st-wmp-icon-prev::after {
+    content: '';
+    position: absolute;
+    width: 1.5px;
+    height: 8px;
+    background: #8ab0d8;
+    left: -4px;
+    top: -4px;
+  }
+
+  /* Play: right-pointing triangle */
+  .st-wmp-icon-play {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 9px;
+    border-color: transparent transparent transparent #b0d0f0;
+    margin-left: 2px;
+  }
+
+  /* Next: two small right-pointing triangles + bar */
+  .st-wmp-icon-next {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 0 4px 5px;
+    border-color: transparent transparent transparent #8ab0d8;
+    position: relative;
+  }
+  .st-wmp-icon-next::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 0 4px 5px;
+    border-color: transparent transparent transparent #8ab0d8;
+    right: 3px;
+    top: -4px;
+  }
+  .st-wmp-icon-next::after {
+    content: '';
+    position: absolute;
+    width: 1.5px;
+    height: 8px;
+    background: #8ab0d8;
+    right: -4px;
+    top: -4px;
+  }
+
+  /* Stop: square */
+  .st-wmp-icon-stop {
+    width: 7px;
+    height: 7px;
+    background: #8ab0d8;
+    border-radius: 1px;
+  }
+
+  /* Volume area */
+  .st-wmp-volume {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 8px 6px;
+    gap: 4px;
+  }
+
+  .st-wmp-vol-icon {
+    position: relative;
+    width: 10px;
+    height: 10px;
+  }
+
+  .st-wmp-vol-icon::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 4px;
+    height: 6px;
+    background: #5a8ab8;
+  }
+
+  .st-wmp-vol-icon::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 5px;
+    border-color: transparent transparent transparent #5a8ab8;
+  }
+
+  .st-wmp-vol-bar {
+    width: 50px;
+    height: 4px;
+    background: linear-gradient(180deg, #0a1828 0%, #0e2038 100%);
+    border-radius: 2px;
+    border: 1px solid #1a304a;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .st-wmp-vol-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 72%;
+    background: linear-gradient(90deg, #2260a0, #3a80cc);
+    border-radius: 2px;
+  }
+
+  /* Bottom branding strip */
+  .st-wmp-brand {
+    background: linear-gradient(180deg, #12243d 0%, #0a1828 100%);
+    border-top: 1px solid #1a2a45;
+    padding: 3px 8px;
+    text-align: center;
+  }
+
+  .st-wmp-brand-text {
+    font-size: 8px;
+    color: #3a5a80;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
 
   /* ── Mobile ── */
   @media (max-width: 768px) {
@@ -604,7 +898,7 @@
     .br-profile, .br-aim { width: 100%; }
     .br-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
     .bedroom-back { top: 12px; right: 12px; }
-    .st-winamp { display: none; }
+    .st-wmp { display: none; }
     .bedroom-polaroid img { width: 100px; height: 100px; }
     .bedroom-polaroid { padding: 5px 5px 24px; }
   }
@@ -738,27 +1032,71 @@
     </div>
   </div>
 
-  <!-- ShorTy's Winamp -->
-  <div class="st-winamp">
-    <div class="st-winamp-bar">
-      <span class="st-winamp-title">WINAMP</span>
-      <span class="st-winamp-btns">_ x</span>
-    </div>
-    <div class="st-winamp-display">
-      <div class="st-winamp-marquee">
-        <span>Sublime -- Santeria (1996) ***</span>
-      </div>
-      <div class="st-winamp-eq">
-        <div class="st-eq-bar"></div><div class="st-eq-bar"></div><div class="st-eq-bar"></div>
-        <div class="st-eq-bar"></div><div class="st-eq-bar"></div><div class="st-eq-bar"></div>
-        <div class="st-eq-bar"></div><div class="st-eq-bar"></div><div class="st-eq-bar"></div>
-        <div class="st-eq-bar"></div><div class="st-eq-bar"></div><div class="st-eq-bar"></div>
-      </div>
-    </div>
-    <div class="st-winamp-controls">
-      <span>|&lt;&lt;</span> <span>&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
+  <!-- ShorTy's WMP Player -->
+<div class="st-wmp">
+  <div class="st-wmp-titlebar">
+    <span class="st-wmp-titlebar-text">Windows Media Player</span>
+    <div class="st-wmp-titlebar-btns">
+      <div class="st-wmp-titlebar-btn st-wmp-btn-min"></div>
+      <div class="st-wmp-titlebar-btn st-wmp-btn-close"></div>
     </div>
   </div>
+
+  <div class="st-wmp-vis">
+    <div class="st-wmp-vis-bars">
+      <div class="st-wmp-vis-bar" style="height: 18px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 28px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 14px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 32px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 22px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 10px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 26px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 20px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 30px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 12px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 24px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 16px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 28px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 8px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 20px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 26px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 14px;"></div>
+      <div class="st-wmp-vis-bar" style="height: 22px;"></div>
+    </div>
+  </div>
+
+  <div class="st-wmp-info">
+    <div class="st-wmp-song">Sublime -- Santeria (1996)</div>
+  </div>
+
+  <div class="st-wmp-seek-area">
+    <span class="st-wmp-time">1:12</span>
+    <div class="st-wmp-seek">
+      <div class="st-wmp-seek-fill">
+        <div class="st-wmp-seek-thumb"></div>
+      </div>
+    </div>
+    <span class="st-wmp-time st-wmp-time-right">3:04</span>
+  </div>
+
+  <div class="st-wmp-controls">
+    <div class="st-wmp-ctrl-btn"><div class="st-wmp-icon-prev"></div></div>
+    <div class="st-wmp-ctrl-btn st-wmp-btn-play"><div class="st-wmp-icon-play"></div></div>
+    <div class="st-wmp-ctrl-btn"><div class="st-wmp-icon-stop"></div></div>
+    <div class="st-wmp-ctrl-btn"><div class="st-wmp-icon-next"></div></div>
+  </div>
+
+  <div class="st-wmp-volume">
+    <div class="st-wmp-vol-icon"></div>
+    <div class="st-wmp-vol-bar">
+      <div class="st-wmp-vol-fill"></div>
+    </div>
+  </div>
+
+  <div class="st-wmp-brand">
+    <span class="st-wmp-brand-text">Windows Media Player</span>
+  </div>
+</div>
 
   <!-- Taskbar -->
   <div class="bedroom-taskbar">

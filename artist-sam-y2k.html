@@ -525,105 +525,406 @@
     background: rgba(255,255,255,0.05);
   }
 
-  /* ── Sam's Winamp ── */
-  .sam-winamp {
+
+  .sam-realplayer {
     position: fixed;
-    bottom: 50px;
-    right: 16px;
+    bottom: 20px;
+    right: 20px;
     width: 240px;
-    background: #232323;
-    border: 2px solid;
-    border-color: #444 #111 #111 #444;
-    z-index: 100;
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-family: 'MS Sans Serif', 'Arial', Tahoma, sans-serif;
+    font-size: 11px;
+    z-index: 9999;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.5);
   }
 
-  .sam-winamp-bar {
+  @media (max-width: 768px) {
+    .sam-realplayer {
+      display: none;
+    }
+  }
+
+  /* Title bar */
+  .sam-titlebar {
+    background: linear-gradient(90deg, #0a0a2e 0%, #1a1a4e 40%, #9b59b6 100%);
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 3px;
+    height: 18px;
+    border: 1px solid #555;
+    border-bottom: none;
+  }
+
+  .sam-titlebar-text {
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sam-titlebar-logo {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: #9b59b6;
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .sam-titlebar-logo::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid #fff;
+  }
+
+  .sam-window-btns {
+    display: flex;
+    gap: 1px;
+  }
+
+  .sam-window-btn {
+    width: 14px;
+    height: 14px;
+    background: #c0c0c0;
+    border: 1px solid #fff;
+    border-right-color: #404040;
+    border-bottom-color: #404040;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: bold;
+    color: #000;
+    line-height: 1;
+    cursor: default;
+  }
+
+  /* Main body */
+  .sam-body {
+    background: #c0c0c0;
+    border: 1px solid #808080;
+    border-top: none;
+    padding: 0;
+  }
+
+  /* Video / display area */
+  .sam-display {
+    background: #0a0a1a;
+    margin: 4px;
+    border: 2px inset #808080;
+    height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sam-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(155, 89, 182, 0.15) 0%, transparent 70%),
+      linear-gradient(180deg, rgba(155, 89, 182, 0.05) 0%, transparent 50%);
+  }
+
+  .sam-real-logo {
+    color: #9b59b6;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+    position: relative;
+  }
+
+  .sam-real-logo::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: #9b59b6;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+    position: relative;
+  }
+
+  .sam-real-logo::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid #fff;
+  }
+
+  .sam-buffering {
+    color: #7f8c8d;
+    font-size: 9px;
+    position: relative;
+  }
+
+  /* Song info strip */
+  .sam-info-strip {
+    background: #1a1a2e;
+    margin: 0 4px;
+    border: 1px inset #555;
+    padding: 3px 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 2px 6px;
-    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
+  }
+
+  .sam-song-title {
+    color: #6fc3df;
     font-size: 9px;
-    color: #ccc;
-    letter-spacing: 2px;
-  }
-
-  .sam-winamp-btns { font-size: 10px; color: #888; }
-
-  .sam-winamp-display {
-    background: #000;
-    margin: 3px;
-    padding: 6px;
-    border: 1px solid #111;
-  }
-
-  .sam-winamp-marquee {
-    overflow: hidden;
     white-space: nowrap;
-    font-size: 11px;
-    color: #00FF00;
-    text-shadow: 0 0 4px rgba(0,255,0,0.4);
-    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    font-family: 'Courier New', monospace;
   }
 
-  .sam-winamp-marquee span {
-    display: inline-block;
-    animation: sam-marquee 12s linear infinite;
+  .sam-time {
+    color: #2ecc71;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    white-space: nowrap;
   }
 
-  @keyframes sam-marquee {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
+  /* Progress bar area */
+  .sam-progress-area {
+    margin: 4px;
   }
 
-  .sam-winamp-eq {
+  .sam-progress-bar {
+    background: #1a1a2e;
+    height: 8px;
+    border: 1px inset #808080;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sam-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, #9b59b6, #8e44ad);
+  }
+
+  .sam-progress-tick {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+
+  /* Volume bar */
+  .sam-volume-row {
     display: flex;
-    gap: 3px;
-    height: 20px;
-    align-items: flex-end;
+    align-items: center;
+    margin: 0 4px 2px 4px;
+    gap: 4px;
   }
 
-  .sam-eq-bar {
+  .sam-volume-label {
+    font-size: 8px;
+    color: #333;
+    width: 14px;
+  }
+
+  .sam-volume-track {
     flex: 1;
-    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
-    animation: sam-eq-bounce 0.5s ease-in-out infinite alternate;
-    min-height: 3px;
+    height: 4px;
+    background: #1a1a2e;
+    border: 1px inset #808080;
+    position: relative;
   }
 
-  .sam-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
-  .sam-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
-  .sam-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
-  .sam-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
-  .sam-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
-  .sam-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
-  .sam-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
-  .sam-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
-  .sam-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
-  .sam-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
-  .sam-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
-  .sam-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
-
-  @keyframes sam-eq-bounce {
-    0% { height: 20%; }
-    100% { height: 100%; }
+  .sam-volume-level {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
   }
 
-  .sam-winamp-controls {
+  /* Transport controls */
+  .sam-controls {
     display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 2px;
     padding: 4px;
-    background: #2a2a20;
-    font-size: 14px;
-    color: #aaa;
+    background: #c0c0c0;
   }
 
-  .sam-winamp-controls span {
-    cursor: pointer;
+  .sam-btn {
+    width: 24px;
+    height: 20px;
+    background: #c0c0c0;
+    border: 1.5px solid #fff;
+    border-right-color: #404040;
+    border-bottom-color: #404040;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    position: relative;
   }
 
-  .sam-winamp-controls span:hover { color: #00FF00; }
+  .sam-btn-wide {
+    width: 28px;
+  }
+
+  /* Prev button */
+  .sam-btn-prev::before {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 6px solid #333;
+  }
+
+  .sam-btn-prev::after {
+    content: '';
+    width: 2px;
+    height: 10px;
+    background: #333;
+    margin-left: -1px;
+  }
+
+  /* Play button -- pressed/active state */
+  .sam-btn-play {
+    border: 1.5px solid #404040;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+    background: #b0b0b0;
+  }
+
+  .sam-btn-play::before {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid #9b59b6;
+  }
+
+  /* Pause button */
+  .sam-btn-pause::before {
+    content: '';
+    width: 3px;
+    height: 10px;
+    border-left: 3px solid #333;
+    border-right: 3px solid #333;
+  }
+
+  /* Stop button */
+  .sam-btn-stop::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #333;
+  }
+
+  /* Next button */
+  .sam-btn-next::before {
+    content: '';
+    width: 2px;
+    height: 10px;
+    background: #333;
+  }
+
+  .sam-btn-next::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 6px solid #333;
+    margin-left: -1px;
+  }
+
+  /* Status bar */
+  .sam-statusbar {
+    background: #c0c0c0;
+    border-top: 1px solid #808080;
+    padding: 2px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sam-status-text {
+    font-size: 9px;
+    color: #444;
+  }
+
+  .sam-status-right {
+    font-size: 8px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sam-signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    height: 8px;
+  }
+
+  .sam-signal-bar {
+    width: 2px;
+    background: #2ecc71;
+  }
+
+  .sam-signal-bar:nth-child(1) { height: 3px; }
+  .sam-signal-bar:nth-child(2) { height: 5px; }
+  .sam-signal-bar:nth-child(3) { height: 7px; }
+  .sam-signal-bar:nth-child(4) { height: 8px; background: #808080; }
+
+  /* Bottom branding */
+  .sam-branding {
+    background: linear-gradient(90deg, #0a0a2e, #1a1a3e);
+    padding: 2px 4px;
+    text-align: right;
+    border-top: 1px solid #555;
+  }
+
+  .sam-branding-text {
+    font-size: 8px;
+    color: #9b59b6;
+    letter-spacing: 0.5px;
+  }
+
 
   /* ── Mobile ── */
   @media (max-width: 768px) {
@@ -635,7 +936,7 @@
     .br-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
     .bedroom-back { top: 12px; right: 12px; }
     .bedroom-wall-poster { display: none; }
-    .sam-winamp { display: none; }
+    .sam-realplayer { display: none; }
     .bedroom-polaroid img { width: 100px; height: 100px; }
     .bedroom-polaroid { padding: 5px 5px 24px; }
   }
@@ -769,27 +1070,81 @@
     </div>
   </div>
 
-  <!-- Sam's Winamp -->
-  <div class="sam-winamp">
-    <div class="sam-winamp-bar">
-      <span class="sam-winamp-title">WINAMP</span>
-      <span class="sam-winamp-btns">_ x</span>
-    </div>
-    <div class="sam-winamp-display">
-      <div class="sam-winamp-marquee">
-        <span>Blink-182 -- All the Small Things (1999) ***</span>
-      </div>
-      <div class="sam-winamp-eq">
-        <div class="sam-eq-bar"></div><div class="sam-eq-bar"></div><div class="sam-eq-bar"></div>
-        <div class="sam-eq-bar"></div><div class="sam-eq-bar"></div><div class="sam-eq-bar"></div>
-        <div class="sam-eq-bar"></div><div class="sam-eq-bar"></div><div class="sam-eq-bar"></div>
-        <div class="sam-eq-bar"></div><div class="sam-eq-bar"></div><div class="sam-eq-bar"></div>
-      </div>
-    </div>
-    <div class="sam-winamp-controls">
-      <span>|&lt;&lt;</span> <span>&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
+  <!-- Sam's RealPlayer -->
+<div class="sam-realplayer">
+  <!-- Title bar -->
+  <div class="sam-titlebar">
+    <span class="sam-titlebar-text">
+      <span class="sam-titlebar-logo"></span>
+      RealPlayer
+    </span>
+    <div class="sam-window-btns">
+      <div class="sam-window-btn">_</div>
+      <div class="sam-window-btn">x</div>
     </div>
   </div>
+
+  <!-- Body -->
+  <div class="sam-body">
+    <!-- Display area -->
+    <div class="sam-display">
+      <span class="sam-real-logo">&nbsp; RealPlayer</span>
+      <span class="sam-buffering">Buffering... 98%</span>
+    </div>
+
+    <!-- Song info -->
+    <div class="sam-info-strip">
+      <span class="sam-song-title">Blink-182 -- All the Small Things</span>
+      <span class="sam-time">1:47</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="sam-progress-area">
+      <div class="sam-progress-bar">
+        <div class="sam-progress-fill"></div>
+        <div class="sam-progress-tick" style="left:25%"></div>
+        <div class="sam-progress-tick" style="left:50%"></div>
+        <div class="sam-progress-tick" style="left:75%"></div>
+      </div>
+    </div>
+
+    <!-- Volume -->
+    <div class="sam-volume-row">
+      <span class="sam-volume-label">Vol</span>
+      <div class="sam-volume-track">
+        <div class="sam-volume-level"></div>
+      </div>
+    </div>
+
+    <!-- Transport controls -->
+    <div class="sam-controls">
+      <div class="sam-btn sam-btn-prev"></div>
+      <div class="sam-btn sam-btn-stop"></div>
+      <div class="sam-btn sam-btn-wide sam-btn-play"></div>
+      <div class="sam-btn sam-btn-pause"></div>
+      <div class="sam-btn sam-btn-next"></div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="sam-statusbar">
+      <span class="sam-status-text">Playing - 128kbps</span>
+      <span class="sam-status-right">
+        <span class="sam-signal-bars">
+          <span class="sam-signal-bar"></span>
+          <span class="sam-signal-bar"></span>
+          <span class="sam-signal-bar"></span>
+          <span class="sam-signal-bar"></span>
+        </span>
+        (1999)
+      </span>
+    </div>
+
+    <!-- Branding -->
+    <div class="sam-branding">
+      <span class="sam-branding-text">RealNetworks</span>
+    </div>
+  </div>
+</div>
 
   <!-- Taskbar -->
   <div class="bedroom-taskbar">

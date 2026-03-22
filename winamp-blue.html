@@ -1,0 +1,426 @@
+<!-- BLUE WINAMP PLAYER — decorative only, paste into Code Block or Footer Injection -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  .kk-winamp {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 240px;
+    z-index: 999999;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    user-select: none;
+    background: #0a1628;
+    border: 2px solid #1493FF;
+    border-top-color: #3eaaff;
+    border-left-color: #3eaaff;
+    border-right-color: #0b5faa;
+    border-bottom-color: #0b5faa;
+    box-shadow: 2px 3px 14px rgba(20, 147, 255, 0.25), inset 0 0 12px rgba(0, 0, 0, 0.4);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .kk-winamp * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* -- TITLEBAR -- */
+  .kk-titlebar {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    background: linear-gradient(180deg, #1a3a6e 0%, #0f2648 40%, #0a1628 100%);
+    padding: 0 3px;
+    border-bottom: 1px solid #082040;
+    gap: 0;
+  }
+
+  .kk-grip {
+    flex: 1;
+    height: 12px;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 1px,
+      #1493FF 1px,
+      #1493FF 2px,
+      transparent 2px,
+      transparent 3px
+    );
+    opacity: 0.4;
+    min-width: 16px;
+  }
+
+  .kk-title-text {
+    color: #7fcdff;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 0 6px;
+    text-shadow: 0 0 6px rgba(20, 147, 255, 0.5);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .kk-title-buttons {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+
+  .kk-title-buttons span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 14px;
+    background: linear-gradient(180deg, #1a3a6e 0%, #0f2648 100%);
+    border: 1px solid #1493FF;
+    border-right-color: #082040;
+    border-bottom-color: #082040;
+    color: #7fcdff;
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  /* -- DISPLAY -- */
+  .kk-display {
+    background: #050e1c;
+    border: 2px solid #082040;
+    border-top-color: #040a14;
+    border-left-color: #040a14;
+    border-right-color: #1a3a6e;
+    border-bottom-color: #1a3a6e;
+    border-radius: 1px;
+    padding: 5px 6px 4px;
+    margin: 4px 5px;
+  }
+
+  .kk-display-inner {
+    position: relative;
+  }
+
+  /* -- BITRATE -- */
+  .kk-bitrate {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #00d4ff;
+    font-size: 8px;
+    line-height: 1.2;
+    opacity: 0.7;
+  }
+
+  .kk-bitrate span {
+    display: block;
+    text-align: center;
+  }
+
+  /* -- TIME -- */
+  .kk-time {
+    text-align: right;
+    margin-bottom: 2px;
+  }
+
+  .kk-time span {
+    color: #00ffff;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+  }
+
+  /* -- MARQUEE -- */
+  .kk-marquee-wrap {
+    overflow: hidden;
+    width: 100%;
+    height: 16px;
+    margin-bottom: 4px;
+  }
+
+  .kk-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: kk-scroll 14s linear infinite;
+  }
+
+  .kk-marquee span {
+    color: #00ffff;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.3);
+    padding-right: 80px;
+    line-height: 16px;
+  }
+
+  @keyframes kk-scroll {
+    0%   { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* -- EQ VISUALIZER -- */
+  .kk-visualizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 22px;
+    padding-top: 2px;
+  }
+
+  .kk-eq-bar {
+    flex: 1;
+    background: linear-gradient(180deg, #00ffff 0%, #1493FF 40%, #0b5faa 100%);
+    min-height: 2px;
+    border-radius: 0;
+    box-shadow: 0 0 3px rgba(0, 255, 255, 0.2);
+  }
+
+  .kk-eq-bar:nth-child(1)  { animation: kk-eq1  0.8s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(2)  { animation: kk-eq2  0.6s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(3)  { animation: kk-eq3  0.9s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(4)  { animation: kk-eq4  0.5s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(5)  { animation: kk-eq5  0.7s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(6)  { animation: kk-eq6  1.0s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(7)  { animation: kk-eq7  0.55s ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(8)  { animation: kk-eq8  0.85s ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(9)  { animation: kk-eq9  0.65s ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(10) { animation: kk-eq10 0.75s ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(11) { animation: kk-eq11 0.9s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(12) { animation: kk-eq12 0.5s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(13) { animation: kk-eq13 0.7s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(14) { animation: kk-eq14 0.6s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(15) { animation: kk-eq15 0.8s  ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(16) { animation: kk-eq16 0.95s ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(17) { animation: kk-eq17 0.55s ease-in-out infinite alternate; }
+  .kk-eq-bar:nth-child(18) { animation: kk-eq18 0.7s  ease-in-out infinite alternate; }
+
+  @keyframes kk-eq1  { from { height: 3px; } to { height: 18px; } }
+  @keyframes kk-eq2  { from { height: 5px; } to { height: 14px; } }
+  @keyframes kk-eq3  { from { height: 2px; } to { height: 20px; } }
+  @keyframes kk-eq4  { from { height: 6px; } to { height: 16px; } }
+  @keyframes kk-eq5  { from { height: 4px; } to { height: 22px; } }
+  @keyframes kk-eq6  { from { height: 3px; } to { height: 12px; } }
+  @keyframes kk-eq7  { from { height: 7px; } to { height: 20px; } }
+  @keyframes kk-eq8  { from { height: 2px; } to { height: 15px; } }
+  @keyframes kk-eq9  { from { height: 5px; } to { height: 19px; } }
+  @keyframes kk-eq10 { from { height: 3px; } to { height: 17px; } }
+  @keyframes kk-eq11 { from { height: 4px; } to { height: 21px; } }
+  @keyframes kk-eq12 { from { height: 6px; } to { height: 13px; } }
+  @keyframes kk-eq13 { from { height: 2px; } to { height: 18px; } }
+  @keyframes kk-eq14 { from { height: 5px; } to { height: 16px; } }
+  @keyframes kk-eq15 { from { height: 3px; } to { height: 20px; } }
+  @keyframes kk-eq16 { from { height: 4px; } to { height: 14px; } }
+  @keyframes kk-eq17 { from { height: 6px; } to { height: 22px; } }
+  @keyframes kk-eq18 { from { height: 3px; } to { height: 17px; } }
+
+  /* -- SEEK BAR -- */
+  .kk-seek-row {
+    padding: 2px 5px 3px;
+  }
+
+  .kk-seek-bar {
+    position: relative;
+    height: 8px;
+    background: #040a14;
+    border: 1px solid #082040;
+    border-right-color: #1a3a6e;
+    border-bottom-color: #1a3a6e;
+    border-radius: 1px;
+  }
+
+  .kk-seek-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, #0b5faa 0%, #1493FF 100%);
+    border-radius: 1px 0 0 1px;
+  }
+
+  .kk-seek-thumb {
+    position: absolute;
+    top: -2px;
+    left: 35%;
+    width: 10px;
+    height: 12px;
+    background: linear-gradient(180deg, #3eaaff 0%, #1493FF 100%);
+    border: 1px solid #7fcdff;
+    border-right-color: #0b5faa;
+    border-bottom-color: #0b5faa;
+    border-radius: 1px;
+    transform: translateX(-5px);
+  }
+
+  /* -- CONTROLS -- */
+  .kk-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0 5px 6px;
+  }
+
+  .kk-transport {
+    display: flex;
+    gap: 2px;
+  }
+
+  .kk-transport span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 20px;
+    background: linear-gradient(180deg, #1a3a6e 0%, #0f2648 50%, #0a1628 100%);
+    border: 1px solid #1493FF;
+    border-right-color: #082040;
+    border-bottom-color: #082040;
+    color: #7fcdff;
+    font-size: 9px;
+    border-radius: 1px;
+  }
+
+  .kk-transport .kk-btn-active {
+    border-color: #082040;
+    border-right-color: #1493FF;
+    border-bottom-color: #1493FF;
+    background: linear-gradient(180deg, #0a1628 0%, #0f2648 100%);
+    color: #00ffff;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.5);
+  }
+
+  /* -- VOLUME -- */
+  .kk-volume {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    max-width: 90px;
+  }
+
+  .kk-vol-label {
+    color: #1493FF;
+    font-size: 8px;
+    letter-spacing: 1px;
+    opacity: 0.6;
+  }
+
+  .kk-vol-track {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    background: #040a14;
+    border: 1px solid #082040;
+    border-right-color: #1a3a6e;
+    border-bottom-color: #1a3a6e;
+    border-radius: 1px;
+  }
+
+  .kk-vol-fill {
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, #0b5faa 0%, #00ffff 100%);
+    border-radius: 1px 0 0 1px;
+  }
+
+  .kk-vol-thumb {
+    position: absolute;
+    top: -2px;
+    left: 72%;
+    width: 8px;
+    height: 12px;
+    background: linear-gradient(180deg, #3eaaff 0%, #1493FF 100%);
+    border: 1px solid #7fcdff;
+    border-right-color: #0b5faa;
+    border-bottom-color: #0b5faa;
+    border-radius: 1px;
+    transform: translateX(-4px);
+  }
+
+  /* -- HIDE ON MOBILE -- */
+  @media (max-width: 768px) {
+    .kk-winamp {
+      display: none;
+    }
+  }
+</style>
+
+<div class="kk-winamp">
+  <!-- Titlebar -->
+  <div class="kk-titlebar">
+    <div class="kk-grip"></div>
+    <span class="kk-title-text">WINAMP</span>
+    <div class="kk-grip"></div>
+    <div class="kk-title-buttons">
+      <span title="Minimize">_</span>
+      <span title="Close">x</span>
+    </div>
+  </div>
+
+  <!-- Display -->
+  <div class="kk-display">
+    <div class="kk-display-inner">
+      <div class="kk-bitrate">
+        <span>128</span>
+        <span>kbps</span>
+      </div>
+      <div class="kk-time">
+        <span>03:18</span>
+      </div>
+      <div class="kk-marquee-wrap">
+        <div class="kk-marquee">
+          <span>Outkast -- Ms. Jackson (2000) ***</span>
+        </div>
+      </div>
+      <!-- EQ Visualizer -->
+      <div class="kk-visualizer">
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+        <div class="kk-eq-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seek Bar -->
+  <div class="kk-seek-row">
+    <div class="kk-seek-bar">
+      <div class="kk-seek-fill"></div>
+      <div class="kk-seek-thumb"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="kk-controls">
+    <div class="kk-transport">
+      <span title="Previous">|&lt;</span>
+      <span class="kk-btn-active" title="Play">&#9654;</span>
+      <span title="Pause">||</span>
+      <span title="Stop">&#9632;</span>
+      <span title="Next">&gt;|</span>
+    </div>
+    <div class="kk-volume">
+      <span class="kk-vol-label">VOL</span>
+      <div class="kk-vol-track">
+        <div class="kk-vol-fill"></div>
+        <div class="kk-vol-thumb"></div>
+      </div>
+    </div>
+  </div>
+</div>
