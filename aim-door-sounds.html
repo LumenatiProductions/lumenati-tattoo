@@ -1,0 +1,47 @@
+<!-- AIM Door Open/Close Sounds for Artist Cards -->
+<script>
+(function() {
+  var openSound = new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aim-open.mp3');
+  var closeSound = new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aim-close.mp3');
+  openSound.volume = 0.3;
+  closeSound.volume = 0.3;
+
+  function observeArtistCards() {
+    var artists = document.querySelectorAll('.lmn-artist');
+    if (!artists.length) return;
+
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') return;
+        var el = mutation.target;
+        if (!el.classList.contains('lmn-artist')) return;
+
+        var wasOpen = (mutation.oldValue || '').indexOf('is-open') !== -1;
+        var isOpen = el.classList.contains('is-open');
+
+        if (!wasOpen && isOpen) {
+          openSound.currentTime = 0;
+          openSound.play().catch(function(){});
+        } else if (wasOpen && !isOpen) {
+          closeSound.currentTime = 0;
+          closeSound.play().catch(function(){});
+        }
+      });
+    });
+
+    artists.forEach(function(card) {
+      observer.observe(card, {
+        attributes: true,
+        attributeFilter: ['class'],
+        attributeOldValue: true
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeArtistCards);
+  } else {
+    observeArtistCards();
+  }
+})();
+</script>

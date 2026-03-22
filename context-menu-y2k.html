@@ -1,0 +1,142 @@
+<!-- Y2K Context Menu — Squarespace Code Injection (Footer) -->
+<script>
+(function() {
+  // Bail on touch/mobile devices
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+
+  // Create menu element
+  var menu = document.createElement('div');
+  menu.id = 'y2k-ctx';
+  menu.innerHTML = [
+    '<div class="y2k-ctx-item" data-action="source">View Source</div>',
+    '<div class="y2k-ctx-item" data-action="fav">Add to Favorites &#11088;</div>',
+    '<div class="y2k-ctx-sep"></div>',
+    '<div class="y2k-ctx-item" data-action="book">Book a Tattoo &#9999;&#65039;</div>',
+    '<div class="y2k-ctx-item" data-action="crew">Meet the Crew &#128101;</div>',
+    '<div class="y2k-ctx-item" data-action="contact">Contact Us &#128231;</div>',
+    '<div class="y2k-ctx-sep"></div>',
+    '<div class="y2k-ctx-item" data-action="refresh">Refresh &#128260;</div>',
+    '<div class="y2k-ctx-item" data-action="props">Properties</div>'
+  ].join('');
+  document.body.appendChild(menu);
+
+  // Inject styles
+  var style = document.createElement('style');
+  style.textContent = [
+    '#y2k-ctx {',
+    '  display: none;',
+    '  position: fixed;',
+    '  z-index: 2147483647;',
+    '  min-width: 200px;',
+    '  padding: 2px;',
+    '  background: #d4d0c8;',
+    '  border: 2px solid;',
+    '  border-color: #ffffff #808080 #808080 #ffffff;',
+    '  box-shadow: inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #404040, 2px 2px 6px rgba(0,0,0,0.3);',
+    '  font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;',
+    '  font-size: 11px;',
+    '  color: #000000;',
+    '  cursor: default;',
+    '  user-select: none;',
+    '  -webkit-user-select: none;',
+    '}',
+    '#y2k-ctx.y2k-ctx-open {',
+    '  display: block;',
+    '}',
+    '.y2k-ctx-item {',
+    '  padding: 4px 24px 4px 28px;',
+    '  white-space: nowrap;',
+    '  position: relative;',
+    '  line-height: 1.5;',
+    '}',
+    '.y2k-ctx-item:hover {',
+    '  background: #0a246a;',
+    '  color: #ffffff;',
+    '}',
+    '.y2k-ctx-sep {',
+    '  height: 1px;',
+    '  margin: 3px 2px;',
+    '  background: #808080;',
+    '  border-bottom: 1px solid #ffffff;',
+    '}'
+  ].join('\n');
+  document.head.appendChild(style);
+
+  // Show menu at cursor
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    var x = e.clientX;
+    var y = e.clientY;
+    menu.classList.add('y2k-ctx-open');
+    // Reposition if it would overflow viewport
+    var mw = menu.offsetWidth;
+    var mh = menu.offsetHeight;
+    if (x + mw > window.innerWidth) x = window.innerWidth - mw - 4;
+    if (y + mh > window.innerHeight) y = window.innerHeight - mh - 4;
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+  });
+
+  // Close menu
+  function closeMenu() {
+    menu.classList.remove('y2k-ctx-open');
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!menu.contains(e.target)) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener('scroll', closeMenu);
+  window.addEventListener('resize', closeMenu);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  // Handle menu item clicks
+  menu.addEventListener('click', function(e) {
+    var item = e.target.closest('.y2k-ctx-item');
+    if (!item) return;
+    var action = item.getAttribute('data-action');
+    closeMenu();
+
+    switch (action) {
+      case 'source':
+        window.open('https://github.com/LumenatiProductions/lumenati-tattoo', '_blank');
+        break;
+      case 'fav':
+        alert('Bookmarked! (not really)');
+        break;
+      case 'book':
+        window.location.href = '/book';
+        break;
+      case 'crew':
+        window.location.href = '/#artists';
+        break;
+      case 'contact':
+        window.location.href = '/contact';
+        break;
+      case 'refresh':
+        window.location.reload();
+        break;
+      case 'props':
+        alert(
+          '--- Properties ---\n\n' +
+          'Title: ' + document.title + '\n' +
+          'Resolution: 1024x768\n' +
+          'Color Depth: 16-bit High Color\n' +
+          'Connection: 56k Dial-Up\n' +
+          'Browser: Netscape Navigator 4.7\n' +
+          'Vibes: immaculate\n' +
+          'Visitors: ' + Math.floor(Math.random() * 9000 + 1000) + '\n' +
+          'Last Updated: Y2K Compliant\n\n' +
+          'OK'
+        );
+        break;
+    }
+  });
+})();
+</script>
