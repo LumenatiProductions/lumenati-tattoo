@@ -1,0 +1,675 @@
+<!-- WINAMP PLAYER WIDGET — paste into Squarespace Code Injection (Footer) or a Code Block -->
+<div id="winamp-player">
+  <div id="winamp-titlebar">
+    <div id="winamp-grip-left" class="winamp-grip"></div>
+    <span id="winamp-title-text">WINAMP</span>
+    <div id="winamp-grip-right" class="winamp-grip"></div>
+    <div id="winamp-title-buttons">
+      <button id="winamp-minimize" title="Minimize">_</button>
+      <button id="winamp-close" title="Shade" aria-label="Toggle shade mode">&#x25A0;</button>
+    </div>
+  </div>
+  <div id="winamp-body">
+    <!-- Display Section -->
+    <div id="winamp-display">
+      <div id="winamp-display-inner">
+        <div id="winamp-bitrate-info">
+          <span id="winamp-bitrate">128</span>
+          <span id="winamp-khz">kbps</span>
+        </div>
+        <div id="winamp-time-display">
+          <span id="winamp-elapsed">00:00</span>
+        </div>
+        <div id="winamp-marquee-wrap">
+          <div id="winamp-marquee">
+            <span id="winamp-marquee-text">The Offspring &mdash; The Kids Aren't Alright (1998) ***</span>
+          </div>
+        </div>
+        <!-- EQ Visualizer -->
+        <div id="winamp-visualizer">
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+          <div class="winamp-eq-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seek Bar -->
+    <div id="winamp-seek-row">
+      <div id="winamp-seek-bar">
+        <div id="winamp-seek-fill"></div>
+        <div id="winamp-seek-thumb"></div>
+      </div>
+    </div>
+
+    <!-- Controls Row -->
+    <div id="winamp-controls">
+      <div id="winamp-transport">
+        <button id="winamp-prev" title="Previous">&#9198;</button>
+        <button id="winamp-play" title="Play">&#9654;</button>
+        <button id="winamp-pause" title="Pause">&#9646;&#9646;</button>
+        <button id="winamp-stop" title="Stop">&#9632;</button>
+        <button id="winamp-next" title="Next">&#9197;</button>
+      </div>
+      <div id="winamp-volume-row">
+        <span id="winamp-vol-label">VOL</span>
+        <div id="winamp-volume-track">
+          <div id="winamp-volume-fill"></div>
+          <div id="winamp-volume-thumb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="winamp-audio" preload="none" src="https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/kids-arent-alright.m4a"></audio>
+
+<style>
+  /* ── WINAMP WIDGET STYLES ── */
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  #winamp-player {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 275px;
+    z-index: 999999;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    user-select: none;
+    border: 2px solid #4a4a3a;
+    border-top-color: #6b6b58;
+    border-left-color: #6b6b58;
+    border-right-color: #2a2a20;
+    border-bottom-color: #2a2a20;
+    background: #232323;
+    box-shadow: 2px 3px 12px rgba(0,0,0,0.6);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  #winamp-player * {
+    box-sizing: border-box;
+  }
+
+  /* ── TITLEBAR ── */
+  #winamp-titlebar {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    background: linear-gradient(180deg, #4a4a3a 0%, #3a3a2e 40%, #2e2e24 100%);
+    cursor: grab;
+    padding: 0 3px;
+    border-bottom: 1px solid #1a1a14;
+    gap: 0;
+  }
+
+  #winamp-titlebar:active {
+    cursor: grabbing;
+  }
+
+  .winamp-grip {
+    flex: 1;
+    height: 12px;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 1px,
+      #5a5a48 1px,
+      #5a5a48 2px,
+      transparent 2px,
+      transparent 3px
+    );
+    min-width: 20px;
+  }
+
+  #winamp-title-text {
+    color: #d4d4c0;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 0 6px;
+    text-shadow: 1px 1px 0 #000;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #winamp-title-buttons {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+
+  #winamp-title-buttons button {
+    width: 16px;
+    height: 14px;
+    background: linear-gradient(180deg, #5a5a48 0%, #3a3a2e 100%);
+    border: 1px solid #6b6b58;
+    border-right-color: #2a2a20;
+    border-bottom-color: #2a2a20;
+    color: #d4d4c0;
+    font-size: 8px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+
+  #winamp-title-buttons button:active {
+    border-color: #2a2a20;
+    border-right-color: #6b6b58;
+    border-bottom-color: #6b6b58;
+  }
+
+  /* ── BODY ── */
+  #winamp-body {
+    padding: 4px 5px 6px;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+    overflow: hidden;
+  }
+
+  #winamp-player.winamp-shaded #winamp-body {
+    max-height: 0;
+    padding: 0 5px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ── DISPLAY ── */
+  #winamp-display {
+    background: #0a0a0a;
+    border: 2px solid #1a1a14;
+    border-top-color: #0e0e0a;
+    border-left-color: #0e0e0a;
+    border-right-color: #3a3a2e;
+    border-bottom-color: #3a3a2e;
+    border-radius: 1px;
+    padding: 5px 6px 4px;
+    margin-bottom: 4px;
+  }
+
+  #winamp-display-inner {
+    position: relative;
+  }
+
+  #winamp-bitrate-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #00cc00;
+    font-size: 8px;
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  #winamp-bitrate-info span {
+    display: block;
+    text-align: center;
+  }
+
+  #winamp-time-display {
+    text-align: right;
+    margin-bottom: 2px;
+  }
+
+  #winamp-elapsed {
+    color: #00FF00;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px rgba(0,255,0,0.4);
+  }
+
+  /* ── MARQUEE ── */
+  #winamp-marquee-wrap {
+    overflow: hidden;
+    width: 100%;
+    height: 13px;
+    margin-bottom: 4px;
+  }
+
+  #winamp-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: winamp-scroll 12s linear infinite;
+  }
+
+  #winamp-marquee-text {
+    color: #00FF00;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 4px rgba(0,255,0,0.3);
+    padding-right: 60px;
+  }
+
+  @keyframes winamp-scroll {
+    0%   { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* ── VISUALIZER ── */
+  #winamp-visualizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    height: 20px;
+    padding: 2px 0 0;
+  }
+
+  .winamp-eq-bar {
+    flex: 1;
+    background: linear-gradient(180deg, #00FF00 0%, #00cc00 40%, #008800 100%);
+    min-height: 2px;
+    height: 2px;
+    border-radius: 0;
+    transition: height 0.08s ease-out;
+    box-shadow: 0 0 2px rgba(0,255,0,0.2);
+  }
+
+  /* ── SEEK BAR ── */
+  #winamp-seek-row {
+    padding: 2px 0 3px;
+  }
+
+  #winamp-seek-bar {
+    position: relative;
+    height: 8px;
+    background: #1a1a14;
+    border: 1px solid #0e0e0a;
+    border-right-color: #4a4a3a;
+    border-bottom-color: #4a4a3a;
+    border-radius: 1px;
+    cursor: pointer;
+  }
+
+  #winamp-seek-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #6b6b58 0%, #8a8a70 100%);
+    border-radius: 1px 0 0 1px;
+    transition: width 0.3s linear;
+  }
+
+  #winamp-seek-thumb {
+    position: absolute;
+    top: -2px;
+    left: 0%;
+    width: 10px;
+    height: 12px;
+    background: linear-gradient(180deg, #8a8a70 0%, #5a5a48 100%);
+    border: 1px solid #9a9a80;
+    border-right-color: #3a3a2e;
+    border-bottom-color: #3a3a2e;
+    border-radius: 1px;
+    cursor: pointer;
+    transform: translateX(-5px);
+    transition: left 0.3s linear;
+  }
+
+  /* ── CONTROLS ── */
+  #winamp-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  #winamp-transport {
+    display: flex;
+    gap: 2px;
+  }
+
+  #winamp-transport button {
+    width: 28px;
+    height: 20px;
+    background: linear-gradient(180deg, #5a5a48 0%, #3a3a2e 50%, #2e2e24 100%);
+    border: 1px solid #6b6b58;
+    border-right-color: #1a1a14;
+    border-bottom-color: #1a1a14;
+    color: #c0c0a8;
+    font-size: 9px;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    border-radius: 1px;
+  }
+
+  #winamp-transport button:active {
+    border-color: #1a1a14;
+    border-right-color: #6b6b58;
+    border-bottom-color: #6b6b58;
+    background: linear-gradient(180deg, #2e2e24 0%, #3a3a2e 50%, #4a4a3a 100%);
+  }
+
+  #winamp-transport button.winamp-active {
+    border-color: #1a1a14;
+    border-right-color: #6b6b58;
+    border-bottom-color: #6b6b58;
+    background: linear-gradient(180deg, #2e2e24 0%, #3a3a2e 100%);
+    color: #00FF00;
+  }
+
+  #winamp-play {
+    font-size: 10px !important;
+  }
+
+  /* ── VOLUME ── */
+  #winamp-volume-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    max-width: 100px;
+  }
+
+  #winamp-vol-label {
+    color: #6b6b58;
+    font-size: 8px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  #winamp-volume-track {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    background: #1a1a14;
+    border: 1px solid #0e0e0a;
+    border-right-color: #4a4a3a;
+    border-bottom-color: #4a4a3a;
+    border-radius: 1px;
+    cursor: pointer;
+  }
+
+  #winamp-volume-fill {
+    height: 100%;
+    width: 75%;
+    background: linear-gradient(90deg, #006600 0%, #00cc00 100%);
+    border-radius: 1px 0 0 1px;
+  }
+
+  #winamp-volume-thumb {
+    position: absolute;
+    top: -2px;
+    left: 75%;
+    width: 8px;
+    height: 12px;
+    background: linear-gradient(180deg, #8a8a70 0%, #5a5a48 100%);
+    border: 1px solid #9a9a80;
+    border-right-color: #3a3a2e;
+    border-bottom-color: #3a3a2e;
+    border-radius: 1px;
+    cursor: pointer;
+    transform: translateX(-4px);
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 600px) {
+    #winamp-player {
+      width: 220px;
+      bottom: 10px;
+      right: 10px;
+    }
+    #winamp-elapsed {
+      font-size: 14px;
+    }
+    #winamp-visualizer {
+      height: 14px;
+    }
+    #winamp-transport button {
+      width: 24px;
+      height: 18px;
+      font-size: 8px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    #winamp-player {
+      width: 190px;
+      bottom: 5px;
+      right: 5px;
+    }
+    #winamp-volume-row {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+(function() {
+  var player = document.getElementById('winamp-player');
+  var audio = document.getElementById('winamp-audio');
+  var playBtn = document.getElementById('winamp-play');
+  var pauseBtn = document.getElementById('winamp-pause');
+  var stopBtn = document.getElementById('winamp-stop');
+  var prevBtn = document.getElementById('winamp-prev');
+  var nextBtn = document.getElementById('winamp-next');
+  var closeBtn = document.getElementById('winamp-close');
+  var minBtn = document.getElementById('winamp-minimize');
+  var titlebar = document.getElementById('winamp-titlebar');
+  var elapsed = document.getElementById('winamp-elapsed');
+  var seekFill = document.getElementById('winamp-seek-fill');
+  var seekThumb = document.getElementById('winamp-seek-thumb');
+  var seekBar = document.getElementById('winamp-seek-bar');
+  var bars = document.querySelectorAll('.winamp-eq-bar');
+  var volTrack = document.getElementById('winamp-volume-track');
+  var volFill = document.getElementById('winamp-volume-fill');
+  var volThumb = document.getElementById('winamp-volume-thumb');
+
+  var isPlaying = false;
+  var eqInterval = null;
+
+  // ── FORMAT TIME ──
+  function formatTime(s) {
+    if (isNaN(s)) return '00:00';
+    var m = Math.floor(s / 60);
+    var sec = Math.floor(s % 60);
+    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  // ── TIME UPDATE ──
+  audio.addEventListener('timeupdate', function() {
+    elapsed.textContent = formatTime(audio.currentTime);
+    if (audio.duration && !isNaN(audio.duration)) {
+      var pct = (audio.currentTime / audio.duration) * 100;
+      seekFill.style.width = pct + '%';
+      seekThumb.style.left = pct + '%';
+    }
+  });
+
+  audio.addEventListener('ended', function() {
+    doStop();
+  });
+
+  // ── SEEK ──
+  seekBar.addEventListener('click', function(e) {
+    if (!audio.duration || isNaN(audio.duration)) return;
+    var rect = seekBar.getBoundingClientRect();
+    var pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+  });
+
+  // ── VOLUME ──
+  function setVolume(pct) {
+    pct = Math.max(0, Math.min(1, pct));
+    volFill.style.width = (pct * 100) + '%';
+    volThumb.style.left = (pct * 100) + '%';
+    audio.volume = pct;
+  }
+
+  volTrack.addEventListener('click', function(e) {
+    var rect = volTrack.getBoundingClientRect();
+    setVolume((e.clientX - rect.left) / rect.width);
+  });
+
+  // ── EQ VISUALIZER ──
+  function startEQ() {
+    if (eqInterval) return;
+    eqInterval = setInterval(function() {
+      for (var i = 0; i < bars.length; i++) {
+        var h = Math.random() * 18 + 2;
+        bars[i].style.height = h + 'px';
+      }
+    }, 100);
+  }
+
+  function stopEQ() {
+    if (eqInterval) {
+      clearInterval(eqInterval);
+      eqInterval = null;
+    }
+    for (var i = 0; i < bars.length; i++) {
+      bars[i].style.height = '2px';
+    }
+  }
+
+  // ── TRANSPORT ──
+  function clearActive() {
+    playBtn.classList.remove('winamp-active');
+    pauseBtn.classList.remove('winamp-active');
+    stopBtn.classList.remove('winamp-active');
+  }
+
+  function doPlay() {
+    var p = audio.play();
+    if (p && p.catch) p.catch(function() {});
+    isPlaying = true;
+    clearActive();
+    playBtn.classList.add('winamp-active');
+    startEQ();
+  }
+
+  function doPause() {
+    audio.pause();
+    isPlaying = false;
+    clearActive();
+    pauseBtn.classList.add('winamp-active');
+    stopEQ();
+  }
+
+  function doStop() {
+    audio.pause();
+    audio.currentTime = 0;
+    isPlaying = false;
+    clearActive();
+    stopBtn.classList.add('winamp-active');
+    stopEQ();
+    elapsed.textContent = '00:00';
+    seekFill.style.width = '0%';
+    seekThumb.style.left = '0%';
+  }
+
+  playBtn.addEventListener('click', doPlay);
+  pauseBtn.addEventListener('click', doPause);
+  stopBtn.addEventListener('click', doStop);
+
+  prevBtn.addEventListener('click', function() {
+    audio.currentTime = 0;
+    if (isPlaying) doPlay();
+  });
+
+  nextBtn.addEventListener('click', function() {
+    audio.currentTime = 0;
+    if (isPlaying) doPlay();
+  });
+
+  // ── SHADE / CLOSE ──
+  closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    player.classList.toggle('winamp-shaded');
+  });
+
+  minBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    player.classList.toggle('winamp-shaded');
+  });
+
+  // ── DRAG ──
+  var isDragging = false;
+  var dragOffX = 0, dragOffY = 0;
+
+  titlebar.addEventListener('mousedown', function(e) {
+    if (e.target.tagName === 'BUTTON') return;
+    isDragging = true;
+    var rect = player.getBoundingClientRect();
+    dragOffX = e.clientX - rect.left;
+    dragOffY = e.clientY - rect.top;
+    player.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    var x = e.clientX - dragOffX;
+    var y = e.clientY - dragOffY;
+    // Clamp to viewport
+    x = Math.max(0, Math.min(window.innerWidth - player.offsetWidth, x));
+    y = Math.max(0, Math.min(window.innerHeight - player.offsetHeight, y));
+    player.style.left = x + 'px';
+    player.style.top = y + 'px';
+    player.style.right = 'auto';
+    player.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', function() {
+    isDragging = false;
+  });
+
+  // Touch drag for mobile
+  titlebar.addEventListener('touchstart', function(e) {
+    if (e.target.tagName === 'BUTTON') return;
+    isDragging = true;
+    var rect = player.getBoundingClientRect();
+    var touch = e.touches[0];
+    dragOffX = touch.clientX - rect.left;
+    dragOffY = touch.clientY - rect.top;
+    player.style.transition = 'none';
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    var touch = e.touches[0];
+    var x = touch.clientX - dragOffX;
+    var y = touch.clientY - dragOffY;
+    x = Math.max(0, Math.min(window.innerWidth - player.offsetWidth, x));
+    y = Math.max(0, Math.min(window.innerHeight - player.offsetHeight, y));
+    player.style.left = x + 'px';
+    player.style.top = y + 'px';
+    player.style.right = 'auto';
+    player.style.bottom = 'auto';
+  }, { passive: true });
+
+  document.addEventListener('touchend', function() {
+    isDragging = false;
+  });
+
+  // ── INIT ──
+  setVolume(0.75);
+
+})();
+</script>
