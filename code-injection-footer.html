@@ -141,9 +141,39 @@
 (function(){
   var player=document.getElementById('winamp-player'),audio=document.getElementById('winamp-audio'),playBtn=document.getElementById('winamp-play'),pauseBtn=document.getElementById('winamp-pause'),stopBtn=document.getElementById('winamp-stop'),prevBtn=document.getElementById('winamp-prev'),nextBtn=document.getElementById('winamp-next'),closeBtn=document.getElementById('winamp-close'),minBtn=document.getElementById('winamp-minimize'),titlebar=document.getElementById('winamp-titlebar'),elapsed=document.getElementById('winamp-elapsed'),seekFill=document.getElementById('winamp-seek-fill'),seekThumb=document.getElementById('winamp-seek-thumb'),seekBar=document.getElementById('winamp-seek-bar'),bars=document.querySelectorAll('.winamp-eq-bar'),volTrack=document.getElementById('winamp-volume-track'),volFill=document.getElementById('winamp-volume-fill'),volThumb=document.getElementById('winamp-volume-thumb');
   var isPlaying=false,eqInterval=null;
+  var marquee=document.getElementById('winamp-marquee-text');
+
+  // Playlist — add more songs here
+  var playlist=[
+    {title:'The Offspring -- The Kids Aren\'t Alright (1998)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/kids-arent-alright.m4a'},
+    {title:'Goldfinger -- Superman (1996)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/goldfinger-superman.m4a'}
+  ];
+  var currentTrack=Math.floor(Math.random()*playlist.length);
+
+  function loadTrack(i){
+    currentTrack=i;
+    audio.src=playlist[i].src;
+    marquee.textContent=playlist[i].title+' ***';
+  }
+
+  function nextTrack(){
+    var next=(currentTrack+1)%playlist.length;
+    loadTrack(next);
+    if(isPlaying)doPlay();
+  }
+
+  function prevTrack(){
+    var prev=(currentTrack-1+playlist.length)%playlist.length;
+    loadTrack(prev);
+    if(isPlaying)doPlay();
+  }
+
+  // Load random track on start
+  loadTrack(currentTrack);
+
   function formatTime(s){if(isNaN(s))return'00:00';var m=Math.floor(s/60),sec=Math.floor(s%60);return(m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;}
   audio.addEventListener('timeupdate',function(){elapsed.textContent=formatTime(audio.currentTime);if(audio.duration&&!isNaN(audio.duration)){var pct=(audio.currentTime/audio.duration)*100;seekFill.style.width=pct+'%';seekThumb.style.left=pct+'%';}});
-  audio.addEventListener('ended',function(){doStop();});
+  audio.addEventListener('ended',function(){nextTrack();});
   seekBar.addEventListener('click',function(e){if(!audio.duration||isNaN(audio.duration))return;var rect=seekBar.getBoundingClientRect();audio.currentTime=((e.clientX-rect.left)/rect.width)*audio.duration;});
   function setVolume(p){p=Math.max(0,Math.min(1,p));volFill.style.width=(p*100)+'%';volThumb.style.left=(p*100)+'%';audio.volume=p;}
   volTrack.addEventListener('click',function(e){var r=volTrack.getBoundingClientRect();setVolume((e.clientX-r.left)/r.width);});
@@ -154,8 +184,8 @@
   function doPause(){audio.pause();isPlaying=false;clearActive();pauseBtn.classList.add('winamp-active');stopEQ();}
   function doStop(){audio.pause();audio.currentTime=0;isPlaying=false;clearActive();stopBtn.classList.add('winamp-active');stopEQ();elapsed.textContent='00:00';seekFill.style.width='0%';seekThumb.style.left='0%';}
   playBtn.addEventListener('click',doPlay);pauseBtn.addEventListener('click',doPause);stopBtn.addEventListener('click',doStop);
-  prevBtn.addEventListener('click',function(){audio.currentTime=0;if(isPlaying)doPlay();});
-  nextBtn.addEventListener('click',function(){audio.currentTime=0;if(isPlaying)doPlay();});
+  prevBtn.addEventListener('click',function(){prevTrack();});
+  nextBtn.addEventListener('click',function(){nextTrack();});
   closeBtn.addEventListener('click',function(e){e.stopPropagation();player.classList.toggle('winamp-shaded');});
   minBtn.addEventListener('click',function(e){e.stopPropagation();player.classList.toggle('winamp-shaded');});
   var isDragging=false,dragOffX=0,dragOffY=0;
