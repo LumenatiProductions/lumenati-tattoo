@@ -468,6 +468,10 @@
     letter-spacing: 0.1em;
     text-shadow: 0 0 8px rgba(127,255,0,0.4);
     z-index: 4;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .lmn-vnum {
@@ -491,6 +495,10 @@
       align-items: center;
       gap: 20px;
     }
+    .lmn-hero-content { display: flex; flex-direction: column; }
+    .lmn-hero-sub .lmn-btn { order: -1; }
+    .lmn-hero-sub .lmn-hero-body { order: 1; }
+    .lmn-marquee-wrap { order: 99; }
     .lmn-hero-title {
       -webkit-text-stroke: 2px rgba(100,0,50,0.5);
     }
@@ -501,6 +509,9 @@
     .lmn-corner.br { bottom: 16px; right: 16px; }
     .lmn-star:nth-child(n+4) { display: none; }
     .lmn-marquee span { font-size: 9px; }
+    .lmn-sticker { width: 50px !important; opacity: 0.5; }
+    .lmn-visitor { font-size: 7px; top: 12px; }
+    .lmn-vnum { padding: 2px 4px; font-size: 8px; min-width: 14px; }
   }
 </style>
 
@@ -620,7 +631,7 @@
   }, 1000);
 })();
 
-// Visitor counter — fetches real count and renders as digit boxes
+// Visitor counter — increments per unique visit, persists in localStorage
 (function() {
   var container = document.getElementById('lmn-counter-nums');
   if (!container) return;
@@ -636,19 +647,17 @@
     }
   }
 
-  // Show placeholder while loading
-  renderCount(0);
+  // Base number + localStorage visits
+  var BASE = 4271;
+  var visits = parseInt(localStorage.getItem('lmn-visits') || '0');
 
-  fetch('https://hitcounter.pythonanywhere.com/count', {
-    credentials: 'include'
-  })
-    .then(function(res) { return res.text(); })
-    .then(function(count) {
-      renderCount(parseInt(count) || 0);
-    })
-    .catch(function() {
-      // Fallback to a fun static number
-      renderCount(4271);
-    });
+  // Increment once per session
+  if (!sessionStorage.getItem('lmn-counted')) {
+    visits++;
+    localStorage.setItem('lmn-visits', visits);
+    sessionStorage.setItem('lmn-counted', '1');
+  }
+
+  renderCount(BASE + visits);
 })();
 </script>
