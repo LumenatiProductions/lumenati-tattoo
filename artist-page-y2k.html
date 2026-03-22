@@ -16,6 +16,7 @@
     gap: 16px;
     justify-content: center;
     overflow: hidden;
+    max-width: 100vw;
   }
 
   /* ── Wallpaper — subtle pattern in their color ── */
@@ -250,6 +251,8 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
 
+  .br-thumb { cursor: pointer; }
+
   .br-thumb img {
     width: 100%;
     height: 100%;
@@ -278,26 +281,28 @@
     transform: rotate(2deg);
     box-shadow: 3px 4px 12px rgba(0,0,0,0.5);
     border: 3px solid rgba(255,255,255,0.1);
-    overflow: hidden;
+    cursor: grab;
   }
 
   .bedroom-wall-poster img {
     width: 100%;
     display: block;
     filter: saturate(1.2) contrast(1.1) brightness(0.9);
+    -webkit-user-drag: none;
   }
 
-  .wall-poster-tack {
+  .wall-poster-tape {
     position: absolute;
-    top: -5px;
-    left: 15%;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 40% 35%, #ff4444, #cc0000);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    width: 40px;
+    height: 16px;
+    background: rgba(255,255,200,0.25);
+    border: 1px solid rgba(255,255,200,0.1);
     z-index: 2;
+    pointer-events: none;
   }
+
+  .wall-poster-tape.tl { top: -6px; left: 10%; transform: rotate(-5deg); }
+  .wall-poster-tape.tr { top: -6px; right: 10%; left: auto; transform: rotate(4deg); }
 
   /* ── Polaroid row — thumbtacked ── */
   .bedroom-polaroid-row {
@@ -388,9 +393,8 @@
     cursor: pointer;
   }
 
-  .br-icon:hover {
-    background: rgba(0,0,128,0.5);
-    outline: 1px dotted rgba(255,255,255,0.5);
+  .br-icon:hover .br-icon-label {
+    background: rgba(0,0,128,0.6);
   }
 
   .br-icon-img {
@@ -429,9 +433,10 @@
   .bedroom-sticker {
     position: absolute;
     opacity: 0.7;
-    pointer-events: none;
     z-index: 0;
     filter: drop-shadow(2px 3px 2px rgba(0,0,0,0.4));
+    cursor: grab;
+    -webkit-user-drag: none;
   }
 
   /* ── Poster on the wall ── */
@@ -439,7 +444,6 @@
     position: absolute;
     z-index: 0;
     opacity: 0.15;
-    pointer-events: none;
     font-family: 'Luckiest Guy', cursive;
     font-size: 120px;
     color: #FF1493;
@@ -503,9 +507,10 @@
   /* ── Back button ── */
   .bedroom-back {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 5;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
   }
 
   .bedroom-back a {
@@ -525,18 +530,151 @@
     background: rgba(255,255,255,0.05);
   }
 
+  /* ── Lightbox ── */
+  .br-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.9);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .br-lightbox.open { display: flex; }
+
+  .br-lightbox-win {
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  .br-lightbox-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    background: linear-gradient(180deg, #FF1493 0%, #c8006e 100%);
+    height: 24px;
+  }
+
+  .br-lightbox-titlebar span {
+    font-family: Tahoma, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .br-lightbox-close {
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid;
+    border-color: #fff #404040 #404040 #fff;
+    font-family: Tahoma, sans-serif;
+    font-size: 10px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .br-lightbox img {
+    display: block;
+    max-width: 85vw;
+    max-height: 75vh;
+    object-fit: contain;
+    margin: 4px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+  }
+
+  .br-lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    font-family: Tahoma, sans-serif;
+    font-size: 14px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .br-lightbox-nav:active { border-color: #808080 #fff #fff #808080; }
+  .br-lightbox-prev { left: 12px; }
+  .br-lightbox-next { right: 12px; }
+
+  .br-lightbox-status {
+    padding: 4px 8px;
+    background: #ece9d8;
+    border-top: 1px solid #aca899;
+    font-family: Tahoma, sans-serif;
+    font-size: 10px;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Draggable cursors ── */
+  .br-win, .bedroom-sticker, .bedroom-wall-poster, .bedroom-polaroid, .bedroom-poster {
+    cursor: grab;
+  }
+  .br-win *, .bedroom-wall-poster *, .bedroom-polaroid * {
+    -webkit-user-drag: none;
+  }
+
+  /* ── Mobile action buttons (hidden on desktop) ── */
+  .bedroom-mobile-actions { display: none; }
+
   /* ── Mobile ── */
   @media (max-width: 768px) {
-    .bedroom { padding: 16px 12px 52px; }
+    .bedroom { padding: 16px 4px 52px; overflow: hidden; max-width: 100vw; }
     .bedroom-icons { display: none; }
     .bedroom-poster { display: none; }
     .bedroom-sticker { width: 50px !important; }
+    .br-win { max-width: calc(100vw - 16px) !important; box-shadow: none !important; }
     .br-profile, .br-aim { width: 100%; }
     .br-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
-    .bedroom-back { top: 12px; right: 12px; }
+    .bedroom-back { top: auto; bottom: 52px; right: 8px; left: 8px; text-align: center; position: fixed; z-index: 20; }
+    .bedroom-back a { background: rgba(0,0,0,0.5); padding: 10px 16px; border-radius: 8px; }
     .bedroom-wall-poster { display: none; }
-    .bedroom-polaroid img { width: 100px; height: 100px; }
-    .bedroom-polaroid { padding: 5px 5px 24px; }
+    .bedroom-polaroid img { width: 80px; height: 80px; }
+    .bedroom-polaroid { padding: 4px 4px 20px; }
+    .bedroom-polaroid-row { gap: 8px; padding: 8px 0; }
+    .bedroom-polaroid-label { font-size: 8px; }
+
+    /* Show game and skate as inline buttons on mobile */
+    .bedroom-mobile-actions {
+      display: flex !important;
+      gap: 8px;
+      justify-content: center;
+      width: 100%;
+      z-index: 1;
+    }
+    .bedroom-mobile-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: #fff;
+      padding: 8px 14px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      text-decoration: none;
+      text-align: center;
+    }
   }
 </style>
 
@@ -547,21 +685,21 @@
 
   <!-- Wall posters -->
   <div class="bedroom-wall-poster" style="top:18%;right:3%;transform:rotate(2deg);width:180px;">
-    <div class="wall-poster-tack"></div>
-    <div class="wall-poster-tack" style="right:15%;left:auto;"></div>
+    <div class="wall-poster-tape tl"></div>
+    <div class="wall-poster-tape tr"></div>
     <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/1baed3f4-49f8-4ea7-9f2b-c74bcfbbe11f/2020-shof-chad-muska-7.jpg?content-type=image%2Fjpeg" alt="">
   </div>
   <div class="bedroom-wall-poster" style="top:3%;right:15%;transform:rotate(-3deg);width:160px;">
-    <div class="wall-poster-tack"></div>
+    <div class="wall-poster-tape tl"></div>
     <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/00b460b5-ddc9-4665-907e-61f3e2435883/5ce32701d9308a7a9fe6d804ebde8159.jpg?content-type=image%2Fjpeg" alt="">
   </div>
   <div class="bedroom-wall-poster" style="top:calc(22% - 70px);left:8%;transform:rotate(4deg);width:300px;">
-    <div class="wall-poster-tack"></div>
-    <div class="wall-poster-tack" style="right:15%;left:auto;"></div>
+    <div class="wall-poster-tape tl"></div>
+    <div class="wall-poster-tape tr"></div>
     <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/b8c4c7ae-9332-4eaa-a638-ea973619ef2e/LovePark.jpg?content-type=image%2Fjpeg" alt="">
   </div>
   <div class="bedroom-wall-poster" style="top:55%;left:4%;transform:rotate(-5deg);width:140px;">
-    <div class="wall-poster-tack"></div>
+    <div class="wall-poster-tape tl"></div>
     <img src="https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/3c3e28d8-8e66-488e-b612-fdeb451fe974/7-jeron-wilson-ortiz-tws-june-94-12-6-119559.jpg?content-type=image%2Fjpeg" alt="">
   </div>
 
@@ -626,6 +764,14 @@
   <div class="bedroom-header">
     <h1 class="bedroom-name">J.D. Pruitt</h1>
     <div class="bedroom-handle">@jd.pruitt // skater // gamer // bold color tattoos</div>
+  </div>
+
+  <!-- Mobile action buttons -->
+  <div class="bedroom-mobile-actions">
+    <a class="bedroom-mobile-btn" href="#" id="jd-mob-game">Games</a>
+    <a class="bedroom-mobile-btn" href="#" id="jd-mob-skate">Skate Vid</a>
+    <a class="bedroom-mobile-btn" href="https://www.instagram.com/jd.pruitt/" target="_blank">Instagram</a>
+    <a class="bedroom-mobile-btn" href="/book">Book</a>
   </div>
 
   <!-- Profile photo window -->
@@ -1299,6 +1445,11 @@ document.getElementById('jd-games-icon').addEventListener('click', function() {
 document.getElementById('jd-skate-icon').addEventListener('click', function() {
   document.getElementById('jd-video-overlay').style.display = 'flex';
 });
+// Mobile buttons
+var mobGame = document.getElementById('jd-mob-game');
+var mobSkate = document.getElementById('jd-mob-skate');
+if (mobGame) mobGame.addEventListener('click', function(e) { e.preventDefault(); document.getElementById('jd-game-overlay').style.display = 'flex'; });
+if (mobSkate) mobSkate.addEventListener('click', function(e) { e.preventDefault(); document.getElementById('jd-video-overlay').style.display = 'flex'; });
 // Unmute via Vimeo postMessage API
 var jdMuted = true;
 document.getElementById('jd-unmute-btn').addEventListener('click', function() {
@@ -1330,5 +1481,148 @@ document.getElementById('jd-unmute-btn').addEventListener('click', function() {
   }
   tick();
   setInterval(tick, 30000);
+})();
+</script>
+
+<script>
+// Drag to rearrange — desktop only
+(function() {
+  if ('ontouchstart' in window && window.innerWidth < 768) return;
+
+  document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+
+  var bedroom = document.querySelector('.bedroom');
+  if (!bedroom) return;
+  var dragging = null, offX = 0, offY = 0;
+
+  // Match selectors for draggable items
+  var selectors = '.br-win, .bedroom-sticker, .bedroom-wall-poster, .bedroom-polaroid, .bedroom-poster';
+
+  function findDraggable(target) {
+    // Walk up from click target to find the draggable container
+    var el = target;
+    while (el && el !== bedroom) {
+      if (el.matches && el.matches(selectors)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  bedroom.addEventListener('mousedown', function(e) {
+    // Skip links, buttons, thumbs (lightbox)
+    if (e.target.closest('a, button, .br-aim-btn, .br-thumb, .br-lightbox')) return;
+
+    var el = findDraggable(e.target);
+    if (!el) return;
+
+    e.preventDefault();
+    dragging = el;
+    var rect = el.getBoundingClientRect();
+    var parentRect = bedroom.getBoundingClientRect();
+    offX = e.clientX - rect.left;
+    offY = e.clientY - rect.top;
+
+    var pos = getComputedStyle(el).position;
+    if (pos === 'static' || pos === 'relative') {
+      el.style.position = 'absolute';
+      el.style.left = (rect.left - parentRect.left) + 'px';
+      el.style.top = (rect.top - parentRect.top) + 'px';
+    }
+    el.style.zIndex = 100;
+    el.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var parentRect = bedroom.getBoundingClientRect();
+    dragging.style.left = (e.clientX - offX - parentRect.left) + 'px';
+    dragging.style.top = (e.clientY - offY - parentRect.top) + 'px';
+    dragging.style.right = 'auto';
+    dragging.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (dragging) {
+      dragging.style.cursor = 'grab';
+      dragging = null;
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    }
+  });
+})();
+</script>
+
+<!-- Lightbox -->
+<div class="br-lightbox" id="br-lightbox">
+  <div class="br-lightbox-nav br-lightbox-prev" id="br-lb-prev">&lt;</div>
+  <div class="br-lightbox-nav br-lightbox-next" id="br-lb-next">&gt;</div>
+  <div class="br-lightbox-win">
+    <div class="br-lightbox-titlebar">
+      <span id="br-lb-title">image_01.jpg</span>
+      <div class="br-lightbox-close" id="br-lb-close">x</div>
+    </div>
+    <img id="br-lb-img" src="" alt="">
+    <div class="br-lightbox-status">
+      <span id="br-lb-counter">1 / 12</span>
+      <span>500 x 500 - JPEG</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var lightbox = document.getElementById('br-lightbox');
+  var lbImg = document.getElementById('br-lb-img');
+  var lbCounter = document.getElementById('br-lb-counter');
+  var thumbs = document.querySelectorAll('.br-thumb img');
+  var images = [];
+  var current = 0;
+
+  thumbs.forEach(function(img, i) {
+    // Keep 500w — loads fast, still looks good
+    var src = img.src;
+    images.push(src);
+    img.parentElement.addEventListener('click', function(e) {
+      e.stopPropagation();
+      current = i;
+      show();
+    });
+  });
+
+  var lbTitle = document.getElementById('br-lb-title');
+  function show() {
+    lbImg.src = images[current];
+    lbCounter.textContent = (current + 1) + ' / ' + images.length;
+    lbTitle.textContent = 'jd_tattoo_' + String(current + 1).padStart(2, '0') + '.jpg';
+    lightbox.classList.add('open');
+  }
+
+  function hide() {
+    lightbox.classList.remove('open');
+  }
+
+  document.getElementById('br-lb-close').addEventListener('click', function(e) { e.stopPropagation(); hide(); });
+  lightbox.addEventListener('click', function(e) { if (e.target === lightbox) hide(); });
+
+  document.getElementById('br-lb-prev').addEventListener('click', function(e) {
+    e.stopPropagation();
+    current = (current - 1 + images.length) % images.length;
+    show();
+  });
+
+  document.getElementById('br-lb-next').addEventListener('click', function(e) {
+    e.stopPropagation();
+    current = (current + 1) % images.length;
+    show();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') hide();
+    if (e.key === 'ArrowLeft') { current = (current - 1 + images.length) % images.length; show(); }
+    if (e.key === 'ArrowRight') { current = (current + 1) % images.length; show(); }
+  });
 })();
 </script>

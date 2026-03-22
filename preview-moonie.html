@@ -534,105 +534,266 @@
     background: rgba(255,255,255,0.05);
   }
 
-  /* ── Moonie's Winamp ── */
-  .mn-winamp {
+
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  .mn-player {
     position: fixed;
-    bottom: 50px;
-    right: 16px;
-    width: 240px;
-    background: #232323;
-    border: 2px solid;
-    border-color: #444 #111 #111 #444;
-    z-index: 100;
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    bottom: 24px;
+    right: 24px;
+    width: 220px;
+    z-index: 900;
+    font-family: Arial, Helvetica, sans-serif;
   }
 
-  .mn-winamp-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2px 6px;
-    background: linear-gradient(180deg, #4a4a3a 0%, #2a2a20 100%);
+  @media (max-width: 768px) {
+    .mn-player {
+      display: none;
+    }
+  }
+
+  .mn-body {
+    background: linear-gradient(145deg, #d4d4d4 0%, #b8b8b8 30%, #c9c9c9 50%, #a8a8a8 80%, #999 100%);
+    border-radius: 18px;
+    padding: 16px 14px 14px;
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.35),
+      0 8px 20px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -1px 2px rgba(0,0,0,0.15);
+    border: 1px solid #888;
+    position: relative;
+  }
+
+  .mn-brand {
     font-size: 9px;
-    color: #ccc;
-    letter-spacing: 2px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #666;
+    text-align: left;
+    margin-bottom: 8px;
+    padding-left: 2px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
   }
 
-  .mn-winamp-btns { font-size: 10px; color: #888; }
-
-  .mn-winamp-display {
-    background: #000;
-    margin: 3px;
-    padding: 6px;
-    border: 1px solid #111;
+  .mn-brand-accent {
+    color: #FF6347;
   }
 
-  .mn-winamp-marquee {
+  .mn-disc-window {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    background: radial-gradient(circle, #1a1a1a 0%, #111 100%);
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.7),
+      0 1px 0 rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
+    border: 2px solid #777;
+    position: relative;
+  }
+
+  .mn-disc {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle, #333 10%, transparent 11%),
+      radial-gradient(circle, transparent 38%, #555 39%, #666 42%, transparent 43%),
+      conic-gradient(
+        from 0deg,
+        #c0c0c0, #e8e8e8 30deg, #aaa 60deg,
+        #d0d0d0 90deg, #b0b0b0 120deg, #e0e0e0 150deg,
+        #a5a5a5 180deg, #d8d8d8 210deg, #bbb 240deg,
+        #e5e5e5 270deg, #aaa 300deg, #d5d5d5 330deg, #c0c0c0
+      );
+    animation: mn-spin 3s linear infinite;
+    position: relative;
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+  }
+
+  .mn-disc::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #FF6347 0%, #d44a3a 70%, #333 100%);
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  }
+
+  @keyframes mn-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .mn-lcd {
+    background: #2a3a2a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 10px;
+    box-shadow:
+      inset 0 1px 4px rgba(0,0,0,0.6),
+      0 1px 0 rgba(255,255,255,0.2);
+    border: 1px solid #555;
+    overflow: hidden;
+  }
+
+  .mn-lcd-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: #6aff6a;
+    text-shadow: 0 0 4px rgba(106, 255, 106, 0.4);
     white-space: nowrap;
-    font-size: 11px;
-    color: #00FF00;
-    text-shadow: 0 0 4px rgba(0,255,0,0.4);
-    margin-bottom: 6px;
-  }
-
-  .mn-winamp-marquee span {
+    animation: mn-scroll 8s linear infinite;
     display: inline-block;
-    animation: mn-marquee 12s linear infinite;
+    padding-right: 40px;
   }
 
-  @keyframes mn-marquee {
+  @keyframes mn-scroll {
     0% { transform: translateX(100%); }
     100% { transform: translateX(-100%); }
   }
 
-  .mn-winamp-eq {
+  .mn-lcd-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: #4a9a4a;
+    margin-top: 3px;
     display: flex;
-    gap: 3px;
-    height: 20px;
-    align-items: flex-end;
+    justify-content: space-between;
   }
 
-  .mn-eq-bar {
-    flex: 1;
-    background: linear-gradient(to top, #00FF00, #FFFF00, #FF0000);
-    animation: mn-eq-bounce 0.5s ease-in-out infinite alternate;
-    min-height: 3px;
-  }
-
-  .mn-eq-bar:nth-child(1) { animation-duration: 0.4s; height: 60%; }
-  .mn-eq-bar:nth-child(2) { animation-duration: 0.55s; height: 80%; }
-  .mn-eq-bar:nth-child(3) { animation-duration: 0.35s; height: 45%; }
-  .mn-eq-bar:nth-child(4) { animation-duration: 0.5s; height: 70%; }
-  .mn-eq-bar:nth-child(5) { animation-duration: 0.45s; height: 90%; }
-  .mn-eq-bar:nth-child(6) { animation-duration: 0.6s; height: 50%; }
-  .mn-eq-bar:nth-child(7) { animation-duration: 0.38s; height: 75%; }
-  .mn-eq-bar:nth-child(8) { animation-duration: 0.52s; height: 55%; }
-  .mn-eq-bar:nth-child(9) { animation-duration: 0.42s; height: 85%; }
-  .mn-eq-bar:nth-child(10) { animation-duration: 0.58s; height: 40%; }
-  .mn-eq-bar:nth-child(11) { animation-duration: 0.37s; height: 65%; }
-  .mn-eq-bar:nth-child(12) { animation-duration: 0.48s; height: 50%; }
-
-  @keyframes mn-eq-bounce {
-    0% { height: 20%; }
-    100% { height: 100%; }
-  }
-
-  .mn-winamp-controls {
+  .mn-controls {
     display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 4px;
-    background: #2a2a20;
-    font-size: 14px;
-    color: #aaa;
+    gap: 6px;
+    padding: 4px 0 0;
   }
 
-  .mn-winamp-controls span {
+  .mn-btn {
+    width: 30px;
+    height: 22px;
+    border: none;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #c8c8c8 0%, #aaa 50%, #999 100%);
+    box-shadow:
+      0 2px 3px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    position: relative;
   }
 
-  .mn-winamp-controls span:hover { color: #00FF00; }
+  .mn-btn:active {
+    box-shadow:
+      0 1px 1px rgba(0,0,0,0.2),
+      inset 0 1px 3px rgba(0,0,0,0.2);
+    transform: translateY(1px);
+  }
+
+  .mn-btn-play {
+    width: 36px;
+    height: 26px;
+    background: linear-gradient(180deg, #FF7B69 0%, #FF6347 50%, #e55a40 100%);
+    border-radius: 4px;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
+  }
+
+  .mn-icon {
+    display: block;
+  }
+
+  .mn-icon-rew,
+  .mn-icon-fwd {
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+
+  .mn-icon-rew {
+    border-width: 5px 7px 5px 0;
+    border-color: transparent #555 transparent transparent;
+    margin-left: -2px;
+  }
+
+  .mn-icon-rew-bar {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 10px;
+    background: #555;
+  }
+
+  .mn-icon-fwd {
+    border-width: 5px 0 5px 7px;
+    border-color: transparent transparent transparent #555;
+    margin-right: -2px;
+  }
+
+  .mn-icon-fwd-bar {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 10px;
+    background: #555;
+  }
+
+  .mn-icon-play {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 0 6px 10px;
+    border-color: transparent transparent transparent #fff;
+    margin-left: 2px;
+  }
+
+  .mn-icon-stop {
+    width: 8px;
+    height: 8px;
+    background: #555;
+  }
+
+  .mn-model {
+    font-size: 7px;
+    color: #888;
+    text-align: right;
+    margin-top: 6px;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  .mn-notch {
+    position: absolute;
+    top: 8px;
+    right: 14px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #FF6347 30%, #c44030 100%);
+    box-shadow: 0 0 3px rgba(255, 99, 71, 0.5);
+  }
+
 
   /* ── Mobile ── */
   @media (max-width: 768px) {
@@ -644,7 +805,7 @@
     .br-portfolio-grid { grid-template-columns: repeat(3, 1fr); }
     .bedroom-back { top: 12px; right: 12px; }
     .bedroom-wall-poster { display: none; }
-    .mn-winamp { display: none; }
+    .mn-player { display: none; }
     .bedroom-polaroid img { width: 100px; height: 100px; }
     .bedroom-polaroid { padding: 5px 5px 24px; }
   }
@@ -778,27 +939,41 @@
     </div>
   </div>
 
-  <!-- Moonie's Winamp -->
-  <div class="mn-winamp">
-    <div class="mn-winamp-bar">
-      <span class="mn-winamp-title">WINAMP</span>
-      <span class="mn-winamp-btns">_ x</span>
+  <!-- Moonie's MiniDisc Player -->
+<div class="mn-player">
+  <div class="mn-body">
+    <div class="mn-notch"></div>
+    <div class="mn-brand"><span class="mn-brand-accent">MZ</span>-R70</div>
+    <div class="mn-disc-window">
+      <div class="mn-disc"></div>
     </div>
-    <div class="mn-winamp-display">
-      <div class="mn-winamp-marquee">
-        <span>Fiona Apple -- Criminal (1996) ***</span>
+    <div class="mn-lcd">
+      <div class="mn-lcd-title">Fiona Apple -- Criminal (1996)</div>
+      <div class="mn-lcd-status">
+        <span>PLAY</span>
+        <span>MD LP2</span>
+        <span>03:47</span>
       </div>
-      <div class="mn-winamp-eq">
-        <div class="mn-eq-bar"></div><div class="mn-eq-bar"></div><div class="mn-eq-bar"></div>
-        <div class="mn-eq-bar"></div><div class="mn-eq-bar"></div><div class="mn-eq-bar"></div>
-        <div class="mn-eq-bar"></div><div class="mn-eq-bar"></div><div class="mn-eq-bar"></div>
-        <div class="mn-eq-bar"></div><div class="mn-eq-bar"></div><div class="mn-eq-bar"></div>
-      </div>
     </div>
-    <div class="mn-winamp-controls">
-      <span>|&lt;&lt;</span> <span>&gt;</span> <span>||</span> <span>[ ]</span> <span>&gt;&gt;|</span>
+    <div class="mn-controls">
+      <button class="mn-btn" aria-label="Rewind">
+        <span class="mn-icon-rew-bar"></span>
+        <span class="mn-icon mn-icon-rew"></span>
+      </button>
+      <button class="mn-btn mn-btn-play" aria-label="Play">
+        <span class="mn-icon mn-icon-play"></span>
+      </button>
+      <button class="mn-btn" aria-label="Stop">
+        <span class="mn-icon mn-icon-stop"></span>
+      </button>
+      <button class="mn-btn" aria-label="Forward">
+        <span class="mn-icon mn-icon-fwd"></span>
+        <span class="mn-icon-fwd-bar"></span>
+      </button>
     </div>
+    <div class="mn-model">NET MD WALKMAN</div>
   </div>
+</div>
 
   <!-- Taskbar -->
   <div class="bedroom-taskbar">

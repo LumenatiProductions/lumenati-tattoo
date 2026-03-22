@@ -1,5 +1,23 @@
 <!-- ═══ LUMENATI CODE INJECTION — FOOTER ═══ -->
 
+<!-- Unlock audio on first touch for mobile -->
+<script>
+(function(){
+  var unlocked = false;
+  function unlock() {
+    if (unlocked) return;
+    unlocked = true;
+    var a = new Audio();
+    a.play().catch(function(){});
+    a.pause();
+    document.removeEventListener('touchstart', unlock);
+    document.removeEventListener('click', unlock);
+  }
+  document.addEventListener('touchstart', unlock, {once:true});
+  document.addEventListener('click', unlock, {once:true});
+})();
+</script>
+
 <!-- Cursor sparkle -->
 <script src="https://unpkg.com/cursor-effects@latest/dist/browser.js"></script>
 <script>
@@ -66,7 +84,7 @@
     </div>
   </div>
 </div>
-<audio id="winamp-audio" preload="none" src="https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/kids-arent-alright.m4a"></audio>
+<audio id="winamp-audio" preload="none" src="https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/kids-arent-alright.m4a"></audio>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -270,8 +288,11 @@
 </div>
 <script>
 (function(){if(sessionStorage.getItem('aol_seen')){var el=document.getElementById('aol-overlay');if(el)el.parentNode.removeChild(el);return;}
-var overlay=document.getElementById('aol-overlay'),bar=document.getElementById('aol-progress-bar'),skip=document.getElementById('aol-skip'),welcome=document.getElementById('aol-welcome'),timers=[],dialupAudio;
-function playDialUp(){try{dialupAudio=new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aol-dialup.mp3');dialupAudio.volume=0.5;dialupAudio.play();}catch(e){}}
+var overlay=document.getElementById('aol-overlay'),bar=document.getElementById('aol-progress-bar'),skip=document.getElementById('aol-skip'),welcome=document.getElementById('aol-welcome'),timers=[],dialupAudio,welcomeAudio;
+// Preload both audio files
+dialupAudio=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aol-dialup.mp3');dialupAudio.volume=0.5;dialupAudio.preload='auto';
+welcomeAudio=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aol-welcome.mp3');welcomeAudio.volume=0.8;welcomeAudio.preload='auto';
+function playDialUp(){try{dialupAudio.currentTime=0;dialupAudio.play();}catch(e){}}
 function dismiss(){timers.forEach(function(t){clearTimeout(t);});sessionStorage.setItem('aol_seen','1');overlay.classList.add('fade-out');if(dialupAudio){try{dialupAudio.pause();}catch(e){}}setTimeout(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);},900);}
 skip.addEventListener('click',dismiss);
 var clickPrompt=document.getElementById('aol-click-prompt'),started=false;
@@ -281,7 +302,7 @@ clickPrompt.addEventListener('click',function(e){if(e.target===clickPrompt)start
 function runSteps(){
 var steps=[{id:'aol-s1',delay:200,progress:5},{id:'aol-noise',delay:600,progress:15},{id:null,delay:1600,progress:25},{id:'aol-s1',delay:1800,progress:30,done:true},{id:'aol-s2',delay:1900,progress:35},{id:null,delay:2800,progress:50},{id:'aol-s2',delay:3000,progress:55,done:true},{id:'aol-s3',delay:3100,progress:60},{id:null,delay:3800,progress:70},{id:'aol-s3',delay:4000,progress:75,done:true},{id:'aol-s4',delay:4100,progress:80},{id:null,delay:4800,progress:90},{id:'aol-s4',delay:5000,progress:95,done:true},{id:'welcome',delay:5200,progress:100},{id:'dismiss',delay:6500,progress:100}];
 steps.forEach(function(step){var t=setTimeout(function(){bar.style.width=step.progress+'%';
-if(step.id==='welcome'){welcome.style.display='block';try{var w=new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aol-welcome.mp3');w.volume=0.8;w.play();}catch(e){}return;}
+if(step.id==='welcome'){welcome.style.display='block';try{welcomeAudio.currentTime=0;welcomeAudio.play();}catch(e){}return;}
 if(step.id==='dismiss'){dismiss();return;}if(!step.id)return;
 var el=document.getElementById(step.id);if(!el)return;el.classList.add('visible');
 if(step.done){el.classList.add('done');el.classList.remove('active');el.innerHTML='<span class="check">&#10003;</span> '+el.textContent.replace('...',' - Done');}else{el.classList.add('active');}
@@ -291,7 +312,7 @@ if(step.done){el.classList.add('done');el.classList.remove('active');el.innerHTM
 
 <!-- ═══ AIM DOOR SOUNDS ═══ -->
 <script>
-(function(){var o=new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aim-open.mp3'),c=new Audio('https://github.com/LumenatiProductions/lumenati-tattoo/releases/download/v1.0/aim-close.mp3');o.volume=0.3;c.volume=0.3;
+(function(){var o=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aim-open.mp3'),c=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aim-close.mp3');o.volume=0.3;c.volume=0.3;
 function obs(){var a=document.querySelectorAll('.lmn-artist');if(!a.length)return;
 var ob=new MutationObserver(function(m){m.forEach(function(mu){if(mu.type!=='attributes'||mu.attributeName!=='class')return;var el=mu.target;if(!el.classList.contains('lmn-artist'))return;
 var was=(mu.oldValue||'').indexOf('is-open')!==-1,is=el.classList.contains('is-open');
