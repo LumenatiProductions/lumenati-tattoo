@@ -9,6 +9,7 @@ export default function HomePage() {
   const artists = readLegacyBlock("artists-y2k.html");
   const koolAid = readLegacyBlock("kool-aid-y2k.html");
   const footer = readLegacyBlock("footer-y2k.html");
+  const games = readLegacyBlock("win95-games.html");
 
   return (
     <main>
@@ -16,6 +17,7 @@ export default function HomePage() {
       <LegacyBlock html={artists} />
       <LegacyBlock html={koolAid} />
       <LegacyBlock html={footer} />
+      <LegacyBlock html={games} />
     </main>
   );
 }

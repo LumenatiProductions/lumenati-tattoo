@@ -1,0 +1,234 @@
+<!-- ═══ Win95 Games: Minesweeper + Solitaire ═══ -->
+<!-- Self-contained. Launched from the homepage desktop icons / Start menu via
+     window.lmnOpenMines() and window.lmnOpenSolitaire(). -->
+<style>
+  /* ── shared Win95 window chrome ── */
+  .w95-win { position:fixed; top:14%; left:50%; transform:translateX(-50%); display:none; z-index:10000002;
+    background:#c0c0c0; border:2px solid; border-color:#fff #808080 #808080 #fff; box-shadow:3px 3px 10px rgba(0,0,0,0.5);
+    font-family:Tahoma,'Segoe UI',sans-serif; user-select:none; }
+  .w95-titlebar { display:flex; align-items:center; justify-content:space-between; height:22px; padding:0 3px 0 5px;
+    background:linear-gradient(180deg,#0a246a 0%,#3a6ea5 60%,#0a246a 100%); color:#fff; cursor:move; }
+  .w95-titlebar span { font-size:12px; font-weight:bold; text-shadow:1px 1px 0 rgba(0,0,0,0.4); }
+  .w95-x { width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;
+    background:#c0c0c0; border:2px solid; border-color:#fff #808080 #808080 #fff; color:#000; cursor:pointer; }
+  .w95-x:active { border-color:#808080 #fff #fff #808080; }
+  .w95-menubar { display:flex; gap:2px; padding:2px 4px; font-size:12px; color:#000; }
+  .w95-menubar span { padding:1px 7px; }
+  .w95-menubar span:hover { background:#0a246a; color:#fff; }
+  .w95-inset { border:2px solid; border-color:#808080 #fff #fff #808080; margin:4px; }
+
+  /* ── Minesweeper ── */
+  #lmn-mines-overlay .w95-body { padding:6px; }
+  .lmn-mines-hud { display:flex; align-items:center; justify-content:space-between; background:#c0c0c0;
+    border:2px solid; border-color:#808080 #fff #fff #808080; padding:5px 6px; margin-bottom:6px; }
+  .lmn-led { background:#000; color:#f00; font-family:'Courier New',monospace; font-weight:bold; font-size:22px;
+    line-height:1; padding:2px 4px; letter-spacing:1px; min-width:46px; text-align:right; border:1px solid #555; }
+  .lmn-mines-face { width:30px; height:30px; padding:0; background:#c0c0c0; border:2px solid; border-color:#fff #808080 #808080 #fff;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .lmn-mines-face:active { border-color:#808080 #fff #fff #808080; }
+  .lmn-mines-grid { display:grid; grid-template-columns:repeat(9,24px); grid-template-rows:repeat(9,24px);
+    border:2px solid; border-color:#808080 #fff #fff #808080; background:#bfbfbf; }
+  .lmn-cell { width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold;
+    font-size:15px; font-family:'Courier New',monospace; background:#c0c0c0; border:2px solid; border-color:#fff #808080 #808080 #fff; cursor:default; }
+  .lmn-cell.rev { border:1px solid #999; background:#bfbfbf; }
+  .lmn-cell.mine { background:#bfbfbf; }
+  .lmn-cell.boom { background:#f00; }
+  .lmn-cell.n1{color:#0000ff}.lmn-cell.n2{color:#008000}.lmn-cell.n3{color:#ff0000}.lmn-cell.n4{color:#000080}
+  .lmn-cell.n5{color:#800000}.lmn-cell.n6{color:#008080}.lmn-cell.n7{color:#000}.lmn-cell.n8{color:#808080}
+
+  /* ── Solitaire ── */
+  #lmn-sol-overlay .w95-body { padding:8px; background:#008080; }
+  .lmn-sol-board { position:relative; width:392px; height:430px; }
+  .lmn-sol-slot { position:absolute; width:48px; height:66px; border:1px solid rgba(255,255,255,0.4); border-radius:4px; }
+  .lmn-card { position:absolute; width:48px; height:66px; border-radius:4px; box-sizing:border-box; cursor:pointer;
+    background:#fff; border:1px solid #000; font-family:'Times New Roman',serif; }
+  .lmn-card.down { background:repeating-linear-gradient(45deg,#1a3a8f 0,#1a3a8f 4px,#2a4aaf 4px,#2a4aaf 8px); border:1px solid #0a1a5f; }
+  .lmn-card .cr { position:absolute; top:2px; left:3px; font-size:13px; font-weight:bold; line-height:1; }
+  .lmn-card .cs { position:absolute; bottom:2px; right:4px; font-size:16px; line-height:1; }
+  .lmn-card .cmid { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:24px; }
+  .lmn-card.red { color:#d00000; }
+  .lmn-card.black { color:#000; }
+  .lmn-card.sel { outline:3px solid #ffd700; outline-offset:-1px; z-index:50 !important; }
+  .lmn-sol-toolbar { display:flex; gap:8px; padding:2px 4px 6px; }
+  .lmn-sol-btn { font-size:12px; padding:2px 10px; background:#c0c0c0; border:2px solid; border-color:#fff #808080 #808080 #fff; cursor:pointer; color:#000; }
+  .lmn-sol-btn:active { border-color:#808080 #fff #fff #808080; }
+  .lmn-sol-msg { color:#ffea00; font-family:Tahoma,sans-serif; font-size:12px; font-weight:bold; padding:0 4px; min-height:16px; }
+</style>
+
+<!-- ── Minesweeper window ── -->
+<div class="w95-win" id="lmn-mines-overlay">
+  <div class="w95-titlebar"><span>Minesweeper</span><div class="w95-x" data-close="lmn-mines-overlay">✕</div></div>
+  <div class="w95-menubar"><span>Game</span><span>Help</span></div>
+  <div class="w95-body">
+    <div class="lmn-mines-hud">
+      <div class="lmn-led" id="lmn-mines-count">010</div>
+      <button class="lmn-mines-face" id="lmn-mines-face"></button>
+      <div class="lmn-led" id="lmn-mines-timer">000</div>
+    </div>
+    <div class="lmn-mines-grid" id="lmn-mines-grid"></div>
+  </div>
+</div>
+
+<!-- ── Solitaire window ── -->
+<div class="w95-win" id="lmn-sol-overlay">
+  <div class="w95-titlebar"><span>Solitaire</span><div class="w95-x" data-close="lmn-sol-overlay">✕</div></div>
+  <div class="w95-menubar"><span>Game</span><span>Help</span></div>
+  <div class="w95-body">
+    <div class="lmn-sol-toolbar"><button class="lmn-sol-btn" id="lmn-sol-new">Deal</button><div class="lmn-sol-msg" id="lmn-sol-msg"></div></div>
+    <div class="lmn-sol-board" id="lmn-sol-board"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── shared: drag windows by titlebar, close buttons ──
+  document.querySelectorAll('.w95-win').forEach(function(win){
+    var bar = win.querySelector('.w95-titlebar');
+    var dragging=false, sx, sy, ox, oy;
+    bar.addEventListener('mousedown', function(e){
+      if(e.target.classList.contains('w95-x')) return;
+      dragging=true; var r=win.getBoundingClientRect();
+      win.style.transform='none'; win.style.left=r.left+'px'; win.style.top=r.top+'px';
+      sx=e.clientX; sy=e.clientY; ox=r.left; oy=r.top; e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e){ if(!dragging)return; win.style.left=(ox+e.clientX-sx)+'px'; win.style.top=(oy+e.clientY-sy)+'px'; });
+    document.addEventListener('mouseup', function(){ dragging=false; });
+  });
+  document.querySelectorAll('.w95-x[data-close]').forEach(function(x){
+    x.addEventListener('click', function(){ document.getElementById(x.getAttribute('data-close')).style.display='none'; });
+  });
+
+  // ════════ MINESWEEPER ════════
+  (function(){
+    var W=9,H=9,MINES=10;
+    var grid=document.getElementById('lmn-mines-grid'), faceBtn=document.getElementById('lmn-mines-face');
+    var countEl=document.getElementById('lmn-mines-count'), timerEl=document.getElementById('lmn-mines-timer');
+    if(!grid) return;
+    var FACES={
+      smile:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#ffe000" stroke="#000"/><circle cx="7" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/><path d="M6 12a4 3 0 0 0 8 0" fill="none" stroke="#000" stroke-width="1.3"/></svg>',
+      oh:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#ffe000" stroke="#000"/><circle cx="7" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/><circle cx="10" cy="13" r="2" fill="none" stroke="#000" stroke-width="1.2"/></svg>',
+      dead:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#ffe000" stroke="#000"/><path d="M5 6l3 3M8 6l-3 3M12 6l3 3M15 6l-3 3" stroke="#000" stroke-width="1.2"/><path d="M6 14a4 3 0 0 1 8 0" fill="none" stroke="#000" stroke-width="1.3"/></svg>',
+      cool:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#ffe000" stroke="#000"/><path d="M3 8h14l-2 3h-3l-1-2-1 2H6z" fill="#000"/><path d="M6 14a4 3 0 0 0 8 0" fill="none" stroke="#000" stroke-width="1.3"/></svg>'
+    };
+    var MINE='<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5"/><path d="M8 1v14M1 8h14M3 3l10 10M13 3L3 13" stroke="#000" stroke-width="1.2"/><circle cx="6.5" cy="6.5" r="1.2" fill="#fff"/></svg>';
+    var FLAG='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M5 2v12" stroke="#000" stroke-width="1.4"/><path d="M5 3l6 2-6 2z" fill="#f00"/><rect x="3" y="13" width="8" height="2"/></svg>';
+    var board,revealed,flagged,dead,won,timer,time,first;
+    function pad(n){n=Math.max(0,Math.min(999,n));return ('00'+n).slice(-3);}
+    function nbrs(x,y,fn){for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;var nx=x+dx,ny=y+dy;if(nx>=0&&nx<W&&ny>=0&&ny<H)fn(nx,ny);}}
+    function reset(){
+      clearInterval(timer); time=0; timerEl.textContent='000'; dead=won=false; first=true;
+      board=[];revealed=[];flagged=[];
+      for(var y=0;y<H;y++){board[y]=[];revealed[y]=[];flagged[y]=[];for(var x=0;x<W;x++){board[y][x]=0;revealed[y][x]=false;flagged[y][x]=false;}}
+      countEl.textContent=pad(MINES); faceBtn.innerHTML=FACES.smile; render();
+    }
+    function placeMines(sx,sy){
+      var p=0; while(p<MINES){var x=(Math.random()*W)|0,y=(Math.random()*H)|0; if(board[y][x]===-1)continue; if(Math.abs(x-sx)<=1&&Math.abs(y-sy)<=1)continue; board[y][x]=-1;p++;}
+      for(var y=0;y<H;y++)for(var x=0;x<W;x++){ if(board[y][x]===-1)continue; var c=0; nbrs(x,y,function(nx,ny){if(board[ny][nx]===-1)c++;}); board[y][x]=c; }
+    }
+    function reveal(x,y){ if(revealed[y][x]||flagged[y][x])return; revealed[y][x]=true; if(board[y][x]===0) nbrs(x,y,function(nx,ny){reveal(nx,ny);}); }
+    function win(){ for(var y=0;y<H;y++)for(var x=0;x<W;x++)if(board[y][x]!==-1&&!revealed[y][x])return false; return true; }
+    function render(){
+      grid.innerHTML='';
+      for(var y=0;y<H;y++)for(var x=0;x<W;x++){
+        var d=document.createElement('div'); d.className='lmn-cell';
+        if(revealed[y][x]){ d.classList.add('rev');
+          if(board[y][x]===-1){ d.classList.add('mine'); d.innerHTML=MINE; }
+          else if(board[y][x]>0){ d.textContent=board[y][x]; d.classList.add('n'+board[y][x]); }
+        } else if(flagged[y][x]){ d.innerHTML=FLAG; }
+        (function(x,y){
+          d.onmousedown=function(e){ if(e.button===0&&!dead&&!won&&!revealed[y][x]&&!flagged[y][x]) faceBtn.innerHTML=FACES.oh; };
+          d.onclick=function(){ open(x,y); };
+          d.oncontextmenu=function(e){ e.preventDefault(); flag(x,y); };
+        })(x,y);
+        grid.appendChild(d);
+      }
+    }
+    function open(x,y){
+      if(dead||won||flagged[y][x]||revealed[y][x]){ if(!dead&&!won)faceBtn.innerHTML=FACES.smile; return; }
+      if(first){ placeMines(x,y); first=false; timer=setInterval(function(){time++;timerEl.textContent=pad(time);if(time>=999)clearInterval(timer);},1000); }
+      reveal(x,y);
+      if(board[y][x]===-1){ dead=true; clearInterval(timer); for(var yy=0;yy<H;yy++)for(var xx=0;xx<W;xx++)if(board[yy][xx]===-1)revealed[yy][xx]=true; faceBtn.innerHTML=FACES.dead; }
+      else if(win()){ won=true; clearInterval(timer); for(var yy=0;yy<H;yy++)for(var xx=0;xx<W;xx++)if(board[yy][xx]===-1)flagged[yy][xx]=true; countEl.textContent='000'; faceBtn.innerHTML=FACES.cool; }
+      else faceBtn.innerHTML=FACES.smile;
+      render();
+    }
+    function flag(x,y){ if(dead||won||revealed[y][x])return; flagged[y][x]=!flagged[y][x]; var f=0; for(var yy=0;yy<H;yy++)for(var xx=0;xx<W;xx++)if(flagged[yy][xx])f++; countEl.textContent=pad(MINES-f); render(); }
+    faceBtn.onclick=reset;
+    window.lmnOpenMines=function(){ var m=document.getElementById('lmn-start-menu'); if(m)m.classList.remove('open'); document.getElementById('lmn-mines-overlay').style.display='block'; reset(); };
+    reset();
+  })();
+
+  // ════════ SOLITAIRE (Klondike, draw-1, click-to-move) ════════
+  (function(){
+    var board=document.getElementById('lmn-sol-board'), msg=document.getElementById('lmn-sol-msg');
+    if(!board) return;
+    var SUIT=['♠','♥','♦','♣']; // spade heart diamond club
+    var RANK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+    var stock,waste,found,tabs,sel;
+    function red(s){return s===1||s===2;}
+    function reset(){
+      var deck=[]; for(var s=0;s<4;s++)for(var r=1;r<=13;r++)deck.push({r:r,s:s});
+      for(var i=deck.length-1;i>0;i--){var j=(Math.random()*(i+1))|0;var t=deck[i];deck[i]=deck[j];deck[j]=t;}
+      stock=[];waste=[];found=[[],[],[],[]];tabs=[[],[],[],[],[],[],[]];sel=null;
+      for(var c=0;c<7;c++)for(var k=0;k<=c;k++){ var card=deck.pop(); tabs[c].push({r:card.r,s:card.s,up:k===c}); }
+      stock=deck.map(function(c){return {r:c.r,s:c.s,up:false};});
+      msg.textContent=''; render();
+    }
+    function makeCard(card,faceClass){
+      var d=document.createElement('div');
+      if(!card.up){ d.className='lmn-card down'; return d; }
+      d.className='lmn-card '+(red(card.s)?'red':'black');
+      d.innerHTML='<span class="cr">'+RANK[card.r]+'</span><span class="cmid">'+SUIT[card.s]+'</span><span class="cs">'+SUIT[card.s]+'</span>';
+      return d;
+    }
+    function place(el,x,y){ el.style.left=x+'px'; el.style.top=y+'px'; board.appendChild(el); }
+    var COLX=[0,56,112,168,224,280,336], FOUNDX=[168,224,280,336];
+    function render(){
+      board.innerHTML='';
+      // slots
+      [[0,0],[56,0]].concat(FOUNDX.map(function(x){return [x,0];})).forEach(function(p){ var s=document.createElement('div'); s.className='lmn-sol-slot'; s.style.left=p[0]+'px'; s.style.top='0px'; board.appendChild(s); });
+      // stock
+      if(stock.length){ var sb=document.createElement('div'); sb.className='lmn-card down'; place(sb,0,0); sb.onclick=draw; }
+      else { var rc=document.createElement('div'); rc.className='lmn-sol-slot'; rc.style.cssText='left:0;top:0;cursor:pointer'; rc.innerHTML='<div style="color:#fff;text-align:center;margin-top:24px;font-size:18px">↺</div>'; board.appendChild(rc); rc.onclick=draw; }
+      // waste
+      if(waste.length){ var w=waste[waste.length-1]; var wc=makeCard(w); if(isSel('w',0,waste.length-1))wc.classList.add('sel'); place(wc,56,0); wc.onclick=function(){clickWaste();}; wc.ondblclick=function(){toFound('w',0,waste.length-1);}; }
+      // foundations
+      for(var f=0;f<4;f++){ var pile=found[f]; if(pile.length){ var fc=makeCard(pile[pile.length-1]); place(fc,FOUNDX[f],0); (function(f){fc.onclick=function(){clickFound(f);};})(f); } else { var fs=board.children[2+f]; fs.style.cursor='pointer'; (function(f){fs.onclick=function(){clickFound(f);};})(f); } }
+      // tableaus
+      for(var c=0;c<7;c++){ var pile=tabs[c]; if(!pile.length){ var es=document.createElement('div'); es.className='lmn-sol-slot'; es.style.left=COLX[c]+'px'; es.style.top='86px'; es.style.cursor='pointer'; (function(c){es.onclick=function(){clickTab(c,-1);};})(c); board.appendChild(es); continue; }
+        for(var k=0;k<pile.length;k++){ var cd=makeCard(pile[k]); if(isSel('t',c,k))cd.classList.add('sel'); cd.style.zIndex=k+1; place(cd,COLX[c],86+k*18); (function(c,k,up){ cd.onclick=function(){ if(up)clickTab(c,k); }; cd.ondblclick=function(){ if(up)toFound('t',c,k); }; })(c,k,pile[k].up); } }
+    }
+    function isSel(f,p,i){ return sel&&sel.f===f&&sel.p===p&&sel.i===i; }
+    function draw(){ sel=null; if(stock.length){ var c=stock.pop(); c.up=true; waste.push(c); } else { while(waste.length){ var c=waste.pop(); c.up=false; stock.push(c);} } render(); }
+    function topCard(f,p){ if(f==='w')return waste[waste.length-1]; if(f==='f')return found[p][found[p].length-1]; var t=tabs[p]; return t[t.length-1]; }
+    function clickWaste(){ if(!waste.length)return; if(isSel('w',0,waste.length-1)){sel=null;render();return;} sel={f:'w',p:0,i:waste.length-1}; render(); }
+    function clickFound(f){
+      if(sel){ var card=selCardSingle(); if(card&&canFound(card,f)){ moveSel(); found[f].push(card); afterMove('found'); return; } }
+      sel=null; render();
+    }
+    function clickTab(c,k){
+      if(sel){ if(canTab(c)){ var moving=selCards(); for(var m=0;m<moving.length;m++)tabs[c].push(moving[m]); removeSel(); afterMove('tab'); return; } }
+      // select: only the top contiguous face-up run from k
+      var pile=tabs[c]; if(k<0||k>=pile.length||!pile[k].up){ sel=null; render(); return; }
+      if(isSel('t',c,k)){ sel=null; render(); return; }
+      sel={f:'t',p:c,i:k}; render();
+    }
+    function selCards(){ if(sel.f==='w')return [waste[waste.length-1]]; if(sel.f==='f')return [found[sel.p][found[sel.p].length-1]]; return tabs[sel.p].slice(sel.i); }
+    function selCardSingle(){ if(sel.f==='t'&&sel.i!==tabs[sel.p].length-1)return null; var a=selCards(); return a.length===1?a[0]:null; }
+    function removeSel(){ if(sel.f==='w')waste.pop(); else if(sel.f==='f')found[sel.p].pop(); else { tabs[sel.p].length=sel.i; var t=tabs[sel.p]; if(t.length&&!t[t.length-1].up)t[t.length-1].up=true; } }
+    function moveSel(){ removeSel(); }
+    function canTab(c){ var moving=selCards(); var bottom=moving[0]; var pile=tabs[c]; if(!pile.length)return bottom.r===13; var top=pile[pile.length-1]; return top.up && red(top.s)!==red(bottom.s) && top.r===bottom.r+1; }
+    function canFound(card,f){ var pile=found[f]; if(!pile.length)return card.r===1; var top=pile[pile.length-1]; return top.s===card.s && card.r===top.r+1; }
+    function toFound(f,p,i){ // auto-send top card to a matching foundation
+      var card; if(f==='w')card=waste[waste.length-1]; else { if(i!==tabs[p].length-1)return; card=tabs[p][i]; }
+      if(!card||!card.up)return;
+      for(var ff=0;ff<4;ff++){ if(canFound(card,ff)){ if(f==='w')waste.pop(); else { tabs[p].pop(); var t=tabs[p]; if(t.length&&!t[t.length-1].up)t[t.length-1].up=true; } found[ff].push(card); sel=null; afterMove('found'); return; } }
+    }
+    function afterMove(){ sel=null; if(found[0].length+found[1].length+found[2].length+found[3].length===52){ msg.textContent='You win! :)'; } render(); }
+    document.getElementById('lmn-sol-new').onclick=reset;
+    window.lmnOpenSolitaire=function(){ var m=document.getElementById('lmn-start-menu'); if(m)m.classList.remove('open'); document.getElementById('lmn-sol-overlay').style.display='block'; reset(); };
+    reset();
+  })();
+})();
+</script>
+<!-- ═══ END Win95 Games ═══ -->

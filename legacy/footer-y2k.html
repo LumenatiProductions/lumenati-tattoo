@@ -519,6 +519,14 @@
         <div class="desktop-icon-img">📝</div>
         <span class="desktop-icon-label">Contact</span>
       </a>
+      <a class="desktop-icon" href="#" onclick="window.lmnOpenMines&&window.lmnOpenMines();return false;">
+        <div class="desktop-icon-img"><svg width="32" height="32" viewBox="0 0 30 30"><rect x="2" y="2" width="26" height="26" rx="2" fill="#c0c0c0" stroke="#808080"/><circle cx="15" cy="15" r="7"/><path d="M15 5v20M5 15h20M8 8l14 14M22 8L8 22" stroke="#000" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="#fff"/></svg></div>
+        <span class="desktop-icon-label">Minesweeper</span>
+      </a>
+      <a class="desktop-icon" href="#" onclick="window.lmnOpenSolitaire&&window.lmnOpenSolitaire();return false;">
+        <div class="desktop-icon-img"><svg width="32" height="32" viewBox="0 0 30 30"><rect x="4" y="7" width="13" height="18" rx="2" fill="#fff" stroke="#000"/><rect x="11" y="5" width="13" height="18" rx="2" fill="#fff" stroke="#000"/><path d="M17.5 10c-1-2-4-1.3-4 1 0 2.2 4 4.3 4 4.3s4-2.1 4-4.3c0-2.3-3-3-4-1z" fill="#d00"/></svg></div>
+        <span class="desktop-icon-label">Solitaire</span>
+      </a>
       <a class="desktop-icon" href="#">
         <div class="desktop-icon-img">🗑️</div>
         <span class="desktop-icon-label">Recycle Bin</span>
@@ -584,7 +592,16 @@
         <div class="lmn-start-menu" id="lmn-start-menu">
           <div class="lmn-start-side">Lumenati<span>OS</span> 95</div>
           <div class="lmn-start-items">
-            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M1 4h5l1 1h8v8H1z" fill="#ffd54a" stroke="#806600" stroke-width=".5"/></svg>Programs<i class="lmn-arrow"></i></div>
+            <div class="lmn-start-sub">
+              <div class="lmn-start-row" id="lmn-programs-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M1 4h5l1 1h8v8H1z" fill="#ffd54a" stroke="#806600" stroke-width=".5"/></svg>Programs<i class="lmn-arrow"></i></div>
+              <div class="lmn-start-flyout" id="lmn-programs-flyout">
+                <div class="lmn-start-row" onclick="window.lmnOpenMines&&window.lmnOpenMines()"><svg class="lmn-ico" viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14" rx="1" fill="#c0c0c0" stroke="#808080"/><circle cx="8" cy="8" r="3.5"/><path d="M8 3v10M3 8h10" stroke="#000" stroke-width="1"/></svg>Minesweeper</div>
+                <div class="lmn-start-row" onclick="window.lmnOpenSolitaire&&window.lmnOpenSolitaire()"><svg class="lmn-ico" viewBox="0 0 16 16"><rect x="2" y="3" width="7" height="10" rx="1" fill="#fff" stroke="#000"/><rect x="6" y="2" width="7" height="10" rx="1" fill="#fff" stroke="#000"/><path d="M9.5 5c-.6-1.1-2.2-.7-2.2.5 0 1.2 2.2 2.4 2.2 2.4s2.2-1.2 2.2-2.4c0-1.2-1.6-1.6-2.2-.5z" fill="#d00"/></svg>Solitaire</div>
+                <div class="lmn-start-sep"></div>
+                <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="#2a7fd4" stroke="#15528a"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12" fill="none" stroke="#fff" stroke-width=".7"/></svg>Internet Explorer</div>
+                <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M3 2h7l3 3v9H3z" fill="#fff" stroke="#888"/><path d="M5 8h6M5 10h6M5 12h4" stroke="#48a" stroke-width=".8"/></svg>Notepad</div>
+              </div>
+            </div>
             <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z" fill="#fff" stroke="#888" stroke-width=".6"/><path d="M5 8h6M5 10h6M5 12h4" stroke="#4a9" stroke-width=".8"/></svg>Documents<i class="lmn-arrow"></i></div>
             <div class="lmn-start-sub">
               <div class="lmn-start-row" id="lmn-settings-row"><svg class="lmn-ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="none" stroke="#444" stroke-width="1.4"/><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.5 3.5l2 2M10.5 10.5l2 2M12.5 3.5l-2 2M5.5 10.5l-2 2" stroke="#444" stroke-width="1"/></svg>Settings<i class="lmn-arrow"></i></div>
@@ -622,24 +639,24 @@
   var btn = document.getElementById('lmn-start-btn');
   var menu = document.getElementById('lmn-start-menu');
   if (!btn || !menu) return;
-  var settings = document.getElementById('lmn-settings-row');
-  var flyout = document.getElementById('lmn-settings-flyout');
-  function closeAll() {
-    menu.classList.remove('open');
-    if (flyout) flyout.classList.remove('lmn-flyout-open');
-  }
+  var flyouts = menu.querySelectorAll('.lmn-start-flyout');
+  function closeFlyouts(){ flyouts.forEach(function(f){ f.classList.remove('lmn-flyout-open'); }); }
+  function closeAll() { menu.classList.remove('open'); closeFlyouts(); }
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
     menu.classList.toggle('open');
-    if (!menu.classList.contains('open') && flyout) flyout.classList.remove('lmn-flyout-open');
+    if (!menu.classList.contains('open')) closeFlyouts();
   });
-  // Settings opens the Control Panel flyout on click too (for touch, not just hover).
-  if (settings && flyout) {
-    settings.addEventListener('click', function(e) {
+  // Each submenu (Programs, Settings) opens its flyout on click too (touch, not just hover).
+  menu.querySelectorAll('.lmn-start-sub > .lmn-start-row').forEach(function(row) {
+    row.addEventListener('click', function(e) {
       e.stopPropagation();
-      flyout.classList.toggle('lmn-flyout-open');
+      var fly = row.parentNode.querySelector('.lmn-start-flyout');
+      var wasOpen = fly.classList.contains('lmn-flyout-open');
+      closeFlyouts();
+      if (!wasOpen) fly.classList.add('lmn-flyout-open');
     });
-  }
+  });
   document.addEventListener('click', function(e) {
     if (e.target !== btn && !menu.contains(e.target) && !btn.contains(e.target)) closeAll();
   });
