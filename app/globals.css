@@ -1,0 +1,14 @@
+/* Global reset for the public Y2K site.
+   The Y2K page blocks bring their own scoped CSS; keep this minimal so it
+   never fights the ported Squarespace styling. Tailwind lives only under
+   /admin (phase 2) and is imported there, not here. */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  max-width: 100vw;
+  overflow-x: hidden;
+}

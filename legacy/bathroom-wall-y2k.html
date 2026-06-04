@@ -1,0 +1,91 @@
+<!-- ─── THE BATHROOM WALL — secret page ─── -->
+
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Permanent+Marker&family=Rock+Salt&display=swap" rel="stylesheet">
+
+<style>
+  .bathroom {
+    min-height: 100vh;
+    background: url('https://images.squarespace-cdn.com/content/60007bfc3f491826496124f4/3a6e534c-bee6-4095-8271-61ee3238e89b/1000s.jpg?content-type=image%2Fjpeg') center / cover no-repeat fixed;
+    background-color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    animation: br-flicker 8s infinite;
+  }
+
+  @keyframes br-flicker {
+    0%, 95%, 100% { filter: brightness(1); }
+    96% { filter: brightness(0.7); }
+    97% { filter: brightness(1.1); }
+    98% { filter: brightness(0.5); }
+    99% { filter: brightness(0.9); }
+  }
+
+  .bathroom-content {
+    text-align: center;
+    padding: 40px;
+    max-width: 500px;
+  }
+
+  .bathroom-title {
+    font-family: 'Permanent Marker', cursive;
+    font-size: clamp(32px, 8vw, 56px);
+    color: #fff;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 0 0 20px rgba(255,20,147,0.4);
+    margin-bottom: 16px;
+    transform: rotate(-2deg);
+  }
+
+  .bathroom-sub {
+    font-family: 'Rock Salt', cursive;
+    font-size: clamp(14px, 3vw, 18px);
+    color: rgba(255,255,255,0.6);
+    line-height: 1.8;
+    margin-bottom: 32px;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .bathroom-hint {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: rgba(255,255,255,0.15);
+    margin-top: 40px;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .bathroom-exit {
+    display: inline-block;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 24px;
+    background: rgba(255,0,0,0.7);
+    border: none;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: background 0.2s;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .bathroom-exit:hover {
+    background: rgba(255,0,0,0.9);
+    color: #fff;
+  }
+</style>
+
+<section class="bathroom">
+  <div class="bathroom-content">
+    <div class="bathroom-title">oh. you found the bathroom.</div>
+    <div class="bathroom-sub">
+      there's no soap.<br>
+      the lock is broken.<br>
+      someone wrote "PUNK'S NOT DEAD" on the mirror.<br>
+      it smells like cheap cologne and bad decisions.
+    </div>
+    <a href="/" class="bathroom-exit">EXIT</a>
+    <div class="bathroom-hint">psst... the konami code works on the main page ;)</div>
+  </div>
+</section>
