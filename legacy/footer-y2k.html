@@ -323,16 +323,31 @@
   .lmn-start-side span { color: #b6ffb6; }
   .lmn-start-items { flex: 1; padding: 4px; }
   .lmn-start-row {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 9px;
     padding: 6px 12px;
     font-size: 13px;
     color: #000;
     text-decoration: none;
     cursor: pointer;
+    white-space: nowrap;
   }
-  a.lmn-start-row:hover { background: #1e7a1e; color: #fff; }
-  .lmn-start-row.lmn-disabled { color: #888; cursor: default; }
+  /* all items highlight on hover like real Win95, so Control Panel doesn't stand out */
+  .lmn-start-row:hover { background: #1e7a1e; color: #fff; }
+  .lmn-ico { width: 19px; height: 19px; flex-shrink: 0; }
+  .lmn-arrow { margin-left: auto; width: 0; height: 0; border-left: 5px solid currentColor; border-top: 4px solid transparent; border-bottom: 4px solid transparent; opacity: .5; }
   .lmn-start-sep { height: 0; border-top: 1px solid #808080; border-bottom: 1px solid #fff; margin: 4px 8px; }
+  /* Settings flyout (Win95-style) where the real Control Panel link lives */
+  .lmn-start-sub { position: relative; }
+  .lmn-start-flyout {
+    position: absolute; left: 100%; top: -3px; display: none;
+    min-width: 188px; background: #c0c0c0; padding: 3px;
+    border: 2px solid; border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.45);
+  }
+  .lmn-start-sub:hover .lmn-start-flyout,
+  .lmn-start-flyout.lmn-flyout-open { display: block; }
 
   /* Start button — XP green style */
   .start-btn {
@@ -567,13 +582,23 @@
           start
         </div>
         <div class="lmn-start-menu" id="lmn-start-menu">
-          <div class="lmn-start-side">Lumenati<span>OS</span></div>
+          <div class="lmn-start-side">Lumenati<span>OS</span> 95</div>
           <div class="lmn-start-items">
-            <div class="lmn-start-row lmn-disabled">Programs</div>
-            <div class="lmn-start-row lmn-disabled">Documents</div>
-            <a class="lmn-start-row" href="/admin">Control Panel</a>
+            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M1 4h5l1 1h8v8H1z" fill="#ffd54a" stroke="#806600" stroke-width=".5"/></svg>Programs<i class="lmn-arrow"></i></div>
+            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z" fill="#fff" stroke="#888" stroke-width=".6"/><path d="M5 8h6M5 10h6M5 12h4" stroke="#4a9" stroke-width=".8"/></svg>Documents<i class="lmn-arrow"></i></div>
+            <div class="lmn-start-sub">
+              <div class="lmn-start-row" id="lmn-settings-row"><svg class="lmn-ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="none" stroke="#444" stroke-width="1.4"/><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.5 3.5l2 2M10.5 10.5l2 2M12.5 3.5l-2 2M5.5 10.5l-2 2" stroke="#444" stroke-width="1"/></svg>Settings<i class="lmn-arrow"></i></div>
+              <div class="lmn-start-flyout" id="lmn-settings-flyout">
+                <a class="lmn-start-row" href="/admin"><svg class="lmn-ico" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1" fill="#cdd6e0" stroke="#5a6b7a" stroke-width=".7"/><circle cx="5" cy="6.5" r="1.3" fill="#3a6ea5"/><circle cx="10.5" cy="9.5" r="1.3" fill="#3a6ea5"/><path d="M3.5 6.5h8M3.5 9.5h8" stroke="#9aa8b5" stroke-width=".5"/></svg>Control Panel</a>
+                <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><rect x="3" y="6" width="10" height="5" fill="#cfd8e0" stroke="#5a6b7a" stroke-width=".6"/><rect x="5" y="3" width="6" height="3" fill="#eee" stroke="#5a6b7a" stroke-width=".5"/></svg>Printers</div>
+                <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><rect x="2" y="6" width="12" height="6" rx="1" fill="#3a6ea5" stroke="#1a3a55" stroke-width=".6"/><circle cx="5" cy="9" r="1" fill="#9f9"/><circle cx="8" cy="9" r="1" fill="#9f9"/></svg>Dial-Up Networking</div>
+              </div>
+            </div>
+            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="4" fill="#cfe8ff" stroke="#2a5d8f" stroke-width="1.2"/><line x1="9.5" y1="9.5" x2="14" y2="14" stroke="#2a5d8f" stroke-width="1.6"/></svg>Find<i class="lmn-arrow"></i></div>
+            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z" fill="#ffe08a" stroke="#806600" stroke-width=".6"/><path d="M7 6.5a1.5 1.5 0 1 1 2 1.4c-.6.3-1 .6-1 1.3M8 11.2v.1" stroke="#7a5c00" stroke-width="1.1" fill="none"/></svg>Help</div>
+            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" fill="#fff" stroke="#444" stroke-width=".7"/><rect x="2" y="3" width="12" height="3" fill="#1a4ea8"/></svg>Run...</div>
             <div class="lmn-start-sep"></div>
-            <div class="lmn-start-row lmn-disabled">Log Off...</div>
+            <div class="lmn-start-row"><svg class="lmn-ico" viewBox="0 0 16 16"><path d="M8 2v6" stroke="#c00" stroke-width="1.6"/><path d="M5 4.5a5 5 0 1 0 6 0" stroke="#c00" stroke-width="1.4" fill="none"/></svg>Shut Down...</div>
           </div>
         </div>
         <div class="taskbar-items">
@@ -597,14 +622,26 @@
   var btn = document.getElementById('lmn-start-btn');
   var menu = document.getElementById('lmn-start-menu');
   if (!btn || !menu) return;
+  var settings = document.getElementById('lmn-settings-row');
+  var flyout = document.getElementById('lmn-settings-flyout');
+  function closeAll() {
+    menu.classList.remove('open');
+    if (flyout) flyout.classList.remove('lmn-flyout-open');
+  }
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
     menu.classList.toggle('open');
+    if (!menu.classList.contains('open') && flyout) flyout.classList.remove('lmn-flyout-open');
   });
+  // Settings opens the Control Panel flyout on click too (for touch, not just hover).
+  if (settings && flyout) {
+    settings.addEventListener('click', function(e) {
+      e.stopPropagation();
+      flyout.classList.toggle('lmn-flyout-open');
+    });
+  }
   document.addEventListener('click', function(e) {
-    if (e.target !== btn && !menu.contains(e.target) && !btn.contains(e.target)) {
-      menu.classList.remove('open');
-    }
+    if (e.target !== btn && !menu.contains(e.target) && !btn.contains(e.target)) closeAll();
   });
 })();
 </script>
