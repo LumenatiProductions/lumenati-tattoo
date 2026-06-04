@@ -6,13 +6,13 @@ import type { RoomContent } from "./types";
 
 // Songs the Winamp player knows about (files live in /public/audio).
 export const SONGS: { id: string; label: string }[] = [
-  { id: "offspring", label: "The Offspring — The Kids Aren't Alright" },
-  { id: "goldfinger", label: "Goldfinger — Superman" },
-  { id: "no-doubt", label: "No Doubt — Just a Girl" },
-  { id: "shorty", label: "A Day to Remember — You Should Have Killed Me" },
-  { id: "outkast", label: "Outkast — Ms. Jackson" },
-  { id: "blink182", label: "Blink-182 — Mutt" },
-  { id: "manson", label: "Marilyn Manson — The Dope Show" },
+  { id: "offspring", label: "The Offspring - The Kids Aren't Alright" },
+  { id: "goldfinger", label: "Goldfinger - Superman" },
+  { id: "no-doubt", label: "No Doubt - Just a Girl" },
+  { id: "shorty", label: "A Day to Remember - You Should Have Killed Me" },
+  { id: "outkast", label: "Outkast - Ms. Jackson" },
+  { id: "blink182", label: "Blink-182 - Mutt" },
+  { id: "manson", label: "Marilyn Manson - The Dope Show" },
 ];
 
 // Preset accent swatches (the crew's colors + a couple extra).

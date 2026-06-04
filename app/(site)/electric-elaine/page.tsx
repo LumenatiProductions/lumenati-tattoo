@@ -1,7 +1,11 @@
 import LegacyBlock from "@/components/LegacyBlock";
-import { readLegacyBlock } from "@/lib/legacy";
+import { fetchRoom } from "@/lib/admin/room-data";
+import { renderRoomHtml } from "@/lib/admin/render-room";
 
-export default function ElectricElainePage() {
-  const html = readLegacyBlock("artist-elaine-y2k.html");
+// Render fresh from the DB each request so artist edits go live immediately.
+export const dynamic = "force-dynamic";
+
+export default async function ElectricElainePage() {
+  const html = renderRoomHtml(await fetchRoom("elaine"), "Electric Elaine", false);
   return <LegacyBlock html={html} />;
 }
