@@ -16,3 +16,17 @@
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* Shared form input (room editor, future forms). */
+.inp {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(0 0 0 / 0.1);
+  background: #fff;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+.inp:focus {
+  border-color: var(--color-brand);
+}

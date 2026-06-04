@@ -70,3 +70,32 @@ export interface RentCharge {
   dueDate: string;
   paid: boolean;
 }
+
+// ── Artist-editable room content ──
+// The Y2K "bedroom" pages render from this so artists can manage their own
+// room from the command center. `src` values are image URLs (local
+// /legacy-assets today; Supabase Storage once uploads are wired).
+
+export interface Polaroid {
+  id: string;
+  src: string;
+  caption: string;
+}
+
+export interface PortfolioItem {
+  id: string;
+  src: string;
+  alt: string;
+}
+
+export interface RoomContent {
+  artistId: string;
+  tagline: string; // "skater // gamer // bold color tattoos"
+  bio: string; // the buddy-info blurb
+  igHandle: string; // without the @
+  songId: string; // see SONGS in room-content.tsx
+  accentColor: string; // hex; their room accent
+  profilePhoto: string; // src
+  polaroids: Polaroid[];
+  portfolio: PortfolioItem[];
+}

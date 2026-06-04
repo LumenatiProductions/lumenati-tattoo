@@ -4,11 +4,13 @@ import "./admin.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS } from "@/lib/admin/role-context";
+import { RoomContentProvider } from "@/lib/admin/room-content";
 import { ARTISTS } from "@/lib/admin/mock-data";
 import type { Role } from "@/lib/admin/types";
 
 const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/admin", label: "Overview", roles: ["owner", "bookkeeper", "artist", "frontdesk"] },
+  { href: "/admin/room", label: "My Room", roles: ["owner", "artist"] },
   { href: "/admin/artists", label: "Artists & Pay", roles: ["owner", "bookkeeper"] },
   { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
   { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
@@ -103,10 +105,12 @@ function Sidebar() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <RoleProvider>
-      <div className="flex min-h-screen bg-paper text-ink antialiased">
-        <Sidebar />
-        <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
-      </div>
+      <RoomContentProvider>
+        <div className="flex min-h-screen bg-paper text-ink antialiased">
+          <Sidebar />
+          <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+        </div>
+      </RoomContentProvider>
     </RoleProvider>
   );
 }
