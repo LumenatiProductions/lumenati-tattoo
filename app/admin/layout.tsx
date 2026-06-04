@@ -91,12 +91,14 @@ function Sidebar() {
             ))}
           </select>
         )}
-        <Link
+        <a
           href="/"
+          target="_blank"
+          rel="noreferrer"
           className="mt-3 block px-1 text-xs text-black/40 hover:text-black/70"
         >
-          ← back to the site
-        </Link>
+          View site ↗
+        </a>
       </div>
     </aside>
   );

@@ -289,7 +289,50 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    position: relative;
   }
+
+  /* Hidden Start menu — Control Panel lives in here */
+  .lmn-start-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 3px;
+    display: none;
+    width: 210px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.45);
+    z-index: 9999999;
+    font-family: Tahoma, 'VT323', sans-serif;
+  }
+  .lmn-start-menu.open { display: flex; }
+  .lmn-start-side {
+    width: 28px;
+    background: linear-gradient(180deg, #3c9a3c 0%, #1e7a1e 60%, #0a3d0a 100%);
+    color: #fff;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-weight: bold;
+    font-size: 14px;
+    text-align: center;
+    padding: 8px 0;
+    letter-spacing: 1px;
+  }
+  .lmn-start-side span { color: #b6ffb6; }
+  .lmn-start-items { flex: 1; padding: 4px; }
+  .lmn-start-row {
+    display: block;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  a.lmn-start-row:hover { background: #1e7a1e; color: #fff; }
+  .lmn-start-row.lmn-disabled { color: #888; cursor: default; }
+  .lmn-start-sep { height: 0; border-top: 1px solid #808080; border-bottom: 1px solid #fff; margin: 4px 8px; }
 
   /* Start button — XP green style */
   .start-btn {
@@ -519,9 +562,19 @@
     <!-- Taskbar -->
     <div class="taskbar">
       <div class="taskbar-left">
-        <div class="start-btn">
+        <div class="start-btn" id="lmn-start-btn" style="cursor:pointer">
           <div class="start-flag"><div></div><div></div><div></div><div></div></div>
           start
+        </div>
+        <div class="lmn-start-menu" id="lmn-start-menu">
+          <div class="lmn-start-side">Lumenati<span>OS</span></div>
+          <div class="lmn-start-items">
+            <div class="lmn-start-row lmn-disabled">Programs</div>
+            <div class="lmn-start-row lmn-disabled">Documents</div>
+            <a class="lmn-start-row" href="/admin">Control Panel</a>
+            <div class="lmn-start-sep"></div>
+            <div class="lmn-start-row lmn-disabled">Log Off...</div>
+          </div>
         </div>
         <div class="taskbar-items">
           <a href="/" class="taskbar-item">📁 Home</a>
@@ -537,6 +590,24 @@
 
   </div>
 </footer>
+
+<script>
+// Start menu toggle (hides the Control Panel / admin entry behind the Start button)
+(function() {
+  var btn = document.getElementById('lmn-start-btn');
+  var menu = document.getElementById('lmn-start-menu');
+  if (!btn || !menu) return;
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    menu.classList.toggle('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (e.target !== btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>
 
 <script>
 (function() {

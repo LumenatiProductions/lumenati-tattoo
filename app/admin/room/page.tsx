@@ -17,6 +17,16 @@ import { Card, SectionTitle } from "@/components/admin/ui";
 let uid = 0;
 const newId = (p: string) => `${p}-${Date.now().toString(36)}-${uid++}`;
 
+// artistId -> public room route.
+const ROOM_PATHS: Record<string, string> = {
+  jd: "/jd-pruitt",
+  elaine: "/electric-elaine",
+  shorty: "/shorty",
+  kalypso: "/king-kalypso",
+  sam: "/sam-durbin-clark",
+  moonie: "/moonie-b-jones",
+};
+
 export default function RoomEditorPage() {
   const { role, asArtistId } = useRole();
   const { get, update } = useRoomContent();
@@ -39,19 +49,29 @@ export default function RoomEditorPage() {
             Edit what shows in your room. Changes go live right away.
           </p>
         </div>
-        {role === "owner" && (
-          <select
-            value={ownerPick}
-            onChange={(e) => setOwnerPick(e.target.value)}
-            className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm"
+        <div className="flex items-center gap-2">
+          {role === "owner" && (
+            <select
+              value={ownerPick}
+              onChange={(e) => setOwnerPick(e.target.value)}
+              className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm"
+            >
+              {ARTISTS.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}&apos;s room
+                </option>
+              ))}
+            </select>
+          )}
+          <a
+            href={ROOM_PATHS[artistId]}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
           >
-            {ARTISTS.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}&apos;s room
-              </option>
-            ))}
-          </select>
-        )}
+            View live room ↗
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(360px,440px)]">
