@@ -230,9 +230,11 @@
   </div>
 </div>
 <style>
-  #clippy-container { position:fixed; bottom:0; left:24px; z-index:999999; transform:translateY(200px); transition:transform 0.6s cubic-bezier(0.34,1.56,0.64,1); font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+  #clippy-container { position:fixed; bottom:44px; left:24px; z-index:999999; transform:translateY(240px); transition:transform 0.6s cubic-bezier(0.34,1.56,0.64,1); font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; pointer-events:none; }
+  /* Let clicks pass through Clippy's empty container to the taskbar/start button beneath; keep Clippy itself clickable. */
+  #clippy-bubble, #clippy-character { pointer-events:auto; }
   #clippy-container.clippy-visible { transform:translateY(0); }
-  #clippy-container.clippy-hiding { transform:translateY(200px); transition:transform 0.4s ease-in; }
+  #clippy-container.clippy-hiding { transform:translateY(240px); transition:transform 0.4s ease-in; }
   #clippy-bubble { position:relative; background:#FFFFCC; border:2px solid #000; border-radius:8px; padding:14px 16px 12px; margin-bottom:8px; max-width:220px; box-shadow:2px 2px 0 rgba(0,0,0,0.15); opacity:0; transform:scale(0.8); transition:opacity 0.3s ease,transform 0.3s ease; }
   #clippy-container.clippy-visible #clippy-bubble { opacity:1; transform:scale(1); transition-delay:0.4s; }
   #clippy-bubble-tail { position:absolute; bottom:-10px; left:24px; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:10px solid #000; }
