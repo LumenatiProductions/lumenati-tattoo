@@ -1,11 +1,11 @@
 "use client";
 
-import "./admin.css";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
 import { ARTISTS } from "@/lib/admin/mock-data";
+import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/admin/types";
 
 const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
@@ -14,15 +14,23 @@ const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/admin/artists", label: "Artists & Pay", roles: ["owner", "bookkeeper"] },
   { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
   { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
+  { href: "/admin/staff", label: "Staff", roles: ["owner"] },
   { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner", "bookkeeper"], soon: true },
   { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"], soon: true },
   { href: "/admin/integrations", label: "Integrations", roles: ["owner"], soon: true },
 ];
 
 function Sidebar() {
-  const { role, setRole, asArtistId, setAsArtistId } = useRole();
+  const { role, setRole, asArtistId, setAsArtistId, canPreview, email } = useRole();
   const pathname = usePathname();
+  const router = useRouter();
   const items = NAV.filter((n) => n.roles.includes(role));
+
+  const logout = async () => {
+    await createClient().auth.signOut();
+    router.push("/admin/login");
+    router.refresh();
+  };
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-black/8 bg-white">
@@ -62,51 +70,78 @@ function Sidebar() {
         })}
       </nav>
 
-      {/* Demo role switcher — replaced by real auth/session later. */}
-      <div className="border-t border-black/8 p-3">
-        <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-black/35">
-          Preview as
-        </div>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as Role)}
-          className="w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
-        >
-          {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
-        {role === "artist" && (
+      {canPreview && (
+        <div className="border-t border-black/8 p-3">
+          <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-black/35">
+            Preview as
+          </div>
           <select
-            value={asArtistId}
-            onChange={(e) => setAsArtistId(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+            value={role}
+            onChange={(e) => setRole(e.target.value as Role)}
+            className="w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
           >
-            {ARTISTS.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
+            {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
               </option>
             ))}
           </select>
-        )}
-        <a
-          href="/"
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 block px-1 text-xs text-black/40 hover:text-black/70"
-        >
-          View site ↗
-        </a>
+          {role === "artist" && (
+            <select
+              value={asArtistId}
+              onChange={(e) => setAsArtistId(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+            >
+              {ARTISTS.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+
+      <div className="border-t border-black/8 p-3">
+        <div className="truncate px-1 text-[11px] text-black/45" title={email}>
+          {email}
+        </div>
+        <div className="mt-1.5 flex items-center justify-between">
+          <button
+            onClick={logout}
+            className="rounded-lg border border-black/10 px-2.5 py-1 text-xs font-medium text-black/60 hover:bg-black/4"
+          >
+            Log out
+          </button>
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="px-1 text-xs text-black/40 hover:text-black/70"
+          >
+            View site ↗
+          </a>
+        </div>
       </div>
     </aside>
   );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminShell({
+  realRole,
+  realArtistId,
+  email,
+  fullName,
+  children,
+}: {
+  realRole: Role;
+  realArtistId: string | null;
+  email: string;
+  fullName: string | null;
+  children: React.ReactNode;
+}) {
   return (
-    <RoleProvider>
+    <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName}>
       <RoomContentProvider>
         <div className="flex min-h-screen bg-paper text-ink antialiased">
           <Sidebar />

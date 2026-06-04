@@ -1,43 +1,51 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import type { Role } from "./types";
 
-// Demo-only role switching backed by localStorage. When Supabase auth lands,
-// the role comes from the authenticated session (server-side) and this provider
-// just reflects it. For now it lets us preview every role's view.
+// Role now comes from the authenticated profile. Owners can "preview as" other
+// roles (in-memory, for support/QA); everyone else is locked to their role.
 type RoleCtx = {
   role: Role;
   setRole: (r: Role) => void;
-  /** For the artist role: which artist we're previewing as. */
   asArtistId: string;
   setAsArtistId: (id: string) => void;
+  email: string;
+  fullName: string | null;
+  realRole: Role;
+  canPreview: boolean;
 };
 
 const Ctx = createContext<RoleCtx | null>(null);
 
-export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRoleState] = useState<Role>("owner");
-  const [asArtistId, setAsArtistIdState] = useState<string>("jd");
-
-  useEffect(() => {
-    const r = localStorage.getItem("lum-role") as Role | null;
-    const a = localStorage.getItem("lum-artist");
-    if (r) setRoleState(r);
-    if (a) setAsArtistIdState(a);
-  }, []);
+export function RoleProvider({
+  realRole,
+  realArtistId,
+  email,
+  fullName,
+  children,
+}: {
+  realRole: Role;
+  realArtistId: string | null;
+  email: string;
+  fullName: string | null;
+  children: React.ReactNode;
+}) {
+  const canPreview = realRole === "owner";
+  const [role, setRoleState] = useState<Role>(realRole);
+  const [asArtistId, setAsArtistIdState] = useState<string>(realArtistId ?? "jd");
 
   const setRole = (r: Role) => {
-    setRoleState(r);
-    localStorage.setItem("lum-role", r);
+    if (canPreview) setRoleState(r);
   };
   const setAsArtistId = (id: string) => {
-    setAsArtistIdState(id);
-    localStorage.setItem("lum-artist", id);
+    if (canPreview) setAsArtistIdState(id);
   };
 
   return (
-    <Ctx.Provider value={{ role, setRole, asArtistId, setAsArtistId }}>
+    <Ctx.Provider
+      value={{ role, setRole, asArtistId, setAsArtistId, email, fullName, realRole, canPreview }}
+    >
       {children}
     </Ctx.Provider>
   );
