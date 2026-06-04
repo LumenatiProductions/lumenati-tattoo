@@ -1,14 +1,16 @@
 "use client";
 
 import { useRole } from "@/lib/admin/role-context";
-import { ARTISTS, SALES, RENT_CHARGES } from "@/lib/admin/mock-data";
+import { useSales } from "@/lib/admin/sales-context";
+import { ARTISTS, RENT_CHARGES } from "@/lib/admin/mock-data";
 import { statementFor, fmt, type ArtistStatement } from "@/lib/admin/calc";
 import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
 
 export default function PayoutsPage() {
   const { role, asArtistId } = useRole();
+  const { sales, real } = useSales();
 
-  const all = ARTISTS.map((a) => statementFor(a, SALES, RENT_CHARGES));
+  const all = ARTISTS.map((a) => statementFor(a, sales, RENT_CHARGES));
   const visible =
     role === "artist" ? all.filter((s) => s.artist.id === asArtistId) : all;
 
@@ -24,7 +26,7 @@ export default function PayoutsPage() {
           is who writes whom a check.
         </p>
       </div>
-      <MockBanner source="Square" />
+      {!real && <MockBanner source="Square" />}
 
       {role !== "artist" && (
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">

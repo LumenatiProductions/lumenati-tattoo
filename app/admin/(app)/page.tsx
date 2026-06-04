@@ -1,7 +1,8 @@
 "use client";
 
 import { useRole, ROLE_LABELS } from "@/lib/admin/role-context";
-import { ARTISTS, SALES, RENT_CHARGES, CASH_LOG } from "@/lib/admin/mock-data";
+import { ARTISTS, RENT_CHARGES, CASH_LOG } from "@/lib/admin/mock-data";
+import { useSales } from "@/lib/admin/sales-context";
 import {
   shopSummary,
   statementFor,
@@ -37,8 +38,9 @@ function PageHead({ title, sub }: { title: string; sub: string }) {
 
 // ── Owner / Bookkeeper: the whole shop ──
 function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
-  const s = shopSummary(ARTISTS, SALES, RENT_CHARGES);
-  const statements = ARTISTS.map((a) => statementFor(a, SALES, RENT_CHARGES)).sort(
+  const { sales, real } = useSales();
+  const s = shopSummary(ARTISTS, sales, RENT_CHARGES);
+  const statements = ARTISTS.map((a) => statementFor(a, sales, RENT_CHARGES)).sort(
     (x, y) => y.grossService - x.grossService,
   );
   const cashOutstanding = CASH_LOG.filter((c) => !c.reconciled).reduce(
@@ -53,10 +55,10 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
   return (
     <div>
       <PageHead
-        title={bookkeeper ? "Books — May/Jun 2026" : "Shop Overview"}
-        sub="Period to date · all figures are preview data"
+        title={bookkeeper ? "Books" : "Shop Overview"}
+        sub={real ? "Live from Square" : "Period to date · all figures are preview data"}
       />
-      <MockBanner source="Square & QuickBooks" />
+      {!real && <MockBanner source="Square & QuickBooks" />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Gross sales" value={fmt(s.grossSales)} sub="service + tips" />
@@ -157,14 +159,15 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
 
 // ── Single artist: just their numbers ──
 function ArtistOverview({ artistId }: { artistId: string }) {
+  const { sales, real } = useSales();
   const artist = ARTISTS.find((a) => a.id === artistId)!;
-  const st = statementFor(artist, SALES, RENT_CHARGES);
-  const mine = SALES.filter((s) => s.artistId === artistId);
+  const st = statementFor(artist, sales, RENT_CHARGES);
+  const mine = sales.filter((s) => s.artistId === artistId);
 
   return (
     <div>
       <PageHead title={`Hey, ${artist.name.split(" ")[0]}`} sub={payTypeLabel(artist)} />
-      <MockBanner source="Square" />
+      {!real && <MockBanner source="Square" />}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips" accent />
         <StatCard label="Tips" value={fmt(st.grossTips)} />

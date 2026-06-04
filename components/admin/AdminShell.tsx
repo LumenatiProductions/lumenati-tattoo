@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
+import { SalesProvider } from "@/lib/admin/sales-context";
 import { ARTISTS } from "@/lib/admin/mock-data";
 import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/admin/types";
@@ -15,9 +16,9 @@ const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
   { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
   { href: "/admin/staff", label: "Staff", roles: ["owner"] },
+  { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
   { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner", "bookkeeper"], soon: true },
   { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"], soon: true },
-  { href: "/admin/integrations", label: "Integrations", roles: ["owner"], soon: true },
 ];
 
 function Sidebar() {
@@ -143,10 +144,12 @@ export default function AdminShell({
   return (
     <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName}>
       <RoomContentProvider>
-        <div className="flex min-h-screen bg-paper text-ink antialiased">
-          <Sidebar />
-          <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
-        </div>
+        <SalesProvider>
+          <div className="flex min-h-screen bg-paper text-ink antialiased">
+            <Sidebar />
+            <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+          </div>
+        </SalesProvider>
       </RoomContentProvider>
     </RoleProvider>
   );

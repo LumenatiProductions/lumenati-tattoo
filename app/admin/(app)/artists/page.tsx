@@ -1,10 +1,12 @@
 "use client";
 
-import { ARTISTS, SALES, RENT_CHARGES } from "@/lib/admin/mock-data";
+import { ARTISTS, RENT_CHARGES } from "@/lib/admin/mock-data";
+import { useSales } from "@/lib/admin/sales-context";
 import { statementFor, fmt, payTypeLabel } from "@/lib/admin/calc";
 import { Card, SectionTitle, Badge, Dot, MockBanner } from "@/components/admin/ui";
 
 export default function ArtistsPage() {
+  const { sales, real } = useSales();
   return (
     <div>
       <div className="mb-6">
@@ -13,12 +15,12 @@ export default function ArtistsPage() {
           Each artist&apos;s booth arrangement. Rent, split, or hybrid — set per artist.
         </p>
       </div>
-      <MockBanner source="Square (artist linking)" />
+      {!real && <MockBanner source="Square (artist linking)" />}
 
       <SectionTitle>The crew</SectionTitle>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {ARTISTS.map((a) => {
-          const st = statementFor(a, SALES, RENT_CHARGES);
+          const st = statementFor(a, sales, RENT_CHARGES);
           return (
             <Card key={a.id}>
               <div className="flex items-start justify-between p-4">
