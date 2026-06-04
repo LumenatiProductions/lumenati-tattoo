@@ -9,6 +9,7 @@ import {
   songLabel,
 } from "@/lib/admin/room-content";
 import { ARTISTS } from "@/lib/admin/mock-data";
+import { uploadPhoto } from "@/lib/admin/room-data";
 import type { RoomContent, Polaroid, PortfolioItem } from "@/lib/admin/types";
 import { Card, SectionTitle } from "@/components/admin/ui";
 
@@ -145,7 +146,7 @@ export default function RoomEditorPage() {
                   alt=""
                   className="h-20 w-20 rounded-lg object-cover ring-1 ring-black/10"
                 />
-                <UploadButton onPick={(src) => set("profilePhoto", src)}>
+                <UploadButton artistId={artistId} onPick={(src) => set("profilePhoto", src)}>
                   Replace photo
                 </UploadButton>
               </div>
@@ -157,6 +158,7 @@ export default function RoomEditorPage() {
               action={
                 <UploadButton
                   small
+                  artistId={artistId}
                   onPick={(src) =>
                     set("polaroids", [
                       ...room.polaroids,
@@ -207,6 +209,7 @@ export default function RoomEditorPage() {
               action={
                 <UploadButton
                   small
+                  artistId={artistId}
                   onPick={(src) =>
                     set("portfolio", [
                       ...room.portfolio,
@@ -300,32 +303,44 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 function UploadButton({
+  artistId,
   onPick,
   children,
   small,
 }: {
+  artistId: string;
   onPick: (src: string) => void;
   children: React.ReactNode;
   small?: boolean;
 }) {
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const [busy, setBusy] = useState(false);
+  const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onPick(String(reader.result));
-    reader.readAsDataURL(file);
     e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      // Supabase Storage when configured, else a local data-URL preview.
+      const src = await uploadPhoto(artistId, file);
+      onPick(src);
+    } catch {
+      alert("Upload failed. Try again, or a smaller image.");
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <label
       className={`inline-flex cursor-pointer items-center rounded-lg font-medium ${
+        busy ? "opacity-50" : ""
+      } ${
         small
           ? "bg-brand px-2.5 py-1 text-xs text-white hover:opacity-90"
           : "border border-black/10 px-3 py-1.5 text-sm text-black/70 hover:bg-black/4"
       }`}
     >
-      {children}
-      <input type="file" accept="image/*" onChange={onChange} className="hidden" />
+      {busy ? "Uploading…" : children}
+      <input type="file" accept="image/*" onChange={onChange} className="hidden" disabled={busy} />
     </label>
   );
 }
