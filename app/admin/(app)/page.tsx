@@ -52,6 +52,13 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
     (a, c) => a + c.amountCents,
     0,
   );
+  // Last 7 days — the same numbers as the Monday email digest.
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const wk = sales.filter((s2) => s2.date >= weekAgo);
+  const wkService = wk.reduce((a, s2) => a + s2.serviceCents, 0);
+  const wkTips = wk.reduce((a, s2) => a + s2.tipCents, 0);
+  const wkCard = wk.filter((s2) => s2.method !== "cash").reduce((a, s2) => a + s2.serviceCents + s2.tipCents, 0);
+  const wkCash = wk.filter((s2) => s2.method === "cash").reduce((a, s2) => a + s2.serviceCents + s2.tipCents, 0);
 
   return (
     <div>
@@ -60,6 +67,18 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
         sub={real ? "Live from Square" : "Period to date · all figures are preview data"}
       />
       {!real && <MockBanner source="Square & QuickBooks" />}
+
+      <SectionTitle>This week <span className="font-normal text-black/35">· last 7 days, same as your Monday email</span></SectionTitle>
+      <Card className="mb-5">
+        <div className="grid grid-cols-3 divide-x divide-y divide-black/5 sm:grid-cols-6 sm:divide-y-0">
+          <WeekTile label="Gross" value={fmt(wkService + wkTips)} strong />
+          <WeekTile label="Service" value={fmt(wkService)} />
+          <WeekTile label="Tips" value={fmt(wkTips)} />
+          <WeekTile label="Card" value={fmt(wkCard)} />
+          <WeekTile label="Cash" value={fmt(wkCash)} />
+          <WeekTile label="Tickets" value={String(wk.length)} />
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Gross sales" value={fmt(s.grossSales)} sub="service + tips" />
@@ -249,6 +268,15 @@ function FrontDeskOverview() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function WeekTile({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="px-4 py-3 text-center">
+      <div className={`tnum ${strong ? "text-base font-bold text-brand" : "text-sm font-semibold"}`}>{value}</div>
+      <div className="text-[11px] uppercase tracking-wide text-black/40">{label}</div>
     </div>
   );
 }
