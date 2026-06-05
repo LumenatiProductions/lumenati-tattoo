@@ -1,5 +1,36 @@
 # Starter: Social Feed Automation
 
+## STATUS — Phase 1 (manual submit) BUILT, 2026-06-04
+
+Feed-access route chosen: **manual submit now**, official Graph API later (the
+official Meta MCP that shipped Apr 2026 is Ads-only, doesn't cover organic
+publishing; and an MCP can't run the headless Vercel cron anyway). Public wall:
+**deferred** — command center only for now.
+
+Shipped (all behind the existing owner/frontdesk auth):
+- `supabase/social-schema.sql` — `social_posts` table + RLS (read: any staff;
+  curate: owner/frontdesk; cron writes via service role). RUN THIS IN SUPABASE.
+- `lib/social/instagram.ts` — THE SEAM. `parsePermalink()` + best-effort
+  `resolveOEmbed()`. Phase 2/3 Graph-API + aggregator fetchers write the same
+  `ResolvedPost` shape; nothing downstream changes.
+- `app/api/social/route.ts` — GET list / POST add-by-URL / PATCH feature+edit /
+  DELETE remove.
+- `lib/admin/social-context.tsx` — `SocialProvider` + `useSocial()`.
+- `app/admin/(app)/social/page.tsx` — paste-to-add, stats, curated wall grid.
+- Nav item "Social" + provider wired in `components/admin/AdminShell.tsx`.
+- `.env.local.example` — optional `INSTAGRAM_OEMBED_TOKEN` documented.
+
+oEmbed reality: WITHOUT `INSTAGRAM_OEMBED_TOKEN` (a Meta app token), pasted posts
+render as link cards (no thumbnail/caption). Set the token, or wait for the
+Graph API route, for rich previews. No scraping.
+
+Next (not built): Phase 2 curate→queue (`social_queue`), Phase 3 auto-publish
+cron, Phase 4 smart lineup, and the official Graph API per-artist connect that
+fills `media_url`/`caption`/`posted_at` automatically and powers auto-pull.
+
+---
+
+
 A starter prompt for the next build session. Goal: an area in the command
 center that pulls in ALL the artists' social feeds and automates the shop's own
 social presence (aggregate the best artist work, queue it, and post it on a
