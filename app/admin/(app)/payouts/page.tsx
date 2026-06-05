@@ -3,7 +3,6 @@
 import { useRole } from "@/lib/admin/role-context";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
-import { RENT_CHARGES } from "@/lib/admin/mock-data";
 import { statementFor, fmt, type ArtistStatement } from "@/lib/admin/calc";
 import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
 
@@ -12,7 +11,7 @@ export default function PayoutsPage() {
   const { sales, real } = useSales();
   const { artists } = useArtists();
 
-  const all = artists.map((a) => statementFor(a, sales, RENT_CHARGES));
+  const all = artists.map((a) => statementFor(a, sales, []));
   const visible =
     role === "artist" ? all.filter((s) => s.artist.id === asArtistId) : all;
 

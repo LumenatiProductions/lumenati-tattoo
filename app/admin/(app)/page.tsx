@@ -1,9 +1,10 @@
 "use client";
 
 import { useRole, ROLE_LABELS } from "@/lib/admin/role-context";
-import { RENT_CHARGES, CASH_LOG } from "@/lib/admin/mock-data";
+import { CASH_LOG } from "@/lib/admin/mock-data";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
+import { useRent } from "@/lib/admin/rent-context";
 import {
   shopSummary,
   statementFor,
@@ -41,16 +42,14 @@ function PageHead({ title, sub }: { title: string; sub: string }) {
 function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
   const { sales, real } = useSales();
   const { artists } = useArtists();
-  const s = shopSummary(artists, sales, RENT_CHARGES);
-  const statements = artists.map((a) => statementFor(a, sales, RENT_CHARGES)).sort(
+  // Rent is its own thing (Square invoices), separate from the per-artist split.
+  const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
+  const s = shopSummary(artists, sales, []);
+  const statements = artists.map((a) => statementFor(a, sales, [])).sort(
     (x, y) => y.grossService - x.grossService,
   );
   const cashOutstanding = CASH_LOG.filter((c) => !c.reconciled).reduce(
     (a, c) => a + c.amountCents,
-    0,
-  );
-  const rentOutstanding = RENT_CHARGES.filter((r) => !r.paid).reduce(
-    (a, r) => a + r.amountCents,
     0,
   );
 
@@ -66,8 +65,8 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
         <StatCard label="Gross sales" value={fmt(s.grossSales)} sub="service + tips" />
         <StatCard
           label="Shop revenue"
-          value={fmt(s.shopRevenue)}
-          sub={`${fmt(s.splitRevenue)} splits + ${fmt(s.rentRevenue)} rent`}
+          value={fmt(s.splitRevenue + rentCollected)}
+          sub={`${fmt(s.splitRevenue)} splits + ${fmt(rentCollected)} rent`}
           accent
         />
         <StatCard
@@ -132,27 +131,24 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
         </div>
 
         <div>
-          <SectionTitle>Rent status · Jun</SectionTitle>
+          <SectionTitle action={<Link href="/admin/rent" className="text-xs font-medium text-brand">All rent →</Link>}>
+            Booth rent
+          </SectionTitle>
           <Card className="mb-4">
             <div className="divide-y divide-black/5">
-              {RENT_CHARGES.map((r) => {
-                const a = artists.find((x) => x.id === r.artistId)!;
-                return (
-                  <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <Dot color={a.color} />
-                      <span className="text-sm">{a.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="tnum text-sm">{fmt(r.amountCents)}</span>
-                      {r.paid ? <Badge tone="good">paid</Badge> : <Badge tone="warn">due</Badge>}
-                    </div>
+              {rent.length === 0 && <div className="px-4 py-5 text-center text-xs text-black/40">No rent invoices.</div>}
+              {rent.slice(0, 8).map((r) => (
+                <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
+                  <span className="truncate text-sm" title={r.title}>{r.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="tnum text-sm">{fmt(r.amountCents)}</span>
+                    {r.paid ? <Badge tone="good">paid</Badge> : r.overdue ? <Badge tone="bad">overdue</Badge> : <Badge tone="warn">due</Badge>}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </Card>
-          <StatCard label="Rent outstanding" value={fmt(rentOutstanding)} tone={rentOutstanding ? "warn" : "good"} />
+          <StatCard label="Rent outstanding" value={fmt(rentOutstanding)} tone={rentOutstanding ? "warn" : "good"} sub={overdue.length ? `${overdue.length} overdue` : undefined} />
         </div>
       </div>
     </div>
@@ -165,7 +161,7 @@ function ArtistOverview({ artistId }: { artistId: string }) {
   const { artists } = useArtists();
   const artist = artists.find((a) => a.id === artistId);
   if (!artist) return null;
-  const st = statementFor(artist, sales, RENT_CHARGES);
+  const st = statementFor(artist, sales, []);
   const mine = sales.filter((s) => s.artistId === artistId);
 
   return (

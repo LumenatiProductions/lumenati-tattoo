@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
 import { SalesProvider } from "@/lib/admin/sales-context";
+import { RentProvider } from "@/lib/admin/rent-context";
 import { ArtistsProvider, useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/admin/types";
@@ -14,6 +15,7 @@ const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/admin/room", label: "My Room", roles: ["owner", "artist"] },
   { href: "/admin/artists", label: "Artists & Pay", roles: ["owner", "bookkeeper"] },
   { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
+  { href: "/admin/rent", label: "Booth Rent", roles: ["owner", "bookkeeper"] },
   { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
   { href: "/admin/staff", label: "Staff", roles: ["owner"] },
   { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
@@ -147,10 +149,12 @@ export default function AdminShell({
       <ArtistsProvider>
         <RoomContentProvider>
           <SalesProvider>
+           <RentProvider>
             <div className="flex min-h-screen bg-paper text-ink antialiased">
               <Sidebar />
               <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
             </div>
+           </RentProvider>
           </SalesProvider>
         </RoomContentProvider>
       </ArtistsProvider>

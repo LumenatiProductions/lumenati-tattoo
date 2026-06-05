@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useSales } from "@/lib/admin/sales-context";
 import { useRole } from "@/lib/admin/role-context";
-import { RENT_CHARGES } from "@/lib/admin/mock-data";
 import { COLOR_PRESETS } from "@/lib/admin/room-content";
 import { createClient } from "@/lib/supabase/browser";
 import { statementFor, fmt, payTypeLabel } from "@/lib/admin/calc";
@@ -164,7 +163,7 @@ export default function ArtistsPage() {
       <SectionTitle>The crew ({artists.length})</SectionTitle>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {artists.map((a) => {
-          const st = statementFor(a, sales, RENT_CHARGES);
+          const st = statementFor(a, sales, []);
           const editing = editId === a.id;
           return (
             <Card key={a.id}>

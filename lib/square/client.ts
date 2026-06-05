@@ -130,3 +130,86 @@ export async function listPayments(
   } while (cursor);
   return out;
 }
+
+// ── Rent invoices ──
+// The shop's booth-rent invoices are titled "...rent...". We surface those with
+// a normalized status so the dashboard can show who's paid vs behind.
+export interface RentInvoice {
+  id: string;
+  name: string; // recipient (the artist the rent is for)
+  title: string;
+  amountCents: number;
+  status: string; // PAID | UNPAID | SCHEDULED | PARTIALLY_PAID | CANCELED | ...
+  dueDate: string | null;
+  paid: boolean;
+  overdue: boolean;
+}
+
+export async function fetchRentInvoices(): Promise<RentInvoice[]> {
+  const locs = await listLocations();
+  const locationId = process.env.SQUARE_LOCATION_ID || locs[0]?.id;
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const month = todayISO.slice(0, 7); // current YYYY-MM
+
+  // Newest first; one page is plenty for the current cycle (no deep history).
+  const body = await sq("/v2/invoices/search", {
+    method: "POST",
+    body: JSON.stringify({
+      query: { filter: { location_ids: [locationId] } },
+      limit: 100,
+    }),
+  });
+
+  const out: RentInvoice[] = [];
+  for (const inv of body.invoices || []) {
+    const title: string = inv.title || "";
+    if (!/rent/i.test(title)) continue; // rent invoices only
+    const status: string = inv.status || "";
+    if (["CANCELED", "DRAFT"].includes(status)) continue;
+    const pr = (inv.payment_requests || [])[0] || {};
+    const dueDate: string | null = pr.due_date || null;
+    const paid = status === "PAID";
+    const overdue = !paid && !!dueDate && dueDate < todayISO && status !== "SCHEDULED";
+    // Keep this cycle (due in the current month) + any lingering unpaid/overdue.
+    const currentCycle = dueDate ? dueDate.startsWith(month) : false;
+    if (!currentCycle && paid) continue;
+    out.push({
+      id: inv.id,
+      name:
+        [inv.primary_recipient?.given_name, inv.primary_recipient?.family_name]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || title,
+      title,
+      amountCents: pr.computed_amount_money?.amount ?? 0,
+      status,
+      dueDate,
+      paid,
+      overdue,
+    });
+  }
+  return out;
+}
+
+// ── Sales summary for a window (for the weekly digest) ──
+export interface SalesSummary {
+  count: number;
+  grossCents: number;
+  serviceCents: number;
+  tipCents: number;
+  cardCents: number;
+  cashCents: number;
+}
+export async function salesSummary(beginTime: string): Promise<SalesSummary> {
+  const payments = (await listPayments(beginTime)).filter((p) => p.status === "COMPLETED");
+  const s: SalesSummary = { count: 0, grossCents: 0, serviceCents: 0, tipCents: 0, cardCents: 0, cashCents: 0 };
+  for (const p of payments) {
+    s.count++;
+    s.grossCents += p.totalCents;
+    s.serviceCents += p.serviceCents;
+    s.tipCents += p.tipCents;
+    if (p.method === "cash") s.cashCents += p.totalCents;
+    else s.cardCents += p.totalCents;
+  }
+  return s;
+}
