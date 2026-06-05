@@ -1,0 +1,52 @@
+<!-- Lumenati — magic-link sign-in email. Paste into Supabase:
+     Authentication -> Emails -> Magic Link (Message body, HTML).
+     Subject: Your Lumenati sign-in link
+     Uses Supabase var {{ .ConfirmationURL }}. Table layout + inline styles for
+     email-client compatibility. -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">Tap to sign in to the Lumenati command center.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;margin:0;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="460" cellpadding="0" cellspacing="0" style="width:460px;max-width:92%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <!-- header -->
+        <tr>
+          <td style="background:#0e0e11;padding:22px 28px;">
+            <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">LUMENATI</span><span style="font-size:22px;font-weight:800;color:#FF1493;">.</span>
+            <div style="font-size:10px;letter-spacing:3px;color:#8a8a92;margin-top:2px;text-transform:uppercase;">Command Center</div>
+          </td>
+        </tr>
+        <!-- body -->
+        <tr>
+          <td style="padding:30px 28px 8px;">
+            <div style="font-size:19px;font-weight:700;color:#0e0e11;">Sign in to the shop</div>
+            <p style="font-size:14px;line-height:1.55;color:#52525b;margin:10px 0 22px;">
+              Tap the button below to sign in to the Lumenati command center. No password needed.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="border-radius:9px;background:#FF1493;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 30px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:9px;">Sign in &rarr;</a>
+                </td>
+              </tr>
+            </table>
+            <p style="font-size:12px;line-height:1.5;color:#8a8a92;margin:22px 0 4px;">
+              Or paste this link into your browser:
+            </p>
+            <p style="font-size:12px;line-height:1.5;word-break:break-all;margin:0 0 22px;">
+              <a href="{{ .ConfirmationURL }}" style="color:#FF1493;text-decoration:none;">{{ .ConfirmationURL }}</a>
+            </p>
+            <p style="font-size:12px;line-height:1.5;color:#a1a1aa;border-top:1px solid #ececef;padding-top:16px;margin:0;">
+              This link signs you in once and expires shortly. If you didn&rsquo;t request it, you can safely ignore this email.
+            </p>
+          </td>
+        </tr>
+        <!-- footer -->
+        <tr>
+          <td style="padding:18px 28px 26px;">
+            <div style="font-size:11px;color:#a1a1aa;">Lumenati Tattoo &nbsp;//&nbsp; 3839 Jackson St, Denver CO</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
