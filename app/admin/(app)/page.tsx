@@ -1,8 +1,9 @@
 "use client";
 
 import { useRole, ROLE_LABELS } from "@/lib/admin/role-context";
-import { ARTISTS, RENT_CHARGES, CASH_LOG } from "@/lib/admin/mock-data";
+import { RENT_CHARGES, CASH_LOG } from "@/lib/admin/mock-data";
 import { useSales } from "@/lib/admin/sales-context";
+import { useArtists } from "@/lib/admin/artists-context";
 import {
   shopSummary,
   statementFor,
@@ -39,8 +40,9 @@ function PageHead({ title, sub }: { title: string; sub: string }) {
 // ── Owner / Bookkeeper: the whole shop ──
 function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
   const { sales, real } = useSales();
-  const s = shopSummary(ARTISTS, sales, RENT_CHARGES);
-  const statements = ARTISTS.map((a) => statementFor(a, sales, RENT_CHARGES)).sort(
+  const { artists } = useArtists();
+  const s = shopSummary(artists, sales, RENT_CHARGES);
+  const statements = artists.map((a) => statementFor(a, sales, RENT_CHARGES)).sort(
     (x, y) => y.grossService - x.grossService,
   );
   const cashOutstanding = CASH_LOG.filter((c) => !c.reconciled).reduce(
@@ -134,7 +136,7 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
           <Card className="mb-4">
             <div className="divide-y divide-black/5">
               {RENT_CHARGES.map((r) => {
-                const a = ARTISTS.find((x) => x.id === r.artistId)!;
+                const a = artists.find((x) => x.id === r.artistId)!;
                 return (
                   <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
                     <div className="flex items-center gap-2">
@@ -160,7 +162,9 @@ function OwnerOverview({ bookkeeper }: { bookkeeper: boolean }) {
 // ── Single artist: just their numbers ──
 function ArtistOverview({ artistId }: { artistId: string }) {
   const { sales, real } = useSales();
-  const artist = ARTISTS.find((a) => a.id === artistId)!;
+  const { artists } = useArtists();
+  const artist = artists.find((a) => a.id === artistId);
+  if (!artist) return null;
   const st = statementFor(artist, sales, RENT_CHARGES);
   const mine = sales.filter((s) => s.artistId === artistId);
 
@@ -215,6 +219,7 @@ function ArtistOverview({ artistId }: { artistId: string }) {
 
 // ── Front desk: daily ops, cash entry ──
 function FrontDeskOverview() {
+  const { artists } = useArtists();
   const outstanding = CASH_LOG.filter((c) => !c.reconciled);
   return (
     <div>
@@ -222,7 +227,7 @@ function FrontDeskOverview() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Cash unreconciled" value={fmt(outstanding.reduce((a, c) => a + c.amountCents, 0))} tone="warn" />
         <StatCard label="Entries today" value={String(CASH_LOG.filter((c) => c.date >= "2026-06-03").length)} />
-        <StatCard label="Artists in" value={String(ARTISTS.filter((a) => a.active).length)} />
+        <StatCard label="Artists in" value={String(artists.filter((a) => a.active).length)} />
         <StatCard label="Walk-ins" value="open" sub="door's always open" />
       </div>
       <div className="mt-5">
@@ -232,7 +237,7 @@ function FrontDeskOverview() {
         <Card>
           <div className="divide-y divide-black/5">
             {outstanding.map((c) => {
-              const a = ARTISTS.find((x) => x.id === c.artistId);
+              const a = artists.find((x) => x.id === c.artistId);
               return (
                 <div key={c.id} className="flex items-center justify-between px-4 py-3">
                   <div>

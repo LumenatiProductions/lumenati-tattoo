@@ -22,11 +22,13 @@ export interface PayArrangement {
 
 export interface Artist {
   id: string;
+  slug: string; // public room URL: /<slug>
   name: string;
   handle: string; // instagram, matches public site
   color: string; // their Y2K room accent
   active: boolean;
   guest?: boolean;
+  roomExtras?: boolean; // JD's skate game/video
   pay: PayArrangement;
   /** Linked Square team-member id, once Square is connected (null = unlinked). */
   squareTeamMemberId: string | null;

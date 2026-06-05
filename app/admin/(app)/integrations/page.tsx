@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSquareConfigured } from "@/lib/square/client";
-import { ARTISTS } from "@/lib/admin/mock-data";
+import { fetchArtists } from "@/lib/admin/artists-data";
 import IntegrationsClient from "@/components/admin/IntegrationsClient";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function IntegrationsPage() {
       lastSyncedAt={sync?.last_synced_at ?? null}
       lastResult={sync?.last_result ?? null}
       salesCount={salesCount}
-      artists={ARTISTS.map((a) => ({ id: a.id, name: a.name }))}
+      artists={(await fetchArtists()).map((a) => ({ id: a.id, name: a.name }))}
     />
   );
 }

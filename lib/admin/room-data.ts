@@ -51,16 +51,30 @@ export async function fetchAllRooms(): Promise<Record<string, RoomContent>> {
   return { ...ROOM_CONTENT, ...out };
 }
 
-/** One room. Supabase when configured, else the mock seed. */
+function emptyRoom(artistId: string): RoomContent {
+  return {
+    artistId,
+    tagline: "",
+    bio: "",
+    igHandle: "",
+    songId: "offspring",
+    accentColor: "#FF1493",
+    profilePhoto: "",
+    polaroids: [],
+    portfolio: [],
+  };
+}
+
+/** One room. Supabase when configured, else the mock seed. Never undefined. */
 export async function fetchRoom(artistId: string): Promise<RoomContent> {
   const sb = getSupabase();
-  if (!sb) return ROOM_CONTENT[artistId];
+  if (!sb) return ROOM_CONTENT[artistId] ?? emptyRoom(artistId);
   const { data, error } = await sb
     .from("room_content")
     .select("*")
     .eq("artist_id", artistId)
     .maybeSingle();
-  if (error || !data) return ROOM_CONTENT[artistId];
+  if (error || !data) return ROOM_CONTENT[artistId] ?? emptyRoom(artistId);
   return rowToContent(data as Row);
 }
 

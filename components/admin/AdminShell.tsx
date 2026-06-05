@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
 import { SalesProvider } from "@/lib/admin/sales-context";
-import { ARTISTS } from "@/lib/admin/mock-data";
+import { ArtistsProvider, useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/admin/types";
 
@@ -23,6 +23,7 @@ const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
 
 function Sidebar() {
   const { role, setRole, asArtistId, setAsArtistId, canPreview, email } = useRole();
+  const { artists } = useArtists();
   const pathname = usePathname();
   const router = useRouter();
   const items = NAV.filter((n) => n.roles.includes(role));
@@ -93,7 +94,7 @@ function Sidebar() {
               onChange={(e) => setAsArtistId(e.target.value)}
               className="mt-2 w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
             >
-              {ARTISTS.map((a) => (
+              {artists.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
                 </option>
@@ -143,14 +144,16 @@ export default function AdminShell({
 }) {
   return (
     <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName}>
-      <RoomContentProvider>
-        <SalesProvider>
-          <div className="flex min-h-screen bg-paper text-ink antialiased">
-            <Sidebar />
-            <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
-          </div>
-        </SalesProvider>
-      </RoomContentProvider>
+      <ArtistsProvider>
+        <RoomContentProvider>
+          <SalesProvider>
+            <div className="flex min-h-screen bg-paper text-ink antialiased">
+              <Sidebar />
+              <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+            </div>
+          </SalesProvider>
+        </RoomContentProvider>
+      </ArtistsProvider>
     </RoleProvider>
   );
 }

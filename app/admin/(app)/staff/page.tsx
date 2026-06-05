@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
-import { ARTISTS } from "@/lib/admin/mock-data";
+import { useArtists } from "@/lib/admin/artists-context";
 import { ROLE_LABELS, useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, Badge } from "@/components/admin/ui";
 import type { Role } from "@/lib/admin/types";
@@ -16,6 +16,7 @@ type Profile = {
 
 export default function StaffPage() {
   const { realRole } = useRole();
+  const { artists } = useArtists();
   const supabase = createClient();
   const [rows, setRows] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +104,7 @@ export default function StaffPage() {
                     </td>
                     <td className="px-4 py-2.5"><Badge tone="brand">{ROLE_LABELS[p.role]}</Badge></td>
                     <td className="px-4 py-2.5 text-black/55">
-                      {p.artist_id ? ARTISTS.find((a) => a.id === p.artist_id)?.name ?? p.artist_id : "—"}
+                      {p.artist_id ? artists.find((a) => a.id === p.artist_id)?.name ?? p.artist_id : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button
@@ -133,7 +134,7 @@ export default function StaffPage() {
               </select>
               {role === "artist" && (
                 <select className="inp" value={artistId} onChange={(e) => setArtistId(e.target.value)}>
-                  {ARTISTS.map((a) => (
+                  {artists.map((a) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>

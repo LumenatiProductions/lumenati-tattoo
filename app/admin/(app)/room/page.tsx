@@ -8,7 +8,7 @@ import {
   COLOR_PRESETS,
   songLabel,
 } from "@/lib/admin/room-content";
-import { ARTISTS } from "@/lib/admin/mock-data";
+import { useArtists } from "@/lib/admin/artists-context";
 import { uploadPhoto } from "@/lib/admin/room-data";
 import type { RoomContent, Polaroid, PortfolioItem } from "@/lib/admin/types";
 import { Card, SectionTitle } from "@/components/admin/ui";
@@ -17,25 +17,17 @@ import { Card, SectionTitle } from "@/components/admin/ui";
 let uid = 0;
 const newId = (p: string) => `${p}-${Date.now().toString(36)}-${uid++}`;
 
-// artistId -> public room route.
-const ROOM_PATHS: Record<string, string> = {
-  jd: "/jd-pruitt",
-  elaine: "/electric-elaine",
-  shorty: "/shorty",
-  kalypso: "/king-kalypso",
-  sam: "/sam-durbin-clark",
-  moonie: "/moonie-b-jones",
-};
-
 export default function RoomEditorPage() {
   const { role, asArtistId } = useRole();
   const { get, update } = useRoomContent();
+  const { artists } = useArtists();
 
   // Artists edit their own room; owners can pick whose room to edit.
   const [ownerPick, setOwnerPick] = useState<string>(asArtistId || "jd");
   const artistId = role === "artist" ? asArtistId : ownerPick;
-  const artist = ARTISTS.find((a) => a.id === artistId)!;
+  const artist = artists.find((a) => a.id === artistId);
   const room = get(artistId);
+  if (!artist) return null;
 
   const set = <K extends keyof RoomContent>(key: K, val: RoomContent[K]) =>
     update(artistId, { [key]: val } as Partial<RoomContent>);
@@ -56,7 +48,7 @@ export default function RoomEditorPage() {
               onChange={(e) => setOwnerPick(e.target.value)}
               className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm"
             >
-              {ARTISTS.map((a) => (
+              {artists.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}&apos;s room
                 </option>
@@ -64,7 +56,7 @@ export default function RoomEditorPage() {
             </select>
           )}
           <a
-            href={ROOM_PATHS[artistId]}
+            href={`/${artist.slug}`}
             target="_blank"
             rel="noreferrer"
             className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
