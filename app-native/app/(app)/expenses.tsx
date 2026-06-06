@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
 import { addExpense, deleteExpense, loadExpenses, expensesYtd, type Expense } from "@/lib/personal";
+import { snapReceipt } from "@/lib/vision";
 
 const CATEGORIES = ["supplies", "equipment", "rent", "education", "travel", "other"];
 
@@ -17,6 +18,23 @@ export default function Expenses() {
   const [vendor, setVendor] = useState("");
   const [category, setCategory] = useState("supplies");
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+
+  const scan = async () => {
+    setScanning(true);
+    setScanNote(null);
+    const r = await snapReceipt();
+    setScanning(false);
+    if (r.ok && r.receipt) {
+      if (r.receipt.amountCents) setAmount((r.receipt.amountCents / 100).toFixed(2));
+      if (r.receipt.vendor) setVendor(r.receipt.vendor);
+      if (r.receipt.category) setCategory(r.receipt.category);
+      setScanNote("Read your receipt — check the fields and tap Add.");
+    } else if (r.error && r.error !== "canceled") {
+      setScanNote(r.error);
+    }
+  };
 
   const load = useCallback(async () => setExpenses(await loadExpenses()), []);
   useEffect(() => {
@@ -54,6 +72,9 @@ export default function Expenses() {
         </Card>
 
         <Text style={styles.section}>Add a deduction</Text>
+        <Button label={scanning ? "Reading…" : "📷 Snap a receipt"} tone="ghost" onPress={scan} disabled={scanning} />
+        {scanNote && <Text style={styles.scanNote}>{scanNote}</Text>}
+        <View style={{ height: 10 }} />
         <View style={styles.formRow}>
           <TextInput
             value={amount}
@@ -127,6 +148,7 @@ const styles = StyleSheet.create({
   cat: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 9, borderColor: theme.border, borderWidth: 1 },
   catOn: { backgroundColor: theme.brand, borderColor: theme.brand },
   catText: { color: theme.textDim, fontSize: 13 },
+  scanNote: { color: theme.textDim, fontSize: 13, marginTop: 8, lineHeight: 18 },
   empty: { color: theme.textFaint, fontSize: 14, lineHeight: 20 },
   item: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14 },
   itemBorder: { borderTopColor: theme.border, borderTopWidth: 1 },

@@ -183,9 +183,30 @@ add its Expo config plugin + Tap to Pay entitlement, build a dev client, enroll 
 Apple Tap to Pay / Android. Stripe Connect must be live (Session 5) for splits +
 instant payouts.
 
-### Aimed at 6d (nudges & owner-on-the-go) — next
-Rent / follow-up / consent reminders surfaced in-app (push via expo-notifications),
-the owner cockpit + approvals on mobile, and the snap features from the backlog
-(snap-to-count inventory + receipt-snap expenses via Claude vision — add a
-Bearer-authed `/api/vision/*` endpoint; the app sends a photo, gets back
-structured items/amounts to confirm). Reuse `lib/appApi.ts` + `userFromBearer`.
+### 6d — Snap features + owner-on-the-go: BUILT (2026-06-06)
+Next build green; app tsc green. Vision is **pluggable, default Claude** (Scott's
+call) — the app + endpoint never change if we later default to Gemini Flash.
+
+- `lib/vision/provider.ts` (Next) — `VisionProvider` interface + a Claude impl
+  (`claude-opus-4-8` vision, JSON-instructed, defensive parse). `getProvider()`
+  is the single swap point; drop a `GeminiProvider` there to switch backends.
+- `app/api/vision/route.ts` — Bearer-authed (`userFromBearer`); POST a photo +
+  `kind` (`receipt` | `inventory`) → structured data to confirm.
+- App `lib/vision.ts` — `snapReceipt` / `snapInventory` (expo-image-picker:
+  camera on phone, library on web), posts base64 to `/api/vision`.
+- App `expenses.tsx` — "Snap a receipt" prefills vendor/amount/category for the
+  artist to confirm, then Add. Feeds the tax tracker.
+- App `home.tsx` StaffHome → an at-a-glance **owner cockpit**: gross / appts /
+  low-stock / deposits tiles + a "needs attention" list (expiring compliance,
+  reorders by name, follow-ups due), read RLS-scoped.
+- `.env.local.example` — `ANTHROPIC_API_KEY`; app added `expo-image-picker`.
+
+**Gate (Scott):** set `ANTHROPIC_API_KEY` to enable the snap features.
+**Deferred (noted):** snap-to-count is server-ready (`kind:'inventory'`) but its
+app screen lands with an in-app inventory view; push reminders
+(rent/follow-up/consent) need a dev build + a push-token table — next pass.
+
+### Aimed at 6e / Session 7 — next
+6e ports remaining back-office screens to Expo web for parity, then retires the
+Next admin as the everywhere front door. Session 7 (owned books + Square/QBO
+cutover) can run in parallel — the receipt-snap expense capture already feeds it.
