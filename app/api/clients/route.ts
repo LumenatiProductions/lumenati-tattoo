@@ -1,0 +1,133 @@
+import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
+// Front-of-house runs the CRM. (Artists get scoped read once `bookings` exists.)
+const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+
+// Resolve the signed-in user's role, or null. Shared by every handler (mirrors
+// the social route's `curator()`).
+async function staff() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { supabase, user: null, role: null as string | null };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("email", user.email!)
+    .maybeSingle();
+  return { supabase, user, role: profile?.role ?? null };
+}
+
+const isStaff = (role: string | null) =>
+  !!role && STAFF.includes(role as (typeof STAFF)[number]);
+
+// List / search clients. Optional ?q= matches name / email / phone.
+// RLS also enforces the staff gate; we check here for a clean 401/403.
+export async function GET(req: Request) {
+  const { supabase, user, role } = await staff();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+
+  const q = new URL(req.url).searchParams.get("q")?.trim();
+  let query = supabase.from("clients").select("*");
+  if (q) {
+    const like = `%${q}%`;
+    query = query.or(
+      `first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},phone.ilike.${like},instagram.ilike.${like}`,
+    );
+  }
+  // Most-recently-seen first; never-seen (manual walk-ins) fall to the bottom.
+  const { data, error } = await query
+    .order("last_seen", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: error.message, clients: [] }, { status: 500 });
+  return NextResponse.json({ clients: data ?? [] });
+}
+
+// Add a walk-in by hand. Owner / bookkeeper / front desk.
+// Body: { firstName, lastName?, email?, phone?, instagram?, birthdate?, notes?, preferredArtistId? }
+export async function POST(req: Request) {
+  const { supabase, user, role } = await staff();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+
+  const b = (await req.json().catch(() => ({}))) as {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    instagram?: string;
+    birthdate?: string;
+    notes?: string;
+    preferredArtistId?: string | null;
+  };
+  if (!b.firstName?.trim() && !b.lastName?.trim()) {
+    return NextResponse.json({ error: "A first or last name is required." }, { status: 400 });
+  }
+
+  const row = {
+    id: `walkin-${randomUUID()}`,
+    square_customer_id: null,
+    first_name: (b.firstName ?? "").trim(),
+    last_name: (b.lastName ?? "").trim(),
+    email: b.email?.trim() || null,
+    phone: b.phone?.trim() || null,
+    instagram: b.instagram?.trim().replace(/^@/, "") || null,
+    birthdate: b.birthdate || null,
+    notes: (b.notes ?? "").trim(),
+    preferred_artist_id: b.preferredArtistId || null,
+    source: "manual",
+    first_seen: new Date().toISOString().slice(0, 10),
+  };
+  const { data, error } = await supabase.from("clients").insert(row).select().single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ client: data });
+}
+
+// Edit an existing client. Owner / bookkeeper / front desk.
+// Body: { id, ...any of firstName,lastName,email,phone,instagram,birthdate,notes,preferredArtistId }
+export async function PATCH(req: Request) {
+  const { supabase, user, role } = await staff();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+
+  const b = (await req.json().catch(() => ({}))) as {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    instagram?: string;
+    birthdate?: string | null;
+    notes?: string;
+    preferredArtistId?: string | null;
+  };
+  if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  const patch: Record<string, unknown> = {};
+  if (b.firstName !== undefined) patch.first_name = b.firstName.trim();
+  if (b.lastName !== undefined) patch.last_name = b.lastName.trim();
+  if (b.email !== undefined) patch.email = b.email.trim() || null;
+  if (b.phone !== undefined) patch.phone = b.phone.trim() || null;
+  if (b.instagram !== undefined) patch.instagram = b.instagram.trim().replace(/^@/, "") || null;
+  if (b.birthdate !== undefined) patch.birthdate = b.birthdate || null;
+  if (b.notes !== undefined) patch.notes = b.notes.trim();
+  if (b.preferredArtistId !== undefined) patch.preferred_artist_id = b.preferredArtistId || null;
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from("clients")
+    .update(patch)
+    .eq("id", b.id)
+    .select()
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ client: data });
+}
