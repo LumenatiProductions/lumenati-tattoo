@@ -151,11 +151,41 @@ The artist money home is real, plus goals + the tax tracker. `tsc --noEmit` gree
 Real-data note: reads are real (no mock), so a fresh artist sees zeros until
 sales/bookings exist — honest empty state, same as Reports.
 
-### Aimed at 6c (in-person POS) — next
-Tap to Pay (iOS + Android) + instant payouts. Needs a **dev build** (not Expo Go)
-and `@stripe/stripe-terminal-react-native`. Server side: add a thin
-`/api/terminal/connection-token` and a PaymentIntent-for-terminal endpoint that
-builds the SAME destination charge as `startCheckout` via `connectChargeParams`
-(do NOT recompute the split in the app). Instant payout = a "Cash out now" button
-hitting a new owner/artist payout endpoint (`stripe.payouts.create({method:
-'instant'})` on the connected account); artist pays the ~1.5% fee.
+### 6c — In-person POS: BUILT (2026-06-06)
+Server side fully built + `npm run build` green; app side built + `tsc` green.
+The card-tap itself is wired but can't be exercised here (needs a dev build +
+enrollment) — everything around it is real and verified.
+
+Server (Next, Bearer-authed for the app):
+- `lib/api-auth.ts` — `userFromBearer` validates the app's Supabase token and
+  resolves role + `artist_id` (from `profiles`, the same link `my_artist()` uses).
+- `app/api/terminal/connection-token` — Terminal ConnectionToken for the SDK.
+- `app/api/terminal/payment-intent` — mints a **card-present** PaymentIntent as
+  the SAME destination charge as web (`connectChargeParams`); records a pending
+  `payments` row. No split recomputed in the app.
+- `app/api/payouts/instant` — GET instant-eligible balance; POST cash-out
+  (`payouts.create({method:'instant'}, {stripeAccount})`); owner-or-self gated.
+- webhook: added `payment_intent.succeeded` → settles Terminal payments by PI id.
+
+App (Expo):
+- `lib/appApi.ts` — Bearer-authed fetch to the Next API.
+- `lib/terminal.ts` — Tap to Pay **facade**: lazy-requires
+  `@stripe/stripe-terminal-react-native` (NOT installed — keeps the bundle/tsc/
+  web green); returns a clear "needs the phone app / dev build" until present.
+  Header comments list the 4 steps to finish on a dev build.
+- `app/(app)/pos.tsx` — amount → charge; web/non-enrolled shows where to tap.
+- `app/(app)/cashout.tsx` — **fully functional on every target**: shows
+  instant balance, "Cash out now" with the ~1.5% fee line.
+- Take payment / Cash out actions on the artist home.
+
+**Gate for live taps (Scott):** `npm install @stripe/stripe-terminal-react-native`,
+add its Expo config plugin + Tap to Pay entitlement, build a dev client, enroll in
+Apple Tap to Pay / Android. Stripe Connect must be live (Session 5) for splits +
+instant payouts.
+
+### Aimed at 6d (nudges & owner-on-the-go) — next
+Rent / follow-up / consent reminders surfaced in-app (push via expo-notifications),
+the owner cockpit + approvals on mobile, and the snap features from the backlog
+(snap-to-count inventory + receipt-snap expenses via Claude vision — add a
+Bearer-authed `/api/vision/*` endpoint; the app sends a photo, gets back
+structured items/amounts to confirm). Reuse `lib/appApi.ts` + `userFromBearer`.

@@ -72,6 +72,20 @@ export default function ArtistMoney({ firstName }: { firstName: string }) {
         ))}
       </View>
 
+      {/* Primary actions: take a payment, cash out */}
+      <View style={styles.actions}>
+        <Link href="/pos" asChild>
+          <Pressable style={styles.actionPrimary}>
+            <Text style={styles.actionPrimaryText}>Take payment</Text>
+          </Pressable>
+        </Link>
+        <Link href="/cashout" asChild>
+          <Pressable style={styles.actionGhost}>
+            <Text style={styles.actionGhostText}>Cash out</Text>
+          </Pressable>
+        </Link>
+      </View>
+
       <View style={styles.grid}>
         <Stat label="You earned" value={money(e.total)} sub={`${money(e.tips)} tips`} accent />
         <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
@@ -164,6 +178,11 @@ function nextQuarterly(): string {
 const styles = StyleSheet.create({
   dim: { color: theme.textDim, marginTop: 40, textAlign: "center" },
   greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 8, marginBottom: 16 },
+  actions: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  actionPrimary: { flex: 2, backgroundColor: theme.brand, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  actionPrimaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  actionGhost: { flex: 1, borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  actionGhostText: { color: theme.text, fontSize: 15, fontWeight: "600" },
   toggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
   tabOn: { backgroundColor: theme.brand, borderColor: theme.brand },

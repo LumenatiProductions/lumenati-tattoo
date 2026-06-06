@@ -62,6 +62,12 @@ export async function POST(req: Request) {
         });
         break;
       }
+      case "payment_intent.succeeded": {
+        // In-person Tap to Pay (POS 6c): no Checkout session, settle by the PI id.
+        const pi = event.data.object as { id: string };
+        await settlePayment(admin, { paymentIntentId: pi.id });
+        break;
+      }
       default:
         // Unhandled event types are acknowledged so Stripe stops retrying.
         break;
