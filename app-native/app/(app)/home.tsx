@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
 import { Stat } from "@/components/ui";
 import ArtistMoney from "@/components/ArtistMoney";
+import Launcher from "@/components/Launcher";
 
 const todayLocal = () => {
   const d = new Date();
@@ -45,6 +46,8 @@ export default function Home() {
       </View>
 
       {isStaff ? <StaffHome firstName={firstName} /> : <ArtistMoney firstName={firstName} />}
+
+      <Launcher role={role} />
     </ScrollView>
   );
 }

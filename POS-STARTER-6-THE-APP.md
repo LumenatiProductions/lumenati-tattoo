@@ -206,7 +206,20 @@ call) — the app + endpoint never change if we later default to Gemini Flash.
 app screen lands with an in-app inventory view; push reminders
 (rent/follow-up/consent) need a dev build + a push-token table — next pass.
 
-### Aimed at 6e / Session 7 — next
-6e ports remaining back-office screens to Expo web for parity, then retires the
-Next admin as the everywhere front door. Session 7 (owned books + Square/QBO
-cutover) can run in parallel — the receipt-snap expense capture already feeds it.
+### 6e — Back-office in the app: STARTED (2026-06-06)
+First pass of porting the admin into the app. App tsc green. No new backend — the
+app reads/writes Supabase directly under RLS (only Stripe/vision/terminal use the
+Bearer API), so each role only touches what its policies allow.
+
+- `components/Launcher.tsx` — role-aware "Go to" grid on the home (Bookings for
+  everyone; Inventory for owner/frontdesk; Deductions/Goals for artists).
+- `app/(app)/bookings.tsx` — today + upcoming, RLS-scoped (artists see their own);
+  staff mark complete / no-show by writing under RLS. Deposit + checked-in badges.
+- `app/(app)/inventory.tsx` — list + low-stock + quick +/- (writes qty under RLS),
+  AND the **snap-to-count from 6d wired in**: photo → detected items → tap to add.
+- `home.tsx` — renders `<Launcher>` for all roles.
+
+**Deferred (the rest of parity, next 6e passes):** Reports / Clients / Compliance
+app screens (Reports needs Bearer added to `/api/reports`, or a light client-side
+summary), the full add-item form for inventory, and push reminders. Once the
+mobile screens reach parity, retire the Next admin as the everywhere front door.
