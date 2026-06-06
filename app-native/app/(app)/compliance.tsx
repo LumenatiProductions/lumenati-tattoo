@@ -1,10 +1,21 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
-import { Card } from "@/components/ui";
+import { Card, Button } from "@/components/ui";
+import { LabeledInput, Chips } from "@/components/form";
+
+const KINDS = ["tattoo_license", "bbp_cert", "shop_permit", "inspection", "insurance"];
+// Status from expiry (matches the web's computeStatus: 30-day window).
+function computeStatus(expires: string | null): string {
+  if (!expires) return "na";
+  const d = Math.round((new Date(`${expires}T00:00:00Z`).getTime() - Date.now()) / 86_400_000);
+  if (d < 0) return "expired";
+  if (d <= 30) return "expiring";
+  return "active";
+}
 
 type Item = {
   id: string;
@@ -40,24 +51,27 @@ export default function Compliance() {
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Item[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
+  const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
+  const load = useCallback(async () => {
+    const [itemsRes, artistsRes] = await Promise.all([
+      supabase
         .from("compliance_items")
         .select("id, scope, artist_id, kind, label, expires_on, status")
-        .order("expires_on", { ascending: true, nullsFirst: false });
-      const rows = (data ?? []) as Item[];
-      setItems(rows);
-      const ids = [...new Set(rows.map((r) => r.artist_id).filter(Boolean) as string[])];
-      if (ids.length) {
-        const { data: a } = await supabase.from("artists").select("id, name").in("id", ids);
-        setNames(new Map(((a ?? []) as { id: string; name: string }[]).map((x) => [x.id, x.name])));
-      }
-      setLoading(false);
-    })();
+        .order("expires_on", { ascending: true, nullsFirst: false }),
+      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+    ]);
+    setItems((itemsRes.data ?? []) as Item[]);
+    const a = (artistsRes.data ?? []) as { id: string; name: string }[];
+    setArtists(a);
+    setNames(new Map(a.map((x) => [x.id, x.name])));
+    setLoading(false);
   }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const rank = (s: string) => (s === "expired" ? 0 : s === "expiring" ? 1 : 2);
   const sorted = [...items].sort((a, b) => rank(a.status) - rank(b.status));
@@ -66,6 +80,11 @@ export default function Compliance() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Compliance", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <View style={{ marginBottom: 12 }}>
+          <Button label={adding ? "Cancel" : "Add license / permit"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+        </View>
+        {adding && <NewCompliance artists={artists} onSaved={() => { setAdding(false); load(); }} />}
+
         {loading ? (
           <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
         ) : (
@@ -94,7 +113,56 @@ export default function Compliance() {
   );
 }
 
+function NewCompliance({ artists, onSaved }: { artists: { id: string; name: string }[]; onSaved: () => void }) {
+  const [scope, setScope] = useState<"artist" | "shop">("artist");
+  const [artistId, setArtistId] = useState(artists[0]?.id ?? "");
+  const [kind, setKind] = useState("tattoo_license");
+  const [label, setLabel] = useState("");
+  const [expires, setExpires] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = async () => {
+    if (scope === "artist" && !artistId) {
+      setErr("Pick an artist.");
+      return;
+    }
+    if (expires && !/^\d{4}-\d{2}-\d{2}$/.test(expires)) {
+      setErr("Expiry must be YYYY-MM-DD.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const { error } = await supabase.from("compliance_items").insert({
+      scope,
+      artist_id: scope === "artist" ? artistId : null,
+      kind,
+      label: label.trim() || null,
+      expires_on: expires || null,
+      status: computeStatus(expires || null),
+    });
+    setBusy(false);
+    if (error) setErr(error.message);
+    else onSaved();
+  };
+
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <Chips label="Scope" value={scope} options={["artist", "shop"] as const} onChange={setScope} />
+      {scope === "artist" && artists.length > 0 && (
+        <Chips label="Artist" value={artistId} options={artists.map((a) => a.id)} onChange={setArtistId} display={(id) => artists.find((a) => a.id === id)?.name ?? id} />
+      )}
+      <Chips label="Kind" value={kind} options={KINDS} onChange={setKind} display={(k) => (KIND[k] ?? k)} />
+      <LabeledInput label="Label (optional)" value={label} onChange={setLabel} placeholder={KIND[kind]} />
+      <LabeledInput label="Expires (YYYY-MM-DD)" value={expires} onChange={setExpires} keyboardType="numeric" placeholder="2027-01-31" />
+      {err && <Text style={styles.errText}>{err}</Text>}
+      <Button label={busy ? "Saving…" : "Save"} onPress={save} disabled={busy} />
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
+  errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, gap: 10 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },

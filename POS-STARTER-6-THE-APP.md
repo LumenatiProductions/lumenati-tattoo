@@ -228,7 +228,19 @@ Bearer API), so each role only touches what its policies allow.
 - Launcher gained Clients / Reports / Compliance, role-gated.
 - Next build green; app tsc green.
 
-**Deferred (final parity bits):** add/edit forms in the app (clients, compliance,
-inventory items, bookings creation) — the app is read+act today, deep editing
-stays on web; and push reminders. Once those land, retire the Next admin as the
-everywhere front door.
+### 6e pass 3 (2026-06-06): create forms in the app
+The app can now CREATE, not just read+act. App tsc green.
+
+- `components/form.tsx` — shared `LabeledInput` + `Chips` (single-select).
+- `lib/ids.ts` — id generator for text-PK tables (mirrors the web's `walkin-`/`bk-`).
+- `clients.tsx` — "New client" (walk-in) form → inserts under RLS.
+- `inventory.tsx` — "Add item" form (name/category/unit/qty/reorder) → insert.
+- `compliance.tsx` — "Add license/permit" (scope, artist picker, kind, expiry;
+  status computed client-side) → insert (owner).
+- `bookings.tsx` — "New booking" (artist + client/walk-in pickers, date/time,
+  service, deposit) → insert (`bk-…`, status scheduled, source manual).
+
+**Deferred (last mile):** edit/delete depth on these records, a real date/time
+picker for bookings (text fields today), and push reminders. With creation in
+place the app is at daily-driver parity; once push + edit land, the Next admin
+becomes optional — flip `POS-BUILD-PLAN.md` to "app is the front door."

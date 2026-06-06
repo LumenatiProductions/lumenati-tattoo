@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
-import { Card } from "@/components/ui";
+import { Card, Button } from "@/components/ui";
+import { LabeledInput } from "@/components/form";
+import { uid } from "@/lib/ids";
 
 type Client = {
   id: string;
@@ -22,18 +24,20 @@ export default function Clients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("clients")
-        .select("id, first_name, last_name, phone, email, instagram")
-        .order("last_seen", { ascending: false, nullsFirst: false })
-        .limit(500);
-      setClients((data ?? []) as Client[]);
-      setLoading(false);
-    })();
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from("clients")
+      .select("id, first_name, last_name, phone, email, instagram")
+      .order("last_seen", { ascending: false, nullsFirst: false })
+      .limit(500);
+    setClients((data ?? []) as Client[]);
+    setLoading(false);
   }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -47,6 +51,11 @@ export default function Clients() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Clients", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <View style={{ marginBottom: 12 }}>
+          <Button label={adding ? "Cancel" : "New client"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+        </View>
+        {adding && <NewClient onSaved={() => { setAdding(false); load(); }} />}
+
         <TextInput
           value={q}
           onChangeText={setQ}
@@ -87,7 +96,50 @@ export default function Clients() {
   );
 }
 
+function NewClient({ onSaved }: { onSaved: () => void }) {
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [ig, setIg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = async () => {
+    if (!first.trim()) {
+      setErr("First name is required.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const { error } = await supabase.from("clients").insert({
+      id: `walkin-${uid()}`,
+      first_name: first.trim(),
+      last_name: last.trim(),
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      instagram: ig.trim().replace(/^@/, "") || null,
+    });
+    setBusy(false);
+    if (error) setErr(error.message);
+    else onSaved();
+  };
+
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <LabeledInput label="First name" value={first} onChange={setFirst} autoCapitalize="words" />
+      <LabeledInput label="Last name" value={last} onChange={setLast} autoCapitalize="words" />
+      <LabeledInput label="Phone" value={phone} onChange={setPhone} keyboardType="phone-pad" />
+      <LabeledInput label="Email" value={email} onChange={setEmail} keyboardType="email-address" autoCapitalize="none" />
+      <LabeledInput label="Instagram" value={ig} onChange={setIg} autoCapitalize="none" />
+      {err && <Text style={styles.errText}>{err}</Text>}
+      <Button label={busy ? "Saving…" : "Save client"} onPress={save} disabled={busy} />
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
+  errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
   search: {
     backgroundColor: theme.surface,
     borderColor: theme.border,

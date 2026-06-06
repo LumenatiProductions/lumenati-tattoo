@@ -5,7 +5,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
-import { Card } from "@/components/ui";
+import { Card, Button } from "@/components/ui";
+import { LabeledInput, Chips } from "@/components/form";
+import { uid } from "@/lib/ids";
 
 type Booking = {
   id: string;
@@ -40,7 +42,10 @@ export default function Bookings() {
 
   const [rows, setRows] = useState<Booking[]>([]);
   const [names, setNames] = useState<{ c: Map<string, string>; a: Map<string, string> }>({ c: new Map(), a: new Map() });
+  const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
+  const [recentClients, setRecentClients] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     const start = todayKey();
@@ -64,8 +69,23 @@ export default function Bookings() {
       c: new Map(((cRes.data ?? []) as { id: string; first_name: string; last_name: string }[]).map((c) => [c.id, `${c.first_name} ${c.last_name}`.trim()])),
       a: new Map(((aRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name])),
     });
+
+    // Pickers for the create form (staff only; artists can't read clients).
+    if (isStaff) {
+      const [allArtists, recent] = await Promise.all([
+        supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+        supabase.from("clients").select("id, first_name, last_name").order("last_seen", { ascending: false, nullsFirst: false }).limit(12),
+      ]);
+      setArtists((allArtists.data ?? []) as { id: string; name: string }[]);
+      setRecentClients(
+        ((recent.data ?? []) as { id: string; first_name: string; last_name: string }[]).map((c) => ({
+          id: c.id,
+          name: `${c.first_name} ${c.last_name}`.trim() || "Client",
+        })),
+      );
+    }
     setLoading(false);
-  }, []);
+  }, [isStaff]);
 
   useEffect(() => {
     load();
@@ -120,6 +140,22 @@ export default function Bookings() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        {isStaff && (
+          <View style={{ marginBottom: 12 }}>
+            <Button label={adding ? "Cancel" : "New booking"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+          </View>
+        )}
+        {adding && (
+          <NewBooking
+            artists={artists}
+            clients={recentClients}
+            onSaved={() => {
+              setAdding(false);
+              load();
+            }}
+          />
+        )}
+
         {loading ? (
           <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
         ) : (
@@ -157,7 +193,82 @@ export default function Bookings() {
   );
 }
 
+function NewBooking({
+  artists,
+  clients,
+  onSaved,
+}: {
+  artists: { id: string; name: string }[];
+  clients: { id: string; name: string }[];
+  onSaved: () => void;
+}) {
+  const [artistId, setArtistId] = useState(artists[0]?.id ?? "");
+  const [clientId, setClientId] = useState(""); // "" = walk-in
+  const [date, setDate] = useState(todayKey());
+  const [time, setTime] = useState("12:00");
+  const [service, setService] = useState("");
+  const [deposit, setDeposit] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = async () => {
+    if (!artistId) {
+      setErr("Pick an artist.");
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+      setErr("Date YYYY-MM-DD and time HH:MM.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const depositCents = Math.round((Number(deposit) || 0) * 100);
+    const { error } = await supabase.from("bookings").insert({
+      id: `bk-${uid()}`,
+      artist_id: artistId,
+      client_id: clientId || null,
+      starts_at: `${date}T${time}:00`,
+      status: "scheduled",
+      service_desc: service.trim(),
+      deposit_cents: depositCents,
+      deposit_status: depositCents > 0 ? "held" : "none",
+      source: "manual",
+    });
+    setBusy(false);
+    if (error) setErr(error.message);
+    else onSaved();
+  };
+
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      {artists.length > 0 && (
+        <Chips label="Artist" value={artistId} options={artists.map((a) => a.id)} onChange={setArtistId} display={(id) => artists.find((a) => a.id === id)?.name ?? id} />
+      )}
+      <Chips
+        label="Client"
+        value={clientId}
+        options={["", ...clients.map((c) => c.id)]}
+        onChange={setClientId}
+        display={(id) => (id ? clients.find((c) => c.id === id)?.name ?? "Client" : "Walk-in")}
+      />
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <View style={{ flex: 1.4 }}>
+          <LabeledInput label="Date" value={date} onChange={setDate} keyboardType="numeric" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <LabeledInput label="Time" value={time} onChange={setTime} keyboardType="numeric" />
+        </View>
+      </View>
+      <LabeledInput label="Service" value={service} onChange={setService} placeholder="e.g. half-sleeve session" />
+      <LabeledInput label="Deposit ($, optional)" value={deposit} onChange={setDeposit} keyboardType="numeric" placeholder="0" />
+      {err && <Text style={styles.err}>{err}</Text>}
+      <Button label={busy ? "Saving…" : "Create booking"} onPress={save} disabled={busy} />
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
+  err: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
   section: { color: theme.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: "600", marginTop: 18, marginBottom: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", padding: 14, gap: 10 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },

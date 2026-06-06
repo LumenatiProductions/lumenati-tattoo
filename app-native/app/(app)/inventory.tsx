@@ -5,7 +5,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Card, Button } from "@/components/ui";
+import { LabeledInput, Chips } from "@/components/form";
 import { snapInventory, type InventoryItem as Detected } from "@/lib/vision";
+
+const CATS = ["needle", "ink", "glove", "tube", "aftercare", "disposable", "other"];
+const UNITS = ["each", "box", "bottle"];
 
 type Item = { id: string; name: string; brand: string | null; category: string; qty: number; reorder_at: number; unit: string };
 
@@ -21,6 +25,7 @@ export default function Inventory() {
   const [detected, setDetected] = useState<Detected[]>([]);
   const [scanning, setScanning] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -74,8 +79,16 @@ export default function Inventory() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Inventory", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
-        <Button label={scanning ? "Reading shelf…" : "Snap to count"} tone="ghost" onPress={scan} disabled={scanning} />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Button label={scanning ? "Reading…" : "Snap to count"} tone="ghost" onPress={scan} disabled={scanning} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button label={adding ? "Cancel" : "Add item"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+          </View>
+        </View>
         {note && <Text style={styles.note}>{note}</Text>}
+        {adding && <NewItem onSaved={() => { setAdding(false); load(); }} />}
 
         {detected.length > 0 && (
           <Card style={{ marginTop: 12 }}>
@@ -129,6 +142,53 @@ export default function Inventory() {
   );
 }
 
+function NewItem({ onSaved }: { onSaved: () => void }) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("needle");
+  const [unit, setUnit] = useState("each");
+  const [qty, setQty] = useState("");
+  const [reorderAt, setReorderAt] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = async () => {
+    if (!name.trim()) {
+      setErr("Name is required.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const { error } = await supabase.from("inventory_items").insert({
+      name: name.trim(),
+      category,
+      unit,
+      qty: Number(qty) || 0,
+      reorder_at: Number(reorderAt) || 0,
+    });
+    setBusy(false);
+    if (error) setErr(error.message);
+    else onSaved();
+  };
+
+  return (
+    <Card style={{ marginTop: 12 }}>
+      <LabeledInput label="Name" value={name} onChange={setName} placeholder="e.g. 3RL cartridges" />
+      <Chips label="Category" value={category} options={CATS} onChange={setCategory} />
+      <Chips label="Unit" value={unit} options={UNITS} onChange={setUnit} />
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <LabeledInput label="On hand" value={qty} onChange={setQty} keyboardType="numeric" placeholder="0" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <LabeledInput label="Reorder at" value={reorderAt} onChange={setReorderAt} keyboardType="numeric" placeholder="0" />
+        </View>
+      </View>
+      {err && <Text style={styles.errText}>{err}</Text>}
+      <Button label={busy ? "Saving…" : "Save item"} onPress={save} disabled={busy} />
+    </Card>
+  );
+}
+
 function ItemRow({ it, onAdjust, border }: { it: Item; onAdjust: (id: string, d: number) => void; border: boolean }) {
   return (
     <View style={[styles.row, border && styles.border]}>
@@ -169,4 +229,5 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: theme.brand, borderRadius: 9, paddingVertical: 8, paddingHorizontal: 14 },
   addText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
+  errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
 });
