@@ -3,6 +3,23 @@
 Read `BUILD-PLAN.md` first. Wave 1. No FKs to other features (fully standalone).
 A clean first parallel build.
 
+## STATUS — built (2026-06-05)
+
+Phases 1–3 done; phase 4 (decrement-on-use tied to bookings) deferred.
+- `supabase/inventory-schema.sql` — `inventory_items` + `inventory_log`, RLS
+  owner/frontdesk read+write. **Apply this in Supabase before relying on the page.**
+- `app/api/inventory/route.ts` — GET/POST/PATCH/DELETE, staff-gated. PATCH does
+  double duty: a field edit, or a signed-`delta` quick-adjust that clamps qty ≥ 0
+  and appends an `inventory_log` row (who/what/why, best-effort).
+- `lib/admin/inventory-context.tsx` — exposes `lowStock` (Overview aggregate),
+  `stockValueCents` (Reports), and `adjustQty`/`addItem`/`updateItem`/`removeItem`.
+- `lib/inventory/job.ts` — `runDailyJob` emails the owner items at/below
+  `reorder_at` (gated on `RESEND_API_KEY`; clean no-op without it). Also the home
+  of the shared `isLow` predicate + `CATEGORY_LABELS` used by the route/page.
+- `app/admin/(app)/inventory/page.tsx` — "needs reordering" panel up top with
+  supplier links, category-grouped table with inline +/- qty, add-item form.
+- `npm run build` green. `runDailyJob` already wired into `/api/ops/daily`.
+
 ## The idea in one line
 
 Track the consumables a shop burns through — needles, ink, gloves, tubes,
