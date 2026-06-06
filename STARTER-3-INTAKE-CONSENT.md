@@ -74,3 +74,45 @@ The actual consent + aftercare + medical-questionnaire **wording** (use the
 shop's real legal text; do not invent legal language). Local minimum age if not
 18. Whether ID images are stored (default: no — only a "checked" boolean, which
 avoids holding sensitive ID scans).
+
+## STATUS
+
+Built (2026-06-05). `npm run build` green.
+
+**Shipped — Phases 1 & 2:**
+- `supabase/intake-schema.sql` — `consent_forms` table, FKs (`on delete set
+  null`) to bookings/clients/artists, `voided`/`void_reason` (never
+  hard-delete), `sign_token`, indexes. RLS: owner/bookkeeper/frontdesk r+w;
+  artist reads forms for their own bookings; **no anon policy** (the public
+  signer goes through the service-role API, token-gated). No DELETE policy.
+- `lib/intake/forms.ts` — questionnaire/consent/aftercare spec, `MIN_AGE` (18),
+  `computeAgeOk`, `summarizeMedicalFlags`, `SIGNATURE_VIEWBOX`. **All legal copy
+  is clearly-marked PLACEHOLDER — must be replaced before go-live.**
+- `lib/admin/intake-context.tsx` — provider replacing the stub; exposes
+  `unsignedToday` (today's bookings missing a signed form) for the Overview.
+- `app/api/intake/route.ts` — staff GET (list + `unsignedToday`), POST (start a
+  form, returns the signing URL), PATCH (ID check, placement, void).
+- `app/api/intake/sign/route.ts` — public, service-role, token-gated: GET verify
+  + POST submit (stamps `signed_at`, computes `age_ok`, summarizes medical
+  flags, **blocks under-age self-sign**).
+- `app/api/intake/send/route.ts` — emails the signing link via Resend; degrades
+  to "copy the link" when `RESEND_API_KEY` is unset.
+- `app/admin/(app)/intake/page.tsx` — staff list with signed+ID-checked (green)
+  vs needs-attention (amber) badges, new-form panel, ID-check confirm, send
+  link, void, full questionnaire/signature view.
+- `app/intake/[token]/page.tsx` — public signer (outside the `(site)` group, so
+  no legacy bundle): questionnaire + draw-to-sign pad. Signature is stored as
+  SVG **path data only** (regex-validated server-side) and rendered with React,
+  never `dangerouslySetInnerHTML` — closes the stored-XSS hole.
+
+**To apply before use:** run `supabase/intake-schema.sql` in Supabase (after the
+wave-1/2 parents). Then replace the PLACEHOLDER legal text in
+`lib/intake/forms.ts` and set `MIN_AGE` for the locale.
+
+**Not built (later phases / other lanes):**
+- Phase 3 (block a booking from "completed" without a signed consent) — belongs
+  in the Bookings lane / a soft warning on the Overview; not done here to avoid
+  touching another feature's files.
+- Phase 4 (aftercare ack -> Follow-ups) — wire once Follow-ups lands; the
+  `aftercare_ack` flag is in place to drive it.
+- ID image storage — intentionally **not** built (default: boolean only).
