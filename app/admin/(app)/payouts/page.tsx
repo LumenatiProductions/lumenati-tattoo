@@ -5,6 +5,7 @@ import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { statementFor, fmt, type ArtistStatement } from "@/lib/admin/calc";
 import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
+import PayoutsConnect from "@/components/admin/connect/PayoutsConnect";
 
 export default function PayoutsPage() {
   const { role, asArtistId } = useRole();
@@ -28,6 +29,10 @@ export default function PayoutsPage() {
         </p>
       </div>
       {!real && <MockBanner source="Square" />}
+
+      {/* Stripe Connect setup — owner only. Onboarded artists are auto-settled;
+          the manual statement view below covers cash + non-onboarded artists. */}
+      {role === "owner" && <PayoutsConnect />}
 
       {role !== "artist" && (
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">

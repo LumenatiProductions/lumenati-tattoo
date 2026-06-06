@@ -1,6 +1,8 @@
 import { randomBytes } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type Stripe from "stripe";
 import { stripe, siteUrl } from "./client";
+import { connectChargeParams } from "./connect";
 
 // Shared payment helpers. SERVER ONLY. Used by /api/payments (mint a pay link),
 // /pay/[token]/checkout (start the Stripe session), and /api/stripe/webhook
@@ -85,6 +87,22 @@ export async function startCheckout(
   if (row.status === "paid") return { ok: false as const, error: "Already paid." };
 
   const name = `Lumenati Tattoo · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
+
+  // Connect (POS-STARTER-5): a ticket for an onboarded artist becomes a
+  // destination charge — shop keeps its cut as the application fee, the rest
+  // transfers to the artist. Deposits and non-onboarded artists charge the
+  // platform normally (no transfer).
+  const split = await connectChargeParams(admin, row.artist_id, row.kind, row.amount_cents);
+  const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {
+    metadata: { payment_id: row.id, pay_token: row.pay_token },
+    ...(split
+      ? {
+          application_fee_amount: split.applicationFeeCents,
+          transfer_data: { destination: split.destination },
+        }
+      : {}),
+  };
+
   try {
     const session = await stripe.checkout.sessions.create(
       {
@@ -102,7 +120,7 @@ export async function startCheckout(
           },
         ],
         metadata: { payment_id: row.id, pay_token: row.pay_token, kind: row.kind },
-        payment_intent_data: { metadata: { payment_id: row.id, pay_token: row.pay_token } },
+        payment_intent_data: paymentIntentData,
       },
       { idempotencyKey: `checkout_${row.pay_token}` },
     );

@@ -55,8 +55,38 @@ the Payouts page is rewritten from "mark settled" to "auto-settled by Stripe".
 Stripe Connect enabled on the account; the OK to onboard real artists (KYC); a
 decision on who absorbs Stripe fees (shop vs artist).
 
-## STATUS
+## STATUS — built (2026-06-05), awaiting Stripe keys + Connect
 
-Not started. Aim Session 6 (Tap to Pay) here: in-person taps should create the
-SAME destination-charge PaymentIntent this session builds, so the phone app reuses
-this split logic rather than reinventing it.
+Phases 1–3 shipped. Dormant until Scott adds Stripe keys AND enables Connect on
+the account; until then the Payouts page shows a "add Stripe keys" note and the
+manual settlement view still works unchanged.
+
+- `supabase/connect-schema.sql` — APPLIED: `artists.stripe_account_id` +
+  `stripe_onboarded` (additive; append-only, doesn't edit artists-schema.sql).
+- `lib/stripe/connect.ts` — `ensureAccount` (create Express transfer-only acct +
+  store id), `onboardingLink` (hosted KYC link), `refreshOnboardStatus` (persist
+  charges/details/payouts enabled), and `connectChargeParams` (the split:
+  application fee = shop cut from `split_pct`, 0 for rent artists; **tickets only**
+  — deposits stay on the platform since they may be forfeited to the shop).
+- `lib/stripe/payments.ts` — `startCheckout` now adds `application_fee_amount` +
+  `transfer_data.destination` for a ticket whose artist is onboarded. Deposits
+  and non-onboarded artists charge the platform as before.
+- `app/api/connect/route.ts` — owner-gated: GET roster + status, POST
+  onboard/refresh.
+- `components/admin/connect/PayoutsConnect.tsx` + Payouts page — owner sees a
+  Connect setup panel (onboard / finish / refresh per artist, status badges);
+  auto-rechecks on return from Stripe (`?connect=return`).
+- `npm run build` green (Stripe destination-charge types validated).
+
+**Not yet:** Phase 4 (tips split — today the whole ticket amount is split by the
+artist's `split_pct`; tips should stay 100% with the artist; refunds/disputes
+across the split). Fees: destination charges currently leave Stripe fees with the
+platform (shop) by default — Scott to decide if artists absorb them.
+
+### Aimed at Session 6 (Tap to Pay)
+In-person taps must create the SAME destination-charge PaymentIntent. Reuse
+`connectChargeParams` server-side: the phone app collects the card via Tap to Pay
+and confirms a PaymentIntent built with `application_fee_amount` +
+`transfer_data.destination` exactly as `startCheckout` does. Add a thin
+`/api/terminal/...` endpoint that mints that PaymentIntent for a booking/ticket;
+do NOT recompute the split in the app.
