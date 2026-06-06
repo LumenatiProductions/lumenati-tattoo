@@ -128,10 +128,34 @@ Run it: `cd app-native && cp .env.example .env` (fill Supabase URL+anon, same as
 web) `&& npm install && npx expo start` (i/a/w). The Supabase email template
 needs `{{ .Token }}` for the OTP code. README has the details.
 
-### Aimed at 6b (money & coaching) — next
-Build the artist money home for real: earnings over a range, **realized hourly
-rate** (price ÷ booked hours from `bookings.starts_at/ends_at`), goals + progress,
-and the **tax tracker** (YTD = the 1099 number, suggested set-aside %, deduction
-log, quarterly reminders). Charts via a RN lib (Victory/Skia). The owner cockpit
-port can come alongside or in 6d. Reuse `calc.ts` shapes server-side where the
-math gets real; keep simple sums client-side via RLS like 6a does.
+### 6b — Money & coaching: BUILT (2026-06-06)
+The artist money home is real, plus goals + the tax tracker. `tsc --noEmit` green.
+
+- `supabase/app-personal-schema.sql` — APPLIED: `artist_goals` + `artist_expenses`,
+  keyed to the **auth user** (not artist_id, so no roster mapping) with RLS
+  `user_id = auth.uid()` — strictly private to each artist.
+- `lib/personal.ts` — RLS-scoped money calcs (earnings by week/month/year,
+  **realized hourly rate** = service ÷ completed-booking hours, last-7-days
+  strip) + goals/expenses CRUD.
+- `components/ArtistMoney.tsx` — the home: range toggle, earned/hourly/tickets/
+  tax-reserve tiles, goal pacing bar, a 7-day bar strip (plain Views, no chart
+  dep), and a tax card (YTD = 1099 basis, deductions, set-aside, next quarterly
+  date) with a plain "not tax advice" line.
+- `app/(app)/goals.tsx` — set weekly/monthly target + tax %.
+- `app/(app)/expenses.tsx` — log deductions (ink/needles/rent/etc.); YTD feeds
+  the tax reserve.
+- `app/(app)/home.tsx` — artists → `ArtistMoney`; staff → the 6a glance (owner
+  cockpit port is 6d).
+- `components/ui.tsx` — shared RN primitives (Card/Stat/Button/ProgressBar).
+
+Real-data note: reads are real (no mock), so a fresh artist sees zeros until
+sales/bookings exist — honest empty state, same as Reports.
+
+### Aimed at 6c (in-person POS) — next
+Tap to Pay (iOS + Android) + instant payouts. Needs a **dev build** (not Expo Go)
+and `@stripe/stripe-terminal-react-native`. Server side: add a thin
+`/api/terminal/connection-token` and a PaymentIntent-for-terminal endpoint that
+builds the SAME destination charge as `startCheckout` via `connectChargeParams`
+(do NOT recompute the split in the app). Instant payout = a "Cash out now" button
+hitting a new owner/artist payout endpoint (`stripe.payouts.create({method:
+'instant'})` on the connected account); artist pays the ~1.5% fee.

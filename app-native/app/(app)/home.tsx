@@ -4,69 +4,33 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
-
-type Stats = {
-  service: number;
-  tips: number;
-  tickets: number;
-  apptsToday: number;
-  lowStock: number;
-};
+import { Stat } from "@/components/ui";
+import ArtistMoney from "@/components/ArtistMoney";
 
 const todayLocal = () => {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 
-// One real screen on all three targets, reading RLS-scoped data directly from
-// Supabase (an artist's `sales` query returns only theirs — no artist_id needed).
-// 6b+ deepen this into the money/coaching home and the owner cockpit.
+// Role-routed home: artists get the money + coaching dashboard (6b), staff get
+// the shop glance (the owner cockpit port lands in 6d).
 export default function Home() {
   const { role, email, signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
-
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    const date = todayLocal();
-    const [salesRes, apptRes, invRes] = await Promise.all([
-      supabase.from("sales").select("service_cents, tip_cents"),
-      isStaff
-        ? supabase
-            .from("bookings")
-            .select("id", { count: "exact", head: true })
-            .gte("starts_at", date)
-            .lte("starts_at", `${date}T23:59:59.999`)
-            .neq("status", "cancelled")
-        : Promise.resolve({ count: 0 }),
-      isStaff ? supabase.from("inventory_items").select("qty, reorder_at") : Promise.resolve({ data: [] }),
-    ]);
-
-    const sales = (salesRes.data ?? []) as { service_cents: number; tip_cents: number }[];
-    const inv = ((invRes as { data?: { qty: number; reorder_at: number }[] }).data ?? []);
-    setStats({
-      service: sales.reduce((a, s) => a + (s.service_cents ?? 0), 0),
-      tips: sales.reduce((a, s) => a + (s.tip_cents ?? 0), 0),
-      tickets: sales.length,
-      apptsToday: (apptRes as { count?: number }).count ?? 0,
-      lowStock: inv.filter((i) => Number(i.qty) <= Number(i.reorder_at)).length,
-    });
-    setLoading(false);
-  }, [isStaff]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
   const firstName = (email ?? "").split("@")[0];
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  }, []);
 
   return (
     <ScrollView
       style={{ backgroundColor: theme.bg }}
       contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={theme.brand} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
     >
       <View style={styles.header}>
         <View>
@@ -80,37 +44,52 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <Text style={styles.greeting}>Hey {firstName}</Text>
-
-      {loading && !stats ? (
-        <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
-      ) : isStaff ? (
-        <View style={styles.grid}>
-          <Stat label="Gross sales" value={money((stats?.service ?? 0) + (stats?.tips ?? 0))} accent />
-          <Stat label="Appointments today" value={String(stats?.apptsToday ?? 0)} />
-          <Stat label="Low stock" value={String(stats?.lowStock ?? 0)} warn={(stats?.lowStock ?? 0) > 0} />
-          <Stat label="Tickets" value={String(stats?.tickets ?? 0)} />
-        </View>
-      ) : (
-        <View style={styles.grid}>
-          <Stat label="You brought in" value={money(stats?.service ?? 0)} accent />
-          <Stat label="Tips" value={money(stats?.tips ?? 0)} />
-          <Stat label="Tickets" value={String(stats?.tickets ?? 0)} />
-        </View>
-      )}
-
-      <Text style={styles.note}>
-        Live from your shop. This is the 6a shell — money, goals, taxes, and taking payment land next.
-      </Text>
+      {isStaff ? <StaffHome firstName={firstName} /> : <ArtistMoney firstName={firstName} />}
     </ScrollView>
   );
 }
 
-function Stat({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
+function StaffHome({ firstName }: { firstName: string }) {
+  const [stats, setStats] = useState<{ gross: number; apptsToday: number; lowStock: number; tickets: number } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const date = todayLocal();
+      const [salesRes, apptRes, invRes] = await Promise.all([
+        supabase.from("sales").select("service_cents, tip_cents"),
+        supabase
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .gte("starts_at", date)
+          .lte("starts_at", `${date}T23:59:59.999`)
+          .neq("status", "cancelled"),
+        supabase.from("inventory_items").select("qty, reorder_at"),
+      ]);
+      const sales = (salesRes.data ?? []) as { service_cents: number; tip_cents: number }[];
+      const inv = (invRes.data ?? []) as { qty: number; reorder_at: number }[];
+      setStats({
+        gross: sales.reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
+        apptsToday: (apptRes as { count?: number }).count ?? 0,
+        lowStock: inv.filter((i) => Number(i.qty) <= Number(i.reorder_at)).length,
+        tickets: sales.length,
+      });
+    })();
+  }, []);
+
   return (
-    <View style={[styles.stat, accent && { borderColor: theme.brand }]}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, warn && { color: theme.warn }]}>{value}</Text>
+    <View>
+      <Text style={styles.greeting}>Hey {firstName}</Text>
+      {!stats ? (
+        <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+      ) : (
+        <View style={styles.grid}>
+          <Stat label="Gross sales" value={money(stats.gross)} accent />
+          <Stat label="Appointments today" value={String(stats.apptsToday)} />
+          <Stat label="Low stock" value={String(stats.lowStock)} warn={stats.lowStock > 0} />
+          <Stat label="Tickets" value={String(stats.tickets)} />
+        </View>
+      )}
+      <Text style={styles.note}>The full owner cockpit lands on the app in 6d. For now, the web admin has the deep view.</Text>
     </View>
   );
 }
@@ -122,16 +101,5 @@ const styles = StyleSheet.create({
   signout: { color: theme.textDim, fontSize: 13 },
   greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 24, marginBottom: 16 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  stat: {
-    backgroundColor: theme.surface,
-    borderColor: theme.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    flexGrow: 1,
-    flexBasis: "45%",
-  },
-  statLabel: { color: theme.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
-  statValue: { color: theme.text, fontSize: 26, fontWeight: "700", marginTop: 6 },
   note: { color: theme.textFaint, fontSize: 13, marginTop: 28, lineHeight: 19 },
 });
