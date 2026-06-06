@@ -1,28 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRent } from "@/lib/admin/rent-context";
-import { useBookings } from "@/lib/admin/bookings-context";
-import { useInventory } from "@/lib/admin/inventory-context";
-import { useCompliance } from "@/lib/admin/compliance-context";
-import { useFollowups } from "@/lib/admin/followups-context";
 import { CASH_LOG } from "@/lib/admin/mock-data";
 import { shopSummary, statementFor, fmt } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
+import Cockpit from "@/components/admin/cockpit/Cockpit";
 import { PageHead, WeekTile, StatementsTable, RentPanel } from "./shared";
 
-// Owner: the whole shop. A cross-feature "needs attention" strip on top (the
-// cockpit seed — POS-STARTER-4 deepens this), then the financial overview.
+// Owner: the whole shop. The cross-feature cockpit (POS-STARTER-4) on top, then
+// the financial overview.
 export default function OwnerHome() {
   const { sales, real } = useSales();
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
-  const { today: apptsToday, depositsHeld } = useBookings();
-  const { lowStock } = useInventory();
-  const { expiringSoon } = useCompliance();
-  const { dueToday: followupsDue } = useFollowups();
 
   const s = shopSummary(artists, sales, []);
   const statements = artists
@@ -41,14 +33,7 @@ export default function OwnerHome() {
     <div>
       <PageHead title="Shop Overview" sub={real ? "Live from Square" : "Period to date · preview data"} />
 
-      {/* Needs-attention strip: every feature's headline number, action-first. */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Attn label="Appointments today" value={String(apptsToday)} href="/admin/bookings" />
-        <Attn label="Deposits held" value={fmt(depositsHeld)} href="/admin/bookings" />
-        <Attn label="Low stock" value={String(lowStock.length)} href="/admin/inventory" warn={lowStock.length > 0} />
-        <Attn label="Licenses expiring" value={String(expiringSoon.length)} href="/admin/compliance" warn={expiringSoon.length > 0} />
-        <Attn label="Follow-ups due" value={String(followupsDue)} href="/admin/followups" warn={followupsDue > 0} />
-      </div>
+      <Cockpit />
 
       {!real && <MockBanner source="Square & QuickBooks" />}
 
@@ -92,19 +77,5 @@ export default function OwnerHome() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Attn({ label, value, href, warn }: { label: string; value: string; href: string; warn?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-xl border bg-white px-4 py-3 transition hover:shadow-sm ${
-        warn ? "border-amber-300/70" : "border-black/8"
-      }`}
-    >
-      <div className="text-xs font-medium uppercase tracking-wide text-black/45">{label}</div>
-      <div className={`tnum mt-1 text-xl font-semibold ${warn ? "text-amber-600" : "text-ink"}`}>{value}</div>
-    </Link>
   );
 }

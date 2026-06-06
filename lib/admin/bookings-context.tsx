@@ -24,6 +24,7 @@ export type Booking = {
   source: "manual" | "square" | "web_request";
   created_at: string;
   synced_at: string;
+  checked_in_at: string | null; // kiosk self check-in (POS-STARTER-2); null = not arrived
 };
 
 export type NewBooking = {

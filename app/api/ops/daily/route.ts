@@ -5,6 +5,8 @@ import { runDailyJob as bookingsJob } from "@/lib/bookings/job";
 import { runDailyJob as complianceJob } from "@/lib/compliance/job";
 import { runDailyJob as inventoryJob } from "@/lib/inventory/job";
 import { runDailyJob as followupsJob } from "@/lib/followups/job";
+import { runNoShowForfeit } from "@/lib/automation/no-show";
+import { runMorningBrief } from "@/lib/automation/brief";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,12 +15,17 @@ export const maxDuration = 60;
 // fan out, rather than one cron per feature). Each feature implements its own
 // runDailyJob in its lib; this route just calls them, each isolated in a
 // try/catch so one feature failing never blocks the others. CRON_SECRET-gated.
+//
+// Cross-feature automation (POS-STARTER-4) runs LAST: no-show forfeit before the
+// morning brief, so the brief reflects the just-settled state. Order matters.
 const JOBS: [string, (admin: unknown) => Promise<unknown>][] = [
   ["clients", clientsJob],
   ["bookings", bookingsJob],
   ["compliance", complianceJob],
   ["inventory", inventoryJob],
   ["followups", followupsJob],
+  ["no_show", runNoShowForfeit],
+  ["morning_brief", runMorningBrief],
 ];
 
 export async function GET(req: Request) {

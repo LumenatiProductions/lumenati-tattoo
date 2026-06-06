@@ -49,12 +49,36 @@ decision. Action-first: each tile links straight to the thing to do.
 Confirm the no-show grace window (e.g. forfeit a held deposit N hours after a
 missed slot) and what belongs in the morning brief.
 
-## STATUS
+## STATUS — built (2026-06-05)
 
-Not started. Independent of Sessions 5 to 7; can run right after Session 3.
+All four phases shipped. No schema (uses Session 2's `checked_in_at`), no new
+cron (rides the existing daily fan-out). The morning brief emails only when
+`RESEND_API_KEY` is set; the no-show forfeit is dry-run until opted in.
 
-**Unblocked by Session 2:** check-in persists as `bookings.checked_in_at`. The
-cockpit can show "N checked in / waiting" from it, and auto no-show forfeit reads
-it directly — a booking past its slot with no `checked_in_at` and a `held`
-deposit (Session 1) is the forfeit candidate. Session 1 also added the `payments`
-table if you want a payments tile.
+- `components/admin/cockpit/Cockpit.tsx` — the owner cockpit: a glance row of
+  five tiles (today checked-in/total, deposits held, low stock, licenses
+  expiring, follow-ups due) + a single **ranked "needs attention" list** (high/
+  med/low), each row linking straight to where you act. Replaces OwnerHome's old
+  static strip. Phases 1 + 4 (the inbox).
+- `lib/automation/no-show.ts` — `runNoShowForfeit`: finds bookings past the grace
+  window (`NO_SHOW_GRACE_HOURS`, default 24) with a `held` deposit, no
+  `checked_in_at`, still `scheduled`, and forfeits the deposit (+ marks
+  `no_show`). **OPT-IN**: reports candidates only until `NO_SHOW_AUTOFORFEIT=1`,
+  so it can never wrongly forfeit a real client's deposit. Phase 2.
+- `lib/automation/brief.ts` — `runMorningBrief`: a one-screen "today at the shop"
+  email (appointments + who's checked in, deposits held, no-show candidates,
+  reorders, compliance) via Resend. Phase 3.
+- `app/api/ops/daily/route.ts` — wires both in LAST (no-show before brief so the
+  brief reflects the settled state). Cron already runs 15:00 UTC (~9am Denver).
+- `lib/admin/bookings-context.tsx` — added `checked_in_at` to the `Booking` type
+  (already in the `*` payload; type-only) so the cockpit can show checked-in counts.
+- `npm run build` green.
+
+**Gate items for Scott:** confirm the no-show grace window, then set
+`NO_SHOW_AUTOFORFEIT=1` to arm it. The brief needs `RESEND_API_KEY` (already used
+by the other digests).
+
+### Next in the arc → Session 5 (Connect)
+Cockpit + automation are independent of payments rails. Session 5 (Stripe
+Connect auto-payouts) is the next POS step: it turns the manual Payouts "Mark
+settled" into automatic splits and reuses Session 1's `payments` flow.
