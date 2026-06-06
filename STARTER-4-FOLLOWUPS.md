@@ -64,3 +64,48 @@ The shop's **real aftercare wording** and the Google review link. Sending volume
 caution: same rule as the Social email work — confirm the Resend sending domain
 is set up before turning on automated client emails, so you don't burn domain
 reputation. SMS would need Twilio (or similar) — out of scope until asked.
+
+## STATUS
+
+Built (2026-06-05). `npm run build` green.
+
+**Shipped — Phases 1, 2 & 3** (Phase 4 / SMS deferred, needs a provider):
+
+- `supabase/followups-schema.sql` — `followups` table (per spec) + a
+  `followup_templates` table (one editable row per kind: subject, body,
+  `lead_days`, `enabled`). FKs `on delete cascade` (booking) / `set null`
+  (client). Unique `(booking_id, kind)` index makes enqueue idempotent (NULL
+  booking_ids stay distinct, so rebook/birthday don't collide). RLS:
+  owner/bookkeeper/frontdesk r+w; templates also readable by artists; cron
+  writes via service role.
+- `lib/followups/templates.ts` — default copy for all four kinds (aftercare +
+  review on by default; rebook + birthday off), `{{first_name}}` `{{shop_name}}`
+  `{{review_link}}` token fill, `resolveTemplate` (DB over defaults), and
+  `renderEmail` (branded HTML shell, review-link button). **All copy is
+  PLACEHOLDER** until Scott supplies the shop's real aftercare wording.
+- `lib/followups/job.ts` — `runDailyJob` enqueues off completed bookings
+  (aftercare immediate, review request `+lead_days`), lapsed-client rebook
+  nudges, and birthday outreach — all idempotent (booking upsert; client +
+  time-window de-dupe for the others). Only enqueues enabled kinds; backfill
+  capped to the last 14 days. Then drains due follow-ups via Resend **only when
+  `FOLLOWUPS_AUTOSEND=true` AND `RESEND_API_KEY` is set** — the domain-rep
+  guardrail. Enqueue is always safe to run; sending is the gated part.
+- `app/api/followups/route.ts` — staff GET (list, filter by status/kind), POST
+  ("Scan now" = run enqueue on demand), PATCH (skip / re-queue).
+  `app/api/followups/send/route.ts` — manual "Send now" (human-initiated, bypasses
+  the autosend gate + schedule). `app/api/followups/templates/route.ts` — GET all
+  (merged with defaults), PUT one.
+- `lib/admin/followups-context.tsx` — provider replacing the stub; exposes
+  `dueToday` (+ `pending`, `sentThisWeek`) for the Overview, plus
+  scan/send/skip/requeue/saveTemplate mutations.
+- `app/admin/(app)/followups/page.tsx` — the queue (Due/Pending/Sent/Skipped/
+  Failed/All filters), per-row Send now / Skip / Re-queue, stats, an inline
+  template editor (subject/body/lead-days/on-off per kind), and a visible note
+  explaining the manual-vs-autosend behaviour.
+
+**External needs still open (from Scott):** real aftercare wording + Google
+review link (`GOOGLE_REVIEW_URL` env, or paste into the template body); confirm
+the Resend sending domain, then set `FOLLOWUPS_AUTOSEND=true` to turn on nightly
+sends. SMS channel unbuilt (needs Twilio).
+
+**Integration pass TODO:** surface `useFollowups().dueToday` on the Overview tile.
