@@ -1,0 +1,12 @@
+/* Tailwind for the public consent signer — scoped to /intake, exactly like
+   admin.css scopes it to /admin. Imported by app/intake/layout.tsx, so it stays
+   off the Y2K (site) pages. Mirrors the admin brand tokens so bg-brand /
+   text-brand / accent-brand resolve on this route too. */
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0e0e11;
+  --color-brand: #ff1493;
+  --color-brand-soft: #ffe3f1;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
