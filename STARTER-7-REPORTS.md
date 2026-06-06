@@ -4,6 +4,28 @@ Read `BUILD-PLAN.md` first. Wave 3. **Read-only** — no new tables; it aggregat
 existing data. Already a "soon" nav stub today. Build last so it can read every
 other feature.
 
+## STATUS — built (2026-06-05)
+
+Phases 1–3 done; phase 4 (charts) deferred. Read-only, no schema, no cron.
+- `app/api/reports/route.ts` — owner/bookkeeper gated. `?from&to` (defaults to
+  YTD). Pulls real `sales`/`bookings`/`inventory_items` in-window + Square rent,
+  maps rows with the existing `rowToArtist`, and runs the SAME `calc.ts` math
+  (`shopSummary`/`statementFor`) as Payouts — no money math re-implemented. Never
+  falls back to mock data (an accountant report must be real rows or honest zero).
+- `lib/admin/reports-context.tsx` — `ReportsProvider` + `useReports`, with
+  month/quarter/YTD/full-year presets (`resolveRange`). The Reports **page mounts
+  its own provider** (Reports isn't in the AdminShell provider stack), so no
+  shared-file edits.
+- `app/admin/(app)/reports/page.tsx` — replaces the stub: range picker, shop
+  revenue cards, per-artist roll-up, 1099 prep table (gross earned per
+  contractor), deposits (held/applied/forfeited from bookings), supplies value
+  (from inventory). CSV export on the per-artist and 1099 sections.
+- `npm run build` green.
+
+Open question for Scott (from "External needs"): confirm with the accountant
+which figure goes on the 1099-NEC. Current basis = gross earned (service kept +
+tips); the export is ready to adjust once confirmed.
+
 ## The idea in one line
 
 The numbers that run the business and satisfy the accountant: revenue and splits
