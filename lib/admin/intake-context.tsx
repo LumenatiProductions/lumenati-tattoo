@@ -1,7 +1,7 @@
 "use client";
 
 // SCAFFOLD STUB — the Intake & Consent feature replaces this whole file (see
-// STARTER-INTAKE-CONSENT.md). Expose `unsignedToday` for the Overview tile when built.
+// STARTER-3-INTAKE-CONSENT.md). Expose `unsignedToday` for the Overview tile when built.
 import { createContext, useContext } from "react";
 
 const Ctx = createContext<{ loading: boolean }>({ loading: false });

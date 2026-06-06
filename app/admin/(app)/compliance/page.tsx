@@ -5,7 +5,7 @@ export default function CompliancePage() {
     <ComingSoon
       title="Compliance"
       blurb="Licenses, BBP certs, permits, and expiry alerts."
-      starter="STARTER-COMPLIANCE.md"
+      starter="STARTER-5-COMPLIANCE.md"
     />
   );
 }

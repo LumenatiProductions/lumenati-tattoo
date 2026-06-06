@@ -5,7 +5,7 @@ export default function ClientsPage() {
     <ComingSoon
       title="Clients"
       blurb="Repeat clients, contact info, and tattoo history."
-      starter="STARTER-CLIENTS.md"
+      starter="STARTER-1-CLIENTS.md"
     />
   );
 }

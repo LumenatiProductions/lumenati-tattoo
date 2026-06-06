@@ -5,7 +5,7 @@ export default function IntakePage() {
     <ComingSoon
       title="Intake & Consent"
       blurb="Digital waivers, age/ID verification, aftercare sign-off."
-      starter="STARTER-INTAKE-CONSENT.md"
+      starter="STARTER-3-INTAKE-CONSENT.md"
     />
   );
 }

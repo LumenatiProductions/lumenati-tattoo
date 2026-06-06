@@ -15,13 +15,13 @@ fill the front two-thirds plus the compliance and supply layers.
 
 | Feature | Route | Table(s) | Wave | Depends on | Starter |
 |---|---|---|---|---|---|
-| Clients (CRM) | `/admin/clients` | `clients` | 1 | — (Square customers) | STARTER-CLIENTS.md |
-| Compliance | `/admin/compliance` | `compliance_items` | 1 | `artists` | STARTER-COMPLIANCE.md |
-| Inventory | `/admin/inventory` | `inventory_items` | 1 | — | STARTER-INVENTORY.md |
-| Bookings | `/admin/bookings` | `bookings` | 2 | `clients`, `artists` | STARTER-BOOKINGS.md |
-| Intake & Consent | `/admin/intake` | `consent_forms` | 3 | `bookings`, `clients` | STARTER-INTAKE-CONSENT.md |
-| Follow-ups | `/admin/followups` | `followups` | 3 | `bookings`, `clients` | STARTER-FOLLOWUPS.md |
-| Reports | `/admin/reports` | none (read-only) | 3 | `sales`,`bookings`,`payouts` | STARTER-REPORTS.md |
+| Clients (CRM) | `/admin/clients` | `clients` | 1 | — (Square customers) | STARTER-1-CLIENTS.md |
+| Compliance | `/admin/compliance` | `compliance_items` | 1 | `artists` | STARTER-5-COMPLIANCE.md |
+| Inventory | `/admin/inventory` | `inventory_items` | 1 | — | STARTER-6-INVENTORY.md |
+| Bookings | `/admin/bookings` | `bookings` | 2 | `clients`, `artists` | STARTER-2-BOOKINGS.md |
+| Intake & Consent | `/admin/intake` | `consent_forms` | 3 | `bookings`, `clients` | STARTER-3-INTAKE-CONSENT.md |
+| Follow-ups | `/admin/followups` | `followups` | 3 | `bookings`, `clients` | STARTER-4-FOLLOWUPS.md |
+| Reports | `/admin/reports` | none (read-only) | 3 | `sales`,`bookings`,`payouts` | STARTER-7-REPORTS.md |
 
 Waves describe **schema apply order and FK direction only** — all the
 application code (routes, pages, contexts) can be written fully in parallel from

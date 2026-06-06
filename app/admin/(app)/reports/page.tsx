@@ -5,7 +5,7 @@ export default function ReportsPage() {
     <ComingSoon
       title="Reports"
       blurb="Financials over time, per-artist totals, and 1099 prep."
-      starter="STARTER-REPORTS.md"
+      starter="STARTER-7-REPORTS.md"
     />
   );
 }

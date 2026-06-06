@@ -5,7 +5,7 @@ export default function FollowupsPage() {
     <ComingSoon
       title="Follow-ups"
       blurb="Automated aftercare and review requests after each appointment."
-      starter="STARTER-FOLLOWUPS.md"
+      starter="STARTER-4-FOLLOWUPS.md"
     />
   );
 }

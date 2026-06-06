@@ -5,7 +5,7 @@ export default function BookingsPage() {
     <ComingSoon
       title="Bookings"
       blurb="Appointments, deposits, and no-show tracking."
-      starter="STARTER-BOOKINGS.md"
+      starter="STARTER-2-BOOKINGS.md"
     />
   );
 }

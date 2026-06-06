@@ -5,7 +5,7 @@ export default function InventoryPage() {
     <ComingSoon
       title="Inventory"
       blurb="Supplies, stock levels, and reorder alerts."
-      starter="STARTER-INVENTORY.md"
+      starter="STARTER-6-INVENTORY.md"
     />
   );
 }
