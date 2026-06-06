@@ -46,7 +46,38 @@ build is done and this is the agreed owner of that file going forward.
 Confirm the exact item set each role should see (this starter proposes a default;
 he may want front desk to also see Reports, etc.).
 
-## STATUS
+## STATUS — built (2026-06-05)
 
-Not started. Aim Session 4 (cockpit) here: the owner home built in phase 2 IS the
-cockpit shell that Session 4 fills with cross-feature tiles.
+Phases 1–2 done; Phase 3 partial; Phase 4 deferred. Pure web, no schema, no env,
+no external accounts. The home was already role-branched but ran on mock cash and
+ignored the new features; now each role's home is real and distinct, and
+bookkeeper is split from owner.
+
+- `app/admin/(app)/page.tsx` — now a thin role router only.
+- `components/admin/home/` — one component per role + `shared.tsx`:
+  - **ArtistHome** — greeting + their earnings/tips/net/tickets, their upcoming
+    bookings, recent work. No shop-wide data (compliance is owner-only, omitted).
+  - **FrontDeskHome** — today's schedule (real bookings + deposit badges),
+    deposits held, low stock, follow-ups due, and the front-of-house quick
+    actions (new client / send intake / bookings / cash). No money internals.
+  - **BookkeeperHome** — numbers only: revenue, payouts owed, rent, cash to
+    reconcile, statements + rent panel, straight link to Reports.
+  - **OwnerHome** — a cross-feature "needs attention" strip (appointments today,
+    deposits held, low stock, licenses expiring, follow-ups due) ON TOP of the
+    full financial view. This strip is the cockpit seed.
+- Reuses live aggregates already exposed by each provider (`useBookings().today`
+  /`depositsHeld`, `useInventory().lowStock`, `useCompliance().expiringSoon`,
+  `useFollowups().dueToday`). Non-owner roles that hit owner-only data get an
+  empty list via the context's 403 handling, not an error.
+- `npm run build` green.
+
+**Deferred:** nav SECTION grouping in AdminShell (the nav already filters by role,
+so each role sees a different set; grouping into labeled sections is the polish
+left). Per-role default route is effectively done — everyone lands on the
+role-routed `/admin`. Phase 4 attract/preview polish also left.
+
+### Aimed at Session 4 (cockpit)
+`OwnerHome`'s "needs attention" strip is the cockpit shell to deepen: turn those
+five tiles into a ranked, action-first list, add the auto no-show forfeit (reads
+`bookings.checked_in_at` from Session 2 + the `held` deposit from Session 1), and
+wire the morning brief. Build the cockpit by extending `components/admin/home/`.
