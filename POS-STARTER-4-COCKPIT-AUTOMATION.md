@@ -52,3 +52,9 @@ missed slot) and what belongs in the morning brief.
 ## STATUS
 
 Not started. Independent of Sessions 5 to 7; can run right after Session 3.
+
+**Unblocked by Session 2:** check-in persists as `bookings.checked_in_at`. The
+cockpit can show "N checked in / waiting" from it, and auto no-show forfeit reads
+it directly — a booking past its slot with no `checked_in_at` and a `held`
+deposit (Session 1) is the forfeit candidate. Session 1 also added the `payments`
+table if you want a payments tile.

@@ -51,13 +51,41 @@ several. Documented here, not built.
 One iPad to test Guided Access on. Decide whether the kiosk also collects
 walk-ins (no appointment) or only checks in booked clients to start.
 
-## STATUS
+## STATUS — built (2026-06-05), awaiting KIOSK_DEVICE_TOKEN
 
-Not started. **Unblocked by Session 1:** the deposit step is now
-`POST /api/payments {bookingId, kind:'deposit', amountCents}`, which returns a
-non-expiring `/pay/<token>` link to render as a QR (client's phone) or open on
-the iPad; the webhook auto-moves the booking deposit to `held`. Build the kiosk
-flow around that; do not rebuild payments.
+Phases 1–3 shipped, plus a lite Phase 4 (device token + auto-reset). Dormant
+until Scott sets `KIOSK_DEVICE_TOKEN`; until then `/kiosk` shows a "not set up"
+screen and `/api/kiosk` returns 503.
 
-Aim Session 4 (cockpit/automation) here once check-in writes a status the Overview
-can surface (e.g. "3 checked in, 1 waiting").
+**Plan change (recorded):** check-in could NOT reuse `status` —
+`bookings.status` has a CHECK constraint (scheduled/completed/no_show/cancelled)
+and other features depend on it. So check-in is an additive
+`bookings.checked_in_at timestamptz` (new `supabase/kiosk-schema.sql`, APPLIED;
+append-only, does not edit bookings-schema.sql). A booking stays `scheduled`
+until it completes; `checked_in_at` just means "they're here."
+
+- `supabase/kiosk-schema.sql` — APPLIED (the `checked_in_at` column + index).
+- `app/api/kiosk/route.ts` — device-token gated (`x-kiosk-token` vs
+  `KIOSK_DEVICE_TOKEN`), service-role. GET ?date= returns today's bookings
+  enriched with client name/phone, artist, deposit, check-in + consent state.
+  POST actions: `checkin` (optional client edits + stamp `checked_in_at`),
+  `deposit` (reuses Session 1 `createPaymentLink`).
+- `lib/kiosk/api.ts` — browser token storage + fetch wrappers (today = the
+  iPad's own local date, so "today" is the shop's day).
+- `app/kiosk/` — full-screen touch flow (its own layout + scoped `kiosk.css`):
+  setup → today's list → confirm details → checked-in. Consent reuses the
+  existing `/intake/<token>` signer (a "Sign your consent form" link when an
+  unsigned form exists). Deposit opens Session 1's `/pay/<token>` on the iPad.
+  30s auto-reset back to the list.
+- `npm run build` green.
+
+**Not yet:** QR-to-the-client's-phone for the deposit (today it opens `/pay` on
+the iPad itself); an attract/idle animation; on-the-fly consent-form creation
+(kiosk only signs forms intake already created). Provision: set
+`KIOSK_DEVICE_TOKEN`, open `/kiosk` on the iPad, enter that code once, then lock
+with Guided Access.
+
+### Aimed at Session 4 (cockpit)
+Check-in now persists as `bookings.checked_in_at`. Surface it on the Overview as
+"N checked in" / waiting, and the no-show automation can read it (a booking past
+its slot with no `checked_in_at` and a `held` deposit is the forfeit candidate).
