@@ -87,8 +87,35 @@ A Stripe account and **test** keys to start (`STRIPE_SECRET_KEY`,
 Stripe CLI locally / the dashboard in prod. Live keys + business verification are
 NOT needed until we intentionally go live.
 
-## STATUS
+## STATUS — built (2026-06-05), awaiting Stripe keys
 
-Not started. Aim Session 2 (kiosk) here once `/pay/[token]` + the webhook are
-green in test mode, since the kiosk's "pay deposit" step just reuses
-`POST /api/payments`.
+Phase 1 shipped (code + schema). The whole rail exists; it is dormant until Scott
+adds Stripe test keys (`STRIPE_SECRET_KEY` etc.) — until then the routes report
+"not configured" and nothing else is affected.
+
+- `supabase/payments-schema.sql` — APPLIED to the live DB (table + indexes + RLS
+  owner/bookkeeper/frontdesk; webhook writes via service role).
+- `lib/stripe/client.ts` — server Stripe singleton + `isStripeConfigured` + `siteUrl`.
+- `lib/stripe/payments.ts` — `createPaymentLink` (row + opaque token, no Stripe
+  call, so the `/pay/<token>` link never expires), `startCheckout` (mints the
+  Checkout session on demand, idempotent per token), `settlePayment` (idempotent;
+  a paid deposit moves the booking to `deposit_status='held'`).
+- `app/api/payments/route.ts` — staff-gated create (returns the `/pay/<token>`
+  link) + list.
+- `app/api/stripe/webhook/route.ts` — signature-verified (raw body),
+  service-role writer, idempotent. Source of truth for payment state.
+- `app/pay/[token]/` — public portal (server component, scoped Tailwind like
+  `/intake`) + `checkout/route.ts` that 303-redirects to Stripe. Card data never
+  touches our origin.
+- `npm run build` green. `stripe` (v22) added to deps.
+
+**Not yet:** Phase 2 (ticket kind + receipt email), Phase 3 (refunds), Phase 4
+(the "Send pay link" button on the booking row). The first thing the NEXT session
+on this starter does is wire a test charge end to end once keys land
+(`stripe listen --forward-to localhost:3000/api/stripe/webhook`).
+
+### Aimed at Session 2 (kiosk)
+The kiosk's deposit step is now just `POST /api/payments {bookingId, kind:
+'deposit', amountCents}` -> show the returned `/pay/<token>` as a QR for the
+client's phone, or open it on the iPad. Reuse, do not rebuild. The booking deposit
+auto-moves to `held` via the webhook.

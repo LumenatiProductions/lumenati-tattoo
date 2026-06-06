@@ -1,0 +1,12 @@
+/* Tailwind for the public payment portal — scoped to /pay, exactly like
+   intake.css scopes it to /intake. Imported by app/pay/layout.tsx so it stays
+   off the Y2K (site) pages. Mirrors the admin brand tokens so bg-brand /
+   text-brand resolve on this route too. */
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0e0e11;
+  --color-brand: #ff1493;
+  --color-brand-soft: #ffe3f1;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}

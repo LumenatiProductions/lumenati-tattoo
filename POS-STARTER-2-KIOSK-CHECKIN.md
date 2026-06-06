@@ -53,5 +53,11 @@ walk-ins (no appointment) or only checks in booked clients to start.
 
 ## STATUS
 
-Not started. Aim Session 4 (cockpit/automation) here once check-in writes a
-status the Overview can surface (e.g. "3 checked in, 1 waiting").
+Not started. **Unblocked by Session 1:** the deposit step is now
+`POST /api/payments {bookingId, kind:'deposit', amountCents}`, which returns a
+non-expiring `/pay/<token>` link to render as a QR (client's phone) or open on
+the iPad; the webhook auto-moves the booking deposit to `held`. Build the kiosk
+flow around that; do not rebuild payments.
+
+Aim Session 4 (cockpit/automation) here once check-in writes a status the Overview
+can surface (e.g. "3 checked in, 1 waiting").
