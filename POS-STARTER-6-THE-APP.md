@@ -106,11 +106,32 @@ subsidizes the instant fee, Issuing later.
 
 ## STATUS
 
-Plan rewritten 2026-06-05 (was the thin Tap-to-Pay app). Not started.
+Plan rewritten 2026-06-05 (was the thin Tap-to-Pay app).
 
-### Aimed at 6a (scaffold) — the immediate next step
-Stand up an Expo (Router) universal app in a new `app-native/` workspace (or
-sibling repo). Supabase auth against the SAME project. A role-routed shell that
-calls the existing `/api/*` and renders a first real screen (artist money / owner
-cockpit) on iOS, Android, AND web. No new backend yet — prove the one-backend,
-universal-client model end to end, then 6b/6c/6d add capability.
+### 6a — Scaffold: BUILT (2026-06-06)
+Expo universal app stood up in `app-native/` (own workspace; the Next web admin
+is untouched). `npm install` clean (941 pkgs), `tsc --noEmit` green.
+
+- Expo Router (SDK 52, new arch on) targeting iOS / Android / web from one tree.
+- `lib/supabase.ts` — shared client, AsyncStorage (localStorage on web), pointed
+  at the SAME project. Reads are RLS-scoped, so an artist's `sales` query returns
+  only theirs — no backend change for 6a.
+- `lib/auth.tsx` — session + role from `profiles` (same lookup as the web),
+  graceful "artist" fallback.
+- Routes: `index` (redirect by auth) · `sign-in` (email one-time-code, no
+  passwords / no deep links, existing-staff-only) · `(app)/_layout` (auth guard)
+  · `(app)/home` (role-routed: owner sees gross/appts-today/low-stock/tickets,
+  artist sees brought-in/tips/tickets) — all from REAL Supabase data.
+- Decision validated: one backend, universal client, role routing carries over.
+
+Run it: `cd app-native && cp .env.example .env` (fill Supabase URL+anon, same as
+web) `&& npm install && npx expo start` (i/a/w). The Supabase email template
+needs `{{ .Token }}` for the OTP code. README has the details.
+
+### Aimed at 6b (money & coaching) — next
+Build the artist money home for real: earnings over a range, **realized hourly
+rate** (price ÷ booked hours from `bookings.starts_at/ends_at`), goals + progress,
+and the **tax tracker** (YTD = the 1099 number, suggested set-aside %, deduction
+log, quarterly reminders). Charts via a RN lib (Victory/Skia). The owner cockpit
+port can come alongside or in 6d. Reuse `calc.ts` shapes server-side where the
+math gets real; keep simple sums client-side via RLS like 6a does.
