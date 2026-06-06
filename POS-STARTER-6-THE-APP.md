@@ -219,7 +219,16 @@ Bearer API), so each role only touches what its policies allow.
   AND the **snap-to-count from 6d wired in**: photo → detected items → tap to add.
 - `home.tsx` — renders `<Launcher>` for all roles.
 
-**Deferred (the rest of parity, next 6e passes):** Reports / Clients / Compliance
-app screens (Reports needs Bearer added to `/api/reports`, or a light client-side
-summary), the full add-item form for inventory, and push reminders. Once the
-mobile screens reach parity, retire the Next admin as the everywhere front door.
+### 6e pass 2 (2026-06-06): Reports / Clients / Compliance in the app
+- `/api/reports` now accepts the app's Bearer token (cookie OR bearer → resolve
+  role → read with the service-role client). Reuses the SAME server money math.
+- `app/(app)/reports.tsx` — shop summary tiles + per-artist (owner/bookkeeper).
+- `app/(app)/clients.tsx` — RLS-scoped search, tap-to-call (staff).
+- `app/(app)/compliance.tsx` — license/permit list, expiring floats up (owner).
+- Launcher gained Clients / Reports / Compliance, role-gated.
+- Next build green; app tsc green.
+
+**Deferred (final parity bits):** add/edit forms in the app (clients, compliance,
+inventory items, bookings creation) — the app is read+act today, deep editing
+stays on web; and push reminders. Once those land, retire the Next admin as the
+everywhere front door.

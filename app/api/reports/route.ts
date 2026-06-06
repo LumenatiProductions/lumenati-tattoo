@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { userFromBearer } from "@/lib/api-auth";
 import { rowToArtist } from "@/lib/admin/artists-data";
 import { shopSummary, statementFor } from "@/lib/admin/calc";
 import { fetchRentInvoices, isSquareConfigured } from "@/lib/square/client";
@@ -8,21 +10,25 @@ import type { Sale } from "@/lib/admin/types";
 export const dynamic = "force-dynamic";
 
 // Reports is the shop-wide / cross-artist financial view: owner + bookkeeper
-// only (artists see their own numbers on Payouts). RLS also scopes the tables;
-// this is the first, clean gate so an artist hitting the URL gets a 403 instead
-// of a partial self-only rollup.
-async function gate() {
+// only (artists see their own numbers on Payouts). Accepts BOTH the web admin's
+// cookie session and the app's Bearer token; either way we resolve the role and
+// then read with the service-role client (a privileged all-data aggregation that
+// only owner/bookkeeper reach). An artist gets a 403.
+async function gate(req: Request): Promise<{ role: string | null; authed: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("email", user.email!)
-    .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("email", user.email!)
+      .maybeSingle();
+    return { role: profile?.role ?? null, authed: true };
+  }
+  const me = await userFromBearer(req);
+  return me ? { role: me.role, authed: true } : { role: null, authed: false };
 }
 
 // Same `sales` row -> Sale mapping the SalesProvider uses, so the math matches
@@ -56,11 +62,13 @@ function defaultRange(): { from: string; to: string } {
 const isISODate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 export async function GET(req: Request) {
-  const { supabase, user, role } = await gate();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const { role, authed } = await gate(req);
+  if (!authed) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!role || !["owner", "bookkeeper"].includes(role)) {
     return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
   }
+  const db = createAdminClient();
+  if (!db) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
   const url = new URL(req.url);
   const def = defaultRange();
@@ -68,22 +76,22 @@ export async function GET(req: Request) {
   const to = isISODate(url.searchParams.get("to")) ? url.searchParams.get("to")! : def.to;
   const toExclusiveEnd = `${to}T23:59:59.999`; // make `to` inclusive of its whole day
 
-  // ── Pull the real rows in the window ──
+  // ── Pull the real rows in the window (service-role: owner/bookkeeper see all) ──
   const [artistsRes, salesRes, bookingsRes, inventoryRes] = await Promise.all([
-    supabase.from("artists").select("*").eq("active", true).order("sort"),
-    supabase
+    db.from("artists").select("*").eq("active", true).order("sort"),
+    db
       .from("sales")
       .select("id, created_at, service_cents, tip_cents, method, artist_id")
       .gte("created_at", from)
       .lte("created_at", toExclusiveEnd)
       .limit(20000),
-    supabase
+    db
       .from("bookings")
       .select("deposit_cents, deposit_status, starts_at")
       .gte("starts_at", from)
       .lte("starts_at", toExclusiveEnd)
       .limit(20000),
-    supabase.from("inventory_items").select("qty, cost_cents"),
+    db.from("inventory_items").select("qty, cost_cents"),
   ]);
 
   const artists = (artistsRes.data ?? []).map(rowToArtist);

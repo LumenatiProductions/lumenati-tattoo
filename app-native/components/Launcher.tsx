@@ -8,7 +8,10 @@ import type { Role } from "@/lib/auth";
 type Item = { href: string; label: string; roles: Role[] };
 const ITEMS: Item[] = [
   { href: "/bookings", label: "Bookings", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
+  { href: "/clients", label: "Clients", roles: ["owner", "bookkeeper", "frontdesk"] },
   { href: "/inventory", label: "Inventory", roles: ["owner", "frontdesk"] },
+  { href: "/reports", label: "Reports", roles: ["owner", "bookkeeper"] },
+  { href: "/compliance", label: "Compliance", roles: ["owner"] },
   { href: "/expenses", label: "Deductions", roles: ["artist"] },
   { href: "/goals", label: "Goals", roles: ["artist"] },
 ];
