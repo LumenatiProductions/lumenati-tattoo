@@ -7,6 +7,12 @@ import { RoomContentProvider } from "@/lib/admin/room-content";
 import { SalesProvider } from "@/lib/admin/sales-context";
 import { RentProvider } from "@/lib/admin/rent-context";
 import { SocialProvider } from "@/lib/admin/social-context";
+import { ClientsProvider } from "@/lib/admin/clients-context";
+import { BookingsProvider } from "@/lib/admin/bookings-context";
+import { IntakeProvider } from "@/lib/admin/intake-context";
+import { ComplianceProvider } from "@/lib/admin/compliance-context";
+import { InventoryProvider } from "@/lib/admin/inventory-context";
+import { FollowupsProvider } from "@/lib/admin/followups-context";
 import { ArtistsProvider, useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import type { Role } from "@/lib/admin/types";
@@ -14,15 +20,25 @@ import type { Role } from "@/lib/admin/types";
 const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/admin", label: "Overview", roles: ["owner", "bookkeeper", "artist", "frontdesk"] },
   { href: "/admin/room", label: "My Room", roles: ["owner", "artist"] },
+  // Front of house
+  { href: "/admin/bookings", label: "Bookings", roles: ["owner", "frontdesk", "artist"] },
+  { href: "/admin/clients", label: "Clients", roles: ["owner", "frontdesk"] },
+  { href: "/admin/intake", label: "Intake", roles: ["owner", "frontdesk"] },
+  { href: "/admin/followups", label: "Follow-ups", roles: ["owner", "frontdesk"] },
+  { href: "/admin/social", label: "Social", roles: ["owner", "frontdesk"] },
+  // Money
   { href: "/admin/artists", label: "Artists & Pay", roles: ["owner", "bookkeeper"] },
   { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
   { href: "/admin/rent", label: "Booth Rent", roles: ["owner", "bookkeeper"] },
   { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
-  { href: "/admin/social", label: "Social", roles: ["owner", "frontdesk"] },
+  { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"] },
+  // Shop
+  { href: "/admin/inventory", label: "Inventory", roles: ["owner", "frontdesk"] },
+  { href: "/admin/compliance", label: "Compliance", roles: ["owner"] },
+  // Admin
+  { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner", "bookkeeper"], soon: true },
   { href: "/admin/staff", label: "Staff", roles: ["owner"] },
   { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
-  { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner", "bookkeeper"], soon: true },
-  { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"], soon: true },
 ];
 
 function Sidebar() {
@@ -153,10 +169,22 @@ export default function AdminShell({
           <SalesProvider>
            <RentProvider>
             <SocialProvider>
-             <div className="flex min-h-screen bg-paper text-ink antialiased">
-               <Sidebar />
-               <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
-             </div>
+             <ClientsProvider>
+              <BookingsProvider>
+               <IntakeProvider>
+                <ComplianceProvider>
+                 <InventoryProvider>
+                  <FollowupsProvider>
+                   <div className="flex min-h-screen bg-paper text-ink antialiased">
+                     <Sidebar />
+                     <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+                   </div>
+                  </FollowupsProvider>
+                 </InventoryProvider>
+                </ComplianceProvider>
+               </IntakeProvider>
+              </BookingsProvider>
+             </ClientsProvider>
             </SocialProvider>
            </RentProvider>
           </SalesProvider>
