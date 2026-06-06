@@ -30,7 +30,7 @@ books; Stripe files the artists' 1099s. Square and QuickBooks become optional.
 | 3 | Role-tailored experiences | Per-role home + tightened nav (artist / front desk / bookkeeper / owner each their own app) | — (independent) | POS-STARTER-3-ROLE-EXPERIENCES.md |
 | 4 | Cockpit + automation | Owner Overview cockpit from each feature's aggregate; auto no-show forfeit; morning brief | 1, 3 | POS-STARTER-4-COCKPIT-AUTOMATION.md |
 | 5 | Stripe Connect auto-payouts | Artists as Connect Express accounts; payments split (app fee = shop cut); retire "Mark settled"; 1099 via Stripe | 1 | POS-STARTER-5-CONNECT-PAYOUTS.md |
-| 6 | Artist phone app: Tap to Pay | Separate Expo/React Native app; Stripe Terminal RN SDK; in-person tap that flows through Connect | 1, 5 | POS-STARTER-6-ARTIST-TAPTOPAY-APP.md |
+| 6 | **The App** (Expo universal: iOS/Android/web) | One codebase, one backend; artist + owner; POS/Tap-to-Pay, money & coaching, taxes, instant payouts, snap-to-count, inspections. Sub-sessions 6a–6e | 1, 5 | POS-STARTER-6-THE-APP.md |
 | 7 | Owned books + cutover | Expenses ledger, full Stripe transaction ledger, accountant export, formal Square/QBO retirement | 1, 5 | POS-STARTER-7-OWNED-BOOKS-CUTOVER.md |
 
 Sessions 1 and 2 are pure web and reuse what is already built, so the self-serve
@@ -75,9 +75,12 @@ baton, not a static spec.
 - **Lanes:** each session owns its own routes/lib/schema, same as `BUILD-PLAN.md`.
   Session 1 settles the shared Stripe client (`lib/stripe/`) once; later sessions
   import it and never edit it.
-- **The mobile app (Session 6) is a separate codebase** (its own repo or a
-  `/mobile` workspace), because Tap to Pay needs a native build. It talks to this
-  app's API; it does not live inside the Next app.
+- **The app (Session 6) is a separate Expo codebase** (its own repo or an
+  `app-native/` workspace) — Expo **universal**, so one codebase ships iOS,
+  Android, AND web. It reuses THIS app's backend (Supabase + `/api/*` + the money
+  math + the Connect split) as-is; only the UI layer is rebuilt in RN. The Next
+  web admin keeps running until the app reaches parity, then becomes the
+  everywhere front door. See `POS-STARTER-6-THE-APP.md`.
 
 ## Env (added incrementally, placeholders in .env.local.example)
 
