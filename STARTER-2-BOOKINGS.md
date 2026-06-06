@@ -74,3 +74,39 @@ Expose `useBookings().today` and `.depositsHeld` for the Overview tile.
 
 Confirm deposits run through Square (so we can relate payment ids). If Square
 Appointments isn't the booking tool, name what is so the sync targets it.
+
+## STATUS — built (2026-06-05)
+
+All four phases scaffolded and shipping; `npm run build` green.
+
+- **Phase 1 — done.** `supabase/bookings-schema.sql` (table + indexes + RLS:
+  staff read/write all, artist reads own). Manual booking CRUD via
+  `app/api/bookings/route.ts` (GET range/list, POST, PATCH). Agenda page at
+  `app/admin/(app)/bookings/page.tsx` — day-grouped list (matches the rent/sales
+  aesthetic, no calendar grid), Today/Upcoming/Needs-review/Past/All filters,
+  per-row Complete / No-show quick actions, detail drawer for full edit.
+- **Phase 2 — done.** Square Appointments sync in `lib/bookings/square.ts`
+  (read-only `/v2/bookings` reader, paged by ~30-day windows across all
+  locations) + `lib/bookings/job.ts` (`syncBookings`/`runDailyJob`). Maps Square
+  team-member → artist via `square_team_members`. Preserves desk-owned fields
+  (deposit, sale link, est price, notes) and never un-settles a local outcome.
+  Owner "Sync from Square" button + CRON-gated `app/api/bookings/sync/route.ts`.
+  No-ops cleanly when Square isn't connected (still runs the auto-flag).
+- **Phase 3 — done.** Deposit lifecycle in the PATCH handler: a status change
+  cascades a held deposit (completed→applied, no_show→forfeited,
+  cancelled→refunded) unless overridden; drawer has explicit Apply/Forfeit/Refund
+  + a `sale_id` field to link the final ticket. Overdue `scheduled` bookings are
+  auto-flagged `no_show` (forfeiting a held deposit) by the daily job. No-show
+  rate + forfeited-total stats on the page.
+- **Phase 4 — foundation.** Schema + API accept `source = 'web_request'` and the
+  drawer badges it. The actual `/book` form still renders a static legacy HTML
+  block with no submit handler, so wiring real submissions into here needs that
+  form backed first (out of this lane — it touches site files).
+- **Overview seam:** `useBookings()` exposes `today` (count) and `depositsHeld`
+  (cents) for the integration pass. Also added the deferred `clients_artist_read`
+  policy (the clients starter parked it here) — append-only in the bookings
+  schema, an artist reads clients they have a booking with.
+
+**Still needs Scott:** confirm deposits run through Square so `deposit_payment_id`
+can be related to a real payment (today it's a free-text field on the booking);
+confirm Square Appointments is the booking tool (the sync targets `/v2/bookings`).
