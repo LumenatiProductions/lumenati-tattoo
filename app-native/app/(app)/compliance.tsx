@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -73,6 +73,11 @@ export default function Compliance() {
     load();
   }, [load]);
 
+  const remove = async (id: string) => {
+    setItems((p) => p.filter((i) => i.id !== id));
+    await supabase.from("compliance_items").delete().eq("id", id);
+  };
+
   const rank = (s: string) => (s === "expired" ? 0 : s === "expiring" ? 1 : 2);
   const sorted = [...items].sort((a, b) => rank(a.status) - rank(b.status));
 
@@ -100,6 +105,9 @@ export default function Compliance() {
                       {it.scope === "artist" && it.artist_id ? `${names.get(it.artist_id) ?? "Artist"} · ` : "Shop · "}
                       {daysNote(it.expires_on, it.status)}
                     </Text>
+                    <Pressable onPress={() => remove(it.id)} hitSlop={8}>
+                      <Text style={styles.remove}>Remove</Text>
+                    </Pressable>
                   </View>
                   <Text style={[styles.status, { color: TONE[it.status] ?? theme.textDim }]}>{it.status}</Text>
                 </View>
@@ -168,6 +176,7 @@ const styles = StyleSheet.create({
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },
   sub: { color: theme.textDim, fontSize: 12, marginTop: 2 },
   status: { fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
+  remove: { color: theme.textFaint, fontSize: 11, marginTop: 4 },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
   note: { color: theme.textFaint, fontSize: 13, marginTop: 16 },
 });

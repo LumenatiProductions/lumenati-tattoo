@@ -7,6 +7,7 @@ import { runDailyJob as inventoryJob } from "@/lib/inventory/job";
 import { runDailyJob as followupsJob } from "@/lib/followups/job";
 import { runNoShowForfeit } from "@/lib/automation/no-show";
 import { runMorningBrief } from "@/lib/automation/brief";
+import { runPushReminders } from "@/lib/automation/push";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -26,6 +27,7 @@ const JOBS: [string, (admin: unknown) => Promise<unknown>][] = [
   ["followups", followupsJob],
   ["no_show", runNoShowForfeit],
   ["morning_brief", runMorningBrief],
+  ["push_reminders", runPushReminders],
 ];
 
 export async function GET(req: Request) {

@@ -125,6 +125,9 @@ export default function Bookings() {
             <Pressable onPress={() => setStatus(b.id, "no_show")} style={styles.act}>
               <Text style={styles.actText}>No-show</Text>
             </Pressable>
+            <Pressable onPress={() => setStatus(b.id, "cancelled")} style={styles.act}>
+              <Text style={[styles.actText, { color: theme.textDim }]}>Cancel</Text>
+            </Pressable>
           </View>
         )}
       </View>

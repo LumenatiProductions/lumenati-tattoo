@@ -40,6 +40,11 @@ export default function Inventory() {
     load();
   }, [load]);
 
+  const remove = async (id: string) => {
+    setItems((p) => p.filter((i) => i.id !== id));
+    await supabase.from("inventory_items").delete().eq("id", id);
+  };
+
   const adjust = async (id: string, delta: number) => {
     setItems((p) => p.map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)));
     const cur = items.find((i) => i.id === id);
@@ -121,7 +126,7 @@ export default function Inventory() {
                 <Text style={styles.section}>Needs reordering</Text>
                 <Card style={{ padding: 0 }}>
                   {low.map((it, i) => (
-                    <ItemRow key={it.id} it={it} onAdjust={adjust} border={i > 0} />
+                    <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} border={i > 0} />
                   ))}
                 </Card>
               </>
@@ -132,7 +137,7 @@ export default function Inventory() {
               {items.length === 0 ? (
                 <Text style={styles.empty}>No items yet. Snap a shelf or add on the web.</Text>
               ) : (
-                items.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} border={i > 0} />)
+                items.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} border={i > 0} />)
               )}
             </Card>
           </>
@@ -189,7 +194,17 @@ function NewItem({ onSaved }: { onSaved: () => void }) {
   );
 }
 
-function ItemRow({ it, onAdjust, border }: { it: Item; onAdjust: (id: string, d: number) => void; border: boolean }) {
+function ItemRow({
+  it,
+  onAdjust,
+  onRemove,
+  border,
+}: {
+  it: Item;
+  onAdjust: (id: string, d: number) => void;
+  onRemove: (id: string) => void;
+  border: boolean;
+}) {
   return (
     <View style={[styles.row, border && styles.border]}>
       <View style={{ flex: 1 }}>
@@ -201,6 +216,9 @@ function ItemRow({ it, onAdjust, border }: { it: Item; onAdjust: (id: string, d:
           {it.category}
           {isLow(it) ? " · low" : ""}
         </Text>
+        <Pressable onPress={() => onRemove(it.id)} hitSlop={8}>
+          <Text style={styles.remove}>Remove</Text>
+        </Pressable>
       </View>
       <View style={styles.stepper}>
         <Pressable onPress={() => onAdjust(it.id, -1)} style={styles.step} disabled={it.qty <= 0}>
@@ -230,4 +248,5 @@ const styles = StyleSheet.create({
   addText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
   errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  remove: { color: theme.textFaint, fontSize: 11, marginTop: 4 },
 });

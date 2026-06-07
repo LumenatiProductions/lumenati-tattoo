@@ -240,7 +240,24 @@ The app can now CREATE, not just read+act. App tsc green.
 - `bookings.tsx` — "New booking" (artist + client/walk-in pickers, date/time,
   service, deposit) → insert (`bk-…`, status scheduled, source manual).
 
-**Deferred (last mile):** edit/delete depth on these records, a real date/time
-picker for bookings (text fields today), and push reminders. With creation in
-place the app is at daily-driver parity; once push + edit land, the Next admin
-becomes optional — flip `POS-BUILD-PLAN.md` to "app is the front door."
+### 6e pass 4 (2026-06-07): delete/cancel + push reminders
+- **Delete/cancel:** inventory item delete, compliance item delete (owner),
+  booking cancel (staff) — all via RLS writes. Create is no longer one-way.
+- **Push reminders** (scaffolding, real on a dev build):
+  - `supabase/push-schema.sql` — APPLIED: `device_tokens` (token, user_id, email,
+    platform) + RLS (user manages own).
+  - app `lib/push.ts` — registers the Expo push token on sign-in (called from
+    `(app)/_layout`); no-op on web / until an EAS projectId + dev build exist.
+  - `lib/push/send.ts` (Next) — `sendExpoPush` (Expo push service, no APNs/FCM
+    keys our side) + `tokensForRoles` (role resolved live from `profiles`).
+  - `lib/automation/push.ts` — `runPushReminders`: one-line "what needs you
+    today" (reorders / expiring licenses / no-show review) pushed to OWNER
+    devices, only when there's something. Wired into `/api/ops/daily`.
+- **Dep fix:** pinned `expo-image-picker` + `expo-notifications` to the SDK-52
+  versions (npm had grabbed `^56`, which mismatched and would have broken the
+  native build). Next build green; app tsc green.
+
+**Gate (Scott):** push needs an EAS `projectId` + a dev build to actually deliver
+(token registration no-ops until then). **Deferred (true last mile):** edit forms
+(vs create+delete today) and a native date/time picker for bookings. After those,
+flip `POS-BUILD-PLAN.md` to "app is the front door."
