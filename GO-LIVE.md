@@ -121,7 +121,8 @@ Unlocks: snap-a-receipt (app) and snap-to-count inventory.
 
 Unlocks: the morning brief, compliance expiry alerts, follow-up sends.
 
-- [ ] `RESEND_API_KEY=re_…` (Vercel + local). `DIGEST_RECIPIENTS=you@shop.com`.
+- [x] `RESEND_API_KEY` + `DIGEST_RECIPIENTS` set on Vercel. **Verified:** Scott received
+      the morning brief (2026-06-07). Brief + alerts are live.
 - [ ] **Before emailing real clients** (follow-ups): verify a sending **domain** in
       Resend and switch the `from:` off `onboarding@resend.dev`. Sending client
       mail from the test sender risks deliverability/spam flags.
