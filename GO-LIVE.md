@@ -94,9 +94,12 @@ Unlocks: real charges. Do only after Phase 1 works.
 
 Unlocks: card tickets auto-split to artists; instant "cash out"; Stripe files 1099s.
 
-- [ ] Stripe → Connect → enable, choose **Express** accounts.
-- [ ] In the admin → **Payouts** → "Artist payouts · Stripe Connect": send each
-      artist their onboarding link. They complete Stripe's KYC once.
+- [x] Connect **enabled** (sandbox). No "Express option" to pick in the dashboard —
+      the app creates Express accounts in code (`lib/stripe/connect.ts` → `type:"express"`);
+      enabling Connect is all that's needed. (Live Connect still gated behind Stripe go-live.)
+- [ ] **BLOCKED on Scott:** full artist list + per-artist splits not finalized yet.
+      Once ready → admin → **Payouts** → "Artist payouts · Stripe Connect": send each
+      artist their onboarding link. They complete Stripe's KYC once. (Splits set in admin, editable anytime.)
 - [ ] **Verify:** a card ticket for an onboarded artist shows the shop's cut as a
       fee and the rest transferred. For instant cash-out, the artist needs an
       eligible **debit card** on their Stripe account.
