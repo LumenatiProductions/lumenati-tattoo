@@ -24,14 +24,17 @@ Remaining work is **turning features on with keys/accounts — not coding.**
 
 ## Next — go-live, easiest first (track in GO-LIVE.md)
 1. **AI snaps** — add `ANTHROPIC_API_KEY` on Vercel → redeploy. (Scott's key.)
-2. **Kiosk** — set `KIOSK_DEVICE_TOKEN` (any random string; assistant can generate),
-   redeploy, open `/kiosk` on the iPad, enter the code, lock with Guided Access.
-3. **Connect (auto-payouts)** — enable Connect (Express) in Stripe; onboard artists
+2. **Connect (auto-payouts)** — enable Connect (Express) in Stripe; onboard artists
    from the admin Payouts page.
-4. **Real money** — swap Stripe test keys for live keys + a live webhook.
-5. **App on phones** — `app-native/.env`, `eas init` (gets the projectId → enables
+3. **Real money** — swap Stripe test keys for live keys + a live webhook.
+4. **App on phones** — `app-native/.env`, `eas init` (gets the projectId → enables
    push), dev build, Apple/Google Tap to Pay enrollment.
-6. **Cutover** — retire QuickBooks then Square. Runbook: `CUTOVER.md`.
+5. **Cutover** — retire QuickBooks then Square. Runbook: `CUTOVER.md`.
+
+**Kiosk token is DONE** — `KIOSK_DEVICE_TOKEN` set on Vercel + verified live
+(`/api/kiosk`: 401 without token, 200 with). Only iPad provisioning remains: open
+`/kiosk` on the iPad, enter the token (in Vercel env / handed to Scott), lock with
+Guided Access.
 
 ## How things work here (so you don't re-discover)
 - **Apply a DB schema:** paste the SQL into the Supabase SQL editor and Run (the

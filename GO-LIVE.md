@@ -26,7 +26,7 @@ plus a couple of optional, not-yet-built backlog items.
 |---|---|---|---|
 | Command center (Clients · Compliance · Inventory · Bookings · Intake · Follow-ups · Reports) | ✅ | ✅ | — |
 | POS-1 Payments | ✅ | ✅ **test mode** | live keys (Phase 2) |
-| POS-2 Kiosk check-in | ✅ | ⬜ | `KIOSK_DEVICE_TOKEN` + iPad (Phase 6) |
+| POS-2 Kiosk check-in | ✅ | 🟡 token set | iPad provisioning only (Phase 6) |
 | POS-3 Role homes | ✅ | ✅ | — |
 | POS-4 Cockpit + automation | ✅ | ✅ | brief needs `RESEND_API_KEY`; no-show forfeit opt-in; push needs EAS |
 | POS-5 Connect auto-payouts | ✅ | ⬜ | enable Connect + onboard artists (Phase 3) |
@@ -130,7 +130,10 @@ Unlocks: the morning brief, compliance expiry alerts, follow-up sends.
 
 Unlocks: clients sign themselves in on a locked iPad.
 
-- [ ] Set `KIOSK_DEVICE_TOKEN=<any strong random string>` (Vercel + local). Redeploy.
+- [x] Set `KIOSK_DEVICE_TOKEN` (Vercel Production) + redeployed. **Verified live:**
+      `/api/kiosk` returns 401 without the token and 200 with it (was 503/inert before).
+      Token value is in Vercel env (`vercel env pull` to retrieve) and was handed to
+      Scott in chat — enter it on the iPad once.
 - [ ] On the iPad, open `https://lumenati-tattoo.vercel.app/kiosk`, enter that code once.
 - [ ] Lock it: Settings → Accessibility → Guided Access (triple-click to pin), or
       MDM Single App Mode for several iPads.
