@@ -54,6 +54,7 @@ export default function Compliance() {
   const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Item | null>(null);
 
   const load = useCallback(async () => {
     const [itemsRes, artistsRes] = await Promise.all([
@@ -86,9 +87,26 @@ export default function Compliance() {
       <Stack.Screen options={{ headerShown: true, title: "Compliance", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <View style={{ marginBottom: 12 }}>
-          <Button label={adding ? "Cancel" : "Add license / permit"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+          <Button
+            label={adding || editing ? "Cancel" : "Add license / permit"}
+            tone={adding || editing ? "ghost" : "brand"}
+            onPress={() => {
+              setEditing(null);
+              setAdding((v) => !v);
+            }}
+          />
         </View>
-        {adding && <NewCompliance artists={artists} onSaved={() => { setAdding(false); load(); }} />}
+        {(adding || editing) && (
+          <ComplianceForm
+            existing={editing ?? undefined}
+            artists={artists}
+            onSaved={() => {
+              setAdding(false);
+              setEditing(null);
+              load();
+            }}
+          />
+        )}
 
         {loading ? (
           <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
@@ -100,11 +118,13 @@ export default function Compliance() {
               sorted.map((it, i) => (
                 <View key={it.id} style={[styles.row, i > 0 && styles.border]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{it.label?.trim() || KIND[it.kind] || it.kind}</Text>
-                    <Text style={styles.sub}>
-                      {it.scope === "artist" && it.artist_id ? `${names.get(it.artist_id) ?? "Artist"} · ` : "Shop · "}
-                      {daysNote(it.expires_on, it.status)}
-                    </Text>
+                    <Pressable onPress={() => { setAdding(false); setEditing(it); }}>
+                      <Text style={styles.name}>{it.label?.trim() || KIND[it.kind] || it.kind}</Text>
+                      <Text style={styles.sub}>
+                        {it.scope === "artist" && it.artist_id ? `${names.get(it.artist_id) ?? "Artist"} · ` : "Shop · "}
+                        {daysNote(it.expires_on, it.status)} · tap to edit
+                      </Text>
+                    </Pressable>
                     <Pressable onPress={() => remove(it.id)} hitSlop={8}>
                       <Text style={styles.remove}>Remove</Text>
                     </Pressable>
@@ -121,12 +141,20 @@ export default function Compliance() {
   );
 }
 
-function NewCompliance({ artists, onSaved }: { artists: { id: string; name: string }[]; onSaved: () => void }) {
-  const [scope, setScope] = useState<"artist" | "shop">("artist");
-  const [artistId, setArtistId] = useState(artists[0]?.id ?? "");
-  const [kind, setKind] = useState("tattoo_license");
-  const [label, setLabel] = useState("");
-  const [expires, setExpires] = useState("");
+function ComplianceForm({
+  existing,
+  artists,
+  onSaved,
+}: {
+  existing?: Item;
+  artists: { id: string; name: string }[];
+  onSaved: () => void;
+}) {
+  const [scope, setScope] = useState<"artist" | "shop">((existing?.scope as "artist" | "shop") ?? "artist");
+  const [artistId, setArtistId] = useState(existing?.artist_id ?? artists[0]?.id ?? "");
+  const [kind, setKind] = useState(existing?.kind ?? "tattoo_license");
+  const [label, setLabel] = useState(existing?.label ?? "");
+  const [expires, setExpires] = useState(existing?.expires_on ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -141,14 +169,17 @@ function NewCompliance({ artists, onSaved }: { artists: { id: string; name: stri
     }
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.from("compliance_items").insert({
+    const fields = {
       scope,
       artist_id: scope === "artist" ? artistId : null,
       kind,
       label: label.trim() || null,
       expires_on: expires || null,
       status: computeStatus(expires || null),
-    });
+    };
+    const { error } = existing
+      ? await supabase.from("compliance_items").update(fields).eq("id", existing.id)
+      : await supabase.from("compliance_items").insert(fields);
     setBusy(false);
     if (error) setErr(error.message);
     else onSaved();
@@ -164,7 +195,7 @@ function NewCompliance({ artists, onSaved }: { artists: { id: string; name: stri
       <LabeledInput label="Label (optional)" value={label} onChange={setLabel} placeholder={KIND[kind]} />
       <LabeledInput label="Expires (YYYY-MM-DD)" value={expires} onChange={setExpires} keyboardType="numeric" placeholder="2027-01-31" />
       {err && <Text style={styles.errText}>{err}</Text>}
-      <Button label={busy ? "Saving…" : "Save"} onPress={save} disabled={busy} />
+      <Button label={busy ? "Saving…" : existing ? "Save changes" : "Save"} onPress={save} disabled={busy} />
     </Card>
   );
 }

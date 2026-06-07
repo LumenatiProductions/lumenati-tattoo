@@ -258,6 +258,23 @@ The app can now CREATE, not just read+act. App tsc green.
   native build). Next build green; app tsc green.
 
 **Gate (Scott):** push needs an EAS `projectId` + a dev build to actually deliver
-(token registration no-ops until then). **Deferred (true last mile):** edit forms
-(vs create+delete today) and a native date/time picker for bookings. After those,
-flip `POS-BUILD-PLAN.md` to "app is the front door."
+(token registration no-ops until then).
+
+### 6e pass 5 (2026-06-07): edit forms + date/time picker — LAST MILE DONE
+- **Edit:** tap a client / inventory item / compliance record to edit it in place
+  (the create form now does update-or-insert by id). Booking edit stays
+  cancel+recreate (status actions cover the rest).
+- **Date/time picker:** `components/DateTimeField.tsx` (base = fields, used by web
+  + tsc) + `DateTimeField.native.tsx` (wheel pickers via
+  `@react-native-community/datetimepicker`, SDK-52 pinned). Platform-split files
+  keep the native-only package out of the web bundle. Wired into New booking.
+- app tsc green.
+
+**Parity reached.** The app now reads, creates, edits, deletes, and acts across
+the daily back office (bookings, clients, inventory, compliance) plus money / POS
+/ taxes / cockpit. The Next web admin is now OPTIONAL — keep it for bulk/edge
+work; the app is the everywhere front door.
+
+**Remaining = external only (Scott):** Stripe keys (payments/payouts/ledger),
+`ANTHROPIC_API_KEY` (snaps), `KIOSK_DEVICE_TOKEN`, and Apple/Google + an EAS
+`projectId`/dev build (Tap to Pay + push). No code is blocking.

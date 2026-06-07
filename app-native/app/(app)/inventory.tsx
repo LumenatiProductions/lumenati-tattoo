@@ -26,6 +26,7 @@ export default function Inventory() {
   const [scanning, setScanning] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Item | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -89,11 +90,27 @@ export default function Inventory() {
             <Button label={scanning ? "Reading…" : "Snap to count"} tone="ghost" onPress={scan} disabled={scanning} />
           </View>
           <View style={{ flex: 1 }}>
-            <Button label={adding ? "Cancel" : "Add item"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+            <Button
+              label={adding || editing ? "Cancel" : "Add item"}
+              tone={adding || editing ? "ghost" : "brand"}
+              onPress={() => {
+                setEditing(null);
+                setAdding((v) => !v);
+              }}
+            />
           </View>
         </View>
         {note && <Text style={styles.note}>{note}</Text>}
-        {adding && <NewItem onSaved={() => { setAdding(false); load(); }} />}
+        {(adding || editing) && (
+          <ItemForm
+            existing={editing ?? undefined}
+            onSaved={() => {
+              setAdding(false);
+              setEditing(null);
+              load();
+            }}
+          />
+        )}
 
         {detected.length > 0 && (
           <Card style={{ marginTop: 12 }}>
@@ -126,7 +143,7 @@ export default function Inventory() {
                 <Text style={styles.section}>Needs reordering</Text>
                 <Card style={{ padding: 0 }}>
                   {low.map((it, i) => (
-                    <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} border={i > 0} />
+                    <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} onEdit={(x) => { setAdding(false); setEditing(x); }} border={i > 0} />
                   ))}
                 </Card>
               </>
@@ -137,7 +154,7 @@ export default function Inventory() {
               {items.length === 0 ? (
                 <Text style={styles.empty}>No items yet. Snap a shelf or add on the web.</Text>
               ) : (
-                items.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} border={i > 0} />)
+                items.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} onEdit={(x) => { setAdding(false); setEditing(x); }} border={i > 0} />)
               )}
             </Card>
           </>
@@ -147,12 +164,12 @@ export default function Inventory() {
   );
 }
 
-function NewItem({ onSaved }: { onSaved: () => void }) {
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("needle");
-  const [unit, setUnit] = useState("each");
-  const [qty, setQty] = useState("");
-  const [reorderAt, setReorderAt] = useState("");
+function ItemForm({ existing, onSaved }: { existing?: Item; onSaved: () => void }) {
+  const [name, setName] = useState(existing?.name ?? "");
+  const [category, setCategory] = useState(existing?.category ?? "needle");
+  const [unit, setUnit] = useState(existing?.unit ?? "each");
+  const [qty, setQty] = useState(existing ? String(existing.qty) : "");
+  const [reorderAt, setReorderAt] = useState(existing ? String(existing.reorder_at) : "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -163,13 +180,10 @@ function NewItem({ onSaved }: { onSaved: () => void }) {
     }
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.from("inventory_items").insert({
-      name: name.trim(),
-      category,
-      unit,
-      qty: Number(qty) || 0,
-      reorder_at: Number(reorderAt) || 0,
-    });
+    const fields = { name: name.trim(), category, unit, qty: Number(qty) || 0, reorder_at: Number(reorderAt) || 0, updated_at: new Date().toISOString() };
+    const { error } = existing
+      ? await supabase.from("inventory_items").update(fields).eq("id", existing.id)
+      : await supabase.from("inventory_items").insert(fields);
     setBusy(false);
     if (error) setErr(error.message);
     else onSaved();
@@ -189,7 +203,7 @@ function NewItem({ onSaved }: { onSaved: () => void }) {
         </View>
       </View>
       {err && <Text style={styles.errText}>{err}</Text>}
-      <Button label={busy ? "Saving…" : "Save item"} onPress={save} disabled={busy} />
+      <Button label={busy ? "Saving…" : existing ? "Save changes" : "Save item"} onPress={save} disabled={busy} />
     </Card>
   );
 }
@@ -198,24 +212,28 @@ function ItemRow({
   it,
   onAdjust,
   onRemove,
+  onEdit,
   border,
 }: {
   it: Item;
   onAdjust: (id: string, d: number) => void;
   onRemove: (id: string) => void;
+  onEdit: (it: Item) => void;
   border: boolean;
 }) {
   return (
     <View style={[styles.row, border && styles.border]}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.name}>
-          {it.brand ? `${it.brand} ` : ""}
-          {it.name}
-        </Text>
-        <Text style={[styles.sub, isLow(it) && { color: theme.warn }]}>
-          {it.category}
-          {isLow(it) ? " · low" : ""}
-        </Text>
+        <Pressable onPress={() => onEdit(it)}>
+          <Text style={styles.name}>
+            {it.brand ? `${it.brand} ` : ""}
+            {it.name}
+          </Text>
+          <Text style={[styles.sub, isLow(it) && { color: theme.warn }]}>
+            {it.category}
+            {isLow(it) ? " · low" : ""}
+          </Text>
+        </Pressable>
         <Pressable onPress={() => onRemove(it.id)} hitSlop={8}>
           <Text style={styles.remove}>Remove</Text>
         </Pressable>

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
+import DateTimeField from "@/components/DateTimeField";
 import { uid } from "@/lib/ids";
 
 type Booking = {
@@ -254,14 +255,7 @@ function NewBooking({
         onChange={setClientId}
         display={(id) => (id ? clients.find((c) => c.id === id)?.name ?? "Client" : "Walk-in")}
       />
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1.4 }}>
-          <LabeledInput label="Date" value={date} onChange={setDate} keyboardType="numeric" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <LabeledInput label="Time" value={time} onChange={setTime} keyboardType="numeric" />
-        </View>
-      </View>
+      <DateTimeField date={date} time={time} onDate={setDate} onTime={setTime} />
       <LabeledInput label="Service" value={service} onChange={setService} placeholder="e.g. half-sleeve session" />
       <LabeledInput label="Deposit ($, optional)" value={deposit} onChange={setDeposit} keyboardType="numeric" placeholder="0" />
       {err && <Text style={styles.err}>{err}</Text>}

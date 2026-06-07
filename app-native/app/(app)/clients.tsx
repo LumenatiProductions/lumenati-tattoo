@@ -25,6 +25,7 @@ export default function Clients() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Client | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -52,9 +53,25 @@ export default function Clients() {
       <Stack.Screen options={{ headerShown: true, title: "Clients", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <View style={{ marginBottom: 12 }}>
-          <Button label={adding ? "Cancel" : "New client"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+          <Button
+            label={adding || editing ? "Cancel" : "New client"}
+            tone={adding || editing ? "ghost" : "brand"}
+            onPress={() => {
+              setEditing(null);
+              setAdding((v) => !v);
+            }}
+          />
         </View>
-        {adding && <NewClient onSaved={() => { setAdding(false); load(); }} />}
+        {(adding || editing) && (
+          <ClientForm
+            existing={editing ?? undefined}
+            onSaved={() => {
+              setAdding(false);
+              setEditing(null);
+              load();
+            }}
+          />
+        )}
 
         <TextInput
           value={q}
@@ -73,14 +90,14 @@ export default function Clients() {
             ) : (
               filtered.slice(0, 200).map((c, i) => (
                 <View key={c.id} style={[styles.row, i > 0 && styles.border]}>
-                  <View style={{ flex: 1 }}>
+                  <Pressable style={{ flex: 1 }} onPress={() => { setAdding(false); setEditing(c); }}>
                     <Text style={styles.name}>
                       {c.first_name} {c.last_name}
                     </Text>
                     <Text style={styles.sub}>
-                      {c.phone || c.email || (c.instagram ? `@${c.instagram}` : "no contact")}
+                      {c.phone || c.email || (c.instagram ? `@${c.instagram}` : "no contact")} · tap to edit
                     </Text>
-                  </View>
+                  </Pressable>
                   {c.phone && (
                     <Pressable onPress={() => Linking.openURL(`tel:${c.phone}`)} style={styles.call}>
                       <Text style={styles.callText}>Call</Text>
@@ -96,12 +113,12 @@ export default function Clients() {
   );
 }
 
-function NewClient({ onSaved }: { onSaved: () => void }) {
-  const [first, setFirst] = useState("");
-  const [last, setLast] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [ig, setIg] = useState("");
+function ClientForm({ existing, onSaved }: { existing?: Client; onSaved: () => void }) {
+  const [first, setFirst] = useState(existing?.first_name ?? "");
+  const [last, setLast] = useState(existing?.last_name ?? "");
+  const [phone, setPhone] = useState(existing?.phone ?? "");
+  const [email, setEmail] = useState(existing?.email ?? "");
+  const [ig, setIg] = useState(existing?.instagram ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -112,14 +129,16 @@ function NewClient({ onSaved }: { onSaved: () => void }) {
     }
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.from("clients").insert({
-      id: `walkin-${uid()}`,
+    const fields = {
       first_name: first.trim(),
       last_name: last.trim(),
       phone: phone.trim() || null,
       email: email.trim() || null,
       instagram: ig.trim().replace(/^@/, "") || null,
-    });
+    };
+    const { error } = existing
+      ? await supabase.from("clients").update(fields).eq("id", existing.id)
+      : await supabase.from("clients").insert({ id: `walkin-${uid()}`, ...fields });
     setBusy(false);
     if (error) setErr(error.message);
     else onSaved();
@@ -133,7 +152,7 @@ function NewClient({ onSaved }: { onSaved: () => void }) {
       <LabeledInput label="Email" value={email} onChange={setEmail} keyboardType="email-address" autoCapitalize="none" />
       <LabeledInput label="Instagram" value={ig} onChange={setIg} autoCapitalize="none" />
       {err && <Text style={styles.errText}>{err}</Text>}
-      <Button label={busy ? "Saving…" : "Save client"} onPress={save} disabled={busy} />
+      <Button label={busy ? "Saving…" : existing ? "Save changes" : "Save client"} onPress={save} disabled={busy} />
     </Card>
   );
 }
