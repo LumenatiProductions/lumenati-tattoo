@@ -17,10 +17,42 @@ those.
 
 ---
 
-## Phase 0 — Plumbing (5 min)
+## Status — 2026-06-07
 
-- [ ] Set `NEXT_PUBLIC_SITE_URL=https://lumenati-tattoo.vercel.app` (Vercel + local).
-      Stripe + pay links use it for return URLs.
+**Every starter is BUILT.** What's left is external activation (the phases below),
+plus a couple of optional, not-yet-built backlog items.
+
+| Starter | Built | Live | Waiting on |
+|---|---|---|---|
+| Command center (Clients · Compliance · Inventory · Bookings · Intake · Follow-ups · Reports) | ✅ | ✅ | — |
+| POS-1 Payments | ✅ | ✅ **test mode** | live keys (Phase 2) |
+| POS-2 Kiosk check-in | ✅ | ⬜ | `KIOSK_DEVICE_TOKEN` + iPad (Phase 6) |
+| POS-3 Role homes | ✅ | ✅ | — |
+| POS-4 Cockpit + automation | ✅ | ✅ | brief needs `RESEND_API_KEY`; no-show forfeit opt-in; push needs EAS |
+| POS-5 Connect auto-payouts | ✅ | ⬜ | enable Connect + onboard artists (Phase 3) |
+| POS-6 The App (6a–6e) | ✅ | ✅ web · ⬜ phones | EAS `projectId` + dev build; Tap to Pay enrollment (Phase 7) |
+| POS-7 Owned books | ✅ | ✅ | Stripe ledger now populates (keys are set) |
+
+**Go-live phases:** 0 ✅ · 1 ✅ (test mode) · 2–8 ⬜ (below).
+
+**Not built yet (optional backlog — when you want them):**
+- **Stripe Issuing** — give artists their own shop card funded by their balance.
+- **Live IG analytics + running paid ads** — we have ad/post *suggestions*, not spend.
+- **Deep edit** — a couple of records are create + delete in the app; full in-place
+  editing still lives on the web admin.
+
+### Resume prompt — paste this to keep knocking it out
+> Continue the Lumenati go-live from `GO-LIVE.md`. Stripe Phase 1 (test mode) is
+> done and verified end to end. Pick up at the next phase: do everything you can
+> without me, and tell me exactly which keys/accounts you need for the rest. Go
+> easiest-first — AI key (Phase 4), kiosk token (Phase 6), then Connect (Phase 3),
+> live Stripe (Phase 2), the app/EAS (Phase 7), cutover (Phase 8).
+
+---
+
+## Phase 0 — Plumbing ✅ DONE
+
+- [x] `NEXT_PUBLIC_SITE_URL=https://lumenati-tattoo.vercel.app` set on Vercel (Production).
 
 ---
 
