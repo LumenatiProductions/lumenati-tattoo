@@ -7,6 +7,7 @@ import { theme, money } from "@/lib/theme";
 import { Stat } from "@/components/ui";
 import ArtistMoney from "@/components/ArtistMoney";
 import Launcher from "@/components/Launcher";
+import { LumenatiLogo } from "@/components/LumenatiLogo";
 
 const todayLocal = () => {
   const d = new Date();
@@ -35,9 +36,7 @@ export default function Home() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.logo}>
-            LUMENATI<Text style={{ color: theme.brand }}>.</Text>
-          </Text>
+          <LumenatiLogo width={84} />
           <Text style={styles.role}>{role ?? ""}</Text>
         </View>
         <Pressable onPress={signOut}>

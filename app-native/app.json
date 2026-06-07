@@ -7,10 +7,23 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": { "backgroundColor": "#0e0e11" },
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.lumenati.app" },
-    "android": { "package": "com.lumenati.app" },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router"]
+    "splash": {
+      "backgroundColor": "#0e0e11"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lumenati.app"
+    },
+    "android": {
+      "package": "com.lumenati.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset"
+    ]
   }
 }

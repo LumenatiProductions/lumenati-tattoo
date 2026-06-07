@@ -9,6 +9,9 @@ export const theme = {
   brand: "#ff1493",
   good: "#34d399",
   warn: "#fbbf24",
+  // Lumenati parent-brand typeface (matches the web console/pay/kiosk). iOS ships
+  // Helvetica Neue; Android falls back to its system sans.
+  font: "Helvetica Neue",
 };
 
 export const money = (cents: number) =>

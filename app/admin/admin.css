@@ -1,7 +1,8 @@
 /* Tailwind, scoped to /admin only (imported by app/admin/layout.tsx).
    This is the shop command center — clean, modern, financial-dashboard
-   aesthetic. Deliberately NOT the Y2K public site. One brand-pink accent
-   nods to Lumenati without the kitsch. */
+   aesthetic. Deliberately NOT the Y2K public site — this wears the Lumenati
+   parent brand: Helvetica Neue, black/white, one brand-pink accent that nods
+   to the shop site without the kitsch. */
 @import "tailwindcss";
 
 @theme {
@@ -9,7 +10,7 @@
   --color-paper: #f7f7f8;
   --color-brand: #ff1493;
   --color-brand-soft: #ffe3f1;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 /* Tabular figures everywhere money is shown. */

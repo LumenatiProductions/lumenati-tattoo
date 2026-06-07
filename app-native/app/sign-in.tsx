@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useRouter } from "expo-router";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
+import { LumenatiLogo } from "@/components/LumenatiLogo";
 
 // Email one-time-code sign-in: no passwords, no deep links, works on iOS,
 // Android, and web. Existing staff only (shouldCreateUser: false). The Supabase
@@ -44,10 +45,10 @@ export default function SignIn() {
   return (
     <View style={styles.wrap}>
       <View style={styles.card}>
-        <Text style={styles.logo}>
-          LUMENATI<Text style={{ color: theme.brand }}>.</Text>
-        </Text>
-        <Text style={styles.sub}>
+        <View style={{ alignItems: "center", marginBottom: 4 }}>
+          <LumenatiLogo width={120} />
+        </View>
+        <Text style={[styles.sub, { textAlign: "center" }]}>
           {step === "email" ? "Sign in to your shop" : `Enter the code sent to ${email}`}
         </Text>
 

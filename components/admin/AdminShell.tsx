@@ -15,6 +15,7 @@ import { InventoryProvider } from "@/lib/admin/inventory-context";
 import { FollowupsProvider } from "@/lib/admin/followups-context";
 import { ArtistsProvider, useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
+import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import type { Role } from "@/lib/admin/types";
 
 const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
@@ -58,10 +59,8 @@ function Sidebar() {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-black/8 bg-white">
       <div className="px-5 py-5">
-        <div className="text-lg font-black tracking-tight text-ink">
-          LUMENATI<span className="text-brand">.</span>
-        </div>
-        <div className="text-[11px] font-medium uppercase tracking-widest text-black/40">
+        <LumenatiLogo bg="light" className="w-28" />
+        <div className="mt-2 text-[11px] font-medium uppercase tracking-widest text-black/40">
           Command Center
         </div>
       </div>

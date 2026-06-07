@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
+import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 
 export default function LoginForm() {
   const params = useSearchParams();
@@ -33,11 +34,9 @@ export default function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-4 text-ink antialiased">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="text-2xl font-black tracking-tight">
-            LUMENATI<span className="text-brand">.</span>
-          </div>
-          <div className="text-[11px] font-medium uppercase tracking-widest text-black/40">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <LumenatiLogo bg="light" className="w-32" />
+          <div className="mt-2 text-[11px] font-medium uppercase tracking-widest text-black/40">
             Command Center
           </div>
         </div>

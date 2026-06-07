@@ -9,6 +9,7 @@ import {
   setKioskToken,
   type KioskBooking,
 } from "@/lib/kiosk/api";
+import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 
 type Screen = "loading" | "setup" | "notconfigured" | "list" | "detail" | "done";
 
@@ -60,7 +61,7 @@ export default function KioskPage() {
     return (
       <Center>
         <div className="text-center">
-          <Logo />
+          <Logo className="mx-auto" />
           <p className="mt-4 max-w-sm text-sm text-white/55">
             This kiosk isn&apos;t set up yet. Add <code className="text-brand">KIOSK_DEVICE_TOKEN</code> to
             the server, then provision this iPad.
@@ -107,14 +108,17 @@ export default function KioskPage() {
   // list
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Logo />
-        <button onClick={load} className="text-xs text-white/40 hover:text-white/70">
+      <div className="relative mb-6">
+        <Logo className="mx-auto" />
+        <button
+          onClick={load}
+          className="absolute right-0 top-0 text-xs text-white/40 hover:text-white/70"
+        >
           Refresh
         </button>
       </div>
-      <h1 className="mb-1 text-2xl font-bold">Welcome — tap your appointment</h1>
-      <p className="mb-6 text-sm text-white/50">Today&apos;s sessions</p>
+      <h1 className="mb-1 text-center text-2xl font-bold">Welcome — tap your appointment</h1>
+      <p className="mb-6 text-center text-sm text-white/50">Today&apos;s sessions</p>
 
       {bookings.length === 0 ? (
         <Card className="py-12 text-center text-white/45">No appointments scheduled today.</Card>
@@ -302,7 +306,7 @@ function Setup({
   return (
     <Center>
       <div className="w-full max-w-xs text-center">
-        <Logo />
+        <Logo className="mx-auto" />
         <p className="mt-4 mb-5 text-sm text-white/50">Enter the device code to set up this kiosk.</p>
         <input
           value={code}
@@ -346,11 +350,8 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
   return <div className={`rounded-2xl bg-white/5 px-5 ${className}`}>{children}</div>;
 }
 
-function Logo() {
-  return (
-    <div>
-      <span className="text-2xl font-extrabold tracking-tight text-white">LUMENATI</span>
-      <span className="text-2xl font-extrabold text-brand">.</span>
-    </div>
-  );
+function Logo({ className = "" }: { className?: string }) {
+  // Tailwind preflight makes <img> display:block, so text-center won't center it
+  // — pass `mx-auto` on the screens where the logo is a centered brand moment.
+  return <LumenatiLogo bg="dark" className={`w-32 ${className}`} />;
 }

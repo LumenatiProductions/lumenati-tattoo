@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStripeConfigured } from "@/lib/stripe/client";
+import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -68,9 +69,8 @@ export default async function PayPage({
     <main className="flex min-h-screen items-center justify-center bg-[#0e0e11] p-5 font-sans">
       <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="bg-[#0e0e11] px-6 py-5">
-          <span className="text-xl font-extrabold tracking-tight text-white">LUMENATI</span>
-          <span className="text-xl font-extrabold text-brand">.</span>
-          <div className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-white/50">
+          <LumenatiLogo bg="dark" className="w-24" />
+          <div className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-white/50">
             Secure payment
           </div>
         </div>

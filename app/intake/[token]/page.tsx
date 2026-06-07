@@ -8,6 +8,7 @@ import {
   MEDICAL_QUESTIONS,
   SIGNATURE_VIEWBOX,
 } from "@/lib/intake/forms";
+import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 
 // Public, token-gated consent signer. Lives OUTSIDE the (site) route group, so
 // it does not load the legacy Winamp/Clippy bundle — this is a legal form, not
@@ -55,9 +56,8 @@ export default function SignPage() {
     <div className="min-h-screen bg-zinc-100 text-zinc-900">
       <header className="bg-[#0e0e11] px-5 py-5">
         <div className="mx-auto max-w-xl">
-          <span className="text-2xl font-extrabold tracking-tight text-white">LUMENATI</span>
-          <span className="text-2xl font-extrabold text-brand">.</span>
-          <div className="mt-0.5 text-[10px] uppercase tracking-[0.3em] text-zinc-400">Consent &amp; aftercare</div>
+          <LumenatiLogo bg="dark" className="w-28" />
+          <div className="mt-1.5 text-[10px] uppercase tracking-[0.3em] text-zinc-400">Consent &amp; aftercare</div>
         </div>
       </header>
 
