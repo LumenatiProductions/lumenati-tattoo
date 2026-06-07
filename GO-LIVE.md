@@ -107,8 +107,10 @@ Unlocks: card tickets auto-split to artists; instant "cash out"; Stripe files 10
 
 Unlocks: snap-a-receipt (app) and snap-to-count inventory.
 
-- [ ] Get an Anthropic API key → `ANTHROPIC_API_KEY=sk-ant-…` (Vercel + local). Redeploy.
-- [ ] **Verify:** in the app, Deductions → "Snap a receipt" fills the form from a photo.
+- [x] Got Anthropic API key → `ANTHROPIC_API_KEY` set on Vercel Production + redeployed.
+      **Verified live:** `/api/vision` flipped from 503 (no key) to 401 (key present,
+      needs sign-in) — the config gate is satisfied.
+- [ ] **Final check (in-app):** Deductions → "Snap a receipt" fills the form from a photo.
 
 > Pluggable: to switch to Gemini Flash later, add `GEMINI_API_KEY` and implement
 > the swap point in `lib/vision/provider.ts` — nothing else changes.
