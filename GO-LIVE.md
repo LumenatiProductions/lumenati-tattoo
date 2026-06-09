@@ -35,11 +35,9 @@ plus a couple of optional, not-yet-built backlog items.
 
 **Go-live phases:** 0 ✅ · 1 ✅ (test mode) · 2–8 ⬜ (below).
 
-**New schemas to paste (2026-06-09 quality pass — 2 minutes in the SQL editor):**
-- [ ] `supabase/cash-schema.sql` — turns on the real Cash Log (the page shows a
-  setup hint until applied; logging + reconcile persist after).
-- [ ] `supabase/settlements-schema.sql` — makes Payouts "Mark settled" stick
-  (records the hand-off and resets that artist's statement).
+**New schemas from the 2026-06-09 quality pass — APPLIED ✅ (verified in SQL editor):**
+- [x] `supabase/cash-schema.sql` — real Cash Log is ON (cash_entries exists, count 0).
+- [x] `supabase/settlements-schema.sql` — Payouts "Mark settled" sticks (settlements exists, count 0).
 
 **Not built yet (optional backlog — when you want them):**
 - **Stripe Issuing** — give artists their own shop card funded by their balance.
