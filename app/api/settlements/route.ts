@@ -104,5 +104,76 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ settlement: data });
+
+  // Receipt: email the artist their statement so settling feels like payroll.
+  // Best-effort — a missing Resend key / artist email never blocks the books.
+  const receipt = await emailReceipt(supabase, {
+    artistId: b.artistId,
+    amountCents,
+    settledThrough: settledThrough!,
+    note: (b.note ?? "").trim(),
+  });
+
+  return NextResponse.json({ settlement: data, receipt });
+}
+
+async function emailReceipt(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  s: { artistId: string; amountCents: number; settledThrough: string; note: string },
+): Promise<{ sent: boolean; reason?: string }> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { sent: false, reason: "Email not configured" };
+
+  const [{ data: artist }, { data: profile }] = await Promise.all([
+    supabase.from("artists").select("name").eq("id", s.artistId).maybeSingle(),
+    supabase.from("profiles").select("email, full_name").eq("artist_id", s.artistId).maybeSingle(),
+  ]);
+  if (!profile?.email) return { sent: false, reason: "Artist has no login email on file" };
+
+  const usd = (c: number) =>
+    (Math.abs(c) / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+  const direction =
+    s.amountCents >= 0
+      ? `The shop paid you ${usd(s.amountCents)}.`
+      : `You settled ${usd(s.amountCents)} to the shop.`;
+  const when = new Date(`${s.settledThrough}T00:00:00`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const html = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;margin:0;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
+  <tr><td align="center">
+    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+      <tr><td style="background:#0e0e11;padding:22px 28px;">
+        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">LUMENATI</span><span style="font-size:22px;font-weight:800;color:#FF1493;">.</span>
+        <div style="font-size:10px;letter-spacing:3px;color:#8a8a92;margin-top:2px;text-transform:uppercase;">Settlement receipt</div>
+      </td></tr>
+      <tr><td style="padding:26px 28px;">
+        <div style="font-size:17px;font-weight:700;color:#0e0e11;margin-bottom:6px;">You're settled through ${esc(when)}.</div>
+        <p style="font-size:14px;line-height:1.55;color:#52525b;margin:0 0 8px;">${esc(direction)}</p>
+        ${s.note ? `<p style="font-size:12px;line-height:1.5;color:#71717a;margin:0 0 8px;">${esc(s.note)}</p>` : ""}
+        <p style="font-size:12px;color:#a1a1aa;margin:16px 0 0;">Your statement on the Payouts page now starts fresh from this date. Questions? Reply to this email.</p>
+      </td></tr>
+      <tr><td style="padding:0 28px 24px;">
+        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">Lumenati Tattoo &nbsp;//&nbsp; keep this for your records.</div>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>`;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "Lumenati Tattoo <onboarding@resend.dev>",
+      to: [profile.email],
+      subject: `Settlement receipt — ${artist?.name ?? "your statement"} settled through ${s.settledThrough}`,
+      html,
+    }),
+  });
+  if (!res.ok) return { sent: false, reason: `Send failed (${res.status})` };
+  return { sent: true };
 }

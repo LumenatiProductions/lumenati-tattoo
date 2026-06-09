@@ -99,7 +99,11 @@ export default function PayoutsPage() {
       setMsg(d.error || "Could not record that settlement.");
       return false;
     }
-    setMsg(`${st.artist.name} settled through today.`);
+    setMsg(
+      d.receipt?.sent
+        ? `${st.artist.name} settled through today — receipt emailed.`
+        : `${st.artist.name} settled through today.${d.receipt?.reason ? ` (No receipt: ${d.receipt.reason.toLowerCase()}.)` : ""}`,
+    );
     await refreshSettlements();
     return true;
   };
