@@ -45,6 +45,7 @@ plus a couple of optional, not-yet-built backlog items.
 - [x] `booking-requests-schema.sql` — booking_requests table (public /request form)
 - [x] `cash-sessions-schema.sql` — cash_sessions drawer table
 - [x] `guardian-schema.sql` — guardian co-sign columns on consent_forms
+- [x] `request-refs-schema.sql` — reference-photo bucket + column for /request (verified)
 
 **New activation items for Scott (the only two things code can't do):**
 - [ ] **Twilio** — create the account, then on Vercel set `TWILIO_ACCOUNT_SID`,
