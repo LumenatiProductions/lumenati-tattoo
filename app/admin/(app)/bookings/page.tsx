@@ -11,6 +11,7 @@ import { useClients } from "@/lib/admin/clients-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import RequestsInbox from "@/components/admin/RequestsInbox";
 
 const money = (cents: number) =>
   (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -184,6 +185,8 @@ export default function BookingsPage() {
           {syncMsg}
         </div>
       )}
+
+      {canWrite && <RequestsInbox />}
 
       {adding && canWrite && (
         <AddForm
