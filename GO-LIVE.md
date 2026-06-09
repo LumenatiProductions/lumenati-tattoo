@@ -39,6 +39,22 @@ plus a couple of optional, not-yet-built backlog items.
 - [x] `supabase/cash-schema.sql` — real Cash Log is ON (cash_entries exists, count 0).
 - [x] `supabase/settlements-schema.sql` — Payouts "Mark settled" sticks (settlements exists, count 0).
 
+**Product pass schemas (2026-06-09, later the same day) — ALL APPLIED ✅ (verified):**
+- [x] `messaging-schema.sql` — reminder_48h / reminder_24h / healed_photo followup kinds
+- [x] `tips-schema.sql` — payments.tip_cents
+- [x] `booking-requests-schema.sql` — booking_requests table (public /request form)
+- [x] `cash-sessions-schema.sql` — cash_sessions drawer table
+- [x] `guardian-schema.sql` — guardian co-sign columns on consent_forms
+
+**New activation items for Scott (the only two things code can't do):**
+- [ ] **Twilio** — create the account, then on Vercel set `TWILIO_ACCOUNT_SID`,
+  `TWILIO_AUTH_TOKEN`, and `TWILIO_MESSAGING_SERVICE_SID` (or `TWILIO_FROM_NUMBER`).
+  Texts (consent links, reminders, follow-ups) switch on instantly; email is the
+  fallback until then.
+- [ ] **Consent wording** — send `lib/intake/forms.ts` to the shop's attorney,
+  apply any edits in place, then set `LEGAL_COPY_REVIEWED = true` (and decide on
+  `MINORS_GUARDIAN_CONSENT` while you're at it; it's OFF by default).
+
 **Not built yet (optional backlog — when you want them):**
 - **Stripe Issuing** — give artists their own shop card funded by their balance.
 - **Live IG analytics + running paid ads** — we have ad/post *suggestions*, not spend.

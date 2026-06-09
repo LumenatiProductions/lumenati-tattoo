@@ -25,6 +25,30 @@ Most remaining work is **turning features on with keys/accounts — not coding.*
 - **Stripe Connect ENABLED** (sandbox) — app creates Express accounts in code; live Connect still gated behind Stripe go-live.
 - **Kiosk token DONE** — `KIOSK_DEVICE_TOKEN` set on Vercel + verified (`/api/kiosk` 401→200).
 
+## Product pass (done 2026-06-09, ALL schemas applied to the live DB)
+Twelve features shipped end to end in one session; every schema is ALREADY
+APPLIED via the SQL editor (verified):
+- **SMS (Twilio, gated)**: lib/sms.ts; consent links, follow-ups, reminders all
+  text when TWILIO_ACCOUNT_SID/AUTH_TOKEN + (MESSAGING_SERVICE_SID or
+  FROM_NUMBER) land on Vercel. Until then everything falls back to email.
+- **Reminders**: reminder_48h/reminder_24h followup kinds, enqueued nightly off
+  scheduled bookings, cancel-aware, SMS-first. **Healed photo** ask at 14d.
+- **Tips on /pay**: 15/20/25/custom; payments.tip_cents; fee on service only,
+  tip rides to the artist. Deposits stay tip-free.
+- **Booking requests**: public /request form -> Requests inbox on Bookings;
+  accept finds-or-creates the client + books with source=web_request. The Y2K
+  site is untouched — link /request from it whenever Scott wants.
+- **Drawer sessions**: open float / count & close, over/short strip on Cash.
+- **Settlement receipts**: Mark settled emails the artist their statement.
+- **Guardian co-sign**: OFF until MINORS_GUARDIAN_CONSENT=true (counsel first).
+- **Reconciliation page LIVE** (sidebar stub gone): Stripe vs our records diff.
+- **Inventory restock from expenses**: one supplies entry books cost + stock.
+- **Client merge** (owner): drawer "merge into…" re-points all history.
+- **Real consent/medical/aftercare copy**: in lib/intake/forms.ts; signer shows
+  "pending final legal review" until LEGAL_COPY_REVIEWED=true. SEND TO COUNSEL.
+Scott's two outstanding inputs: Twilio account/keys + attorney review of the
+consent wording.
+
 ## Quality pass (done 2026-06-09, full command-center sweep)
 Four-agent audit + fixes across every admin page, API, kiosk, intake, and pay
 flow. Highlights:
