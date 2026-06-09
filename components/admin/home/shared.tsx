@@ -46,6 +46,14 @@ export const todayLocal = () => {
 };
 export const isToday = (iso: string) => (iso || "").slice(0, 10) === todayLocal();
 
+// Local YYYY-MM-DD for N days ago — same local anchoring as todayLocal so week
+// windows don't slip a day for evening use in Denver (UTC-6/7).
+export const daysAgoLocal = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+};
+
 export function Empty({ children }: { children: ReactNode }) {
   return <div className="px-4 py-6 text-center text-sm text-black/40">{children}</div>;
 }

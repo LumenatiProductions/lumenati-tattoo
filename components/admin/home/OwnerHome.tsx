@@ -7,7 +7,7 @@ import { useCash } from "@/lib/admin/cash-context";
 import { shopSummary, statementFor, fmt } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
-import { PageHead, WeekTile, StatementsTable, RentPanel } from "./shared";
+import { PageHead, WeekTile, StatementsTable, RentPanel, daysAgoLocal } from "./shared";
 
 // Owner: the whole shop. The cross-feature cockpit (POS-STARTER-4) on top, then
 // the financial overview.
@@ -22,7 +22,7 @@ export default function OwnerHome() {
     .map((a) => statementFor(a, sales, []))
     .sort((x, y) => y.grossService - x.grossService);
 
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const weekAgo = daysAgoLocal(7);
   const wk = sales.filter((s2) => s2.date >= weekAgo);
   const wkService = wk.reduce((a, s2) => a + s2.serviceCents, 0);
   const wkTips = wk.reduce((a, s2) => a + s2.tipCents, 0);
