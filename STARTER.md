@@ -4,14 +4,14 @@ One doc to resume from in a fresh chat without re-reading history. If you (the
 assistant) are starting cold: read this, then `GO-LIVE.md` for the checklist.
 Keep this file updated as the single source of truth.
 
-## Where we are (2026-06-07)
+## Where we are (2026-06-09)
 
 The whole platform is **BUILT and deployed**. Web admin lives at
 `https://lumenati-tattoo.vercel.app` (Next 15, on Vercel, team `cinebody`). The
 phone app is in `app-native/` (Expo SDK 52, universal: iOS/Android/web). All
 Supabase tables + RLS are **already applied** to the live DB.
 
-Remaining work is **turning features on with keys/accounts — not coding.**
+Most remaining work is **turning features on with keys/accounts — not coding.**
 
 ## Done + live
 - Command center: clients, compliance, inventory, bookings, intake, follow-ups, reports
@@ -19,22 +19,41 @@ Remaining work is **turning features on with keys/accounts — not coding.**
 - Owned books (shop expenses + Stripe ledger + accountant CSV)
 - The app (6a–6e): money/goals/taxes, in-person POS, instant cashout, snap
   receipt + snap-to-count, bookings/clients/inventory/compliance with create+edit+delete
-- **Payments: LIVE in Stripe TEST mode** — keys + webhook set on Vercel, verified
-  with a real $1 test pay link end to end.
+- **Payments: LIVE in Stripe TEST mode** — keys + webhook set on Vercel, verified end to end.
+- **AI snaps LIVE** — `ANTHROPIC_API_KEY` set on Vercel, verified (`/api/vision` 401 with key).
+- **Email/morning brief LIVE** — `RESEND_API_KEY` + `DIGEST_RECIPIENTS` set; Scott received the brief.
+- **Stripe Connect ENABLED** (sandbox) — app creates Express accounts in code; live Connect still gated behind Stripe go-live.
+- **Kiosk token DONE** — `KIOSK_DEVICE_TOKEN` set on Vercel + verified (`/api/kiosk` 401→200).
+
+## Branding & design (NEW — done 2026-06-09, deployed)
+Two identities, on purpose:
+- **Console / payments / intake / app = clean Lumenati parent brand:** the
+  all-seeing-eye + wordmark logo (`public/brand/lumenati-on-light.svg` = dark marks,
+  `lumenati-on-dark.svg` = white marks; shared `components/brand/LumenatiLogo.tsx`),
+  **Helvetica Neue**, pink (`#ff1493`) accent kept. App uses `react-native-svg`
+  (`app-native/components/LumenatiLogo.tsx`, fills baked inline) + Helvetica Neue
+  set globally in `app-native/app/_layout.tsx`.
+- **Kiosk = FULL Y2K** (front-of-house, matches the public site): neon/CRT, Press
+  Start 2P / VT323 / Share Tech Mono, scanlines, marquee, gel buttons, glowing eye.
+  Has a **customer welcome/attract screen** (device-code screen is staff-only).
+  `appleWebApp` meta added → **Add-to-Home-Screen launches fullscreen** (no URL bar);
+  plain Safari still shows the URL bar.
+- **Public Y2K site: untouched** (Scott likes it).
 
 ## Next — go-live, easiest first (track in GO-LIVE.md)
-1. **AI snaps** — add `ANTHROPIC_API_KEY` on Vercel → redeploy. (Scott's key.)
-2. **Connect (auto-payouts)** — enable Connect (Express) in Stripe; onboard artists
-   from the admin Payouts page.
-3. **Real money** — swap Stripe test keys for live keys + a live webhook.
-4. **App on phones** — `app-native/.env`, `eas init` (gets the projectId → enables
-   push), dev build, Apple/Google Tap to Pay enrollment.
-5. **Cutover** — retire QuickBooks then Square. Runbook: `CUTOVER.md`.
+1. **Real money (Stripe live)** — Scott finishes Stripe business verification, then
+   swap test keys for `sk_live_`/`pk_live_` + a live webhook. (Phase 2)
+2. **Connect artist onboarding** — BLOCKED on Scott's full artist list + per-artist
+   splits. Then admin → Payouts → send onboarding links. (Phase 3)
+3. **App on phones** — `eas init` (writes projectId → push), dev build, Apple/Google
+   Tap to Pay enrollment. (Phase 7)
+4. **Cutover** — retire QuickBooks then Square. Runbook: `CUTOVER.md`. (Phase 8)
 
-**Kiosk token is DONE** — `KIOSK_DEVICE_TOKEN` set on Vercel + verified live
-(`/api/kiosk`: 401 without token, 200 with). Only iPad provisioning remains: open
-`/kiosk` on the iPad, enter the token (in Vercel env / handed to Scott), lock with
-Guided Access.
+Smaller follow-ups:
+- **Console local review needs Supabase redirect allowlist:** the admin magic link
+  redirects to `location.origin/auth/callback`; `http://localhost:3210` isn't in
+  Supabase → Auth → URL Configuration → Redirect URLs, so local sign-in bounces to
+  prod. Add it to review the branded console on localhost.
 
 ## How things work here (so you don't re-discover)
 - **Apply a DB schema:** paste the SQL into the Supabase SQL editor and Run (the
@@ -49,6 +68,13 @@ Guided Access.
   vision, and Tap to Pay go through the Next API (Bearer auth via `lib/api-auth.ts`).
 - **Build checks:** `npm run build` (web), `cd app-native && npx tsc --noEmit` (app).
 - Apply-then-verify schema edits return "Success. No rows returned" in the SQL editor.
+- **Design harness (local, on the iMac):** `PORT=3210 npm run dev` (web), and
+  `cd app-native && npx expo start --ios` for the app on the iPhone sim. For the
+  kiosk-as-iPad: boot an iPad sim, `xcrun simctl openurl <udid> http://localhost:3210/kiosk`,
+  rotate to landscape (Cmd+←). **Local kiosk device code is `bedroom`** (in `.env.local`,
+  gitignored; prod uses the long Vercel token). Sim text entry is flaky (long-press →
+  accent popup) — prefer Connect Hardware Keyboard or short input.
+- Driving Chrome: connect the **"Imac"** browser (`select_browser`), not "Studio".
 
 ## Resume prompt (paste into a new chat)
 > Read `STARTER.md`, then continue the Lumenati go-live. Do everything you can

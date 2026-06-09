@@ -141,6 +141,9 @@ Unlocks: clients sign themselves in on a locked iPad.
       Token value is in Vercel env (`vercel env pull` to retrieve) and was handed to
       Scott in chat — enter it on the iPad once.
 - [ ] On the iPad, open `https://lumenati-tattoo.vercel.app/kiosk`, enter that code once.
+- [ ] **Go fullscreen (no URL bar):** Share → **Add to Home Screen**, then open the
+      Lumenati icon. Plain Safari keeps its URL bar; the home-screen launch is chromeless
+      (the `appleWebApp` meta is already in place). Customers land on the Y2K welcome screen.
 - [ ] Lock it: Settings → Accessibility → Guided Access (triple-click to pin), or
       MDM Single App Mode for several iPads.
 
