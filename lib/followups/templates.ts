@@ -7,11 +7,21 @@
 // `renderEmail` substitutes tokens and wraps the text in the same branded
 // Lumenati shell the digest / consent emails use.
 
-export type FollowupKind = "aftercare" | "review_request" | "rebook_nudge" | "birthday";
+export type FollowupKind =
+  | "aftercare"
+  | "review_request"
+  | "rebook_nudge"
+  | "birthday"
+  | "reminder_48h"
+  | "reminder_24h"
+  | "healed_photo";
 
 export const FOLLOWUP_KINDS: FollowupKind[] = [
+  "reminder_48h",
+  "reminder_24h",
   "aftercare",
   "review_request",
+  "healed_photo",
   "rebook_nudge",
   "birthday",
 ];
@@ -21,6 +31,9 @@ export const KIND_LABEL: Record<FollowupKind, string> = {
   review_request: "Review request",
   rebook_nudge: "Rebook nudge",
   birthday: "Birthday",
+  reminder_48h: "Reminder (48h)",
+  reminder_24h: "Reminder (24h)",
+  healed_photo: "Healed photo",
 };
 
 export type Template = {
@@ -94,6 +107,36 @@ Happy birthday from everyone at {{shop_name}}. If you are thinking about marking
 Have a great one,
 {{shop_name}}`,
   },
+  // Reminders are written SMS-length on purpose — they go out as texts when
+  // Twilio is configured, email otherwise. lead_days = days BEFORE the visit.
+  reminder_48h: {
+    kind: "reminder_48h",
+    subject: "Your appointment at {{shop_name}} is in two days",
+    lead_days: 2,
+    enabled: true,
+    body: `Hi {{first_name}}, this is {{shop_name}}. You are booked {{appointment_time}}{{artist_with}}. Reply C to confirm, or call the shop if you need to move it. Heads up: deposits are forfeited on no-shows.`,
+  },
+  reminder_24h: {
+    kind: "reminder_24h",
+    subject: "See you tomorrow at {{shop_name}}",
+    lead_days: 1,
+    enabled: true,
+    body: `Hi {{first_name}}, see you {{appointment_time}}{{artist_with}} at {{shop_name}}. Eat beforehand, stay hydrated, and bring your ID. Reply C to confirm.`,
+  },
+  healed_photo: {
+    kind: "healed_photo",
+    subject: "How did it heal? We would love a photo",
+    lead_days: 14, // after the visit, once it's healed enough to show off
+    enabled: true,
+    body: `Hi {{first_name}},
+
+Your tattoo from {{shop_name}} should be just about healed by now. If you are happy with how it settled in, we would love a quick photo for the artist's portfolio — just reply to this message with a picture.
+
+If anything about the healing does not look right, reply and we will take a look.
+
+Thank you,
+{{shop_name}}`,
+  },
 };
 
 export const SHOP_NAME = "Lumenati Tattoo";
@@ -102,19 +145,32 @@ type Tokens = {
   first_name?: string | null;
   shop_name?: string;
   review_link?: string;
+  /** "Tue Jun 16 at 2:00 PM" — for reminders. */
+  appointment_time?: string | null;
+  /** Artist display name — for reminders. */
+  artist_name?: string | null;
 };
 
 // Replace {{token}} occurrences. Unknown tokens are left intact so a typo is
-// visible rather than silently blanked.
+// visible rather than silently blanked. {{artist_with}} renders " with NAME"
+// only when an artist is known, so copy never reads "with ".
 export function fillTokens(text: string, tokens: Tokens): string {
   const map: Record<string, string> = {
     first_name: (tokens.first_name || "there").trim() || "there",
     shop_name: tokens.shop_name || SHOP_NAME,
     review_link: tokens.review_link || "",
+    appointment_time: tokens.appointment_time || "at your scheduled time",
+    artist_name: tokens.artist_name || "",
+    artist_with: tokens.artist_name ? ` with ${tokens.artist_name}` : "",
   };
   return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, key: string) =>
     key in map ? map[key] : whole,
   );
+}
+
+// Render the resolved body as a plain SMS (no HTML shell, no subject).
+export function renderSms(tpl: Template, tokens: Tokens): string {
+  return fillTokens(tpl.body, tokens);
 }
 
 // Merge a DB row (if any) over the code default for a kind.

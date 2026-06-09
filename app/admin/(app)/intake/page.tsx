@@ -404,19 +404,21 @@ function FormDrawer({
     run(() => onSave({ idChecked: true, idType: idType || null }), "ID confirmed.");
 
   const send = async () => {
-    // Light shape check — the real validation is whether the mail delivers.
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
-      setMsg({ text: "Enter a valid email.", err: true });
+    // Accept an email address or a mobile number — the API routes by shape.
+    const v = to.trim();
+    const isPhone = !v.includes("@") && v.replace(/\D/g, "").length >= 10;
+    if (!isPhone && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      setMsg({ text: "Enter the client's email or mobile number.", err: true });
       return;
     }
     setBusy(true);
     setMsg(null);
-    const res = await onSend(to.trim());
+    const res = await onSend(v);
     setBusy(false);
     if (!res.ok) setMsg({ text: res.error || "Could not send.", err: true });
     else if (res.preview)
-      setMsg({ text: "Email isn't configured — copy the link below and text it instead.", err: true });
-    else setMsg({ text: `Sent to ${to.trim()}.`, err: false });
+      setMsg({ text: "Sending isn't configured yet — copy the link below and send it yourself.", err: true });
+    else setMsg({ text: `Sent to ${v}.`, err: false });
   };
 
   const doVoid = () => {
@@ -511,8 +513,8 @@ function FormDrawer({
                     <a href={signUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white">Open</a>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="client@email.com" className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm" />
-                    <button onClick={send} disabled={busy} className="shrink-0 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-black/60 hover:bg-black/4 disabled:opacity-40">Email link</button>
+                    <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="email or mobile number" className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm" />
+                    <button onClick={send} disabled={busy} className="shrink-0 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-black/60 hover:bg-black/4 disabled:opacity-40">Send link</button>
                   </div>
                 </div>
               )}

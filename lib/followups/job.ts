@@ -2,10 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   resolveTemplate,
   renderEmail,
+  renderSms,
+  FOLLOWUP_KINDS,
   type FollowupKind,
   type Template,
   SHOP_NAME,
 } from "./templates";
+import { isSmsConfigured, normalizePhone, sendSms } from "@/lib/sms";
 
 // Don't backfill ancient history: only completed bookings within this window get
 // auto-enqueued, so the first run can't blast months of old clients.
@@ -35,12 +38,9 @@ async function loadTemplates(client: SupabaseClient): Promise<TemplateMap> {
     .from("followup_templates")
     .select("kind, subject, body, lead_days, enabled");
   const byKind = new Map((data || []).map((r: { kind: string }) => [r.kind, r]));
-  return {
-    aftercare: resolveTemplate("aftercare", byKind.get("aftercare") as Partial<Template>),
-    review_request: resolveTemplate("review_request", byKind.get("review_request") as Partial<Template>),
-    rebook_nudge: resolveTemplate("rebook_nudge", byKind.get("rebook_nudge") as Partial<Template>),
-    birthday: resolveTemplate("birthday", byKind.get("birthday") as Partial<Template>),
-  };
+  return Object.fromEntries(
+    FOLLOWUP_KINDS.map((k) => [k, resolveTemplate(k, byKind.get(k) as Partial<Template>)]),
+  ) as TemplateMap;
 }
 
 type EnqueueRow = {
@@ -65,9 +65,12 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
   const t = today();
   const rows: EnqueueRow[] = [];
 
-  // 1) aftercare + review_request off recently-completed bookings.
-  if (tpl.aftercare.enabled || tpl.review_request.enabled) {
-    const cutoff = addDays(t, -ENQUEUE_LOOKBACK_DAYS);
+  // 1) aftercare + review_request + healed_photo off recently-completed bookings.
+  if (tpl.aftercare.enabled || tpl.review_request.enabled || tpl.healed_photo.enabled) {
+    // The healed-photo ask lands ~2 weeks out, so look back far enough that a
+    // booking completed before the photo was due still gets one.
+    const lookback = Math.max(ENQUEUE_LOOKBACK_DAYS, tpl.healed_photo.lead_days + 7);
+    const cutoff = addDays(t, -lookback);
     const { data: bookings } = await client
       .from("bookings")
       .select("id, client_id, starts_at")
@@ -78,7 +81,7 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
     for (const b of (bookings || []) as { id: string; client_id: string | null; starts_at: string }[]) {
       if (!b.client_id) continue;
       const visitDay = b.starts_at.slice(0, 10);
-      if (tpl.aftercare.enabled) {
+      if (tpl.aftercare.enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
         rows.push({
           booking_id: b.id,
           client_id: b.client_id,
@@ -89,13 +92,56 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
           status: "pending",
         });
       }
-      if (tpl.review_request.enabled) {
+      if (tpl.review_request.enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
         rows.push({
           booking_id: b.id,
           client_id: b.client_id,
           kind: "review_request",
           channel: "email",
           scheduled_for: maxDate(t, addDays(visitDay, tpl.review_request.lead_days)),
+          status: "pending",
+        });
+      }
+      if (tpl.healed_photo.enabled) {
+        rows.push({
+          booking_id: b.id,
+          client_id: b.client_id,
+          kind: "healed_photo",
+          channel: "email",
+          scheduled_for: maxDate(t, addDays(visitDay, tpl.healed_photo.lead_days)),
+          status: "pending",
+        });
+      }
+    }
+  }
+
+  // 1b) pre-appointment reminders off upcoming scheduled bookings. lead_days =
+  // days BEFORE the visit. Texted when Twilio is on (channel is re-decided at
+  // send time based on what the client actually has on file).
+  if (tpl.reminder_48h.enabled || tpl.reminder_24h.enabled) {
+    const horizon = addDays(t, 4); // covers both reminder windows
+    const { data: upcoming } = await client
+      .from("bookings")
+      .select("id, client_id, starts_at")
+      .eq("status", "scheduled")
+      .gte("starts_at", t)
+      .lte("starts_at", `${horizon}T23:59:59.999`)
+      .not("client_id", "is", null);
+
+    for (const b of (upcoming || []) as { id: string; client_id: string | null; starts_at: string }[]) {
+      if (!b.client_id) continue;
+      const visitDay = b.starts_at.slice(0, 10);
+      for (const kind of ["reminder_48h", "reminder_24h"] as const) {
+        if (!tpl[kind].enabled) continue;
+        const sendDay = addDays(visitDay, -tpl[kind].lead_days);
+        // Skip reminders whose window has already passed (booked last-minute).
+        if (sendDay < t) continue;
+        rows.push({
+          booking_id: b.id,
+          client_id: b.client_id,
+          kind,
+          channel: isSmsConfigured ? "sms" : "email",
+          scheduled_for: sendDay,
           status: "pending",
         });
       }
@@ -226,11 +272,26 @@ async function enqueueBirthdays(client: SupabaseClient) {
 
 type FollowupRow = {
   id: string;
+  booking_id?: string | null;
   client_id: string | null;
   kind: FollowupKind;
   channel: string;
   scheduled_for: string | null;
 };
+
+const REMINDER_KINDS: FollowupKind[] = ["reminder_48h", "reminder_24h"];
+
+// "Tue Jun 16 at 2:00 PM" in the shop's timezone for reminder copy.
+const SHOP_TZ = process.env.SHOP_TIMEZONE || "America/Denver";
+const apptTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: SHOP_TZ,
+  });
 
 async function postResend(to: string, subject: string, html: string) {
   const key = process.env.RESEND_API_KEY;
@@ -250,44 +311,75 @@ async function postResend(to: string, subject: string, html: string) {
   return { ok: true as const, id: body?.id as string | undefined };
 }
 
-// Deliver one follow-up: render its template against the client and email it.
-// Marks the row sent / skipped / failed with a result note. Shared by the daily
+// Deliver one follow-up: render its template against the client and send it.
+// Channel preference: SMS when the row asks for it AND Twilio + a phone exist;
+// otherwise email; otherwise skip. Reminders also re-check the booking so a
+// cancelled session never gets a "see you tomorrow" text. Marks the row
+// sent / skipped / failed (and the channel actually used). Shared by the daily
 // drain and the manual "send now" button.
 export async function sendFollowupRow(
   client: SupabaseClient,
   row: FollowupRow,
   tpl: TemplateMap,
 ): Promise<{ status: "sent" | "skipped" | "failed"; result: string }> {
-  if (row.channel !== "email") {
-    return finalize(client, row.id, "skipped", `Channel ${row.channel} not supported yet`);
-  }
   const template = tpl[row.kind];
   if (!template.enabled) {
     return finalize(client, row.id, "skipped", "Template disabled");
   }
 
-  let contact: { first_name: string | null; email: string | null } | null = null;
+  let contact: { first_name: string | null; email: string | null; phone: string | null } | null = null;
   if (row.client_id) {
     const { data } = await client
       .from("clients")
-      .select("first_name, email")
+      .select("first_name, email, phone")
       .eq("id", row.client_id)
       .maybeSingle();
     contact = data;
   }
-  if (!contact?.email) {
-    return finalize(client, row.id, "skipped", "No client email on file");
+  const phone = normalizePhone(contact?.phone);
+  if (!contact || (!contact.email && !phone)) {
+    return finalize(client, row.id, "skipped", "No email or mobile on file");
   }
 
-  const { subject, html } = renderEmail(template, {
+  // Reminder context: appointment time + artist, and a liveness check.
+  const tokens: Parameters<typeof renderEmail>[1] = {
     first_name: contact.first_name,
     review_link: reviewLink(),
-  });
+  };
+  if (REMINDER_KINDS.includes(row.kind)) {
+    if (!row.booking_id) return finalize(client, row.id, "skipped", "Reminder has no booking");
+    const { data: bk } = await client
+      .from("bookings")
+      .select("starts_at, status, artist_id")
+      .eq("id", row.booking_id)
+      .maybeSingle();
+    if (!bk || bk.status !== "scheduled") {
+      return finalize(client, row.id, "skipped", `Booking is ${bk?.status ?? "gone"} — reminder dropped`);
+    }
+    tokens.appointment_time = apptTime(bk.starts_at as string);
+    if (bk.artist_id) {
+      const { data: a } = await client.from("artists").select("name").eq("id", bk.artist_id).maybeSingle();
+      tokens.artist_name = (a?.name as string) ?? null;
+    }
+  }
+
+  // Try SMS first when the row wants it; fall back to email rather than fail.
+  if (row.channel === "sms" && isSmsConfigured && phone) {
+    const sms = await sendSms(phone, renderSms(template, tokens));
+    if (sms.ok) return finalize(client, row.id, "sent", sms.sid || "sent", "sms");
+    if (!contact.email) return finalize(client, row.id, "failed", sms.error);
+    // fall through to email with the SMS error noted
+  }
+
+  if (!contact.email) {
+    return finalize(client, row.id, "skipped", "No client email on file (SMS unavailable)");
+  }
+  const { subject, html } = renderEmail(template, tokens);
   const sent = await postResend(contact.email, subject, html);
   if (!sent.ok) {
     return finalize(client, row.id, "failed", sent.error);
   }
-  return finalize(client, row.id, "sent", sent.id || "sent");
+  return finalize(client, row.id, "sent", sent.id || "sent", "email");
 }
 
 async function finalize(
@@ -295,6 +387,7 @@ async function finalize(
   id: string,
   status: "sent" | "skipped" | "failed",
   result: string,
+  channelUsed?: "email" | "sms",
 ) {
   await client
     .from("followups")
@@ -302,18 +395,18 @@ async function finalize(
       status,
       result,
       sent_at: status === "sent" ? new Date().toISOString() : null,
+      ...(channelUsed ? { channel: channelUsed } : {}),
     })
     .eq("id", id);
   return { status, result };
 }
 
-// Drain everything due today (pending + scheduled_for <= today, email channel).
+// Drain everything due today (pending + scheduled_for <= today, any channel).
 export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap) {
   const { data: due } = await client
     .from("followups")
-    .select("id, client_id, kind, channel, scheduled_for")
+    .select("id, booking_id, client_id, kind, channel, scheduled_for")
     .eq("status", "pending")
-    .eq("channel", "email")
     .lte("scheduled_for", today());
 
   let sent = 0,

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
   const { data: row } = await supabase
     .from("followups")
-    .select("id, client_id, kind, channel, scheduled_for")
+    .select("id, booking_id, client_id, kind, channel, scheduled_for")
     .eq("id", id)
     .maybeSingle();
   if (!row) return NextResponse.json({ error: "Follow-up not found" }, { status: 404 });

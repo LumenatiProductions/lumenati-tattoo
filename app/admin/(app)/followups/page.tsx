@@ -71,8 +71,11 @@ export default function FollowupsPage() {
     );
     return (id: string | null) => (id ? m.get(id) ?? "Unknown client" : "No client");
   }, [clients]);
-  const clientEmail = useMemo(() => {
-    const m = new Map(clients.map((c) => [c.id, c.email] as const));
+  // A row is sendable with an email OR a mobile (SMS) on file.
+  const clientContact = useMemo(() => {
+    const m = new Map(
+      clients.map((c) => [c.id, { email: c.email, phone: c.phone }] as const),
+    );
     return (id: string | null) => (id ? m.get(id) ?? null : null);
   }, [clients]);
 
@@ -224,7 +227,7 @@ export default function FollowupsPage() {
               key={f.id}
               followup={f}
               clientName={clientName(f.client_id)}
-              email={clientEmail(f.client_id)}
+              contact={clientContact(f.client_id)}
               canWrite={canWrite}
               busy={busyId === f.id}
               onSend={() => doSend(f.id)}
@@ -241,7 +244,7 @@ export default function FollowupsPage() {
 function FollowupRow({
   followup: f,
   clientName,
-  email,
+  contact,
   canWrite,
   busy,
   onSend,
@@ -250,7 +253,7 @@ function FollowupRow({
 }: {
   followup: Followup;
   clientName: string;
-  email: string | null;
+  contact: { email: string | null; phone: string | null } | null;
   canWrite: boolean;
   busy: boolean;
   onSend: () => void;
@@ -258,6 +261,8 @@ function FollowupRow({
   onRequeue: () => void;
 }) {
   const status = STATUS_BADGE[f.status];
+  const reachable = !!(contact?.email || contact?.phone);
+  const contactLine = contact?.email || contact?.phone || "no email or mobile on file";
   return (
     <div className="flex items-center gap-3 px-4 py-3 hover:bg-black/3">
       <div className="w-24 shrink-0">
@@ -269,10 +274,11 @@ function FollowupRow({
           <span className="truncate text-sm font-medium">{clientName}</span>
           <Badge tone="brand">{KIND_LABEL[f.kind]}</Badge>
           <Badge tone={status.tone}>{status.label}</Badge>
-          {!email && <Badge tone="warn">No email</Badge>}
+          {f.channel === "sms" && <Badge tone="neutral">text</Badge>}
+          {!reachable && <Badge tone="warn">No contact</Badge>}
         </div>
         <div className="mt-0.5 truncate text-xs text-black/45">
-          {[email || "no email on file", f.result && f.status !== "pending" ? f.result : null]
+          {[contactLine, f.result && f.status !== "pending" ? f.result : null]
             .filter(Boolean)
             .join(" · ")}
         </div>
@@ -282,8 +288,8 @@ function FollowupRow({
           {(f.status === "pending" || f.status === "failed") && (
             <button
               onClick={onSend}
-              disabled={busy || !email}
-              title={!email ? "No email on file for this client" : "Send now"}
+              disabled={busy || !reachable}
+              title={!reachable ? "No email or mobile on file for this client" : "Send now"}
               className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
             >
               {busy ? "…" : "Send now"}
