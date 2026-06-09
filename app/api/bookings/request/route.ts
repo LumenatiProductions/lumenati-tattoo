@@ -80,6 +80,13 @@ export async function POST(req: Request) {
     artistId = a?.id ?? null;
   }
 
+  // Reference images: only URLs minted by our own upload route (request-refs
+  // bucket) are kept — anything else in the array is dropped, max 3.
+  const refPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/request-refs/`;
+  const referenceUrls = (Array.isArray(b.referenceUrls) ? b.referenceUrls : [])
+    .filter((u): u is string => typeof u === "string" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && u.startsWith(refPrefix))
+    .slice(0, 3);
+
   const { error } = await admin.from("booking_requests").insert({
     name,
     email: emailOk ? email : null,
@@ -89,6 +96,7 @@ export async function POST(req: Request) {
     placement: clip(b.placement, 200),
     size: clip(b.size, 100),
     availability: clip(b.availability, 300),
+    ...(referenceUrls.length ? { reference_urls: referenceUrls } : {}),
   });
   if (error) {
     if (isMissingTable(error.message)) {
@@ -197,7 +205,14 @@ export async function PATCH(req: Request) {
         est_price_cents: Math.max(0, Math.round(b.estPriceCents ?? 0)),
         deposit_cents: deposit,
         deposit_status: "none", // held only once they actually pay the link
-        notes: [reqRow.placement && `Placement: ${reqRow.placement}`, reqRow.size && `Size: ${reqRow.size}`, reqRow.availability && `Availability: ${reqRow.availability}`]
+        notes: [
+          reqRow.placement && `Placement: ${reqRow.placement}`,
+          reqRow.size && `Size: ${reqRow.size}`,
+          reqRow.availability && `Availability: ${reqRow.availability}`,
+          ...(Array.isArray(reqRow.reference_urls) && reqRow.reference_urls.length
+            ? [`References:`, ...(reqRow.reference_urls as string[])]
+            : []),
+        ]
           .filter(Boolean)
           .join("\n"),
         source: "web_request",

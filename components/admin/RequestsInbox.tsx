@@ -20,6 +20,7 @@ type BookingRequest = {
   placement: string;
   size: string;
   availability: string;
+  reference_urls?: string[] | null;
   status: "pending" | "accepted" | "declined";
   created_at: string;
 };
@@ -97,6 +98,21 @@ export default function RequestsInbox() {
                       .filter(Boolean)
                       .join(" · ")}
                   </div>
+                  {Array.isArray(q.reference_urls) && q.reference_urls.length > 0 && (
+                    <div className="mt-2 flex gap-2">
+                      {q.reference_urls.map((u, i) => (
+                        <a key={i} href={u} target="_blank" rel="noreferrer" title="Open full size">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={u}
+                            alt={`Reference ${i + 1} from ${q.name}`}
+                            className="h-16 w-16 rounded-lg border border-black/10 object-cover hover:opacity-80"
+                            loading="lazy"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
