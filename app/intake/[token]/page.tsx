@@ -7,6 +7,7 @@ import {
   CONSENT_STATEMENTS,
   MEDICAL_QUESTIONS,
   SIGNATURE_VIEWBOX,
+  computeAgeOk,
 } from "@/lib/intake/forms";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 
@@ -29,6 +30,7 @@ export default function SignPage() {
 
   const [status, setStatus] = useState<Status>("loading");
   const [ctx, setCtx] = useState<Ctx | null>(null);
+  const [guardianAllowed, setGuardianAllowed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,6 +45,7 @@ export default function SignPage() {
         }
         setStatus((d.status as Status) ?? "invalid");
         setCtx(d.context ?? null);
+        setGuardianAllowed(d.guardianAllowed === true);
       } catch {
         if (!cancelled) setStatus("error");
       }
@@ -73,7 +76,7 @@ export default function SignPage() {
           </Centered>
         )}
         {status === "ready" && (
-          <SignForm token={token} ctx={ctx} onSigned={() => setStatus("signed")} />
+          <SignForm token={token} ctx={ctx} guardianAllowed={guardianAllowed} onSigned={() => setStatus("signed")} />
         )}
       </main>
     </div>
@@ -88,7 +91,17 @@ function Centered({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; onSigned: () => void }) {
+function SignForm({
+  token,
+  ctx,
+  guardianAllowed,
+  onSigned,
+}: {
+  token: string;
+  ctx: Ctx | null;
+  guardianAllowed: boolean;
+  onSigned: () => void;
+}) {
   const [signedName, setSignedName] = useState("");
   const [dob, setDob] = useState("");
   const [placement, setPlacement] = useState(ctx?.placement ?? "");
@@ -96,13 +109,21 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
   const [consent, setConsent] = useState<boolean[]>(CONSENT_STATEMENTS.map(() => false));
   const [aftercare, setAftercare] = useState(false);
   const [signature, setSignature] = useState("");
+  const [guardian, setGuardian] = useState({ name: "", dob: "", relationship: "", signature: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const setMed = (key: string, val: string) => setMedical((s) => ({ ...s, [key]: val }));
 
+  // Under-age + policy on => the guardian section appears and becomes required.
+  const underage = dob ? computeAgeOk(dob) === false : false;
+  const needsGuardian = underage && guardianAllowed;
+  const guardianComplete =
+    !needsGuardian ||
+    !!(guardian.name.trim() && guardian.dob && guardian.relationship.trim() && guardian.signature);
+
   const allConsented = consent.every(Boolean);
-  const ready = signedName.trim() && dob && allConsented && aftercare && signature;
+  const ready = signedName.trim() && dob && allConsented && aftercare && signature && guardianComplete;
 
   const submit = async () => {
     setErr(null);
@@ -111,6 +132,9 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
     if (!allConsented) return setErr("Please confirm every consent statement.");
     if (!aftercare) return setErr("Please acknowledge the aftercare instructions.");
     if (!signature) return setErr("Please draw your signature.");
+    if (needsGuardian && !guardianComplete) {
+      return setErr("A parent or legal guardian must complete their section and sign.");
+    }
 
     const answers: Record<string, unknown> = { consent };
     for (const q of MEDICAL_QUESTIONS) {
@@ -133,6 +157,14 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
           signatureSvg: signature,
           answers,
           aftercareAck: aftercare,
+          ...(needsGuardian
+            ? {
+                guardianName: guardian.name.trim(),
+                guardianDob: guardian.dob,
+                guardianRelationship: guardian.relationship.trim(),
+                guardianSignatureSvg: guardian.signature,
+              }
+            : {}),
         }),
       });
     } catch {
@@ -260,6 +292,37 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
         <p className="mt-1 text-xs text-zinc-400">Draw your signature in the box below.</p>
         <SignaturePad value={signature} onChange={setSignature} />
       </div>
+
+      {/* Guardian co-sign — only for an under-age signer when the shop allows it. */}
+      {underage && !guardianAllowed && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          You must be at least 18 to sign this form yourself. Please see the front desk.
+        </div>
+      )}
+      {needsGuardian && (
+        <div className={`${card} border-amber-300/70`}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-black/55">
+            Parent / legal guardian
+          </h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Because the client is under 18, a parent or legal guardian must complete this section
+            and sign. Bring your ID — both IDs are verified in person at the shop.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Guardian full legal name">
+              <input className={input} value={guardian.name} onChange={(e) => setGuardian((g) => ({ ...g, name: e.target.value }))} autoComplete="off" />
+            </Field>
+            <Field label="Guardian date of birth">
+              <input className={input} type="date" value={guardian.dob} onChange={(e) => setGuardian((g) => ({ ...g, dob: e.target.value }))} />
+            </Field>
+            <Field label="Relationship to client">
+              <input className={input} value={guardian.relationship} onChange={(e) => setGuardian((g) => ({ ...g, relationship: e.target.value }))} placeholder="Parent, legal guardian…" />
+            </Field>
+          </div>
+          <p className="mt-3 text-xs text-zinc-400">Guardian: draw your signature below.</p>
+          <SignaturePad value={guardian.signature} onChange={(d) => setGuardian((g) => ({ ...g, signature: d }))} />
+        </div>
+      )}
 
       {err && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
 

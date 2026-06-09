@@ -442,9 +442,15 @@ function FormDrawer({
         </div>
 
         <div className="space-y-5 p-5">
-          {f.age_ok === false && (
+          {f.age_ok === false && !f.guardian_name && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
               Date of birth is below the minimum age. Do not proceed without front-desk review / guardian consent.
+            </div>
+          )}
+          {f.guardian_name && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <span className="font-semibold">Minor with guardian co-sign:</span> {f.guardian_name}
+              {f.guardian_relationship ? ` (${f.guardian_relationship})` : ""}. Verify BOTH IDs in person.
             </div>
           )}
 
@@ -463,6 +469,20 @@ function FormDrawer({
               <div className="rounded-lg border border-black/10 bg-black/2 p-2">
                 <svg viewBox={`0 0 ${SIGNATURE_VIEWBOX.w} ${SIGNATURE_VIEWBOX.h}`} className="h-24 w-full" role="img" aria-label="Signature">
                   <path d={f.signature_svg} fill="none" stroke="#0e0e11" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* Guardian co-signature */}
+          {f.guardian_signature_svg && (
+            <div>
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">
+                Guardian signature{f.guardian_name ? ` · ${f.guardian_name}` : ""}
+              </div>
+              <div className="rounded-lg border border-black/10 bg-black/2 p-2">
+                <svg viewBox={`0 0 ${SIGNATURE_VIEWBOX.w} ${SIGNATURE_VIEWBOX.h}`} className="h-24 w-full" role="img" aria-label="Guardian signature">
+                  <path d={f.guardian_signature_svg} fill="none" stroke="#0e0e11" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
             </div>

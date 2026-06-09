@@ -77,6 +77,9 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     status,
+    // Shop policy: whether an under-age client may proceed with a guardian
+    // co-sign (MINORS_GUARDIAN_CONSENT=true) instead of being blocked.
+    guardianAllowed: process.env.MINORS_GUARDIAN_CONSENT === "true",
     context: { clientFirstName, artistName, bookingStartsAt, placement: form.placement },
   });
 }
@@ -95,6 +98,10 @@ export async function POST(req: Request) {
     signatureSvg?: string;
     answers?: Record<string, unknown>;
     aftercareAck?: boolean;
+    guardianName?: string;
+    guardianDob?: string;
+    guardianRelationship?: string;
+    guardianSignatureSvg?: string;
   };
 
   if (!body.token) return NextResponse.json({ error: "Missing link token." }, { status: 400 });
@@ -140,14 +147,47 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please confirm every consent statement." }, { status: 400 });
   }
 
-  // Age gate: a minor cannot self-consent. Record the truth and block the
-  // self-serve sign — the desk handles guardian-consent cases in person.
+  // Age gate: a minor cannot self-consent. Default policy blocks the self-serve
+  // sign; with MINORS_GUARDIAN_CONSENT=true (shop's call, checked with counsel)
+  // an adult guardian co-signs right on the form instead.
   const age_ok = computeAgeOk(dob);
+  const guardianAllowed = process.env.MINORS_GUARDIAN_CONSENT === "true";
+  let guardian: Record<string, unknown> = {};
   if (age_ok === false) {
-    return NextResponse.json(
-      { error: `You must be at least the minimum age to sign here. Please see the front desk.`, ageBlocked: true },
-      { status: 403 },
-    );
+    if (!guardianAllowed) {
+      return NextResponse.json(
+        { error: `You must be at least the minimum age to sign here. Please see the front desk.`, ageBlocked: true },
+        { status: 403 },
+      );
+    }
+    const gName = (body.guardianName ?? "").trim();
+    const gDob = (body.guardianDob ?? "").trim();
+    const gRel = (body.guardianRelationship ?? "").trim();
+    const gSig = body.guardianSignatureSvg ?? "";
+    if (!gName || !gDob || !gRel || !gSig) {
+      return NextResponse.json(
+        { error: "A parent or legal guardian must complete their section and sign.", guardianRequired: true },
+        { status: 400 },
+      );
+    }
+    if (gName.length > 200 || gRel.length > 100) {
+      return NextResponse.json({ error: "Guardian details are too long." }, { status: 400 });
+    }
+    if (computeAgeOk(gDob) !== true) {
+      return NextResponse.json(
+        { error: "The guardian must be an adult — check their date of birth.", guardianRequired: true },
+        { status: 400 },
+      );
+    }
+    if (gSig.length > MAX_SIGNATURE_LEN || !SIGNATURE_PATH_RE.test(gSig)) {
+      return NextResponse.json({ error: "Guardian signature is malformed." }, { status: 400 });
+    }
+    guardian = {
+      guardian_name: gName,
+      guardian_dob: gDob,
+      guardian_relationship: gRel,
+      guardian_signature_svg: gSig,
+    };
   }
 
   const patch = {
@@ -160,6 +200,7 @@ export async function POST(req: Request) {
     signature_svg: signatureSvg,
     answers,
     signed_at: new Date().toISOString(),
+    ...guardian,
   };
 
   // Conditional on still-unsigned so two in-flight submits can't both write —

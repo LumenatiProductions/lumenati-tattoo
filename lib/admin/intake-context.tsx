@@ -18,6 +18,12 @@ export type ConsentForm = {
   medical_flags: string;
   aftercare_ack: boolean;
   signature_svg: string | null;
+  // Guardian co-sign (guardian-schema.sql) — set only for under-age signers
+  // when the shop's minors policy is on.
+  guardian_name?: string | null;
+  guardian_dob?: string | null;
+  guardian_relationship?: string | null;
+  guardian_signature_svg?: string | null;
   answers: Record<string, unknown>;
   sign_token: string | null;
   signed_at: string | null;
