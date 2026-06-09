@@ -20,6 +20,9 @@ export type ExpenseInput = {
   amountCents: number;
   note?: string;
   receiptUrl?: string | null;
+  /** Optional: also receive stock for this purchase (supplies). */
+  restockItemId?: string;
+  restockQty?: number;
 };
 
 type Ctx = {

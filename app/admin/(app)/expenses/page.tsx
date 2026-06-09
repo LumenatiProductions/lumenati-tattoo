@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ExpensesProvider, useExpenses, type ExpenseInput } from "@/lib/admin/expenses-context";
+import { useInventory } from "@/lib/admin/inventory-context";
 import { expensesCsv, downloadCsv } from "@/lib/books/export";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 import StripeLedger from "@/components/admin/books/StripeLedger";
@@ -114,11 +115,14 @@ function Inner() {
 }
 
 function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: boolean; error?: string }> }) {
+  const { items } = useInventory();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [category, setCategory] = useState("supplies");
   const [vendor, setVendor] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [restockItemId, setRestockItemId] = useState("");
+  const [restockQty, setRestockQty] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -132,14 +136,28 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
       setErr("Enter an amount.");
       return;
     }
+    const qty = Math.round(Number(restockQty));
+    if (restockItemId && (!Number.isFinite(qty) || qty < 1)) {
+      setErr("How many did you buy? Enter the restock quantity.");
+      return;
+    }
     setBusy(true);
     setErr(null);
-    const res = await onAdd({ date, category, vendor: vendor || null, amountCents: cents, note });
+    const res = await onAdd({
+      date,
+      category,
+      vendor: vendor || null,
+      amountCents: cents,
+      note,
+      ...(category === "supplies" && restockItemId ? { restockItemId, restockQty: qty } : {}),
+    });
     setBusy(false);
     if (res.ok) {
       setVendor("");
       setAmount("");
       setNote("");
+      setRestockItemId("");
+      setRestockQty("");
     } else {
       setErr(res.error || "Could not add.");
     }
@@ -182,6 +200,37 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
           <span className={labelCls}>Note</span>
           <input value={note} onChange={(e) => setNote(e.target.value)} className={field} />
         </label>
+
+        {/* Supplies purchases can land in inventory too — one entry, both books. */}
+        {category === "supplies" && items.length > 0 && (
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border border-black/8 bg-black/2 p-3 sm:col-span-5">
+            <label>
+              <span className={labelCls}>Also restock (optional)</span>
+              <select value={restockItemId} onChange={(e) => setRestockItemId(e.target.value)} className={field}>
+                <option value="">Don&apos;t touch inventory</option>
+                {items.map((it) => (
+                  <option key={it.id} value={it.id}>
+                    {it.name} ({it.qty} on hand)
+                  </option>
+                ))}
+              </select>
+            </label>
+            {restockItemId && (
+              <label>
+                <span className={labelCls}>Qty received</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={restockQty}
+                  onChange={(e) => setRestockQty(e.target.value)}
+                  placeholder="0"
+                  className={`${field} w-24`}
+                />
+              </label>
+            )}
+          </div>
+        )}
+
         {err && <div className="text-xs text-rose-600 sm:col-span-5">{err}</div>}
         <div className="sm:col-span-5">
           <button
