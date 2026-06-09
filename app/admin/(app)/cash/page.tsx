@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useCash, type CashEntry } from "@/lib/admin/cash-context";
 import { fmtPrecise } from "@/lib/admin/calc";
@@ -45,6 +45,8 @@ export default function CashPage() {
           {error}
         </div>
       )}
+
+      <DrawerPanel entriesVersion={entries.length} />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Cash logged" value={fmtPrecise(totalCents)} sub="all entries" />
@@ -137,6 +139,166 @@ export default function CashPage() {
             })}
           </tbody>
         </table>
+      </Card>
+    </div>
+  );
+}
+
+// Drawer discipline: open with a float, close by counting. Expected updates
+// live as entries land (entriesVersion re-fetches when the log changes). Stays
+// hidden until cash-sessions-schema.sql is applied.
+function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
+  type Session = {
+    id: string;
+    opened_at: string;
+    opened_by: string | null;
+    opening_float_cents: number;
+    closed_at: string | null;
+    expected_cents: number | null;
+    counted_cents: number | null;
+    over_short_cents: number | null;
+    note: string;
+  };
+  const [configured, setConfigured] = useState(false);
+  const [open, setOpen] = useState<Session | null>(null);
+  const [expectedSoFar, setExpectedSoFar] = useState<number | null>(null);
+  const [recent, setRecent] = useState<Session[]>([]);
+  const [float, setFloat] = useState("");
+  const [counted, setCounted] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/cash/session");
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.configured !== false) {
+        setConfigured(true);
+        setOpen(d.open ?? null);
+        setExpectedSoFar(d.expectedSoFar ?? null);
+        setRecent(d.recent ?? []);
+      }
+    } catch {
+      /* panel stays hidden */
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load, entriesVersion]);
+
+  if (!configured) return null;
+
+  const act = async (method: "POST" | "PATCH", body: Record<string, unknown>) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await fetch("/api/cash/session", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setMsg(d.error || "Could not update the drawer.");
+        return;
+      }
+      setFloat("");
+      setCounted("");
+      if (method === "PATCH" && d.session) {
+        const os = d.session.over_short_cents as number;
+        setMsg(
+          os === 0
+            ? "Drawer closed — counted exactly to the penny."
+            : `Drawer closed — ${os > 0 ? "over" : "short"} ${fmtPrecise(Math.abs(os))}.`,
+        );
+      }
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toCents = (s: string) => Math.round(Number(s) * 100);
+
+  return (
+    <div className="mb-5">
+      <SectionTitle>Drawer</SectionTitle>
+      <Card>
+        <div className="flex flex-wrap items-end gap-4 p-4">
+          {open ? (
+            <>
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-black/45">Opened</div>
+                <div className="text-sm font-medium">
+                  {new Date(open.opened_at).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}
+                  <span className="text-black/40"> · float {fmtPrecise(open.opening_float_cents)}</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-black/45">Expected in drawer</div>
+                <div className="tnum text-sm font-semibold">{expectedSoFar !== null ? fmtPrecise(expectedSoFar) : "—"}</div>
+              </div>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Counted ($)</span>
+                <input className="inp w-28" inputMode="decimal" placeholder="0.00" value={counted} onChange={(e) => setCounted(e.target.value)} />
+              </label>
+              <button
+                onClick={() => {
+                  const c = toCents(counted);
+                  if (!Number.isFinite(c) || counted.trim() === "") {
+                    setMsg("Count the drawer first.");
+                    return;
+                  }
+                  act("PATCH", { countedCents: c });
+                }}
+                disabled={busy}
+                className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+              >
+                {busy ? "Closing…" : "Count & close"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-sm text-black/55">Drawer is closed.</div>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Opening float ($)</span>
+                <input className="inp w-28" inputMode="decimal" placeholder="200" value={float} onChange={(e) => setFloat(e.target.value)} />
+              </label>
+              <button
+                onClick={() => {
+                  const c = toCents(float || "0");
+                  act("POST", { openingFloatCents: Number.isFinite(c) ? c : 0 });
+                }}
+                disabled={busy}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+              >
+                {busy ? "Opening…" : "Open drawer"}
+              </button>
+            </>
+          )}
+          {msg && <span className="text-xs font-medium text-black/60">{msg}</span>}
+        </div>
+
+        {recent.length > 0 && (
+          <div className="border-t border-black/5 px-4 py-2.5">
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-black/45">
+              {recent.map((s) => (
+                <span key={s.id}>
+                  {new Date(s.opened_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}:{" "}
+                  {s.over_short_cents === 0 ? (
+                    <span className="text-emerald-600">even</span>
+                  ) : (
+                    <span className={s.over_short_cents! > 0 ? "text-emerald-600" : "text-rose-600"}>
+                      {s.over_short_cents! > 0 ? "+" : "−"}
+                      {fmtPrecise(Math.abs(s.over_short_cents!))}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
