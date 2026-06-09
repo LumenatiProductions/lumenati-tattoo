@@ -25,7 +25,26 @@ Most remaining work is **turning features on with keys/accounts — not coding.*
 - **Stripe Connect ENABLED** (sandbox) — app creates Express accounts in code; live Connect still gated behind Stripe go-live.
 - **Kiosk token DONE** — `KIOSK_DEVICE_TOKEN` set on Vercel + verified (`/api/kiosk` 401→200).
 
-## Branding & design (NEW — done 2026-06-09, deployed)
+## Quality pass (done 2026-06-09, full command-center sweep)
+Four-agent audit + fixes across every admin page, API, kiosk, intake, and pay
+flow. Highlights:
+- **Cash Log is real** (was 100% mock): `cash_entries` + `/api/cash` +
+  `CashProvider`; owner/bookkeeper homes read live unreconciled cash.
+- **Payouts "Mark settled" is real** (was a dead button): `settlements` table;
+  statements compute from sales after each artist's `settled_through`; Square
+  rent invoices matched by payer name now feed `rentOwed`.
+- **Two new schemas need a paste** in the Supabase SQL editor (tracked in
+  GO-LIVE.md): `cash-schema.sql`, `settlements-schema.sql`. Both pages degrade
+  gracefully until then.
+- Hardening: constant-time kiosk token compare, kiosk acts only on today's
+  bookings, consent double-sign guard (409 → signed screen client-side),
+  bearer-auth requires a profiles row (off-boarded staff lose app access),
+  $20k amount caps, deposit-status enum validation.
+- Polish: clients drawer shows real appointment history, room editor has a
+  save indicator, owner-only pages gate cleanly, staff/artist removals confirm
+  + surface errors, optimistic mutations self-correct on failure.
+
+## Branding & design (done 2026-06-09, deployed)
 Two identities, on purpose:
 - **Console / payments / intake / app = clean Lumenati parent brand:** the
   all-seeing-eye + wordmark logo (`public/brand/lumenati-on-light.svg` = dark marks,
