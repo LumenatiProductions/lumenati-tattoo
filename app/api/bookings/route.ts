@@ -81,6 +81,10 @@ export async function POST(req: Request) {
 
   const deposit = Math.max(0, Math.round(b.depositCents ?? 0));
   // A deposit amount with no explicit status implies it's held.
+  const VALID_DEPOSIT = ["none", "held", "applied", "forfeited", "refunded"];
+  if (b.depositStatus !== undefined && !VALID_DEPOSIT.includes(b.depositStatus)) {
+    return NextResponse.json({ error: "Invalid deposit status" }, { status: 400 });
+  }
   const depositStatus = b.depositStatus ?? (deposit > 0 ? "held" : "none");
   const source = b.source === "web_request" ? "web_request" : "manual";
 
@@ -138,6 +142,10 @@ export async function PATCH(req: Request) {
   const VALID_STATUS = ["scheduled", "completed", "no_show", "cancelled"];
   if (b.status && !VALID_STATUS.includes(b.status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+  const VALID_DEPOSIT = ["none", "held", "applied", "forfeited", "refunded"];
+  if (b.depositStatus !== undefined && !VALID_DEPOSIT.includes(b.depositStatus)) {
+    return NextResponse.json({ error: "Invalid deposit status" }, { status: 400 });
   }
 
   const patch: Record<string, unknown> = {};

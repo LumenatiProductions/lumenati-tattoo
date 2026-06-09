@@ -66,6 +66,10 @@ export async function POST(req: Request) {
   if (!Number.isFinite(amountCents) || amountCents < 50) {
     return NextResponse.json({ error: "Amount must be at least $0.50." }, { status: 400 });
   }
+  // Fat-finger ceiling — nobody mints a $100k tattoo link by accident.
+  if (amountCents > 2_000_000) {
+    return NextResponse.json({ error: "Amount is over the $20,000 limit." }, { status: 400 });
+  }
 
   const admin = createAdminClient();
   if (!admin) {

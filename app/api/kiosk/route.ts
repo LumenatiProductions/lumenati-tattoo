@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
@@ -18,9 +19,14 @@ function authed(req: Request): { ok: boolean; status: number; error?: string } {
   const expected = process.env.KIOSK_DEVICE_TOKEN;
   if (!expected) return { ok: false, status: 503, error: "Kiosk not configured." };
   const got = req.headers.get("x-kiosk-token");
-  if (!got || got !== expected) return { ok: false, status: 401, error: "Bad device token." };
+  // Constant-time compare so response timing can't leak how much of a guessed
+  // token matched (hash both sides so lengths always agree).
+  const ok = !!got && timingSafeEqual(sha256(got), sha256(expected));
+  if (!ok) return { ok: false, status: 401, error: "Bad device token." };
   return { ok: true, status: 200 };
 }
+
+const sha256 = (s: string) => createHash("sha256").update(s).digest();
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -127,10 +133,21 @@ export async function POST(req: Request) {
 
   const { data: booking } = await admin
     .from("bookings")
-    .select("id, client_id, artist_id, deposit_cents, deposit_status")
+    .select("id, client_id, artist_id, deposit_cents, deposit_status, starts_at, status")
     .eq("id", b.bookingId)
     .maybeSingle();
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+
+  // The kiosk only ever acts on the current day's sessions. Reject stale or
+  // far-future booking ids (±1 day tolerance covers timezone skew) so a leaked
+  // device token can't poke at history.
+  const startsAt = new Date(booking.starts_at as string).getTime();
+  if (!Number.isFinite(startsAt) || Math.abs(startsAt - Date.now()) > 86_400_000 * 1.5) {
+    return NextResponse.json({ error: "That session isn't on today's list." }, { status: 400 });
+  }
+  if (booking.status === "cancelled") {
+    return NextResponse.json({ error: "That session was cancelled — please see the desk." }, { status: 400 });
+  }
 
   if (b.action === "checkin") {
     // Optional client detail edits (only the fields the client touched).

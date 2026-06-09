@@ -29,10 +29,14 @@ export async function userFromBearer(req: Request): Promise<AppUser | null> {
     ? await admin.from("profiles").select("role, artist_id").eq("email", email).maybeSingle()
     : { data: null };
 
+  // The profiles row IS the allowlist. A valid Supabase session whose email has
+  // been removed from profiles (off-boarded staff) gets no API access at all.
+  if (!profile?.role) return null;
+
   return {
     userId: data.user.id,
     email,
-    role: profile?.role ?? null,
-    artistId: (profile?.artist_id as string | null) ?? null,
+    role: profile.role,
+    artistId: (profile.artist_id as string | null) ?? null,
   };
 }

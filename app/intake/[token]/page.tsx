@@ -120,21 +120,30 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
     }
 
     setBusy(true);
-    const r = await fetch("/api/intake/sign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token,
-        signedName: signedName.trim(),
-        dob,
-        placement: placement.trim() || undefined,
-        signatureSvg: signature,
-        answers,
-        aftercareAck: aftercare,
-      }),
-    });
+    let r: Response;
+    try {
+      r = await fetch("/api/intake/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          signedName: signedName.trim(),
+          dob,
+          placement: placement.trim() || undefined,
+          signatureSvg: signature,
+          answers,
+          aftercareAck: aftercare,
+        }),
+      });
+    } catch {
+      setBusy(false);
+      return setErr("Connection problem — please check your signal and try again.");
+    }
     const d = await r.json().catch(() => ({}));
     setBusy(false);
+    // 409 = already signed (a double-tap or refreshed retry) — that IS success
+    // from the customer's point of view, so land on the signed screen.
+    if (r.status === 409 && /already been signed/i.test(d.error ?? "")) return onSigned();
     if (!r.ok) return setErr(d.error || "Could not submit. Please try again.");
     onSigned();
   };
@@ -220,7 +229,7 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
                 type="checkbox"
                 checked={consent[i]}
                 onChange={(e) => setConsent((s) => s.map((v, j) => (j === i ? e.target.checked : v)))}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
+                className="mt-0.5 h-5 w-5 shrink-0 accent-brand"
               />
               <span className="text-sm text-zinc-700">{statement.replace(/^PLACEHOLDER —\s*/, "")}</span>
             </label>
@@ -240,7 +249,7 @@ function SignForm({ token, ctx, onSigned }: { token: string; ctx: Ctx | null; on
           ))}
         </ul>
         <label className="mt-3 flex cursor-pointer items-start gap-3 border-t border-black/8 pt-3">
-          <input type="checkbox" checked={aftercare} onChange={(e) => setAftercare(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-brand" />
+          <input type="checkbox" checked={aftercare} onChange={(e) => setAftercare(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-brand" />
           <span className="text-sm font-medium text-zinc-700">I have read and understand the aftercare instructions.</span>
         </label>
       </div>

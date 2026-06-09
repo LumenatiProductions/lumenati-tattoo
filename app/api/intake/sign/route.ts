@@ -111,6 +111,12 @@ export async function POST(req: Request) {
   const answers = (body.answers && typeof body.answers === "object" ? body.answers : {}) as Record<string, unknown>;
 
   if (!signedName) return NextResponse.json({ error: "Please type your full legal name." }, { status: 400 });
+  if (signedName.length > 200) {
+    return NextResponse.json({ error: "That name is too long." }, { status: 400 });
+  }
+  if ((body.placement ?? "").length > 300) {
+    return NextResponse.json({ error: "Placement description is too long." }, { status: 400 });
+  }
   if (!dob) return NextResponse.json({ error: "Please enter your date of birth." }, { status: 400 });
   if (!signatureSvg) return NextResponse.json({ error: "Please draw your signature." }, { status: 400 });
   if (signatureSvg.length > MAX_SIGNATURE_LEN) {
@@ -156,8 +162,18 @@ export async function POST(req: Request) {
     signed_at: new Date().toISOString(),
   };
 
-  const { error } = await admin.from("consent_forms").update(patch).eq("id", form.id);
+  // Conditional on still-unsigned so two in-flight submits can't both write —
+  // the loser matches zero rows and gets the friendly already-signed response.
+  const { data: updated, error } = await admin
+    .from("consent_forms")
+    .update(patch)
+    .eq("id", form.id)
+    .is("signed_at", null)
+    .select("id");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: "This form has already been signed." }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true });
 }
