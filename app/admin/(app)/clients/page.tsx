@@ -20,7 +20,7 @@ const fmtDate = (iso: string | null) =>
     : "—";
 
 export default function ClientsPage() {
-  const { clients, loading, error, total, newThisMonth, addClient, updateClient, syncFromSquare } =
+  const { clients, loading, error, total, newThisMonth, addClient, updateClient, syncFromSquare, refresh } =
     useClients();
   const { artists } = useArtists();
   const { realRole } = useRole();
@@ -196,8 +196,14 @@ export default function ClientsPage() {
         <ClientDrawer
           client={selected}
           artists={artists.map((a) => ({ id: a.id, name: a.name, color: a.color }))}
+          allClients={clients.map((c) => ({ id: c.id, name: fullName(c), email: c.email }))}
+          canMerge={realRole === "owner"}
           onClose={() => setSelectedId(null)}
           onSave={(patch) => updateClient(selected.id, patch)}
+          onMerged={async () => {
+            setSelectedId(null);
+            await refresh();
+          }}
         />
       )}
     </div>
@@ -299,13 +305,19 @@ function AddForm({
 function ClientDrawer({
   client,
   artists,
+  allClients,
+  canMerge,
   onClose,
   onSave,
+  onMerged,
 }: {
   client: Client;
   artists: { id: string; name: string; color: string }[];
+  allClients: { id: string; name: string; email: string | null }[];
+  canMerge: boolean;
   onClose: () => void;
   onSave: (patch: ClientPatch) => Promise<{ ok: boolean; error?: string }>;
+  onMerged: () => Promise<void>;
 }) {
   const [f, setF] = useState({
     firstName: client.first_name,
@@ -409,8 +421,96 @@ function ClientDrawer({
             {saved && <span className="text-xs text-emerald-600">Saved</span>}
             {err && <span className="text-xs text-rose-600">{err}</span>}
           </div>
+
+          {canMerge && (
+            <MergeSection client={client} allClients={allClients} onMerged={onMerged} />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Owner-only: fold THIS record into another client. The other record keeps its
+// real data, gaps fill from this one, history (bookings/forms/payments/
+// follow-ups) re-points, then this duplicate is deleted.
+function MergeSection({
+  client,
+  allClients,
+  onMerged,
+}: {
+  client: Client;
+  allClients: { id: string; name: string; email: string | null }[];
+  onMerged: () => Promise<void>;
+}) {
+  const [keepId, setKeepId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const others = allClients.filter((c) => c.id !== client.id);
+  const target = others.find((c) => c.id === keepId);
+
+  const merge = async () => {
+    if (!target) return;
+    if (
+      !window.confirm(
+        `Merge ${fullName(client)} INTO ${target.name}? All bookings, forms, payments, and follow-ups move over, then this duplicate is deleted. This can't be undone.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch("/api/clients/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keepId: target.id, mergeId: client.id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setErr(d.error || "Merge failed.");
+        return;
+      }
+      await onMerged();
+    } catch {
+      setErr("Connection problem — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-black/8 pt-4">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">
+        Duplicate? Merge this record
+      </div>
+      <p className="mb-2 text-xs text-black/40">
+        Everything on this record moves to the client you pick, then this one is deleted.
+      </p>
+      <div className="flex items-center gap-2">
+        <select
+          value={keepId}
+          onChange={(e) => setKeepId(e.target.value)}
+          className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"
+        >
+          <option value="">Merge into…</option>
+          {others.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+              {c.email ? ` · ${c.email}` : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={merge}
+          disabled={busy || !keepId}
+          className="shrink-0 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-40"
+        >
+          {busy ? "Merging…" : "Merge"}
+        </button>
+      </div>
+      {err && <div className="mt-2 text-xs text-rose-600">{err}</div>}
     </div>
   );
 }
