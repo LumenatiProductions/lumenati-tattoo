@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import {
   AFTERCARE_STATEMENTS,
   CONSENT_STATEMENTS,
+  LEGAL_COPY_REVIEWED,
   MEDICAL_QUESTIONS,
   SIGNATURE_VIEWBOX,
   computeAgeOk,
@@ -185,10 +186,12 @@ function SignForm({
 
   return (
     <div className="space-y-4">
-      {/* PLACEHOLDER legal-text notice — shows while the copy in lib/intake/forms.ts is filler. */}
-      <div className="rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-        Demo wording. The consent, medical, and aftercare text below is placeholder copy and not legally binding until the shop’s real language is added.
-      </div>
+      {/* Legal-review notice — disappears when LEGAL_COPY_REVIEWED flips true. */}
+      {!LEGAL_COPY_REVIEWED && (
+        <div className="rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          This form&apos;s wording is pending final legal review by the shop.
+        </div>
+      )}
 
       <div className={card}>
         <h1 className="text-lg font-bold">
