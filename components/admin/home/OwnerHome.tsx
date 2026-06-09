@@ -3,7 +3,7 @@
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRent } from "@/lib/admin/rent-context";
-import { CASH_LOG } from "@/lib/admin/mock-data";
+import { useCash } from "@/lib/admin/cash-context";
 import { shopSummary, statementFor, fmt } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
@@ -15,12 +15,12 @@ export default function OwnerHome() {
   const { sales, real } = useSales();
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
+  const { outstandingCents: cashOutstanding } = useCash();
 
   const s = shopSummary(artists, sales, []);
   const statements = artists
     .map((a) => statementFor(a, sales, []))
     .sort((x, y) => y.grossService - x.grossService);
-  const cashOutstanding = CASH_LOG.filter((c) => !c.reconciled).reduce((a, c) => a + c.amountCents, 0);
 
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
   const wk = sales.filter((s2) => s2.date >= weekAgo);

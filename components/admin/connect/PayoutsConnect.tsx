@@ -36,13 +36,24 @@ export default function PayoutsConnect() {
   const refresh = useCallback(
     async (artistId: string) => {
       setBusyId(artistId);
-      await fetch("/api/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artistId, action: "refresh" }),
-      }).catch(() => {});
+      // Surface failures AFTER the reload — load() clears the error on success.
+      let failed: string | null = null;
+      try {
+        const r = await fetch("/api/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ artistId, action: "refresh" }),
+        });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          failed = d.error || "Could not check onboarding status — try again.";
+        }
+      } catch {
+        failed = "Could not check onboarding status — try again.";
+      }
       setBusyId(null);
       await load();
+      if (failed) setError(failed);
     },
     [load],
   );

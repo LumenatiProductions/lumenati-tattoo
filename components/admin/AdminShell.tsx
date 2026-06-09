@@ -13,6 +13,7 @@ import { IntakeProvider } from "@/lib/admin/intake-context";
 import { ComplianceProvider } from "@/lib/admin/compliance-context";
 import { InventoryProvider } from "@/lib/admin/inventory-context";
 import { FollowupsProvider } from "@/lib/admin/followups-context";
+import { CashProvider } from "@/lib/admin/cash-context";
 import { ArtistsProvider, useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
@@ -175,10 +176,12 @@ export default function AdminShell({
                 <ComplianceProvider>
                  <InventoryProvider>
                   <FollowupsProvider>
-                   <div className="flex min-h-screen bg-paper text-ink antialiased">
-                     <Sidebar />
-                     <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
-                   </div>
+                   <CashProvider>
+                    <div className="flex min-h-screen bg-paper text-ink antialiased">
+                      <Sidebar />
+                      <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+                    </div>
+                   </CashProvider>
                   </FollowupsProvider>
                  </InventoryProvider>
                 </ComplianceProvider>

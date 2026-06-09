@@ -88,9 +88,22 @@ export function ExpensesProvider({ children }: { children: React.ReactNode }) {
 
   const removeExpense: Ctx["removeExpense"] = useCallback(
     async (id) => {
+      // Optimistic removal; the refresh re-pulls the truth, so a failed delete
+      // (network drop, RLS) brings the row back instead of lying. The error is
+      // set AFTER refresh — refresh clears it on success.
       setExpenses((p) => p.filter((e) => e.id !== id));
-      await fetch(`/api/expenses?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      let failed: string | null = null;
+      try {
+        const r = await fetch(`/api/expenses?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          failed = d.error || "Could not delete that expense.";
+        }
+      } catch {
+        failed = "Could not delete that expense.";
+      }
       await refresh();
+      if (failed) setError(failed);
     },
     [refresh],
   );

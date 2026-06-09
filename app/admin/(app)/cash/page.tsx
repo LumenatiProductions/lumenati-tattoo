@@ -1,21 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { ARTISTS, CASH_LOG } from "@/lib/admin/mock-data";
-import { fmt } from "@/lib/admin/calc";
-import { Card, SectionTitle, Badge, Dot, StatCard, MockBanner } from "@/components/admin/ui";
+import { useArtists } from "@/lib/admin/artists-context";
+import { useCash, type CashEntry } from "@/lib/admin/cash-context";
+import { fmtPrecise } from "@/lib/admin/calc";
+import { Card, SectionTitle, Badge, Dot, StatCard } from "@/components/admin/ui";
+
+// Real drawer log backed by /api/cash (cash_entries). Until the schema is
+// applied the API reports configured:false and the page shows the setup hint.
+
+const fmtDate = (iso: string) =>
+  new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 
 export default function CashPage() {
-  // Local-only reconcile toggles for the demo (persisting lands with the DB).
-  const [reconciled, setReconciled] = useState<Record<string, boolean>>(
-    Object.fromEntries(CASH_LOG.map((c) => [c.id, c.reconciled])),
-  );
+  const { artists } = useArtists();
+  const { entries, loading, error, configured, totalCents, outstandingCents, addEntry, toggleReconciled } =
+    useCash();
+  const [adding, setAdding] = useState(false);
 
-  const rows = [...CASH_LOG].sort((a, b) => (a.date < b.date ? 1 : -1));
-  const outstanding = rows
-    .filter((c) => !reconciled[c.id])
-    .reduce((a, c) => a + c.amountCents, 0);
-  const total = rows.reduce((a, c) => a + c.amountCents, 0);
+  const doneCount = entries.filter((c) => c.reconciled).length;
 
   return (
     <div>
@@ -26,32 +32,50 @@ export default function CashPage() {
           drawer, and it flows into the books.
         </p>
       </div>
-      <MockBanner source="QuickBooks" />
+
+      {!configured && !loading && (
+        <div className="mb-5 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span className="font-semibold">Not set up yet</span> — run{" "}
+          <code className="font-mono">supabase/cash-schema.sql</code> in the Supabase SQL editor to
+          turn the cash log on.
+        </div>
+      )}
+      {error && (
+        <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          {error}
+        </div>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Cash logged" value={fmt(total)} sub="this period" />
+        <StatCard label="Cash logged" value={fmtPrecise(totalCents)} sub="all entries" />
         <StatCard
           label="Unreconciled"
-          value={fmt(outstanding)}
-          tone={outstanding ? "warn" : "good"}
+          value={fmtPrecise(outstandingCents)}
+          tone={outstandingCents ? "warn" : "good"}
         />
-        <StatCard label="Entries" value={String(rows.length)} />
-        <StatCard
-          label="Reconciled"
-          value={`${rows.filter((c) => reconciled[c.id]).length}/${rows.length}`}
-          tone="good"
-        />
+        <StatCard label="Entries" value={String(entries.length)} />
+        <StatCard label="Reconciled" value={`${doneCount}/${entries.length}`} tone="good" />
       </div>
 
       <SectionTitle
         action={
-          <button className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
-            + Log cash
+          <button
+            onClick={() => setAdding((v) => !v)}
+            disabled={!configured}
+            title={configured ? undefined : "Apply cash-schema.sql first"}
+            className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40"
+          >
+            {adding ? "Close" : "+ Log cash"}
           </button>
         }
       >
         Drawer entries
       </SectionTitle>
+
+      {adding && configured && (
+        <AddEntry artists={artists} addEntry={addEntry} onAdded={() => setAdding(false)} />
+      )}
+
       <Card>
         <table className="w-full text-sm">
           <thead>
@@ -65,28 +89,47 @@ export default function CashPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => {
-              const a = ARTISTS.find((x) => x.id === c.artistId);
-              const done = reconciled[c.id];
+            {loading && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-black/40">
+                  Loading…
+                </td>
+              </tr>
+            )}
+            {!loading && entries.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-black/40">
+                  {configured
+                    ? "No cash logged yet. Tap “+ Log cash” when money hits the drawer."
+                    : "The cash log turns on once the schema is applied."}
+                </td>
+              </tr>
+            )}
+            {entries.map((c: CashEntry) => {
+              const a = artists.find((x) => x.id === c.artist_id);
               return (
                 <tr key={c.id} className="border-b border-black/5 last:border-0">
-                  <td className="px-4 py-2.5 text-black/55">{c.date}</td>
+                  <td className="px-4 py-2.5 text-black/55">{fmtDate(c.date)}</td>
                   <td className="px-4 py-2.5">
                     <span className="flex items-center gap-2">
                       {a ? <Dot color={a.color} /> : null}
                       {a?.name ?? "Shop"}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">{c.note}</td>
-                  <td className="px-4 py-2.5 text-black/45">{c.enteredBy}</td>
-                  <td className="tnum px-4 py-2.5 text-right font-medium">{fmt(c.amountCents)}</td>
+                  <td className="px-4 py-2.5">{c.note || <span className="text-black/30">—</span>}</td>
+                  <td className="px-4 py-2.5 text-black/45">{c.entered_by ?? "—"}</td>
+                  <td className="tnum px-4 py-2.5 text-right font-medium">{fmtPrecise(c.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <button
-                      onClick={() => setReconciled((r) => ({ ...r, [c.id]: !r[c.id] }))}
+                      onClick={() => toggleReconciled(c.id, !c.reconciled)}
                       className="align-middle"
                       title="Toggle reconciled"
                     >
-                      {done ? <Badge tone="good">reconciled</Badge> : <Badge tone="warn">open</Badge>}
+                      {c.reconciled ? (
+                        <Badge tone="good">reconciled</Badge>
+                      ) : (
+                        <Badge tone="warn">open</Badge>
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -96,5 +139,94 @@ export default function CashPage() {
         </table>
       </Card>
     </div>
+  );
+}
+
+function AddEntry({
+  artists,
+  addEntry,
+  onAdded,
+}: {
+  artists: { id: string; name: string }[];
+  addEntry: (input: {
+    date?: string;
+    artistId?: string | null;
+    amountCents: number;
+    note?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  onAdded: () => void;
+}) {
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [artistId, setArtistId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    const amountCents = Math.round(Number(amount) * 100);
+    if (!Number.isFinite(amountCents) || amountCents === 0) {
+      setMsg("Enter the cash amount.");
+      return;
+    }
+    setBusy(true);
+    const res = await addEntry({ date, artistId: artistId || null, amountCents, note });
+    setBusy(false);
+    if (!res.ok) {
+      setMsg(res.error || "Could not log that.");
+      return;
+    }
+    onAdded();
+  };
+
+  return (
+    <Card className="mb-4">
+      <form onSubmit={submit} className="flex flex-wrap items-end gap-3 p-4">
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Date</span>
+          <input type="date" className="inp" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Who</span>
+          <select className="inp" value={artistId} onChange={(e) => setArtistId(e.target.value)}>
+            <option value="">Shop</option>
+            {artists.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Amount ($)</span>
+          <input
+            className="inp w-28"
+            inputMode="decimal"
+            placeholder="120"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </label>
+        <label className="block grow">
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Note</span>
+          <input
+            className="inp w-full"
+            placeholder="walk-in flash, drawer drop…"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+        >
+          {busy ? "Logging…" : "Log it"}
+        </button>
+        {msg && <span className="text-xs text-rose-600">{msg}</span>}
+      </form>
+    </Card>
   );
 }

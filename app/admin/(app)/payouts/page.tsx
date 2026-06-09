@@ -1,23 +1,108 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRole } from "@/lib/admin/role-context";
 import { useSales } from "@/lib/admin/sales-context";
+import { useRent } from "@/lib/admin/rent-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { statementFor, fmt, type ArtistStatement } from "@/lib/admin/calc";
+import type { RentCharge } from "@/lib/admin/types";
 import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
 import PayoutsConnect from "@/components/admin/connect/PayoutsConnect";
+
+// Statements are computed from sales AFTER each artist's latest settlement
+// (settled_through), so "Mark settled" really clears the row. Rent comes from
+// Square invoices, matched to artists by payer name (best effort while Square
+// is still the rent system of record).
+
+const norm = (s: string) => s.trim().toLowerCase();
 
 export default function PayoutsPage() {
   const { role, asArtistId } = useRole();
   const { sales, real } = useSales();
+  const { invoices } = useRent();
   const { artists } = useArtists();
 
-  const all = artists.map((a) => statementFor(a, sales, []));
-  const visible =
-    role === "artist" ? all.filter((s) => s.artist.id === asArtistId) : all;
+  const [settledThrough, setSettledThrough] = useState<Record<string, string>>({});
+  const [settleConfigured, setSettleConfigured] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const refreshSettlements = useCallback(async () => {
+    try {
+      const r = await fetch("/api/settlements");
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        setSettledThrough(d.settledThrough || {});
+        setSettleConfigured(d.configured === true);
+      }
+    } catch {
+      /* leave the buttons hidden */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSettlements();
+  }, [refreshSettlements]);
+
+  // Square rent invoices -> per-artist unpaid rent, matched by payer name.
+  const rentCharges = useMemo<RentCharge[]>(() => {
+    const out: RentCharge[] = [];
+    for (const inv of invoices) {
+      const payer = norm(inv.name || "");
+      if (!payer) continue;
+      const artist = artists.find(
+        (a) => payer === norm(a.name) || payer.includes(norm(a.name)) || norm(a.name).includes(payer),
+      );
+      if (!artist) continue;
+      out.push({
+        id: inv.id,
+        artistId: artist.id,
+        periodLabel: inv.title,
+        amountCents: inv.amountCents,
+        dueDate: inv.dueDate ?? "",
+        paid: inv.paid,
+      });
+    }
+    return out;
+  }, [invoices, artists]);
+
+  const all = useMemo(
+    () =>
+      artists.map((a) => {
+        const since = settledThrough[a.id];
+        const mine = since ? sales.filter((s) => s.artistId !== a.id || s.date > since) : sales;
+        return statementFor(a, mine, rentCharges);
+      }),
+    [artists, sales, rentCharges, settledThrough],
+  );
+
+  const visible = role === "artist" ? all.filter((s) => s.artist.id === asArtistId) : all;
 
   const pays = visible.filter((s) => s.net > 0).sort((a, b) => b.net - a.net);
   const collects = visible.filter((s) => s.net < 0).sort((a, b) => a.net - b.net);
+
+  const settle = async (st: ArtistStatement) => {
+    setMsg(null);
+    const r = await fetch("/api/settlements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artistId: st.artist.id,
+        amountCents: st.net,
+        note: `card ${fmt(st.cardService)} svc + ${fmt(st.cardTips)} tips · cash cut ${fmt(
+          st.artistOwesShop - st.rentOwed,
+        )}${st.rentOwed ? ` · rent ${fmt(st.rentOwed)}` : ""}`,
+      }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      setMsg(d.error || "Could not record that settlement.");
+      return false;
+    }
+    setMsg(`${st.artist.name} settled through today.`);
+    await refreshSettlements();
+    return true;
+  };
 
   return (
     <div>
@@ -47,7 +132,20 @@ export default function PayoutsPage() {
             value={fmt(collects.reduce((a, s) => a - s.net, 0))}
             tone="good"
           />
-          <StatCard label="Artists to settle" value={String(visible.length)} />
+          <StatCard label="Artists to settle" value={String(pays.length + collects.length)} />
+        </div>
+      )}
+
+      {role !== "artist" && !settleConfigured && (
+        <div className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span className="font-semibold">Settlement history is off</span> — run{" "}
+          <code className="font-mono">supabase/settlements-schema.sql</code> in Supabase to make
+          “Mark settled” stick.
+        </div>
+      )}
+      {msg && (
+        <div className="mb-4 rounded-lg border border-black/8 bg-white px-3 py-2 text-xs text-black/60 shadow-sm">
+          {msg}
         </div>
       )}
 
@@ -58,7 +156,13 @@ export default function PayoutsPage() {
             <div className="divide-y divide-black/5">
               {pays.length === 0 && <Empty>Nobody to pay right now.</Empty>}
               {pays.map((s) => (
-                <SettleRow key={s.artist.id} st={s} kind="pay" />
+                <SettleRow
+                  key={s.artist.id}
+                  st={s}
+                  kind="pay"
+                  canSettle={role !== "artist" && settleConfigured}
+                  onSettle={settle}
+                />
               ))}
             </div>
           </Card>
@@ -69,7 +173,13 @@ export default function PayoutsPage() {
             <div className="divide-y divide-black/5">
               {collects.length === 0 && <Empty>Nothing to collect.</Empty>}
               {collects.map((s) => (
-                <SettleRow key={s.artist.id} st={s} kind="collect" />
+                <SettleRow
+                  key={s.artist.id}
+                  st={s}
+                  kind="collect"
+                  canSettle={role !== "artist" && settleConfigured}
+                  onSettle={settle}
+                />
               ))}
             </div>
           </Card>
@@ -79,7 +189,29 @@ export default function PayoutsPage() {
   );
 }
 
-function SettleRow({ st, kind }: { st: ArtistStatement; kind: "pay" | "collect" }) {
+function SettleRow({
+  st,
+  kind,
+  canSettle,
+  onSettle,
+}: {
+  st: ArtistStatement;
+  kind: "pay" | "collect";
+  canSettle: boolean;
+  onSettle: (st: ArtistStatement) => Promise<boolean>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const click = async () => {
+    const verb = kind === "pay" ? "paid" : "collected";
+    if (!window.confirm(`Record that ${fmt(Math.abs(st.net))} was ${verb} and settle ${st.artist.name} through today?`)) {
+      return;
+    }
+    setBusy(true);
+    await onSettle(st);
+    setBusy(false);
+  };
+
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <div className="flex items-center gap-2.5">
@@ -103,12 +235,16 @@ function SettleRow({ st, kind }: { st: ArtistStatement; kind: "pay" | "collect" 
         >
           {fmt(Math.abs(st.net))}
         </span>
-        <button
-          className="rounded-lg border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:bg-black/4"
-          title="Recording payouts lands with Square + QuickBooks"
-        >
-          Mark settled
-        </button>
+        {canSettle && (
+          <button
+            onClick={click}
+            disabled={busy}
+            className="rounded-lg border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+            title="Record the check/cash hand-off and reset this statement"
+          >
+            {busy ? "Settling…" : "Mark settled"}
+          </button>
+        )}
       </div>
     </div>
   );

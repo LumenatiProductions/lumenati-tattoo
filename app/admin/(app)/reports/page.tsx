@@ -177,6 +177,7 @@ function ReportsInner() {
               <button
                 onClick={exportArtists}
                 disabled={!data.artists.length}
+                title={data.artists.length ? "Download the per-artist roll-up" : "No tickets in this range"}
                 className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
               >
                 Export CSV
@@ -230,6 +231,7 @@ function ReportsInner() {
               <button
                 onClick={export1099}
                 disabled={!data.artists.length}
+                title={data.artists.length ? "Download contractor totals for 1099 prep" : "No contractors in this range"}
                 className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
               >
                 Export 1099 CSV
