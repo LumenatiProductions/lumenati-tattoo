@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStripeConfigured } from "@/lib/stripe/client";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
+import TipAndPay from "./TipAndPay";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ type Row = {
   artist_id: string | null;
   kind: string;
   amount_cents: number;
+  tip_cents?: number | null;
   status: string;
   pay_token: string;
 };
@@ -88,7 +90,8 @@ export default async function PayPage({
               </div>
               <div className="text-lg font-bold text-ink">Paid</div>
               <div className="mt-1 text-sm text-black/55">
-                {usd(row!.amount_cents)} received. Thank you — you can close this page.
+                {usd(row!.amount_cents + (row!.tip_cents ?? 0))} received
+                {(row!.tip_cents ?? 0) > 0 ? ` (including a ${usd(row!.tip_cents!)} tip — thank you!)` : ""}. You can close this page.
               </div>
               {row!.status !== "paid" && (
                 <div className="mt-3 text-xs text-black/40">
@@ -114,12 +117,7 @@ export default async function PayPage({
               )}
 
               {isStripeConfigured ? (
-                <a
-                  href={`/pay/${token}/checkout`}
-                  className="mt-5 block rounded-xl bg-brand py-3 text-center text-sm font-semibold text-white"
-                >
-                  Pay {usd(row!.amount_cents)}
-                </a>
+                <TipAndPay token={token} amountCents={row!.amount_cents} kind={row!.kind} />
               ) : (
                 <div className="mt-5 rounded-lg bg-black/5 px-3 py-3 text-center text-xs text-black/50">
                   Payments aren&apos;t enabled yet. Please pay at the shop.

@@ -10,7 +10,11 @@ export const dynamic = "force-dynamic";
 // Checkout session, and 303-redirects the browser to Stripe's hosted page. No
 // auth: the token IS the capability, and it only ever points at one pre-set,
 // pre-priced payment. Card data never touches our origin.
-export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
+//
+// ?tip=<cents> — the payer's chosen tip from the portal. Clamped server-side
+// (0..200% of the service amount) so the query string can only ever ADD a tip,
+// never touch the pre-set price.
+export async function GET(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
   const back = `${siteUrl}/pay/${token}`;
 
@@ -24,6 +28,15 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
     .maybeSingle<PaymentRow>();
   if (!row) return NextResponse.redirect(`${back}?status=notfound`, { status: 303 });
   if (row.status === "paid") return NextResponse.redirect(`${back}?status=success`, { status: 303 });
+
+  const tipRaw = Math.round(Number(new URL(req.url).searchParams.get("tip") ?? 0));
+  const tip = Number.isFinite(tipRaw) ? Math.min(Math.max(0, tipRaw), row.amount_cents * 2) : 0;
+  if ((row.tip_cents ?? 0) !== tip) {
+    // Best-effort persist; if the column isn't applied yet the charge still
+    // goes through at the service amount (tip silently drops, never blocks pay).
+    const { error } = await admin.from("payments").update({ tip_cents: tip }).eq("id", row.id);
+    if (!error) row.tip_cents = tip;
+  }
 
   const res = await startCheckout(admin, row);
   if (!res.ok || !res.url) return NextResponse.redirect(`${back}?status=error`, { status: 303 });

@@ -28,6 +28,8 @@ export type PaymentRow = {
   artist_id: string | null;
   kind: PaymentKind;
   amount_cents: number;
+  /** Client-chosen tip (tips-schema.sql); 0 until the payer picks one. Goes to the artist in full. */
+  tip_cents?: number | null;
   currency: string;
   status: string;
   stripe_session_id: string | null;
@@ -87,11 +89,13 @@ export async function startCheckout(
   if (row.status === "paid") return { ok: false as const, error: "Already paid." };
 
   const name = `Lumenati Tattoo · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
+  const tip = Math.max(0, Math.round(row.tip_cents ?? 0));
 
   // Connect (POS-STARTER-5): a ticket for an onboarded artist becomes a
   // destination charge — shop keeps its cut as the application fee, the rest
   // transfers to the artist. Deposits and non-onboarded artists charge the
-  // platform normally (no transfer).
+  // platform normally (no transfer). The fee is computed on the SERVICE amount
+  // only, so the tip rides the transfer to the artist untouched.
   const split = await connectChargeParams(admin, row.artist_id, row.kind, row.amount_cents);
   const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {
     metadata: { payment_id: row.id, pay_token: row.pay_token },
@@ -118,11 +122,26 @@ export async function startCheckout(
               product_data: { name },
             },
           },
+          // A chosen tip shows as its own line on Stripe's page + receipt.
+          ...(tip > 0
+            ? [
+                {
+                  quantity: 1,
+                  price_data: {
+                    currency: row.currency || "usd",
+                    unit_amount: tip,
+                    product_data: { name: "Tip for your artist" },
+                  },
+                },
+              ]
+            : []),
         ],
-        metadata: { payment_id: row.id, pay_token: row.pay_token, kind: row.kind },
+        metadata: { payment_id: row.id, pay_token: row.pay_token, kind: row.kind, tip_cents: String(tip) },
         payment_intent_data: paymentIntentData,
       },
-      { idempotencyKey: `checkout_${row.pay_token}` },
+      // Tip is part of the key: changing the tip mints a fresh session instead
+      // of reusing one priced at the old total.
+      { idempotencyKey: `checkout_${row.pay_token}_t${tip}` },
     );
     await admin.from("payments").update({ stripe_session_id: session.id }).eq("id", row.id);
     return { ok: true as const, url: session.url };
