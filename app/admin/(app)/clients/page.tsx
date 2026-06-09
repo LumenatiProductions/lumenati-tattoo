@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useClients, type Client, type ClientPatch } from "@/lib/admin/clients-context";
+import { useBookings } from "@/lib/admin/bookings-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
@@ -11,8 +12,12 @@ const money = (cents: number) =>
 
 const fullName = (c: Client) => `${c.first_name} ${c.last_name}`.trim() || "Unnamed client";
 
+// Tolerates both YYYY-MM-DD and full ISO timestamps (slice first, then anchor
+// to local midnight so the calendar day never shifts).
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  iso
+    ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—";
 
 export default function ClientsPage() {
   const { clients, loading, error, total, newThisMonth, addClient, updateClient, syncFromSquare } =
@@ -391,10 +396,7 @@ function ClientDrawer({
             />
           </Labeled>
 
-          {/* Pieces come from bookings/sales once those features link to a client. */}
-          <div className="rounded-lg border border-dashed border-black/12 px-3 py-3 text-xs text-black/40">
-            Past pieces and appointments will show here once Bookings is linked to clients.
-          </div>
+          <ClientBookings clientId={client.id} artists={artists} />
 
           <div className="flex items-center gap-2 pt-1">
             <button
@@ -408,6 +410,67 @@ function ClientDrawer({
             {err && <span className="text-xs text-rose-600">{err}</span>}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// The client's appointment history, straight from the bookings already in
+// context (bookings carry client_id) — newest first, status at a glance.
+function ClientBookings({
+  clientId,
+  artists,
+}: {
+  clientId: string;
+  artists: { id: string; name: string; color: string }[];
+}) {
+  const { bookings } = useBookings();
+  const mine = bookings
+    .filter((b) => b.client_id === clientId)
+    .sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1));
+
+  if (mine.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-black/12 px-3 py-3 text-xs text-black/40">
+        No appointments on file yet.
+      </div>
+    );
+  }
+
+  const STATUS: Record<string, { label: string; tone: "good" | "warn" | "bad" | "neutral" | "brand" }> = {
+    scheduled: { label: "Scheduled", tone: "brand" },
+    completed: { label: "Done", tone: "good" },
+    no_show: { label: "No-show", tone: "bad" },
+    cancelled: { label: "Cancelled", tone: "neutral" },
+  };
+
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">
+        Appointments ({mine.length})
+      </div>
+      <div className="divide-y divide-black/5 rounded-lg border border-black/8">
+        {mine.slice(0, 8).map((b) => {
+          const a = artists.find((x) => x.id === b.artist_id);
+          const s = STATUS[b.status] ?? { label: b.status, tone: "neutral" as const };
+          return (
+            <div key={b.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
+              <div className="min-w-0">
+                <span className="font-medium">{fmtDate(b.starts_at)}</span>
+                <span className="text-black/45">
+                  {a ? ` · ${a.name}` : ""}
+                  {b.service_desc ? ` · ${b.service_desc}` : ""}
+                </span>
+              </div>
+              <Badge tone={s.tone}>{s.label}</Badge>
+            </div>
+          );
+        })}
+        {mine.length > 8 && (
+          <div className="px-3 py-2 text-center text-[11px] text-black/35">
+            + {mine.length - 8} older
+          </div>
+        )}
       </div>
     </div>
   );

@@ -163,7 +163,7 @@ function ItemTable({
           <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
             <th className="px-4 py-2 font-medium">Item</th>
             <th className="px-4 py-2 font-medium">On hand</th>
-            <th className="px-4 py-2 font-medium">Reorder at</th>
+            <th className="px-4 py-2 font-medium" title="Flags as low when qty drops to this">Reorder at</th>
             <th className="px-4 py-2 font-medium">Status</th>
             <th className="px-4 py-2" />
           </tr>
@@ -227,7 +227,7 @@ function ItemTable({
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <button
-                    onClick={() => onRemove(it.id)}
+                    onClick={() => window.confirm(`Stop tracking ${it.name}?`) && onRemove(it.id)}
                     className="text-xs text-black/35 hover:text-rose-600"
                   >
                     Remove

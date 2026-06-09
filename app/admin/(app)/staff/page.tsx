@@ -15,7 +15,7 @@ type Profile = {
 };
 
 export default function StaffPage() {
-  const { realRole } = useRole();
+  const { realRole, email: myEmail } = useRole();
   const { artists } = useArtists();
   const supabase = createClient();
   const [rows, setRows] = useState<Profile[]>([]);
@@ -23,7 +23,7 @@ export default function StaffPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role>("artist");
-  const [artistId, setArtistId] = useState("jd");
+  const [artistId, setArtistId] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = async () => {
@@ -48,7 +48,7 @@ export default function StaffPage() {
         email: email.trim().toLowerCase(),
         full_name: name.trim() || null,
         role,
-        artist_id: role === "artist" ? artistId : null,
+        artist_id: role === "artist" ? artistId || artists[0]?.id || null : null,
       },
       { onConflict: "email" },
     );
@@ -62,7 +62,14 @@ export default function StaffPage() {
   };
 
   const remove = async (em: string) => {
-    await supabase.from("profiles").delete().eq("email", em);
+    // Don't let the owner lock themselves out with one stray tap.
+    if (em === myEmail) {
+      setMsg("You can't remove yourself — have another owner do it.");
+      return;
+    }
+    if (!window.confirm(`Remove ${em}? They lose dashboard access immediately.`)) return;
+    const { error } = await supabase.from("profiles").delete().eq("email", em);
+    setMsg(error ? error.message : `${em} removed.`);
     load();
   };
 
@@ -133,7 +140,11 @@ export default function StaffPage() {
                 ))}
               </select>
               {role === "artist" && (
-                <select className="inp" value={artistId} onChange={(e) => setArtistId(e.target.value)}>
+                <select
+                  className="inp"
+                  value={artistId || artists[0]?.id || ""}
+                  onChange={(e) => setArtistId(e.target.value)}
+                >
                   {artists.map((a) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}

@@ -19,7 +19,7 @@ const newId = (p: string) => `${p}-${Date.now().toString(36)}-${uid++}`;
 
 export default function RoomEditorPage() {
   const { role, asArtistId } = useRole();
-  const { get, update } = useRoomContent();
+  const { get, update, saveState } = useRoomContent();
   const { artists } = useArtists();
 
   // Artists edit their own room; owners can pick whose room to edit.
@@ -42,6 +42,19 @@ export default function RoomEditorPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {saveState !== "idle" && (
+            <span
+              className={`text-xs font-medium ${
+                saveState === "error"
+                  ? "text-rose-600"
+                  : saveState === "saved"
+                    ? "text-emerald-600"
+                    : "text-black/40"
+              }`}
+            >
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Couldn't save — retry your last edit"}
+            </span>
+          )}
           {role === "owner" && (
             <select
               value={ownerPick}

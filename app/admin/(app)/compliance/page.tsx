@@ -7,6 +7,7 @@ import {
   type ComplianceStatus,
 } from "@/lib/admin/compliance-context";
 import { useArtists } from "@/lib/admin/artists-context";
+import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 
 const KIND_LABELS: Record<string, string> = {
@@ -50,6 +51,7 @@ function expiryNote(item: ComplianceItem): string {
 }
 
 export default function CompliancePage() {
+  const { realRole } = useRole();
   const { items, loading, error, expiringSoon, addItem, removeItem } = useCompliance();
   const { artists } = useArtists();
 
@@ -76,6 +78,12 @@ export default function CompliancePage() {
     return groups;
   }, [items]);
   const shopItems = useMemo(() => items.filter((i) => i.scope === "shop"), [items]);
+
+  // The API is owner-gated too — this just renders the clean message instead of
+  // a wall of 403 errors if someone types the URL.
+  if (realRole !== "owner") {
+    return <p className="text-sm text-black/50">Owners only.</p>;
+  }
 
   return (
     <div>

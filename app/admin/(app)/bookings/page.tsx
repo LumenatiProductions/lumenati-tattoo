@@ -138,6 +138,8 @@ export default function BookingsPage() {
         ? `Synced from Square. ${res.mirrored ?? 0} mirrored, ${res.autoFlaggedNoShow ?? 0} flagged no-show.`
         : res.error || "Sync failed.",
     );
+    // Success notices clear themselves; an error stays until the next attempt.
+    if (res.ok) setTimeout(() => setSyncMsg(null), 8000);
   };
 
   return (

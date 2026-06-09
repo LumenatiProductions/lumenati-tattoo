@@ -8,6 +8,18 @@ export const dynamic = "force-dynamic";
 export default async function IntegrationsPage() {
   const supabase = await createClient();
 
+  // Owner-only (matches the sidebar). Server-gated so typing the URL as another
+  // role shows the clean message, not a half-broken setup screen.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("role").eq("email", user.email!).maybeSingle()
+    : { data: null };
+  if (profile?.role !== "owner") {
+    return <p className="text-sm text-black/50">Owners only.</p>;
+  }
+
   // Tolerate the schema not being applied yet (errors -> empty defaults).
   let members: { square_id: string; name: string; artist_id: string | null }[] = [];
   let sync: { last_synced_at: string | null; last_result: string | null } | null = null;

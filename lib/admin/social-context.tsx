@@ -90,28 +90,35 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  // Mutations are optimistic; the refresh in `finally` re-pulls the truth, so a
+  // failed call (network drop, RLS) reverts the UI instead of lying.
   const toggleFeatured: SocialCtx["toggleFeatured"] = useCallback(
     async (id, featured) => {
-      // optimistic
       setPosts((p) => p.map((x) => (x.id === id ? { ...x, featured } : x)));
-      await fetch("/api/social", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, featured }),
-      });
-      await refresh();
+      try {
+        await fetch("/api/social", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, featured }),
+        });
+      } finally {
+        await refresh();
+      }
     },
     [refresh],
   );
 
   const updatePost: SocialCtx["updatePost"] = useCallback(
     async (id, patch) => {
-      await fetch("/api/social", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, caption: patch.caption, artistId: patch.artistId }),
-      });
-      await refresh();
+      try {
+        await fetch("/api/social", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, caption: patch.caption, artistId: patch.artistId }),
+        });
+      } finally {
+        await refresh();
+      }
     },
     [refresh],
   );
@@ -119,8 +126,11 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
   const removePost: SocialCtx["removePost"] = useCallback(
     async (id) => {
       setPosts((p) => p.filter((x) => x.id !== id));
-      await fetch(`/api/social?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      await refresh();
+      try {
+        await fetch(`/api/social?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      } finally {
+        await refresh();
+      }
     },
     [refresh],
   );

@@ -104,8 +104,9 @@ export default function ArtistsPage() {
   const saveEdit = async () => {
     if (!editId) return;
     setBusy(true);
-    await sb.from("artists").update(draftToRow(edit)).eq("id", editId);
-    setEditId(null);
+    const { error } = await sb.from("artists").update(draftToRow(edit)).eq("id", editId);
+    setMsg(error ? error.message : "Saved.");
+    if (!error) setEditId(null);
     setBusy(false);
     await refresh();
   };
@@ -113,8 +114,13 @@ export default function ArtistsPage() {
   const remove = async (a: Artist) => {
     if (!confirm(`Remove ${a.name}? This deletes their room too.`)) return;
     setBusy(true);
-    await sb.from("artists").delete().eq("id", a.id);
-    await sb.from("room_content").delete().eq("artist_id", a.id);
+    const { error } = await sb.from("artists").delete().eq("id", a.id);
+    if (error) {
+      setMsg(error.message);
+    } else {
+      await sb.from("room_content").delete().eq("artist_id", a.id);
+      setMsg(`${a.name} removed.`);
+    }
     setBusy(false);
     await refresh();
   };
@@ -137,6 +143,12 @@ export default function ArtistsPage() {
           </button>
         )}
       </div>
+
+      {msg && !adding && (
+        <div className="mb-4 rounded-lg border border-black/8 bg-white px-3 py-2 text-xs text-black/60 shadow-sm">
+          {msg}
+        </div>
+      )}
 
       {adding && isOwner && (
         <Card className="mb-5">

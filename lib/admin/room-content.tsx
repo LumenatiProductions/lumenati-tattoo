@@ -11,11 +11,14 @@ export { SONGS, COLOR_PRESETS, ROOM_CONTENT, songLabel } from "./room-seed";
 
 // Provider: edits apply optimistically, then persist. With Supabase configured
 // they upsert to the DB (debounced); otherwise they fall back to localStorage.
-// Same go-live semantics either way.
+// `saveState` drives the page's save indicator so debounced writes are visible.
+export type SaveState = "idle" | "saving" | "saved" | "error";
+
 type RoomCtx = {
   get: (artistId: string) => RoomContent;
   update: (artistId: string, patch: Partial<RoomContent>) => void;
   ready: boolean;
+  saveState: SaveState;
 };
 const Ctx = createContext<RoomCtx | null>(null);
 const KEY = "lum-rooms";
@@ -23,7 +26,9 @@ const KEY = "lum-rooms";
 export function RoomContentProvider({ children }: { children: React.ReactNode }) {
   const [rooms, setRooms] = useState<Record<string, RoomContent>>(ROOM_CONTENT);
   const [ready, setReady] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     let alive = true;
@@ -56,9 +61,16 @@ export function RoomContentProvider({ children }: { children: React.ReactNode })
 
     if (isSupabaseConfigured) {
       // Debounce DB writes so we don't upsert on every keystroke.
+      setSaveState("saving");
       clearTimeout(timers.current[artistId]);
       timers.current[artistId] = setTimeout(() => {
-        saveRoom(next).catch(() => {/* surfaced later via a save indicator */});
+        saveRoom(next)
+          .then(() => {
+            setSaveState("saved");
+            clearTimeout(settleTimer.current);
+            settleTimer.current = setTimeout(() => setSaveState("idle"), 2500);
+          })
+          .catch(() => setSaveState("error"));
       }, 600);
     } else {
       try {
@@ -72,7 +84,7 @@ export function RoomContentProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  return <Ctx.Provider value={{ get, update, ready }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ get, update, ready, saveState }}>{children}</Ctx.Provider>;
 }
 
 export function useRoomContent(): RoomCtx {

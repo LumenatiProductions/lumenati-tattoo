@@ -389,7 +389,7 @@ function FormDrawer({
   const badge = STATE_BADGE[s];
   const [idType, setIdType] = useState<IdType | "">(f.id_type ?? "");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ text: string; err: boolean } | null>(null);
   const [to, setTo] = useState("");
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg: string) => {
@@ -397,24 +397,26 @@ function FormDrawer({
     setMsg(null);
     const res = await fn();
     setBusy(false);
-    setMsg(res.ok ? okMsg : res.error || "Something went wrong.");
+    setMsg(res.ok ? { text: okMsg, err: false } : { text: res.error || "Something went wrong.", err: true });
   };
 
   const confirmId = () =>
     run(() => onSave({ idChecked: true, idType: idType || null }), "ID confirmed.");
 
   const send = async () => {
-    if (!to.includes("@")) {
-      setMsg("Enter a valid email.");
+    // Light shape check — the real validation is whether the mail delivers.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
+      setMsg({ text: "Enter a valid email.", err: true });
       return;
     }
     setBusy(true);
     setMsg(null);
-    const res = await onSend(to);
+    const res = await onSend(to.trim());
     setBusy(false);
-    if (!res.ok) setMsg(res.error || "Could not send.");
-    else if (res.preview) setMsg("Email isn't configured — copy the link below and text it instead.");
-    else setMsg(`Sent to ${to}.`);
+    if (!res.ok) setMsg({ text: res.error || "Could not send.", err: true });
+    else if (res.preview)
+      setMsg({ text: "Email isn't configured — copy the link below and text it instead.", err: true });
+    else setMsg({ text: `Sent to ${to.trim()}.`, err: false });
   };
 
   const doVoid = () => {
@@ -545,7 +547,9 @@ function FormDrawer({
             </div>
           )}
 
-          {msg && <div className="text-xs text-black/55">{msg}</div>}
+          {msg && (
+            <div className={`text-xs ${msg.err ? "text-rose-600" : "text-black/55"}`}>{msg.text}</div>
+          )}
         </div>
       </div>
     </div>

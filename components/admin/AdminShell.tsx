@@ -74,6 +74,8 @@ function Sidebar() {
               key={n.href}
               href={n.soon ? "#" : n.href}
               aria-disabled={n.soon}
+              onClick={n.soon ? (e) => e.preventDefault() : undefined}
+              tabIndex={n.soon ? -1 : undefined}
               className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
                 active
                   ? "bg-brand-soft font-semibold text-brand"
