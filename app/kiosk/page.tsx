@@ -419,12 +419,23 @@ function Row({ label, value, tone }: { label: string; value: string; tone: "good
   );
 }
 
-// The shop TV: 90s Cartoon Network loop as the fullscreen attract backdrop
+// The shop TV: a real channel lineup as the fullscreen attract backdrop
 // (muted — browsers require it for autoplay, and the shop runs its own sound
-// anyway). Each reload tunes in at a random point, like catching whatever's
-// on. pointer-events-none so a tap anywhere still starts check-in.
-const SHOP_TV_ID = "xBFuNlPzZrk";
-const SHOP_TV_LENGTH_S = 31179; // 8h40m compilation; keep random starts in bounds
+// anyway). Each reload tunes into a random channel at a random point; the CH
+// buttons surf the dial via the IFrame API (loadVideoById — no iframe reload,
+// mute state survives). pointer-events-none so a tap anywhere still checks in.
+const SHOP_TV_CHANNELS: { num: number; id: string; len: number }[] = [
+  { num: 2, id: "30wEwDz9WyM", len: 1698 },   // Good Morning America, 1992
+  { num: 4, id: "ZD2GyA9hOqk", len: 4494 },   // Married with Children marathon
+  { num: 5, id: "F1EYfSPThCk", len: 7234 },   // Nick Rewind: Clarissa, Kenan & Kel
+  { num: 9, id: "GZnPR9CkqJs", len: 6307 },   // TMNT (1987) marathon
+  { num: 11, id: "XTMjcM7HPUE", len: 7480 },  // 90s Nick cartoon chaos
+  { num: 27, id: "EflI45HbiOQ", len: 12319 }, // 90s kids game shows w/ commercials
+  { num: 33, id: "y0BerpDmVSE", len: 61 },    // Clarissa theme (the joke channel)
+  { num: 99, id: "xBFuNlPzZrk", len: 31179 }, // Cartoon Network, 8h40m
+];
+// Random tune-in inside a video, leaving runway so it never starts at the end.
+const tuneIn = (len: number) => (len < 300 ? 0 : Math.floor(Math.random() * (len - 120)));
 
 function Welcome({ onBegin }: { onBegin: () => void }) {
   // The customer-facing attract screen — the idle state a walk-up sees (the
@@ -433,9 +444,8 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   const [now, setNow] = useState<Date | null>(null);
   // Random tune-in point, chosen client-side after mount (no SSR mismatch).
   // Leave 10 minutes of runway so it never starts at the credits.
-  const [tvStart, setTvStart] = useState<number | null>(null);
+  const [tv, setTv] = useState<{ idx: number; start: number } | null>(null);
   const [soundOn, setSoundOn] = useState(false);
-  const [channel, setChannel] = useState(99);
   const [statics, setStatics] = useState(false);
   const [osd, setOsd] = useState(false);
   const osdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -450,7 +460,8 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   };
   useEffect(() => {
     setNow(new Date());
-    setTvStart(Math.floor(Math.random() * (SHOP_TV_LENGTH_S - 600)));
+    const idx = Math.floor(Math.random() * SHOP_TV_CHANNELS.length);
+    setTv({ idx, start: tuneIn(SHOP_TV_CHANNELS[idx].len) });
     const boot = setTimeout(() => flashOsd(), 1200); // OSD when the set warms up
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => {
@@ -478,15 +489,17 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
     setSoundOn((s) => !s);
   };
 
-  // Channel surf: seek to a random spot, roll a fake channel number, and blip
-  // a burst of static so it feels like the dial actually turned.
-  const changeChannel = (e: React.MouseEvent) => {
+  // Channel surf: step the dial through the real lineup, tuning into a random
+  // spot on the next station, with a burst of static while the dial turns.
+  const changeChannel = (dir: 1 | -1) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    tvCommand("seekTo", [Math.floor(Math.random() * (SHOP_TV_LENGTH_S - 600)), true]);
-    setChannel((c) => {
-      let next = c;
-      while (next === c) next = 2 + Math.floor(Math.random() * 97);
-      return next;
+    setTv((cur) => {
+      if (!cur) return cur;
+      const idx = (cur.idx + dir + SHOP_TV_CHANNELS.length) % SHOP_TV_CHANNELS.length;
+      const ch = SHOP_TV_CHANNELS[idx];
+      const start = tuneIn(ch.len);
+      tvCommand("loadVideoById", [{ videoId: ch.id, startSeconds: start }]);
+      return { idx, start };
     });
     setStatics(true);
     setTimeout(() => setStatics(false), 350);
@@ -502,13 +515,13 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       className="relative flex flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden px-6 py-8 text-center"
     >
       {/* Fullscreen TV backdrop: 16:9 cover-sized iframe, dimmed so the neon reads. */}
-      {tvStart !== null && (
+      {tv !== null && (
         <div className="pointer-events-none absolute inset-0 select-none" aria-hidden="true">
           <iframe
             ref={tvRef}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{ width: "max(100vw, 177.78vh)", height: "max(100vh, 56.25vw)" }}
-            src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_ID}?autoplay=1&mute=1&loop=1&playlist=${SHOP_TV_ID}&start=${tvStart}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1`}
+            src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_CHANNELS[tv.idx].id}?autoplay=1&mute=1&start=${tv.start}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1`}
             referrerPolicy="strict-origin-when-cross-origin"
             title="Shop TV"
             allow="autoplay; encrypted-media"
@@ -522,7 +535,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
               className="f-pixel absolute right-[6%] top-[8%] text-5xl text-lime-400"
               style={{ textShadow: "0 0 14px rgba(127,255,0,0.9), 3px 3px 0 rgba(0,40,0,0.8)" }}
             >
-              CH {String(channel).padStart(2, "0")}
+              CH {String(SHOP_TV_CHANNELS[tv.idx].num).padStart(2, "0")}
             </div>
           )}
           {!soundOn && (
@@ -562,13 +575,19 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       </div>
 
       {/* TV remote — bottom corner, isolated from the check-in tap. */}
-      {tvStart !== null && (
+      {tv !== null && (
         <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
           <button
-            onClick={changeChannel}
-            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-5 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
+            onClick={changeChannel(-1)}
+            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-4 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
           >
-            CH ▲▼
+            CH ▼
+          </button>
+          <button
+            onClick={changeChannel(1)}
+            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-4 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
+          >
+            CH ▲
           </button>
           <button
             onClick={toggleSound}
