@@ -437,12 +437,27 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   const [soundOn, setSoundOn] = useState(false);
   const [channel, setChannel] = useState(99);
   const [statics, setStatics] = useState(false);
+  const [osd, setOsd] = useState(false);
+  const osdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tvRef = useRef<HTMLIFrameElement | null>(null);
+
+  // The classic green on-screen display: pops on channel change (and when the
+  // TV first turns on), lingers a beat, then fades like a real 90s set.
+  const flashOsd = () => {
+    setOsd(true);
+    if (osdTimer.current) clearTimeout(osdTimer.current);
+    osdTimer.current = setTimeout(() => setOsd(false), 3000);
+  };
   useEffect(() => {
     setNow(new Date());
     setTvStart(Math.floor(Math.random() * (SHOP_TV_LENGTH_S - 600)));
+    const boot = setTimeout(() => flashOsd(), 1200); // OSD when the set warms up
     const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      clearTimeout(boot);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Unmute is allowed after a real tap (autoplay must START muted) — drive the
@@ -475,6 +490,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
     });
     setStatics(true);
     setTimeout(() => setStatics(false), 350);
+    flashOsd();
   };
 
   return (
@@ -500,6 +516,23 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
           {/* Dim + vignette so the welcome chrome stays readable over cartoons. */}
           <div className="absolute inset-0 bg-black/60" />
           <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.75) 100%)" }} />
+          {/* 90s TV on-screen display: big green channel readout + MUTE */}
+          {osd && (
+            <div
+              className="f-pixel absolute right-[6%] top-[8%] text-5xl text-lime-400"
+              style={{ textShadow: "0 0 14px rgba(127,255,0,0.9), 3px 3px 0 rgba(0,40,0,0.8)" }}
+            >
+              CH {String(channel).padStart(2, "0")}
+            </div>
+          )}
+          {!soundOn && (
+            <div
+              className="f-pixel absolute left-[6%] top-[8%] text-2xl text-lime-400"
+              style={{ textShadow: "0 0 12px rgba(127,255,0,0.9), 2px 2px 0 rgba(0,40,0,0.8)" }}
+            >
+              MUTE
+            </div>
+          )}
           {/* Channel-change static burst */}
           {statics && (
             <div
@@ -533,19 +566,19 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
         <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
           <button
             onClick={changeChannel}
-            className="f-mono rounded border border-cyan-300/60 bg-black/60 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-cyan-300 hover:text-cyan-100"
+            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-5 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
           >
-            ▲▼ ch.{String(channel).padStart(2, "0")}
+            CH ▲▼
           </button>
           <button
             onClick={toggleSound}
-            className={`f-mono rounded border px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${
+            className={`f-pixel rounded-lg border-2 px-5 py-3.5 text-sm ${
               soundOn
-                ? "border-lime-300/70 bg-black/60 text-lime-300"
-                : "border-white/25 bg-black/60 text-white/80 hover:text-white"
+                ? "border-lime-300/80 bg-black/70 text-lime-300"
+                : "border-white/30 bg-black/70 text-white/85 hover:text-white"
             }`}
           >
-            {soundOn ? "♪ sound on" : "♪ sound off"}
+            {soundOn ? "♪ ON" : "♪ OFF"}
           </button>
         </div>
       )}
