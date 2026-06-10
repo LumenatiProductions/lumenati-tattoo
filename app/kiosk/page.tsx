@@ -61,7 +61,7 @@ export default function KioskPage() {
       <Center>
         <div className="flex flex-col items-center gap-5">
           <div className="spinner" />
-          <p className="f-pixel text-xs uppercase tracking-[0.3em] text-pink-300/80">
+          <p className="f-pixel text-xs uppercase tracking-[0.3em] text-pink-200/95">
             Loading<span className="blink">_</span>
           </p>
         </div>
@@ -74,10 +74,10 @@ export default function KioskPage() {
       <Center>
         <div className="flex flex-col items-center text-center">
           <Logo />
-          <p className="f-pixel mt-6 max-w-sm text-[10px] leading-relaxed text-white/55">
+          <p className="f-pixel mt-6 max-w-sm text-[10px] leading-relaxed text-white/80">
             THIS KIOSK ISN&apos;T SET UP YET.
           </p>
-          <p className="f-vt mt-3 max-w-sm text-xl text-white/55">
+          <p className="f-vt mt-3 max-w-sm text-xl text-white/80">
             Add <code className="glow-lime">KIOSK_DEVICE_TOKEN</code> to the server, then provision this iPad.
           </p>
         </div>
@@ -145,13 +145,13 @@ export default function KioskPage() {
       <div className="relative mb-5 flex flex-col items-center text-center">
         <button
           onClick={() => setScreen("welcome")}
-          className="f-mono absolute left-0 top-0 text-[11px] uppercase tracking-[0.2em] text-white/40 hover:text-white/70"
+          className="f-mono absolute left-0 top-0 text-[11px] uppercase tracking-[0.2em] text-white/70 hover:text-white"
         >
           ‹ Home
         </button>
         <button
           onClick={load}
-          className="f-mono absolute right-0 top-0 text-[11px] uppercase tracking-[0.2em] text-cyan-300/60 hover:text-cyan-200"
+          className="f-mono absolute right-0 top-0 text-[11px] uppercase tracking-[0.2em] text-cyan-300/90 hover:text-cyan-100"
         >
           ⟳ Sync
         </button>
@@ -162,8 +162,8 @@ export default function KioskPage() {
 
       {bookings.length === 0 ? (
         <div className="y2k-card px-6 py-12 text-center">
-          <p className="f-pixel text-xs text-white/60">NO SESSIONS TODAY</p>
-          <p className="f-vt mt-3 text-2xl text-white/45">the shop is quiet ✦ go make some art</p>
+          <p className="f-pixel text-xs text-white/85">NO SESSIONS TODAY</p>
+          <p className="f-vt mt-3 text-2xl text-white/75">the shop is quiet ✦ go make some art</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -181,7 +181,7 @@ export default function KioskPage() {
                 <div className="f-vt glow-pink truncate text-3xl leading-none">
                   {b.firstName || "Guest"} {b.lastName}
                 </div>
-                <div className="f-mono mt-1.5 truncate text-[11px] uppercase tracking-wider text-white/50">
+                <div className="f-mono mt-1.5 truncate text-[11px] uppercase tracking-wider text-white/80">
                   {clock(b.startsAt)}
                   {b.artistName ? ` · ${b.artistName}` : ""}
                   {b.serviceDesc ? ` · ${b.serviceDesc}` : ""}
@@ -228,12 +228,12 @@ function CheckIn({
     <div className="mx-auto w-full max-w-md px-5 py-6">
       <button
         onClick={onCancel}
-        className="f-mono mb-6 text-[11px] uppercase tracking-[0.2em] text-white/40 hover:text-white/70"
+        className="f-mono mb-6 text-[11px] uppercase tracking-[0.2em] text-white/70 hover:text-white"
       >
         ‹ Back
       </button>
       <h1 className="f-pixel glow-pink text-lg">CONFIRM YOUR DETAILS</h1>
-      <p className="f-mono mt-2 text-[11px] uppercase tracking-wider text-cyan-300/60">
+      <p className="f-mono mt-2 text-[11px] uppercase tracking-wider text-cyan-300/90">
         {clock(booking.startsAt)}
         {booking.artistName ? ` · ${booking.artistName}` : ""}
       </p>
@@ -290,7 +290,7 @@ function Done({
           <span className="f-pixel glow-lime text-xl">✓</span>
         </div>
         <h1 className="f-pixel neon-text text-2xl">YOU&apos;RE IN</h1>
-        <p className="f-vt mt-3 text-2xl leading-snug text-white/65">
+        <p className="f-vt mt-3 text-2xl leading-snug text-white/85">
           {booking.firstName}, grab a seat ✦ {booking.artistName || "your artist"} will be with you shortly.
         </p>
       </div>
@@ -321,7 +321,7 @@ function Done({
 
       <button
         onClick={onFinish}
-        className="f-mono mt-10 w-full text-[11px] uppercase tracking-[0.2em] text-white/40 hover:text-white/70"
+        className="f-mono mt-10 w-full text-[11px] uppercase tracking-[0.2em] text-white/70 hover:text-white"
       >
         Done ✦ back to start
       </button>
@@ -343,7 +343,7 @@ function Setup({
     <Center>
       <div className="flex w-full max-w-sm flex-col items-center text-center">
         <Logo />
-        <p className="f-pixel mt-6 text-[10px] uppercase tracking-[0.2em] text-cyan-300/70">
+        <p className="f-pixel mt-6 text-[10px] uppercase tracking-[0.2em] text-cyan-300/90">
           Enter the device code
         </p>
         <input
@@ -388,7 +388,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="f-mono mb-1.5 block text-[10px] uppercase tracking-[0.2em] text-lime-300/60">
+      <span className="f-mono mb-1.5 block text-[10px] uppercase tracking-[0.2em] text-lime-300/90">
         {label}
       </span>
       <input
@@ -432,7 +432,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
 
   return (
     <button onClick={onBegin} className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
-      <div className="f-mono mb-7 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300/60">
+      <div className="f-mono mb-7 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300/90">
         {now
           ? `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
           : ""}
@@ -440,7 +440,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       <LumenatiLogo bg="dark" className="eye-glow w-44" />
       <h1 className="f-pixel neon-text mt-7 text-4xl">WELCOME</h1>
       <p className="f-vt glow-pink mt-3 text-3xl">lumenati tattoo // denver</p>
-      <p className="f-pixel blink mt-12 text-xs uppercase tracking-[0.3em] text-lime-300/80">
+      <p className="f-pixel blink mt-12 text-xs uppercase tracking-[0.3em] text-lime-300/95">
         ▸ Tap anywhere to check in ◂
       </p>
     </button>

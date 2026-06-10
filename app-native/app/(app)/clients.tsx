@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { Card, Button } from "@/components/ui";
 import { LabeledInput } from "@/components/form";
 import { uid } from "@/lib/ids";
@@ -90,16 +91,23 @@ export default function Clients() {
             ) : (
               filtered.slice(0, 200).map((c, i) => (
                 <View key={c.id} style={[styles.row, i > 0 && styles.border]}>
-                  <Pressable style={{ flex: 1 }} onPress={() => { setAdding(false); setEditing(c); }}>
-                    <Text style={styles.name}>
-                      {c.first_name} {c.last_name}
-                    </Text>
-                    <Text style={styles.sub}>
-                      {c.phone || c.email || (c.instagram ? `@${c.instagram}` : "no contact")} · tap to edit
-                    </Text>
+                  <Pressable style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }} onPress={() => { setAdding(false); setEditing(c); }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.name}>
+                        {c.first_name} {c.last_name}
+                      </Text>
+                      <Text style={styles.sub}>
+                        {c.phone || c.email || (c.instagram ? `@${c.instagram}` : "no contact")}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
                   </Pressable>
                   {c.phone && (
-                    <Pressable onPress={() => Linking.openURL(`tel:${c.phone}`)} style={styles.call}>
+                    <Pressable
+                      onPress={() => Linking.openURL(`tel:${c.phone}`)}
+                      style={({ pressed }) => [styles.call, pressed && { opacity: 0.7 }]}
+                    >
+                      <Ionicons name="call-outline" size={15} color={theme.brand} />
                       <Text style={styles.callText}>Call</Text>
                     </Pressable>
                   )}
@@ -173,7 +181,7 @@ const styles = StyleSheet.create({
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },
   sub: { color: theme.textDim, fontSize: 13, marginTop: 2 },
-  call: { borderColor: theme.border, borderWidth: 1, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 14 },
-  callText: { color: theme.text, fontSize: 13, fontWeight: "600" },
+  call: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.brandSoft, borderColor: theme.brandBorder, borderWidth: 1, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 },
+  callText: { color: theme.brand, fontSize: 13, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
 });

@@ -4,7 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
-import { Card, Button } from "@/components/ui";
+import { Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 
 const KINDS = ["tattoo_license", "bbp_cert", "shop_permit", "inspection", "insurance"];
@@ -129,7 +129,7 @@ export default function Compliance() {
                       <Text style={styles.remove}>Remove</Text>
                     </Pressable>
                   </View>
-                  <Text style={[styles.status, { color: TONE[it.status] ?? theme.textDim }]}>{it.status}</Text>
+                  <Badge label={it.status} tone={it.status === "active" ? "good" : it.status === "expiring" ? "warn" : it.status === "expired" ? "bad" : "neutral"} />
                 </View>
               ))
             )}

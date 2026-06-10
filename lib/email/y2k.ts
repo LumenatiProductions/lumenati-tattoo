@@ -37,7 +37,7 @@ export function renderY2kEmail(opts: Y2kEmail): string {
   const paras = opts.paragraphs
     .map(
       (p) =>
-        `<p style="font-family:${MONO};font-size:14px;line-height:1.7;color:#e4e4e7;margin:0 0 16px;">${esc(p).replace(/\n/g, "<br>")}</p>`,
+        `<p style="font-family:${MONO};font-size:15px;line-height:1.75;color:#f4f4f5;margin:0 0 16px;">${esc(p).replace(/\n/g, "<br>")}</p>`,
     )
     .join("");
 
@@ -48,7 +48,7 @@ export function renderY2kEmail(opts: Y2kEmail): string {
     : "";
 
   const finePrint = opts.finePrint
-    ? `<p style="font-family:${MONO};font-size:11px;line-height:1.6;color:#52525b;margin:0 0 4px;word-break:break-all;">${esc(opts.finePrint)}</p>`
+    ? `<p style="font-family:${MONO};font-size:12px;line-height:1.6;color:#a1a1aa;margin:0 0 4px;word-break:break-all;">${esc(opts.finePrint)}</p>`
     : "";
 
   // The window. Square corners on purpose — Y2K chrome wasn't rounded.
@@ -73,7 +73,7 @@ export function renderY2kEmail(opts: Y2kEmail): string {
 
       <!-- menu row -->
       <tr>
-        <td style="background:#18181f;border-bottom:1px solid #2a2a33;padding:5px 12px;font-family:${MONO};font-size:11px;color:#71717a;letter-spacing:1px;">
+        <td style="background:#18181f;border-bottom:1px solid #2a2a33;padding:5px 12px;font-family:${MONO};font-size:11px;color:#a1a1aa;letter-spacing:1px;">
           File&nbsp;&nbsp;Edit&nbsp;&nbsp;Ink&nbsp;&nbsp;Help
         </td>
       </tr>
@@ -93,7 +93,7 @@ export function renderY2kEmail(opts: Y2kEmail): string {
       <tr>
         <td style="background:#18181f;border-top:1px solid #2a2a33;padding:7px 12px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-family:${MONO};font-size:10px;color:#52525b;letter-spacing:1px;">connected &#9642; 56.6kbps</td>
+            <td style="font-family:${MONO};font-size:10px;color:#9ca3af;letter-spacing:1px;">connected &#9642; 56.6kbps</td>
             <td align="right" style="font-family:${MONO};font-size:10px;color:${PINK};letter-spacing:1px;">denver, co</td>
           </tr></table>
         </td>
@@ -101,7 +101,7 @@ export function renderY2kEmail(opts: Y2kEmail): string {
     </table>
 
     <!-- footer -->
-    <div style="font-family:${MONO};font-size:10px;color:#52525b;letter-spacing:1px;margin-top:14px;line-height:1.8;">
+    <div style="font-family:${MONO};font-size:11px;color:#9ca3af;letter-spacing:1px;margin-top:14px;line-height:1.9;">
       LUMENATI TATTOO &#10022; 3839 JACKSON ST &#10022; DENVER CO<br>
       you're getting this because you visited the shop // reply to opt out :-)
     </div>

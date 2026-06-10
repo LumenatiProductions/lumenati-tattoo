@@ -59,9 +59,9 @@ function Sidebar() {
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-black/8 bg-white">
-      <div className="px-5 py-5">
-        <LumenatiLogo bg="light" className="w-28" />
-        <div className="mt-2 text-[11px] font-medium uppercase tracking-widest text-black/40">
+      <div className="px-5 py-4">
+        <LumenatiLogo bg="light" className="w-16" />
+        <div className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-black/40">
           Command Center
         </div>
       </div>
