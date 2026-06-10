@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/reports-context";
 import { fmt, fmtPrecise } from "@/lib/admin/calc";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import Insights from "@/components/admin/Insights";
 
 const PRESETS: { key: RangePreset; label: string }[] = [
   { key: "this_month", label: "This month" },
@@ -299,12 +300,14 @@ function ReportsInner() {
                   <DepCell label="Items tracked" value={String(data.expenses.supplyItems)} />
                 </div>
                 <div className="border-t border-black/5 px-4 py-2.5 text-xs text-black/40">
-                  Current inventory value (qty × unit cost). Period purchase history isn&apos;t
-                  tracked yet.
+                  Current inventory value (qty × unit cost). Supplies expenses with a restock
+                  attached land here too.
                 </div>
               </Card>
             </div>
           </div>
+
+          <Insights />
         </>
       ) : null}
     </div>
