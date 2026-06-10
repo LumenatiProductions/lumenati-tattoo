@@ -419,6 +419,11 @@ function Row({ label, value, tone }: { label: string; value: string; tone: "good
   );
 }
 
+// The shop TV: 90s Cartoon Network loop (muted — browsers require it for
+// autoplay, and the shop runs its own sound anyway). pointer-events-none so a
+// tap on the TV still starts check-in like everywhere else on the screen.
+const SHOP_TV_ID = "xBFuNlPzZrk";
+
 function Welcome({ onBegin }: { onBegin: () => void }) {
   // The customer-facing attract screen — the idle state a walk-up sees (the
   // device-code screen is staff-only and never shown once provisioned). The whole
@@ -431,19 +436,45 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   }, []);
 
   return (
-    <button onClick={onBegin} className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
-      <div className="f-mono mb-7 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300/90">
+    <div
+      onClick={onBegin}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onBegin()}
+      className="flex flex-1 cursor-pointer flex-col items-center justify-center px-6 py-6 text-center"
+    >
+      <div className="f-mono mb-5 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300/90">
         {now
           ? `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
           : ""}
       </div>
-      <LumenatiLogo bg="dark" className="eye-glow w-44" />
-      <h1 className="f-pixel neon-text mt-7 text-4xl">WELCOME</h1>
-      <p className="f-vt glow-pink mt-3 text-3xl">lumenati tattoo // denver</p>
-      <p className="f-pixel blink mt-12 text-xs uppercase tracking-[0.3em] text-lime-300/95">
+      <LumenatiLogo bg="dark" className="eye-glow w-32" />
+      <h1 className="f-pixel neon-text mt-5 text-3xl">WELCOME</h1>
+      <p className="f-vt glow-pink mt-2 text-2xl">lumenati tattoo // denver</p>
+
+      {/* shop_tv.exe — the waiting-room cartoon loop */}
+      <div className="pointer-events-none mt-6 w-full max-w-xl select-none">
+        <div className="y2k-card overflow-hidden p-0 text-left">
+          <div className="flex items-center justify-between border-b border-white/10 bg-black/50 px-3 py-1.5">
+            <span className="f-mono text-[10px] uppercase tracking-[0.2em] text-pink-200/95">◆ shop_tv.exe</span>
+            <span className="f-mono text-[10px] uppercase tracking-[0.2em] text-lime-300/90">▸ ch.99 · muted</span>
+          </div>
+          <div className="relative aspect-video w-full bg-black">
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_ID}?autoplay=1&mute=1&loop=1&playlist=${SHOP_TV_ID}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1`}
+              referrerPolicy="strict-origin-when-cross-origin"
+              title="Shop TV"
+              allow="autoplay; encrypted-media"
+            />
+          </div>
+        </div>
+      </div>
+
+      <p className="f-pixel blink mt-7 text-xs uppercase tracking-[0.3em] text-lime-300/95">
         ▸ Tap anywhere to check in ◂
       </p>
-    </button>
+    </div>
   );
 }
 
