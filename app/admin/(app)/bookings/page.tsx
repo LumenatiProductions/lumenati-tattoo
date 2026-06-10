@@ -12,6 +12,7 @@ import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
 import RequestsInbox from "@/components/admin/RequestsInbox";
+import WeekCalendar from "@/components/admin/WeekCalendar";
 
 const money = (cents: number) =>
   (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -63,6 +64,7 @@ export default function BookingsPage() {
   const canSync = realRole === "owner";
 
   const [filter, setFilter] = useState<Filter>("today");
+  const [view, setView] = useState<"list" | "week">("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -204,26 +206,50 @@ export default function BookingsPage() {
         />
       )}
 
-      {/* Filter segmented control */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === f.key ? "bg-brand text-white" : "border border-black/10 text-black/55 hover:bg-black/4"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* Filter segmented control + view toggle */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              disabled={view === "week"}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
+                filter === f.key && view === "list" ? "bg-brand text-white" : "border border-black/10 text-black/55 hover:bg-black/4"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex overflow-hidden rounded-lg border border-black/10">
+          {(["list", "week"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1.5 text-sm font-medium ${
+                view === v ? "bg-ink text-white" : "bg-white text-black/55 hover:bg-black/4"
+              }`}
+            >
+              {v === "list" ? "Agenda" : "Week"}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <SectionTitle action={<span className="text-xs text-black/40">{filtered.length} shown</span>}>
-        Agenda
+      <SectionTitle
+        action={view === "list" ? <span className="text-xs text-black/40">{filtered.length} shown</span> : undefined}
+      >
+        {view === "list" ? "Agenda" : "Week"}
       </SectionTitle>
 
-      {loading ? (
+      {view === "week" ? (
+        <WeekCalendar
+          bookings={bookings}
+          artists={artists.map((a) => ({ id: a.id, name: a.name, color: a.color }))}
+          onOpen={(id) => setSelectedId(id)}
+        />
+      ) : loading ? (
         <Card>
           <div className="px-4 py-10 text-center text-sm text-black/40">Loading bookings…</div>
         </Card>
