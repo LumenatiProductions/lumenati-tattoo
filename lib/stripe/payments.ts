@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { stripe, siteUrl } from "./client";
 import { connectChargeParams } from "./connect";
+import { pushEvent } from "@/lib/push/send";
 
 // Shared payment helpers. SERVER ONLY. Used by /api/payments (mint a pay link),
 // /pay/[token]/checkout (start the Stripe session), and /api/stripe/webhook
@@ -195,6 +196,16 @@ export async function settlePayment(
       .eq("payment_id", row.id)
       .eq("status", "pending");
   }
+
+  // Phone ping for money landing — owner always, plus the artist it belongs to.
+  const total = row.amount_cents + Math.max(0, Math.round(row.tip_cents ?? 0));
+  const usd = (total / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+  await pushEvent(
+    admin,
+    { roles: ["owner"], artistId: row.artist_id },
+    "Payment received",
+    `${usd} ${KIND_LABEL[row.kind] ?? row.kind}${row.tip_cents ? " (incl. tip)" : ""}`,
+  );
 
   return { settled: true, paymentId: row.id, kind: row.kind };
 }

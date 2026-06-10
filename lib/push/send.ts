@@ -35,3 +35,29 @@ export async function tokensForRoles(admin: SupabaseClient, roles: string[]): Pr
   const roleByEmail = new Map(((profs ?? []) as { email: string; role: string }[]).map((p) => [p.email, p.role]));
   return rows.filter((d) => d.email && roles.includes(roleByEmail.get(d.email) ?? "")).map((d) => d.token);
 }
+
+// Tokens for one artist's devices (profiles.artist_id link).
+export async function tokensForArtist(admin: SupabaseClient, artistId: string): Promise<string[]> {
+  const { data: profs } = await admin.from("profiles").select("email").eq("artist_id", artistId);
+  const emails = ((profs ?? []) as { email: string }[]).map((p) => p.email);
+  if (!emails.length) return [];
+  const { data: devices } = await admin.from("device_tokens").select("token, email").in("email", emails);
+  return ((devices ?? []) as { token: string }[]).map((d) => d.token);
+}
+
+// Fire-and-forget event push: never throws, never blocks the caller's flow.
+export async function pushEvent(
+  admin: SupabaseClient,
+  audience: { roles?: string[]; artistId?: string | null },
+  title: string,
+  body: string,
+): Promise<void> {
+  try {
+    const tokens: string[] = [];
+    if (audience.roles?.length) tokens.push(...(await tokensForRoles(admin, audience.roles)));
+    if (audience.artistId) tokens.push(...(await tokensForArtist(admin, audience.artistId)));
+    if (tokens.length) await sendExpoPush(tokens, title, body);
+  } catch {
+    /* push is best-effort by definition */
+  }
+}

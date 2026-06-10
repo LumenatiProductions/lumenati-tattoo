@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSmsConfigured, looksLikePhone, normalizePhone, sendSms } from "@/lib/sms";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
+import { pushEvent } from "@/lib/push/send";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,15 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: "Could not save your request — try again." }, { status: 500 });
   }
+
+  // Ping the desk (and the asked-for artist) — best-effort, never blocks.
+  await pushEvent(
+    admin,
+    { roles: ["owner", "frontdesk"], artistId },
+    "New booking request",
+    `${name}: ${idea.slice(0, 90)}`,
+  );
+
   return NextResponse.json({ ok: true });
 }
 
