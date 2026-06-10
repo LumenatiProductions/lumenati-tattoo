@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import { apiPost } from "./appApi";
 
 // Tap to Pay facade (POS 6c). The real card-present collection runs through
@@ -16,13 +17,20 @@ import { apiPost } from "./appApi";
 
 export type PayResult = { ok: boolean; error?: string };
 
+// Expo Go can never have the native module, and Metro's inline-requires can
+// hoist a literal require() out of try/catch in dev — so gate BEFORE requiring
+// (this crashed the POS screen in Expo Go with an uncaught redbox).
+const inExpoGo = Constants.appOwnership === "expo";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function loadSdk(): any | null {
-  if (Platform.OS === "web") return null;
+  if (Platform.OS === "web" || inExpoGo) return null;
   try {
-    // Lazy require so a missing native module never breaks the bundle/tsc.
+    // Lazy, non-literal require so a missing native module never breaks the
+    // bundle/tsc and never gets hoisted by the inliner.
+    const name = "@stripe/stripe-terminal-react-native";
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("@stripe/stripe-terminal-react-native");
+    return require(`${name}`);
   } catch {
     return null;
   }
