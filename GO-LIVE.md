@@ -184,20 +184,46 @@ Unlocks: clients sign themselves in on a locked iPad.
 
 Unlocks: Tap to Pay, push reminders, installable app. Web already works in any browser.
 
+**Repo side is DONE (2026-06-10):** app icon/splash generated from the eye logo
+(`app-native/assets/icons/`), `app.json` store-ready (bundle id `com.lumenati.app`,
+permission strings for photos/camera, adaptive icon, notifications plugin),
+`eas.json` build profiles (development / preview / production).
+
+**Strategy: do NOT publish to the public App Store / Play Store.** This is a
+staff-only tool for ~6 people. Apple routinely rejects internal-use apps from the
+public store (guideline 3.2). The right channels:
+- **iOS → TestFlight Internal Testing** — up to 100 users on your team, no App
+  Review for internal testers, installs like a normal app, 90-day builds (EAS
+  rebuilds are one command).
+- **Android → Play Console Internal Testing track** — same idea, instant updates.
+
+### Scott's side (accounts — ~30 min + Apple's processing time)
+- [ ] **Apple Developer Program** ($99/yr): https://developer.apple.com/programs/enroll/
+      — enroll as Individual (fastest) or your LLC (needs D-U-N-S, ~1-2 weeks).
+- [ ] **Google Play Console** ($25 once): https://play.google.com/console/signup
+- [ ] **Expo account** (free): https://expo.dev/signup — then `npm i -g eas-cli && eas login`.
+
+### Build + distribute (after accounts exist; run in `app-native/`)
 - [ ] `app-native/.env`: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`
       (same as web), `EXPO_PUBLIC_API_URL=https://lumenati-tattoo.vercel.app`.
 - [ ] Supabase → Authentication → Email Templates: ensure the OTP/magic-link
       template includes `{{ .Token }}` so the app's 6-digit sign-in code arrives.
-- [ ] Install EAS CLI (`npm i -g eas-cli`), `eas init` in `app-native/` (writes the
-      `projectId` — this is what makes **push** work), then `eas build --profile
-      development` for a dev client on your devices.
-- [ ] **Tap to Pay** (the only deeper step): follow the 4 steps in
+- [ ] `eas init` (writes `projectId` into app.json — this is what makes **push** work).
+- [ ] `eas build --profile production --platform ios` — EAS makes/manages the
+      signing certs for you (say yes to everything). Then
+      `eas submit --platform ios` → appears in App Store Connect → TestFlight →
+      add the crew as Internal Testers (their Apple IDs).
+- [ ] `eas build --profile production --platform android` then
+      `eas submit --platform android` → Play Console → Internal testing →
+      add testers by email, share the opt-in link.
+- [ ] **Push:** `eas credentials` — let EAS create the APNs key (Apple) and add
+      FCM (Google). Devices register on sign-in; the daily job nudges owners.
+- [ ] **Tap to Pay** (the only deeper step, do LAST): follow the 4 steps in
       `POS-STARTER-6-THE-APP.md` → 6c — install `@stripe/stripe-terminal-react-native`,
-      add its config plugin + the Apple Tap to Pay entitlement, enroll in Apple/Google
-      Tap to Pay. Needs Phase 3 (Connect) live for the split.
-- [ ] **Push:** add your APNs key (Apple) / FCM (Google) to EAS credentials. Once the
-      `projectId` exists, devices register on sign-in and the daily job nudges owners.
-- [ ] Distribute via TestFlight / internal track when ready.
+      add its config plugin, then request the Tap to Pay entitlement from Apple
+      (https://developer.apple.com/contact/request/tap-to-pay-on-iphone/ — takes
+      days-to-weeks, request it as soon as the Apple account exists). Needs
+      Phase 3 (Connect) live for the split.
 
 ---
 
