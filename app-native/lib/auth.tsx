@@ -11,6 +11,8 @@ type AuthState = {
   session: Session | null;
   role: Role | null;
   email: string | null;
+  /** profiles.full_name — the human greeting; null when unset. */
+  fullName: string | null;
   signOut: () => Promise<void>;
 };
 
@@ -19,36 +21,49 @@ const Ctx = createContext<AuthState>({
   session: null,
   role: null,
   email: null,
+  fullName: null,
   signOut: async () => {},
 });
 
-// Resolve the signed-in user's role from `profiles` (same lookup as the web,
-// just client-side under RLS). Falls back to "artist" if it can't be read.
-async function fetchRole(email: string | null): Promise<Role> {
-  if (!email) return "artist";
-  const { data } = await supabase.from("profiles").select("role").eq("email", email).maybeSingle();
-  const r = data?.role as Role | undefined;
-  return r ?? "artist";
+// Resolve the signed-in user's role + name from `profiles` (same lookup as the
+// web, just client-side under RLS). Falls back to "artist" if it can't be read.
+async function fetchProfile(email: string | null): Promise<{ role: Role; fullName: string | null }> {
+  if (!email) return { role: "artist", fullName: null };
+  const { data } = await supabase.from("profiles").select("role, full_name").eq("email", email).maybeSingle();
+  return {
+    role: (data?.role as Role | undefined) ?? "artist",
+    fullName: (data?.full_name as string | null) ?? null,
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
+    const apply = async (s: Session | null) => {
+      setSession(s);
+      if (s) {
+        const p = await fetchProfile(s.user.email ?? null);
+        setRole(p.role);
+        setFullName(p.fullName);
+      } else {
+        setRole(null);
+        setFullName(null);
+      }
+    };
     (async () => {
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
-      setSession(data.session);
-      setRole(data.session ? await fetchRole(data.session.user.email ?? null) : null);
+      await apply(data.session);
       setLoading(false);
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
-      setSession(s);
-      setRole(s ? await fetchRole(s.user.email ?? null) : null);
+      await apply(s);
     });
     return () => {
       alive = false;
@@ -63,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         role,
         email: session?.user.email ?? null,
+        fullName,
         signOut: async () => {
           await supabase.auth.signOut();
         },

@@ -72,12 +72,13 @@ export default function SignIn() {
         ) : (
           <>
             <TextInput
-              style={styles.input}
-              placeholder="123456"
+              style={[styles.input, styles.codeInput]}
+              placeholder="000000"
               placeholderTextColor={theme.textFaint}
               keyboardType="number-pad"
               value={code}
               onChangeText={setCode}
+              maxLength={8}
             />
             <Button label={busy ? "Verifying…" : "Verify"} onPress={verify} disabled={busy} />
             <Pressable onPress={() => setStep("email")}>
@@ -98,7 +99,7 @@ function Button({ label, onPress, disabled }: { label: string; onPress: () => vo
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={[styles.btn, disabled && { opacity: 0.5 }]}
+      style={({ pressed }) => [styles.btn, pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }, disabled && { opacity: 0.5 }]}
     >
       <Text style={styles.btnText}>{label}</Text>
     </Pressable>
@@ -107,22 +108,38 @@ function Button({ label, onPress, disabled }: { label: string; onPress: () => vo
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: theme.bg, alignItems: "center", justifyContent: "center", padding: 24 },
-  card: { width: "100%", maxWidth: 380 },
-  logo: { color: theme.text, fontSize: 30, fontWeight: "800", letterSpacing: -0.5 },
-  sub: { color: theme.textDim, marginTop: 6, marginBottom: 22, fontSize: 15 },
-  input: {
+  card: {
+    width: "100%",
+    maxWidth: 380,
     backgroundColor: theme.surface,
     borderColor: theme.border,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: theme.radius.xl,
+    padding: 24,
+    ...theme.shadow,
+  },
+  logo: { color: theme.text, fontSize: 30, fontWeight: "800", letterSpacing: -0.5 },
+  sub: { color: theme.textDim, marginTop: 8, marginBottom: 22, fontSize: 15, lineHeight: 21 },
+  input: {
+    backgroundColor: theme.bg,
+    borderColor: theme.borderStrong,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
     color: theme.text,
     fontSize: 18,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     marginBottom: 12,
   },
-  btn: { backgroundColor: theme.brand, borderRadius: 12, paddingVertical: 15, alignItems: "center" },
-  btnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  link: { color: theme.textDim, textAlign: "center", marginTop: 14, fontSize: 14 },
-  error: { color: "#fb7185", marginTop: 14, fontSize: 14 },
+  codeInput: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 10,
+    textAlign: "center",
+    fontVariant: ["tabular-nums"],
+  },
+  btn: { backgroundColor: theme.brand, borderRadius: theme.radius.md, paddingVertical: 15, alignItems: "center", ...theme.glow },
+  btnText: { color: "#fff", fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
+  link: { color: theme.textDim, textAlign: "center", marginTop: 16, fontSize: 14 },
+  error: { color: theme.bad, marginTop: 14, fontSize: 14, textAlign: "center" },
 });

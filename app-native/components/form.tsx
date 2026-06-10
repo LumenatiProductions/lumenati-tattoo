@@ -63,19 +63,26 @@ export function Chips<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  label: { color: theme.textDim, fontSize: 12, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 },
+  label: { color: theme.textDim, fontSize: 11, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
   input: {
     backgroundColor: theme.bg,
-    borderColor: theme.border,
+    borderColor: theme.borderStrong,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: theme.radius.sm,
     color: theme.text,
     fontSize: 16,
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 9, borderColor: theme.border, borderWidth: 1 },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    borderColor: theme.borderStrong,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
   chipOn: { backgroundColor: theme.brand, borderColor: theme.brand },
-  chipText: { color: theme.textDim, fontSize: 13 },
+  chipText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
 });

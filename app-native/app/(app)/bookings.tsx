@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
-import { Card, Button } from "@/components/ui";
+import { Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
 import { uid } from "@/lib/ids";
@@ -132,10 +132,13 @@ export default function Bookings() {
           </View>
         )}
       </View>
-      <View style={{ alignItems: "flex-end", gap: 4 }}>
-        {b.deposit_status === "held" && <Text style={styles.dep}>deposit</Text>}
-        {b.checked_in_at && <Text style={[styles.dep, { color: theme.good }]}>checked in</Text>}
-        <Text style={[styles.status, { color: STATUS_TONE[b.status] ?? theme.textDim }]}>{b.status.replace("_", " ")}</Text>
+      <View style={{ alignItems: "flex-end", gap: 5 }}>
+        {b.checked_in_at ? <Badge label="Here" tone="good" /> : null}
+        {b.deposit_status === "held" ? <Badge label="Deposit" tone="brand" /> : null}
+        <Badge
+          label={b.status.replace("_", " ")}
+          tone={b.status === "completed" ? "good" : b.status === "no_show" ? "bad" : b.status === "cancelled" ? "neutral" : "brand"}
+        />
       </View>
     </View>
   );
