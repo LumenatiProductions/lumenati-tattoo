@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchToday,
   checkIn,
@@ -419,21 +419,47 @@ function Row({ label, value, tone }: { label: string; value: string; tone: "good
   );
 }
 
-// The shop TV: 90s Cartoon Network loop (muted — browsers require it for
-// autoplay, and the shop runs its own sound anyway). pointer-events-none so a
-// tap on the TV still starts check-in like everywhere else on the screen.
+// The shop TV: 90s Cartoon Network loop as the fullscreen attract backdrop
+// (muted — browsers require it for autoplay, and the shop runs its own sound
+// anyway). Each reload tunes in at a random point, like catching whatever's
+// on. pointer-events-none so a tap anywhere still starts check-in.
 const SHOP_TV_ID = "xBFuNlPzZrk";
+const SHOP_TV_LENGTH_S = 31179; // 8h40m compilation; keep random starts in bounds
 
 function Welcome({ onBegin }: { onBegin: () => void }) {
   // The customer-facing attract screen — the idle state a walk-up sees (the
   // device-code screen is staff-only and never shown once provisioned). The whole
   // screen is the tap target. Live clock for a little retro arcade life.
   const [now, setNow] = useState<Date | null>(null);
+  // Random tune-in point, chosen client-side after mount (no SSR mismatch).
+  // Leave 10 minutes of runway so it never starts at the credits.
+  const [tvStart, setTvStart] = useState<number | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
+  const tvRef = useRef<HTMLIFrameElement | null>(null);
   useEffect(() => {
     setNow(new Date());
+    setTvStart(Math.floor(Math.random() * (SHOP_TV_LENGTH_S - 600)));
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Unmute is allowed after a real tap (autoplay must START muted) — drive the
+  // player over the IFrame API's postMessage channel, no SDK script needed.
+  const tvCommand = (func: string, args: unknown[] = []) =>
+    tvRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: "command", func, args }),
+      "*",
+    );
+  const toggleSound = (e: React.MouseEvent) => {
+    e.stopPropagation(); // the sound button must not start check-in
+    if (soundOn) {
+      tvCommand("mute");
+    } else {
+      tvCommand("unMute");
+      tvCommand("setVolume", [100]);
+    }
+    setSoundOn((s) => !s);
+  };
 
   return (
     <div
@@ -441,39 +467,53 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onBegin()}
-      className="flex flex-1 cursor-pointer flex-col items-center justify-center px-6 py-6 text-center"
+      className="relative flex flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden px-6 py-8 text-center"
     >
-      <div className="f-mono mb-5 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300/90">
-        {now
-          ? `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
-          : ""}
-      </div>
-      <LumenatiLogo bg="dark" className="eye-glow w-32" />
-      <h1 className="f-pixel neon-text mt-5 text-3xl">WELCOME</h1>
-      <p className="f-vt glow-pink mt-2 text-2xl">lumenati tattoo // denver</p>
-
-      {/* shop_tv.exe — the waiting-room cartoon loop */}
-      <div className="pointer-events-none mt-6 w-full max-w-xl select-none">
-        <div className="y2k-card overflow-hidden p-0 text-left">
-          <div className="flex items-center justify-between border-b border-white/10 bg-black/50 px-3 py-1.5">
-            <span className="f-mono text-[10px] uppercase tracking-[0.2em] text-pink-200/95">◆ shop_tv.exe</span>
-            <span className="f-mono text-[10px] uppercase tracking-[0.2em] text-lime-300/90">▸ ch.99 · muted</span>
-          </div>
-          <div className="relative aspect-video w-full bg-black">
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_ID}?autoplay=1&mute=1&loop=1&playlist=${SHOP_TV_ID}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1`}
-              referrerPolicy="strict-origin-when-cross-origin"
-              title="Shop TV"
-              allow="autoplay; encrypted-media"
-            />
-          </div>
+      {/* Fullscreen TV backdrop: 16:9 cover-sized iframe, dimmed so the neon reads. */}
+      {tvStart !== null && (
+        <div className="pointer-events-none absolute inset-0 select-none" aria-hidden="true">
+          <iframe
+            ref={tvRef}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{ width: "max(100vw, 177.78vh)", height: "max(100vh, 56.25vw)" }}
+            src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_ID}?autoplay=1&mute=1&loop=1&playlist=${SHOP_TV_ID}&start=${tvStart}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1`}
+            referrerPolicy="strict-origin-when-cross-origin"
+            title="Shop TV"
+            allow="autoplay; encrypted-media"
+          />
+          {/* Dim + vignette so the welcome chrome stays readable over cartoons. */}
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.75) 100%)" }} />
         </div>
+      )}
+
+      <div className="relative z-10 flex flex-col items-center">
+        <div className="f-mono mb-6 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300">
+          {now
+            ? `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+            : ""}
+        </div>
+        <LumenatiLogo bg="dark" className="eye-glow w-40" />
+        <h1 className="f-pixel neon-text mt-6 text-4xl">WELCOME</h1>
+        <p className="f-vt glow-pink mt-3 text-3xl">lumenati tattoo // denver</p>
+        <p className="f-pixel blink mt-10 text-xs uppercase tracking-[0.3em] text-lime-300">
+          ▸ Tap anywhere to check in ◂
+        </p>
       </div>
 
-      <p className="f-pixel blink mt-7 text-xs uppercase tracking-[0.3em] text-lime-300/95">
-        ▸ Tap anywhere to check in ◂
-      </p>
+      {/* Sound toggle — bottom corner, isolated from the check-in tap. */}
+      {tvStart !== null && (
+        <button
+          onClick={toggleSound}
+          className={`f-mono absolute bottom-4 right-4 z-20 rounded border px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${
+            soundOn
+              ? "border-lime-300/70 bg-black/60 text-lime-300"
+              : "border-white/25 bg-black/60 text-white/80 hover:text-white"
+          }`}
+        >
+          {soundOn ? "♪ sound on" : "♪ sound off"}
+        </button>
+      )}
     </div>
   );
 }
