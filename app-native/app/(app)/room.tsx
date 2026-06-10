@@ -35,39 +35,53 @@ type Room = {
   profile_photo: string;
 };
 
+type RosterArtist = { id: string; name: string; slug: string };
+
 export default function MyRoom() {
   const { email, role } = useAuth();
   const insets = useSafeAreaInsets();
+  const isOwner = role === "owner";
+  const [roster, setRoster] = useState<RosterArtist[]>([]);
   const [artistId, setArtistId] = useState<string | null>(null);
-  const [slug, setSlug] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Resolve which artist this login manages (profiles.artist_id; owners
-  // without one get a friendly note — deep multi-room editing stays on web).
+  // Who can edit what: an artist edits their own room; a co-owner edits
+  // anyone's (picker below — JD is both, so default to their own when linked).
   useEffect(() => {
     (async () => {
       if (!email) return;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("artist_id")
-        .eq("email", email)
-        .maybeSingle();
-      const id = (profile?.artist_id as string | null) ?? null;
-      setArtistId(id);
-      if (id) {
-        const [{ data: r }, { data: a }] = await Promise.all([
-          supabase.from("room_content").select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo").eq("artist_id", id).maybeSingle(),
-          supabase.from("artists").select("slug").eq("id", id).maybeSingle(),
-        ]);
-        if (r) setRoom(r as Room);
-        setSlug((a?.slug as string) ?? null);
-      }
+      const [{ data: profile }, rosterRes] = await Promise.all([
+        supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle(),
+        isOwner
+          ? supabase.from("artists").select("id, name, slug").eq("active", true).order("sort")
+          : Promise.resolve({ data: null }),
+      ]);
+      const own = (profile?.artist_id as string | null) ?? null;
+      const list = ((rosterRes.data ?? []) as RosterArtist[]) || [];
+      setRoster(list);
+      setArtistId(own ?? (isOwner ? list[0]?.id ?? null : null));
       setLoading(false);
     })();
-  }, [email]);
+  }, [email, isOwner]);
+
+  // Load the selected artist's room whenever the pick changes.
+  useEffect(() => {
+    (async () => {
+      if (!artistId) return;
+      setRoom(null);
+      const { data: r } = await supabase
+        .from("room_content")
+        .select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo")
+        .eq("artist_id", artistId)
+        .maybeSingle();
+      if (r) setRoom(r as Room);
+    })();
+  }, [artistId]);
+
+  const slug = roster.find((a) => a.id === artistId)?.slug ?? null;
 
   const set = <K extends keyof Room>(key: K, val: Room[K]) =>
     setRoom((r) => (r ? { ...r, [key]: val } : r));
@@ -132,20 +146,34 @@ export default function MyRoom() {
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}>
         {loading ? (
           <ActivityIndicator color={theme.brand} style={{ marginTop: 60 }} />
-        ) : !artistId || !room ? (
+        ) : !artistId ? (
           <Card>
             <Text style={styles.note}>
-              {role === "owner"
-                ? "Your login isn't linked to an artist room. Editing the whole roster's rooms lives on the web admin."
-                : "No room is linked to this login yet — ask the desk to link your artist profile."}
+              No room is linked to this login yet — ask the desk to link your artist profile.
             </Text>
           </Card>
         ) : (
           <>
+            {isOwner && roster.length > 0 && (
+              <View style={{ marginBottom: 4 }}>
+                <Chips
+                  label="Whose room"
+                  value={artistId}
+                  options={roster.map((a) => a.id)}
+                  display={(id) => roster.find((a) => a.id === id)?.name ?? id}
+                  onChange={(id) => setArtistId(id)}
+                />
+              </View>
+            )}
             <Text style={styles.sub}>
-              This is your public page{slug ? ` (lumenati-tattoo.vercel.app/${slug})` : ""}. Changes go live when you save.
+              {isOwner ? "Editing this public page" : "This is your public page"}
+              {slug ? ` (lumenati-tattoo.vercel.app/${slug})` : ""}. Changes go live when you save.
             </Text>
 
+            {!room ? (
+              <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+            ) : (
+            <>
             <SectionTitle>Identity</SectionTitle>
             <Card>
               <LabeledInput label="Tagline" value={room.tagline} onChange={(v) => set("tagline", v)} placeholder="skater // gamer // bold color tattoos" />
@@ -195,6 +223,8 @@ export default function MyRoom() {
                 Polaroids + portfolio curation live in the web editor for now.
               </Text>
             </View>
+            </>
+            )}
           </>
         )}
       </ScrollView>
