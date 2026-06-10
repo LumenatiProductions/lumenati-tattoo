@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useSocial, type SocialPost } from "@/lib/admin/social-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import HealedQueue from "@/components/admin/HealedQueue";
 
 export default function SocialPage() {
   const { posts, loading, error, featured, addPost, toggleFeatured, updatePost, removePost } =
@@ -50,6 +51,8 @@ export default function SocialPage() {
           One wall for the whole roster&apos;s work. Paste a post, curate, feature the best.
         </p>
       </div>
+
+      <HealedQueue />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Posts" value={String(posts.length)} accent />

@@ -346,6 +346,11 @@ export async function sendFollowupRow(
     first_name: contact.first_name,
     review_link: reviewLink(),
   };
+  if (row.kind === "healed_photo") {
+    // The followup's own uuid is the upload capability — see /api/healed.
+    const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app";
+    tokens.healed_link = `${base}/healed/${row.id}`;
+  }
   if (REMINDER_KINDS.includes(row.kind)) {
     if (!row.booking_id) return finalize(client, row.id, "skipped", "Reminder has no booking");
     const { data: bk } = await client

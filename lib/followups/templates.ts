@@ -130,7 +130,7 @@ Have a great one,
     enabled: true,
     body: `Hi {{first_name}},
 
-Your tattoo from {{shop_name}} should be just about healed by now. If you are happy with how it settled in, we would love a quick photo for the artist's portfolio — just reply to this message with a picture.
+Your tattoo from {{shop_name}} should be just about healed by now. If you are happy with how it settled in, we would love a quick photo for the artist's portfolio. Upload it here, it takes ten seconds: {{healed_link}}
 
 If anything about the healing does not look right, reply and we will take a look.
 
@@ -149,6 +149,8 @@ type Tokens = {
   appointment_time?: string | null;
   /** Artist display name — for reminders. */
   artist_name?: string | null;
+  /** Upload URL — for healed_photo. */
+  healed_link?: string | null;
 };
 
 // Replace {{token}} occurrences. Unknown tokens are left intact so a typo is
@@ -162,6 +164,7 @@ export function fillTokens(text: string, tokens: Tokens): string {
     appointment_time: tokens.appointment_time || "at your scheduled time",
     artist_name: tokens.artist_name || "",
     artist_with: tokens.artist_name ? ` with ${tokens.artist_name}` : "",
+    healed_link: tokens.healed_link || "",
   };
   return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, key: string) =>
     key in map ? map[key] : whole,
