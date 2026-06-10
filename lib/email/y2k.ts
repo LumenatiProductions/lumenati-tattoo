@@ -94,7 +94,7 @@ export function renderY2kEmail(opts: Y2kEmail): string {
         <td style="background:#18181f;border-top:1px solid #2a2a33;padding:7px 12px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="font-family:${MONO};font-size:10px;color:#52525b;letter-spacing:1px;">connected &#9642; 56.6kbps</td>
-            <td align="right" style="font-family:${MONO};font-size:10px;color:${PINK};letter-spacing:1px;">step into the bedroom</td>
+            <td align="right" style="font-family:${MONO};font-size:10px;color:${PINK};letter-spacing:1px;">denver, co</td>
           </tr></table>
         </td>
       </tr>

@@ -430,7 +430,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       </div>
       <LumenatiLogo bg="dark" className="eye-glow w-44" />
       <h1 className="f-pixel neon-text mt-7 text-4xl">WELCOME</h1>
-      <p className="f-vt glow-pink mt-3 text-3xl">step into the bedroom</p>
+      <p className="f-vt glow-pink mt-3 text-3xl">lumenati tattoo // denver</p>
       <p className="f-pixel blink mt-12 text-xs uppercase tracking-[0.3em] text-lime-300/80">
         ▸ Tap anywhere to check in ◂
       </p>

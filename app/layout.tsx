@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Lumenati Tattoo",
-  description: "Lumenati Tattoo // step into the bedroom",
+  description: "Lumenati Tattoo // custom tattoos // Denver, CO",
 };
 
 export default function RootLayout({
