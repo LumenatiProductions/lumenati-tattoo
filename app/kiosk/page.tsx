@@ -552,8 +552,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
 
   // Channel surf: step the dial through the real lineup, tuning into a random
   // spot on the next station, with a burst of static while the dial turns.
-  const changeChannel = (dir: 1 | -1) => (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const surf = (dir: 1 | -1) => {
     setTv((cur) => {
       if (!cur) return cur;
       const idx = (cur.idx + dir + SHOP_TV_CHANNELS.length) % SHOP_TV_CHANNELS.length;
@@ -577,6 +576,50 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
     setTimeout(() => setStatics(false), 450);
     flashOsd();
   };
+  const surfRef = useRef(surf);
+  surfRef.current = surf;
+
+  const changeChannel = (dir: 1 | -1) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    surf(dir);
+  };
+
+  // When a station runs out of tape, the set hops to the next channel on its
+  // own. enablejsapi posts state events once we send the "listening" handshake.
+  useEffect(() => {
+    const handshake = setInterval(() => {
+      tvRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "listening", id: "shoptv", channel: "widget" }),
+        "*",
+      );
+    }, 1500);
+    const endedGuard = { current: false };
+    const onMessage = (e: MessageEvent) => {
+      if (typeof e.data !== "string" || !String(e.origin).includes("youtube")) return;
+      let msg: { event?: string; info?: number | { playerState?: number } } | null = null;
+      try {
+        msg = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+      const state =
+        msg?.event === "onStateChange"
+          ? (msg.info as number)
+          : msg?.event === "infoDelivery"
+            ? (msg.info as { playerState?: number })?.playerState
+            : undefined;
+      if (state === 1) endedGuard.current = false; // playing again -> re-arm
+      if (state === 0 && !endedGuard.current) {
+        endedGuard.current = true; // one hop per ended video
+        surfRef.current(1);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => {
+      clearInterval(handshake);
+      window.removeEventListener("message", onMessage);
+    };
+  }, []);
 
   return (
     <div
