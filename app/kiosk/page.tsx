@@ -428,10 +428,15 @@ const SHOP_TV_CHANNELS: { num: number; id: string; len: number }[] = [
   { num: 2, id: "30wEwDz9WyM", len: 1698 },   // Good Morning America, 1992
   { num: 4, id: "ZD2GyA9hOqk", len: 4494 },   // Married with Children marathon
   { num: 5, id: "F1EYfSPThCk", len: 7234 },   // Nick Rewind: Clarissa, Kenan & Kel
+  { num: 7, id: "hb5u3UD-A1k", len: 4308 },   // ABC TGIF commercials 1994-1996
   { num: 9, id: "GZnPR9CkqJs", len: 6307 },   // TMNT (1987) marathon
   { num: 11, id: "XTMjcM7HPUE", len: 7480 },  // 90s Nick cartoon chaos
+  { num: 13, id: "mT0RNrTDHkI", len: 3582 },  // Bob Ross one-hour special (PBS dial)
+  { num: 25, id: "xGgXu_m1_9I", len: 36413 }, // Fox Kids Saturday morning, 10h w/ commercials
   { num: 27, id: "EflI45HbiOQ", len: 12319 }, // 90s kids game shows w/ commercials
   { num: 33, id: "y0BerpDmVSE", len: 61 },    // Clarissa theme (the joke channel)
+  { num: 38, id: "AeRTwWCCRaA", len: 3639 },  // late-90s basic cable commercials
+  { num: 62, id: "UNb6iN-iALk", len: 3514 },  // 1990s commercials (Chicago VHS rips)
   { num: 99, id: "xBFuNlPzZrk", len: 31179 }, // Cartoon Network, 8h40m
 ];
 // Random tune-in inside a video, leaving runway so it never starts at the end.
