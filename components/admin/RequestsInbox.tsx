@@ -78,7 +78,9 @@ export default function RequestsInbox() {
     return true;
   };
 
-  if (requests.length === 0) return null;
+  // Keep rendering while a notice is up — accepting the last request should
+  // show "deposit link emailed", not vanish the whole section mid-sentence.
+  if (requests.length === 0 && !msg) return null;
 
   return (
     <div className="mb-6">
@@ -96,6 +98,7 @@ export default function RequestsInbox() {
           {msg}
         </div>
       )}
+      {requests.length === 0 ? null : (
       <Card className="divide-y divide-black/5">
         {requests.map((q) => {
           const artist = artists.find((a) => a.id === q.artist_id);
@@ -150,6 +153,7 @@ export default function RequestsInbox() {
           );
         })}
       </Card>
+      )}
     </div>
   );
 }
