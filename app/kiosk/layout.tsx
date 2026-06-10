@@ -23,37 +23,13 @@ export const viewport = {
   userScalable: false,
 };
 
-const TICKER =
-  "✦ WELCOME TO LUMENATI ✦ TAP YOUR NAME TO CHECK IN ✦ STAY GOLD ✦ NO REGRETS ✦ INK NEVER LIES ✦ THE EYE SEES YOU ✦ DENVER CO ✦";
-
 export default function KioskLayout({ children }: { children: React.ReactNode }) {
+  // No chrome — the screens own the full canvas (the TV backdrop especially).
   return (
     <div
       className={`${pixel.variable} ${vt.variable} ${techmono.variable} scanlines y2k-bg relative flex min-h-screen flex-col text-cream`}
     >
-      {/* Top chrome: neon rule + retro window title + marquee */}
-      <div className="neon-bar" />
-      <div className="flex items-center justify-between px-4 py-2">
-        <span className="f-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300/90">
-          <span className="glow-lime blink">●</span> LUMENATI OS · CHECK-IN.EXE
-        </span>
-        <span className="f-mono text-[11px] uppercase tracking-[0.2em] text-white/60">v2.0 // 1999</span>
-      </div>
-      <div className="marquee f-pixel border-y border-white/10 bg-black/40 py-1.5 text-[9px] text-pink-200/95">
-        <span className="marquee-track">{TICKER}</span>
-      </div>
-
-      {/* Screens */}
       <main className="flicker relative z-10 flex flex-1 flex-col">{children}</main>
-
-      {/* Bottom status bar */}
-      <div className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-2">
-        <span className="f-mono text-[10px] uppercase tracking-[0.2em] text-white/60">
-          SECURE TERMINAL // POWERED BY THE EYE
-        </span>
-        <span className="f-mono text-[10px] uppercase tracking-[0.2em] text-lime-300/90">▲ ONLINE</span>
-      </div>
-      <div className="neon-bar" />
     </div>
   );
 }
