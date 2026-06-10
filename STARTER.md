@@ -25,6 +25,28 @@ Most remaining work is **turning features on with keys/accounts — not coding.*
 - **Stripe Connect ENABLED** (sandbox) — app creates Express accounts in code; live Connect still gated behind Stripe go-live.
 - **Kiosk token DONE** — `KIOSK_DEVICE_TOKEN` set on Vercel + verified (`/api/kiosk` 401→200).
 
+## Product pass 2 (done 2026-06-10, ALL schemas applied + verified)
+Eight more features, closing every loop from pass 1:
+- **Accept auto-sends the deposit link** (text-first, email fallback, URL
+  surfaced to the desk either way).
+- **Healed-photo uploads**: follow-up links to /healed/<followup-id>; uploads
+  queue on Social for approval; approve appends to the artist's room portfolio
+  on the public site. healed-photos bucket + healed_photos table LIVE.
+- **Reply C confirms**: /api/sms/inbound (Twilio signature-validated) stamps
+  bookings.confirmed_at; Confirmed ✓ badge on Bookings + week view. Point the
+  Twilio Messaging Service inbound hook at /api/sms/inbound when keys land.
+- **In-house rent invoicing**: rent_invoices LIVE; monthly generation in daily
+  ops + Generate button; pay links (payments.kind='rent', never split);
+  webhook marks paid; Email-it per invoice. Square panels stay until cutover.
+- **Week calendar** on Bookings (Agenda/Week toggle, artist-colored blocks).
+- **Event push**: new request -> desk, payment settled -> owner+artist,
+  day-ahead per artist (all no-op until EAS device tokens exist).
+- **Insights on Reports**: rebooking %, no-show by artist, busiest hours, top
+  clients.
+- **Error boundaries + ALERT_WEBHOOK_URL reporter + vitest suite (18 tests)**.
+  The suite immediately caught and fixed a real age-gate bug (UTC-parsed DOBs
+  passed minors the evening before their 18th in Denver).
+
 ## Product pass (done 2026-06-09, ALL schemas applied to the live DB)
 Twelve features shipped end to end in one session; every schema is ALREADY
 APPLIED via the SQL editor (verified):

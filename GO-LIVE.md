@@ -47,6 +47,16 @@ plus a couple of optional, not-yet-built backlog items.
 - [x] `guardian-schema.sql` — guardian co-sign columns on consent_forms
 - [x] `request-refs-schema.sql` — reference-photo bucket + column for /request (verified)
 
+**Product pass 2 schemas (2026-06-10) — ALL APPLIED ✅ (verified):**
+- [x] `healed-photos-schema.sql` — healed_photos table + bucket (upload page + Social queue)
+- [x] `confirmations-schema.sql` — bookings.confirmed_at (reply-C confirmations)
+- [x] `rent-invoices-schema.sql` — in-house rent invoices with pay links
+
+**One more Twilio step when keys land:** set the Messaging Service's inbound
+webhook to `https://lumenati-tattoo.vercel.app/api/sms/inbound` so reply-C
+confirmations work. Optional: `ALERT_WEBHOOK_URL` (any Slack-style webhook)
+turns on error alerts.
+
 **New activation items for Scott (the only two things code can't do):**
 - [ ] **Twilio** — create the account, then on Vercel set `TWILIO_ACCOUNT_SID`,
   `TWILIO_AUTH_TOKEN`, and `TWILIO_MESSAGING_SERVICE_SID` (or `TWILIO_FROM_NUMBER`).
