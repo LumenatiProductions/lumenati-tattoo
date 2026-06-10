@@ -6,6 +6,7 @@ import { isSmsConfigured, looksLikePhone, normalizePhone, sendSms } from "@/lib/
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
 import { pushEvent } from "@/lib/push/send";
+import { renderY2kEmail } from "@/lib/email/y2k";
 
 export const dynamic = "force-dynamic";
 
@@ -283,7 +284,16 @@ export async function PATCH(req: Request) {
                 from: "Lumenati Tattoo <onboarding@resend.dev>",
                 to: [reqRow.email],
                 subject: `You're booked — secure your spot with the deposit`,
-                html: `<p style="font-family:Arial,sans-serif;font-size:14px;color:#3f3f46;">You're booked for <strong>${when}</strong> at Lumenati Tattoo. Lock it in by paying your ${usd} deposit:</p><p><a href="${link.url}" style="display:inline-block;background:#FF1493;color:#fff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">Pay deposit</a></p><p style="font-family:Arial,sans-serif;font-size:12px;color:#a1a1aa;">${link.url}</p>`,
+                html: renderY2kEmail({
+                  windowTitle: "youre_in.exe",
+                  headline: `You're booked for ${when}.`,
+                  paragraphs: [
+                    `Lock it in by paying your ${usd} deposit. Your spot is held once it lands.`,
+                    "Deposits come off your final price. Heads up: no-shows forfeit the deposit.",
+                  ],
+                  button: { label: "Pay deposit", url: link.url },
+                  finePrint: link.url,
+                }),
               }),
             });
             if (res.ok) depositLink = { url: link.url, sent: true, via: "email" };

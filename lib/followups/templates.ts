@@ -4,8 +4,10 @@
 // kind through `resolveTemplate` so they always agree.
 //
 // Bodies are PLAIN TEXT with {{tokens}} — on-brand, no emojis (Scott's rule).
-// `renderEmail` substitutes tokens and wraps the text in the same branded
-// Lumenati shell the digest / consent emails use.
+// `renderEmail` substitutes tokens and wraps the text in the Y2K window shell
+// (lib/email/y2k.ts) — client mail matches the public site, not the console.
+
+import { renderY2kEmail } from "@/lib/email/y2k";
 
 export type FollowupKind =
   | "aftercare"
@@ -193,60 +195,48 @@ export function resolveTemplate(
 }
 
 // Render the resolved subject + plain-text body to (subject, html, text) ready
-// for Resend. The HTML wraps the text in the branded shell; a review_request
-// with a link also gets a button.
+// for Resend. Client mail wears the Y2K shell (matches the public site); the
+// body's first line becomes the headline, links become the gel button.
 export function renderEmail(
   tpl: Template,
   tokens: Tokens,
 ): { subject: string; html: string; text: string } {
   const subject = fillTokens(tpl.subject, tokens);
   const text = fillTokens(tpl.body, tokens);
-  const reviewLink = tpl.kind === "review_request" ? tokens.review_link : undefined;
-  return { subject, html: wrapHtml(KIND_LABEL[tpl.kind], text, reviewLink), text };
-}
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+  // Pull the button out of the body: review link or healed-photo upload link.
+  const buttonUrl =
+    tpl.kind === "review_request" && tokens.review_link?.trim()
+      ? tokens.review_link.trim()
+      : tpl.kind === "healed_photo" && tokens.healed_link?.trim()
+        ? tokens.healed_link.trim()
+        : undefined;
+  const buttonLabel =
+    tpl.kind === "review_request" ? "Leave a review" : tpl.kind === "healed_photo" ? "Upload your photo" : "";
 
-function wrapHtml(eyebrow: string, body: string, reviewLink?: string): string {
-  // Turn the plain text into paragraphs/line breaks for HTML mail.
-  const paras = body
+  const WINDOW_TITLE: Record<FollowupKind, string> = {
+    aftercare: "aftercare.txt",
+    review_request: "how_did_we_do.exe",
+    rebook_nudge: "next_piece.exe",
+    birthday: "happy_bday.exe",
+    reminder_48h: "see_you_soon.exe",
+    reminder_24h: "tomorrow.exe",
+    healed_photo: "show_us.exe",
+  };
+
+  // Body paragraphs: strip the raw URL line when it became the button.
+  const paragraphs = text
     .split(/\n{2,}/)
-    .map(
-      (p) =>
-        `<p style="font-size:14px;line-height:1.6;color:#3f3f46;margin:0 0 14px;">${escapeHtml(
-          p,
-        ).replace(/\n/g, "<br>")}</p>`,
-    )
-    .join("");
+    .map((p) => (buttonUrl ? p.replace(buttonUrl, "").trim() : p))
+    .map((p) => p.replace(/(Leave a review here:|Upload it here, it takes ten seconds:)\s*$/i, "").trim())
+    .filter(Boolean);
 
-  const button =
-    reviewLink && reviewLink.trim()
-      ? `<a href="${escapeHtml(reviewLink.trim())}" style="display:inline-block;background:#FF1493;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;margin:4px 0 8px;">Leave a review</a>`
-      : "";
-
-  return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;margin:0;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
-  <tr><td align="center">
-    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
-      <tr><td style="background:#0e0e11;padding:22px 28px;">
-        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">LUMENATI</span><span style="font-size:22px;font-weight:800;color:#FF1493;">.</span>
-        <div style="font-size:10px;letter-spacing:3px;color:#8a8a92;margin-top:2px;text-transform:uppercase;">${escapeHtml(eyebrow)}</div>
-      </td></tr>
-      <tr><td style="padding:26px 28px;">
-        ${paras}
-        ${button}
-      </td></tr>
-      <tr><td style="padding:0 28px 24px;">
-        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">${escapeHtml(
-          SHOP_NAME,
-        )} &nbsp;//&nbsp; you're receiving this because you visited the shop. Reply to opt out.</div>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>`;
+  const html = renderY2kEmail({
+    windowTitle: WINDOW_TITLE[tpl.kind],
+    headline: subject,
+    paragraphs,
+    button: buttonUrl ? { label: buttonLabel, url: buttonUrl } : undefined,
+    finePrint: buttonUrl,
+  });
+  return { subject, html, text };
 }

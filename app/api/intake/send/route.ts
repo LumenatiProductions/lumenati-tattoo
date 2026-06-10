@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSmsConfigured, looksLikePhone, normalizePhone, sendSms } from "@/lib/sms";
+import { renderY2kEmail } from "@/lib/email/y2k";
 
 export const dynamic = "force-dynamic";
 
@@ -99,24 +100,15 @@ export async function POST(req: Request) {
 }
 
 function emailHtml(signUrl: string) {
-  return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;margin:0;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
-  <tr><td align="center">
-    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
-      <tr><td style="background:#0e0e11;padding:22px 28px;">
-        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">LUMENATI</span><span style="font-size:22px;font-weight:800;color:#FF1493;">.</span>
-        <div style="font-size:10px;letter-spacing:3px;color:#8a8a92;margin-top:2px;text-transform:uppercase;">Consent form</div>
-      </td></tr>
-      <tr><td style="padding:26px 28px;">
-        <div style="font-size:17px;font-weight:700;color:#0e0e11;margin-bottom:6px;">You're booked — let's get the paperwork done early.</div>
-        <p style="font-size:14px;line-height:1.55;color:#52525b;margin:0 0 20px;">Please fill out and sign your consent &amp; aftercare form before your appointment. It takes about two minutes. We'll verify your ID in person when you arrive.</p>
-        <a href="${signUrl}" style="display:inline-block;background:#FF1493;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">Open my consent form</a>
-        <p style="font-size:12px;color:#a1a1aa;margin:20px 0 0;">If the button doesn't work, paste this link into your browser:<br><span style="color:#71717a;word-break:break-all;">${signUrl}</span></p>
-      </td></tr>
-      <tr><td style="padding:0 28px 24px;">
-        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">Lumenati Tattoo &nbsp;//&nbsp; this link is private to your appointment. Don't share it.</div>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>`;
+  return renderY2kEmail({
+    windowTitle: "consent_form.exe",
+    headline: "You're booked. Let's get the paperwork done early.",
+    paragraphs: [
+      "Please fill out and sign your consent and aftercare form before your appointment. It takes about two minutes.",
+      "We'll verify your ID in person when you arrive.",
+      "This link is private to your appointment. Don't share it.",
+    ],
+    button: { label: "Open my consent form", url: signUrl },
+    finePrint: signUrl,
+  });
 }
