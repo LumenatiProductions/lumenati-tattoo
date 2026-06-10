@@ -37,6 +37,14 @@
       "output": "single"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ],
       "expo-router",
       "expo-asset",
       "expo-font",
@@ -47,7 +55,8 @@
           "cameraPermission": "Snap shelf photos to count inventory and receipts to log deductions."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-build-properties"
     ],
     "extra": {
       "router": {
