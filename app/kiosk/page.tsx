@@ -454,22 +454,56 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   const tvRef = useRef<HTMLIFrameElement | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
 
-  // Static SFX: a 0.35s white-noise burst, synthesized on the spot. Quiet when
-  // the TV is muted (a dial clunk), full when sound is on.
+  // Static SFX, tuned to the real thing: a low dial THUNK, then a burst of
+  // band-filtered hiss with crackle pops riding on it, cut off abruptly when
+  // the channel "locks in" (analog static never faded out politely).
   const playStaticSfx = (loud: boolean) => {
     try {
       const ctx = (audioRef.current ??= new AudioContext());
       if (ctx.state === "suspended") ctx.resume();
-      const len = Math.floor(ctx.sampleRate * 0.35);
+      const t0 = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.value = loud ? 0.5 : 0.16;
+      master.connect(ctx.destination);
+
+      // The dial thunk: a fast 75Hz knock.
+      const thump = ctx.createOscillator();
+      thump.type = "sine";
+      thump.frequency.setValueAtTime(75, t0);
+      thump.frequency.exponentialRampToValueAtTime(45, t0 + 0.07);
+      const thumpGain = ctx.createGain();
+      thumpGain.gain.setValueAtTime(0.9, t0);
+      thumpGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+      thump.connect(thumpGain).connect(master);
+      thump.start(t0);
+      thump.stop(t0 + 0.1);
+
+      // The hiss: white noise with crackle spikes, through a TV-speaker band.
+      const dur = 0.45;
+      const len = Math.floor(ctx.sampleRate * dur);
       const buf = ctx.createBuffer(1, len, ctx.sampleRate);
       const data = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      for (let i = 0; i < 26; i++) {
+        // crackle: short loud pops scattered through the burst
+        const at = Math.floor(Math.random() * (len - 90));
+        const amp = 1.6 + Math.random() * 1.4;
+        for (let j = 0; j < 90; j++) data[at + j] += (Math.random() * 2 - 1) * amp * (1 - j / 90);
+      }
       const src = ctx.createBufferSource();
       src.buffer = buf;
-      const gain = ctx.createGain();
-      gain.gain.value = loud ? 0.25 : 0.07;
-      src.connect(gain).connect(ctx.destination);
-      src.start();
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 350; // tinny TV speaker, no real lows
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 6500; // analog rolloff up top
+      const hissGain = ctx.createGain();
+      hissGain.gain.setValueAtTime(1, t0);
+      hissGain.gain.setValueAtTime(1, t0 + dur - 0.03);
+      hissGain.gain.linearRampToValueAtTime(0, t0 + dur); // abrupt lock-in
+      src.connect(hp).connect(lp).connect(hissGain).connect(master);
+      src.start(t0);
     } catch {
       /* no audio context = silent dial */
     }
@@ -586,7 +620,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
             </div>
           )}
           {/* Channel-change static burst */}
-          {statics && <div className="tv-snow absolute inset-0 opacity-80" />}
+          {statics && <TvSnow />}
         </div>
       )}
 
@@ -632,6 +666,46 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Real analog snow: random grayscale pixels redrawn every frame on a small
+// canvas, scaled up un-smoothed — the actual look of a dead channel, not a
+// CSS stripe pattern. Runs only while the dial is mid-turn (~450ms).
+function TvSnow() {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = 240;
+    const H = 135;
+    canvas.width = W;
+    canvas.height = H;
+    const img = ctx.createImageData(W, H);
+    const px = new Uint32Array(img.data.buffer);
+    let raf = 0;
+    const draw = () => {
+      for (let i = 0; i < px.length; i++) {
+        const v = (Math.random() * 256) | 0;
+        px[i] = (255 << 24) | (v << 16) | (v << 8) | v;
+      }
+      // a couple of darker tear bands rolling through, like a lost signal
+      const band = ((Math.random() * H) | 0) * W;
+      for (let i = band; i < Math.min(band + W * 3, px.length); i++) px[i] = (255 << 24) | 0x202020;
+      ctx.putImageData(img, 0, 0);
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <canvas
+      ref={ref}
+      className="absolute inset-0 h-full w-full opacity-90"
+      style={{ imageRendering: "pixelated" }}
+    />
   );
 }
 

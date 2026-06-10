@@ -198,18 +198,3 @@
   .rise { opacity: 1; transform: none; }
 }
 
-/* shop_tv: animated snow while the dial turns */
-@keyframes tvsnow {
-  0% { background-position: 0 0, 0 0; }
-  25% { background-position: -18px 31px, 23px -7px; }
-  50% { background-position: 31px -12px, -11px 19px; }
-  75% { background-position: -7px -27px, 16px 9px; }
-  100% { background-position: 12px 17px, -25px -13px; }
-}
-.tv-snow {
-  background-image:
-    repeating-linear-gradient(0deg, #0a0a0a 0px, #888 1px, #1a1a1a 2px, #aaa 3px, #000 4px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.16) 0px, transparent 2px, rgba(255,255,255,0.3) 3px, transparent 5px);
-  background-size: 100% 4px, 7px 100%;
-  animation: tvsnow 0.09s steps(2) infinite;
-}
