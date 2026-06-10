@@ -424,15 +424,17 @@ function Row({ label, value, tone }: { label: string; value: string; tone: "good
 // anyway). Each reload tunes into a random channel at a random point; the CH
 // buttons surf the dial via the IFrame API (loadVideoById — no iframe reload,
 // mute state survives). pointer-events-none so a tap anywhere still checks in.
-const SHOP_TV_CHANNELS: { num: number; id: string; len: number }[] = [
-  { num: 2, id: "30wEwDz9WyM", len: 1698 },   // Good Morning America, 1992
-  { num: 4, id: "ZD2GyA9hOqk", len: 4494 },   // Married with Children marathon
-  { num: 5, id: "F1EYfSPThCk", len: 7234 },   // Nick Rewind: Clarissa, Kenan & Kel
-  { num: 9, id: "GZnPR9CkqJs", len: 6307 },   // TMNT (1987) marathon
-  { num: 11, id: "XTMjcM7HPUE", len: 7480 },  // 90s Nick cartoon chaos
-  { num: 27, id: "EflI45HbiOQ", len: 12319 }, // 90s kids game shows w/ commercials
-  { num: 33, id: "y0BerpDmVSE", len: 61 },    // Clarissa theme (the joke channel)
-  { num: 99, id: "xBFuNlPzZrk", len: 31179 }, // Cartoon Network, 8h40m
+// fill: true = 4:3-era station (true 4:3 or baked pillarbox) — oversize the
+// player so the picture crops to cover the whole screen, no black bars.
+const SHOP_TV_CHANNELS: { num: number; id: string; len: number; fill?: boolean }[] = [
+  { num: 2, id: "30wEwDz9WyM", len: 1698, fill: true },   // Good Morning America, 1992
+  { num: 4, id: "ZD2GyA9hOqk", len: 4494, fill: true },   // Married with Children marathon
+  { num: 5, id: "F1EYfSPThCk", len: 7234 },               // Nick Rewind: Clarissa, Kenan & Kel
+  { num: 9, id: "GZnPR9CkqJs", len: 6307, fill: true },   // TMNT (1987) marathon
+  { num: 11, id: "XTMjcM7HPUE", len: 7480 },              // 90s Nick cartoon chaos
+  { num: 27, id: "EflI45HbiOQ", len: 12319, fill: true }, // 90s kids game shows w/ commercials
+  { num: 33, id: "y0BerpDmVSE", len: 61 },                // Clarissa theme (the joke channel)
+  { num: 99, id: "xBFuNlPzZrk", len: 31179, fill: true }, // Cartoon Network, 8h40m
 ];
 // Random tune-in inside a video, leaving runway so it never starts at the end.
 const tuneIn = (len: number) => (len < 300 ? 0 : Math.floor(Math.random() * (len - 120)));
@@ -450,6 +452,28 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   const [osd, setOsd] = useState(false);
   const osdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tvRef = useRef<HTMLIFrameElement | null>(null);
+  const audioRef = useRef<AudioContext | null>(null);
+
+  // Static SFX: a 0.35s white-noise burst, synthesized on the spot. Quiet when
+  // the TV is muted (a dial clunk), full when sound is on.
+  const playStaticSfx = (loud: boolean) => {
+    try {
+      const ctx = (audioRef.current ??= new AudioContext());
+      if (ctx.state === "suspended") ctx.resume();
+      const len = Math.floor(ctx.sampleRate * 0.35);
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.value = loud ? 0.25 : 0.07;
+      src.connect(gain).connect(ctx.destination);
+      src.start();
+    } catch {
+      /* no audio context = silent dial */
+    }
+  };
 
   // The classic green on-screen display: pops on channel change (and when the
   // TV first turns on), lingers a beat, then fades like a real 90s set.
@@ -501,8 +525,19 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       tvCommand("loadVideoById", [{ videoId: ch.id, startSeconds: start }]);
       return { idx, start };
     });
+    // New loads can reset the player's mute — re-assert what the viewer chose.
+    const keepSound = soundOn;
+    setTimeout(() => {
+      if (keepSound) {
+        tvCommand("unMute");
+        tvCommand("setVolume", [100]);
+      } else {
+        tvCommand("mute");
+      }
+    }, 900);
+    playStaticSfx(soundOn);
     setStatics(true);
-    setTimeout(() => setStatics(false), 350);
+    setTimeout(() => setStatics(false), 450);
     flashOsd();
   };
 
@@ -520,15 +555,19 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
           <iframe
             ref={tvRef}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{ width: "max(100vw, 177.78vh)", height: "max(100vh, 56.25vw)" }}
+            style={
+              SHOP_TV_CHANNELS[tv.idx].fill
+                ? { width: "max(177.78vh, 133.34vw)", height: "max(100vh, 75vw)" }
+                : { width: "max(100vw, 177.78vh)", height: "max(100vh, 56.25vw)" }
+            }
             src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_CHANNELS[tv.idx].id}?autoplay=1&mute=1&start=${tv.start}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1`}
             referrerPolicy="strict-origin-when-cross-origin"
             title="Shop TV"
             allow="autoplay; encrypted-media"
           />
           {/* Dim + vignette so the welcome chrome stays readable over cartoons. */}
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.75) 100%)" }} />
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)" }} />
           {/* 90s TV on-screen display: big green channel readout + MUTE */}
           {osd && (
             <div
@@ -547,20 +586,11 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
             </div>
           )}
           {/* Channel-change static burst */}
-          {statics && (
-            <div
-              className="absolute inset-0 opacity-70"
-              style={{
-                backgroundImage:
-                  "repeating-linear-gradient(0deg, #111 0px, #777 1px, #222 2px, #999 3px, #000 4px), repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0px, transparent 2px, rgba(255,255,255,0.25) 3px, transparent 5px)",
-                backgroundSize: "100% 4px, 7px 100%",
-              }}
-            />
-          )}
+          {statics && <div className="tv-snow absolute inset-0 opacity-80" />}
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col items-center">
+      <div className="relative z-10 flex flex-col items-center rounded-3xl bg-black/50 px-12 py-8 backdrop-blur-[2px]">
         <div className="f-mono mb-6 h-4 text-[12px] uppercase tracking-[0.3em] text-cyan-300">
           {now
             ? `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · ${now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
