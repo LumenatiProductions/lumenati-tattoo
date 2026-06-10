@@ -65,6 +65,14 @@ export default function RequestsInbox() {
       setMsg(d.error || "Could not update that request.");
       return false;
     }
+    // Tell the desk what happened with the deposit link.
+    if (body.action === "accept" && d.depositLink) {
+      setMsg(
+        d.depositLink.sent
+          ? `Booked — deposit link ${d.depositLink.via === "sms" ? "texted" : "emailed"} to the client.`
+          : `Booked — deposit link couldn't be sent (${(d.depositLink.reason || "unknown").toLowerCase()}). Copy it: ${d.depositLink.url}`,
+      );
+    }
     setOpenId(null);
     await Promise.all([load(), body.action === "accept" ? refreshBookings() : Promise.resolve()]);
     return true;
@@ -78,7 +86,15 @@ export default function RequestsInbox() {
         Requests <span className="font-normal text-black/35">· from the website</span>
       </SectionTitle>
       {msg && (
-        <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{msg}</div>
+        <div
+          className={`mb-3 rounded-lg border px-3 py-2 text-xs ${
+            /could not|couldn't/i.test(msg)
+              ? "border-rose-200 bg-rose-50 text-rose-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {msg}
+        </div>
       )}
       <Card className="divide-y divide-black/5">
         {requests.map((q) => {

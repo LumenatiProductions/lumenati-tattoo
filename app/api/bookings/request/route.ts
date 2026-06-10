@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { looksLikePhone, normalizePhone } from "@/lib/sms";
+import { isSmsConfigured, looksLikePhone, normalizePhone, sendSms } from "@/lib/sms";
+import { createPaymentLink } from "@/lib/stripe/payments";
+import { isStripeConfigured } from "@/lib/stripe/client";
 
 export const dynamic = "force-dynamic";
 
@@ -228,7 +230,63 @@ export async function PATCH(req: Request) {
       .select()
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ request: data, booking });
+
+    // Deposit requested + Stripe on => mint the pay link and send it in the
+    // same breath (text first, email fallback). Best-effort: a send failure
+    // still returns the URL so the desk can pass it along by hand.
+    let depositLink: { url: string; sent: boolean; via?: string; reason?: string } | null = null;
+    if (deposit >= 50 && isStripeConfigured) {
+      const admin = createAdminClient();
+      if (admin) {
+        const link = await createPaymentLink(admin, {
+          bookingId: booking.id,
+          clientId,
+          artistId: booking.artist_id ?? null,
+          kind: "deposit",
+          amountCents: deposit,
+        });
+        if (link.ok) {
+          depositLink = { url: link.url, sent: false };
+          const when = new Date(b.startsAt).toLocaleString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: process.env.SHOP_TIMEZONE || "America/Denver",
+          });
+          const usd = (deposit / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+          const text = `Lumenati Tattoo: you're booked for ${when}. Lock it in with your ${usd} deposit: ${link.url}`;
+          if (reqRow.phone && isSmsConfigured) {
+            const sms = await sendSms(reqRow.phone as string, text);
+            if (sms.ok) depositLink = { url: link.url, sent: true, via: "sms" };
+            else depositLink.reason = sms.error;
+          }
+          if (!depositLink.sent && reqRow.email && process.env.RESEND_API_KEY) {
+            const res = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: "Lumenati Tattoo <onboarding@resend.dev>",
+                to: [reqRow.email],
+                subject: `You're booked — secure your spot with the deposit`,
+                html: `<p style="font-family:Arial,sans-serif;font-size:14px;color:#3f3f46;">You're booked for <strong>${when}</strong> at Lumenati Tattoo. Lock it in by paying your ${usd} deposit:</p><p><a href="${link.url}" style="display:inline-block;background:#FF1493;color:#fff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">Pay deposit</a></p><p style="font-family:Arial,sans-serif;font-size:12px;color:#a1a1aa;">${link.url}</p>`,
+              }),
+            });
+            if (res.ok) depositLink = { url: link.url, sent: true, via: "email" };
+            else depositLink.reason = depositLink.reason ?? `Email failed (${res.status})`;
+          }
+          if (!depositLink.sent && !depositLink.reason) {
+            depositLink.reason = "No reachable contact / sending not configured";
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ request: data, booking, depositLink });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
