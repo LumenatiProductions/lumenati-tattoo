@@ -16,15 +16,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lumenati.app",
-      "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Pick a profile photo for your public room page.",
-        "NSCameraUsageDescription": "Snap shelf photos to count inventory and receipts to log deductions."
+        "NSCameraUsageDescription": "Snap shelf photos to count inventory and receipts to log deductions.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.lumenati.app",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#0e0e11"
