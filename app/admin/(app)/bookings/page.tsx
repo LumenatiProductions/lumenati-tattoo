@@ -319,6 +319,8 @@ function BookingRow({
             <span className="truncate text-sm font-medium">{clientName}</span>
             <Badge tone={status.tone}>{status.label}</Badge>
             {deposit && <Badge tone={deposit.tone}>{deposit.label}</Badge>}
+            {b.status === "scheduled" && b.confirmed_at && <Badge tone="good">Confirmed ✓</Badge>}
+            {b.checked_in_at && <Badge tone="brand">Here</Badge>}
           </div>
           <div className="mt-0.5 truncate text-xs text-black/45">
             {[artistName, b.service_desc, b.est_price_cents ? money(b.est_price_cents) : null]

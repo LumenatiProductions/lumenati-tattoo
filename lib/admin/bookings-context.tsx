@@ -25,6 +25,7 @@ export type Booking = {
   created_at: string;
   synced_at: string;
   checked_in_at: string | null; // kiosk self check-in (POS-STARTER-2); null = not arrived
+  confirmed_at?: string | null; // client replied C to a reminder (confirmations-schema.sql)
 };
 
 export type NewBooking = {
