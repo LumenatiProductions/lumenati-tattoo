@@ -28,7 +28,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#0e0e11"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -46,6 +49,15 @@
         }
       ],
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "2f6cfbd9-beb5-4f36-a5ec-827c55c622d2"
+      }
+    },
+    "owner": "cinebody"
   }
 }
