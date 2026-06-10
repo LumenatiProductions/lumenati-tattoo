@@ -435,6 +435,8 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
   // Leave 10 minutes of runway so it never starts at the credits.
   const [tvStart, setTvStart] = useState<number | null>(null);
   const [soundOn, setSoundOn] = useState(false);
+  const [channel, setChannel] = useState(99);
+  const [statics, setStatics] = useState(false);
   const tvRef = useRef<HTMLIFrameElement | null>(null);
   useEffect(() => {
     setNow(new Date());
@@ -461,6 +463,20 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
     setSoundOn((s) => !s);
   };
 
+  // Channel surf: seek to a random spot, roll a fake channel number, and blip
+  // a burst of static so it feels like the dial actually turned.
+  const changeChannel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    tvCommand("seekTo", [Math.floor(Math.random() * (SHOP_TV_LENGTH_S - 600)), true]);
+    setChannel((c) => {
+      let next = c;
+      while (next === c) next = 2 + Math.floor(Math.random() * 97);
+      return next;
+    });
+    setStatics(true);
+    setTimeout(() => setStatics(false), 350);
+  };
+
   return (
     <div
       onClick={onBegin}
@@ -484,6 +500,17 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
           {/* Dim + vignette so the welcome chrome stays readable over cartoons. */}
           <div className="absolute inset-0 bg-black/60" />
           <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.75) 100%)" }} />
+          {/* Channel-change static burst */}
+          {statics && (
+            <div
+              className="absolute inset-0 opacity-70"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(0deg, #111 0px, #777 1px, #222 2px, #999 3px, #000 4px), repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0px, transparent 2px, rgba(255,255,255,0.25) 3px, transparent 5px)",
+                backgroundSize: "100% 4px, 7px 100%",
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -501,18 +528,26 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
         </p>
       </div>
 
-      {/* Sound toggle — bottom corner, isolated from the check-in tap. */}
+      {/* TV remote — bottom corner, isolated from the check-in tap. */}
       {tvStart !== null && (
-        <button
-          onClick={toggleSound}
-          className={`f-mono absolute bottom-4 right-4 z-20 rounded border px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${
-            soundOn
-              ? "border-lime-300/70 bg-black/60 text-lime-300"
-              : "border-white/25 bg-black/60 text-white/80 hover:text-white"
-          }`}
-        >
-          {soundOn ? "♪ sound on" : "♪ sound off"}
-        </button>
+        <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+          <button
+            onClick={changeChannel}
+            className="f-mono rounded border border-cyan-300/60 bg-black/60 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-cyan-300 hover:text-cyan-100"
+          >
+            ▲▼ ch.{String(channel).padStart(2, "0")}
+          </button>
+          <button
+            onClick={toggleSound}
+            className={`f-mono rounded border px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${
+              soundOn
+                ? "border-lime-300/70 bg-black/60 text-lime-300"
+                : "border-white/25 bg-black/60 text-white/80 hover:text-white"
+            }`}
+          >
+            {soundOn ? "♪ sound on" : "♪ sound off"}
+          </button>
+        </div>
       )}
     </div>
   );
