@@ -86,7 +86,16 @@ export default function KioskPage() {
   }
 
   if (screen === "setup") {
-    return <Setup onSaved={load} initialError={err} setErr={setErr} />;
+    // On success, land on the welcome screen — load() alone only fetches.
+    return (
+      <Setup
+        onSaved={() => {
+          load().then((ok) => ok && setScreen("welcome"));
+        }}
+        initialError={err}
+        setErr={setErr}
+      />
+    );
   }
 
   if (screen === "detail" && selected) {
