@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
@@ -15,6 +15,13 @@ export default function SignIn() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
+
+  const resend = async () => {
+    setResent(true);
+    setTimeout(() => setResent(false), 30000);
+    await sendCode();
+  };
 
   const sendCode = async () => {
     if (!email.trim()) return;
@@ -43,7 +50,13 @@ export default function SignIn() {
   };
 
   return (
-    <View style={styles.wrap}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView
+        contentContainerStyle={styles.wrap}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
+      <Pressable onPress={Keyboard.dismiss} style={{ position: "absolute", inset: 0 }} />
       <View style={styles.card}>
         <View style={{ alignItems: "center", marginBottom: 4 }}>
           <LumenatiLogo width={120} />
@@ -64,6 +77,9 @@ export default function SignIn() {
               placeholderTextColor={theme.textFaint}
               autoCapitalize="none"
               keyboardType="email-address"
+              autoFocus
+              returnKeyType="go"
+              onSubmitEditing={sendCode}
               value={email}
               onChangeText={setEmail}
             />
@@ -76,12 +92,19 @@ export default function SignIn() {
               placeholder="000000"
               placeholderTextColor={theme.textFaint}
               keyboardType="number-pad"
+              autoFocus
+              textContentType="oneTimeCode"
               value={code}
               onChangeText={setCode}
               maxLength={8}
             />
             <Button label={busy ? "Verifying…" : "Verify"} onPress={verify} disabled={busy} />
-            <Pressable onPress={() => setStep("email")}>
+            <Pressable onPress={resend} disabled={busy || resent}>
+              <Text style={[styles.link, resent && { opacity: 0.4 }]}>
+                {resent ? "Code sent — check your email" : "Send a new code"}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => { setCode(""); setStep("email"); }}>
               <Text style={styles.link}>Use a different email</Text>
             </Pressable>
           </>
@@ -90,7 +113,8 @@ export default function SignIn() {
         {error && <Text style={styles.error}>{error}</Text>}
         {busy && <ActivityIndicator color={theme.brand} style={{ marginTop: 12 }} />}
       </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -107,7 +131,7 @@ function Button({ label, onPress, disabled }: { label: string; onPress: () => vo
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: theme.bg, alignItems: "center", justifyContent: "center", padding: 24 },
+  wrap: { flexGrow: 1, backgroundColor: theme.bg, alignItems: "center", justifyContent: "center", padding: 24 },
   card: {
     width: "100%",
     maxWidth: 380,

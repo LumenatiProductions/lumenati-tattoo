@@ -35,7 +35,7 @@ export default function Launcher({ role }: { role: Role | null }) {
             <View style={styles.iconWrap}>
               <Ionicons name={it.icon} size={18} color={theme.brand} />
             </View>
-            <Text style={styles.tileText}>{it.label}</Text>
+            <Text style={styles.tileText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{it.label}</Text>
             <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
           </Pressable>
         ))}
