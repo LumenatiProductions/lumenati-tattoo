@@ -424,17 +424,15 @@ function Row({ label, value, tone }: { label: string; value: string; tone: "good
 // anyway). Each reload tunes into a random channel at a random point; the CH
 // buttons surf the dial via the IFrame API (loadVideoById — no iframe reload,
 // mute state survives). pointer-events-none so a tap anywhere still checks in.
-// fill: true = 4:3-era station (true 4:3 or baked pillarbox) — oversize the
-// player so the picture crops to cover the whole screen, no black bars.
-const SHOP_TV_CHANNELS: { num: number; id: string; len: number; fill?: boolean }[] = [
-  { num: 2, id: "30wEwDz9WyM", len: 1698, fill: true },   // Good Morning America, 1992
-  { num: 4, id: "ZD2GyA9hOqk", len: 4494, fill: true },   // Married with Children marathon
-  { num: 5, id: "F1EYfSPThCk", len: 7234 },               // Nick Rewind: Clarissa, Kenan & Kel
-  { num: 9, id: "GZnPR9CkqJs", len: 6307, fill: true },   // TMNT (1987) marathon
-  { num: 11, id: "XTMjcM7HPUE", len: 7480 },              // 90s Nick cartoon chaos
-  { num: 27, id: "EflI45HbiOQ", len: 12319, fill: true }, // 90s kids game shows w/ commercials
-  { num: 33, id: "y0BerpDmVSE", len: 61 },                // Clarissa theme (the joke channel)
-  { num: 99, id: "xBFuNlPzZrk", len: 31179, fill: true }, // Cartoon Network, 8h40m
+const SHOP_TV_CHANNELS: { num: number; id: string; len: number }[] = [
+  { num: 2, id: "30wEwDz9WyM", len: 1698 },   // Good Morning America, 1992
+  { num: 4, id: "ZD2GyA9hOqk", len: 4494 },   // Married with Children marathon
+  { num: 5, id: "F1EYfSPThCk", len: 7234 },   // Nick Rewind: Clarissa, Kenan & Kel
+  { num: 9, id: "GZnPR9CkqJs", len: 6307 },   // TMNT (1987) marathon
+  { num: 11, id: "XTMjcM7HPUE", len: 7480 },  // 90s Nick cartoon chaos
+  { num: 27, id: "EflI45HbiOQ", len: 12319 }, // 90s kids game shows w/ commercials
+  { num: 33, id: "y0BerpDmVSE", len: 61 },    // Clarissa theme (the joke channel)
+  { num: 99, id: "xBFuNlPzZrk", len: 31179 }, // Cartoon Network, 8h40m
 ];
 // Random tune-in inside a video, leaving runway so it never starts at the end.
 const tuneIn = (len: number) => (len < 300 ? 0 : Math.floor(Math.random() * (len - 120)));
@@ -589,11 +587,10 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
           <iframe
             ref={tvRef}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={
-              SHOP_TV_CHANNELS[tv.idx].fill
-                ? { width: "max(177.78vh, 133.34vw)", height: "max(100vh, 75vw)" }
-                : { width: "max(100vw, 177.78vh)", height: "max(100vh, 56.25vw)" }
-            }
+            // Overscan like a real 90s set: oversize the player so the inner
+            // 4:3 picture (or a baked pillarbox) always crops past the screen
+            // edges — no black bars on any channel, whatever its upload shape.
+            style={{ width: "max(177.78vh, 133.34vw)", height: "max(100vh, 75vw)" }}
             src={`https://www.youtube-nocookie.com/embed/${SHOP_TV_CHANNELS[tv.idx].id}?autoplay=1&mute=1&start=${tv.start}&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1`}
             referrerPolicy="strict-origin-when-cross-origin"
             title="Shop TV"
