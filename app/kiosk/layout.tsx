@@ -24,7 +24,7 @@ export const viewport = {
 };
 
 const TICKER =
-  "✦ WELCOME TO LUMENATI ✦ STEP INTO THE BEDROOM ✦ TAP YOUR NAME TO CHECK IN ✦ STAY GOLD ✦ NO REGRETS ✦ INK NEVER LIES ✦ THE EYE SEES YOU ✦";
+  "✦ WELCOME TO LUMENATI ✦ TAP YOUR NAME TO CHECK IN ✦ STAY GOLD ✦ NO REGRETS ✦ INK NEVER LIES ✦ THE EYE SEES YOU ✦ DENVER CO ✦";
 
 export default function KioskLayout({ children }: { children: React.ReactNode }) {
   return (
