@@ -5,6 +5,7 @@ import { runDailyJob as bookingsJob } from "@/lib/bookings/job";
 import { runDailyJob as complianceJob } from "@/lib/compliance/job";
 import { runDailyJob as inventoryJob } from "@/lib/inventory/job";
 import { runDailyJob as followupsJob } from "@/lib/followups/job";
+import { runDailyJob as rentJob } from "@/lib/rent/job";
 import { runNoShowForfeit } from "@/lib/automation/no-show";
 import { runMorningBrief } from "@/lib/automation/brief";
 import { runPushReminders } from "@/lib/automation/push";
@@ -25,6 +26,7 @@ const JOBS: [string, (admin: unknown) => Promise<unknown>][] = [
   ["compliance", complianceJob],
   ["inventory", inventoryJob],
   ["followups", followupsJob],
+  ["rent_invoices", rentJob],
   ["no_show", runNoShowForfeit],
   ["morning_brief", runMorningBrief],
   ["push_reminders", runPushReminders],

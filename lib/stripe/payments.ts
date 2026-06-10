@@ -10,12 +10,13 @@ import { connectChargeParams } from "./connect";
 // application_fee_amount + transfer_data; keep the shape stable so the kiosk and
 // phone app reuse this rather than reinventing it.
 
-export type PaymentKind = "deposit" | "ticket" | "other";
+export type PaymentKind = "deposit" | "ticket" | "other" | "rent";
 
 const KIND_LABEL: Record<PaymentKind, string> = {
   deposit: "Deposit",
   ticket: "Tattoo",
   other: "Payment",
+  rent: "Booth rent",
 };
 
 // Opaque, URL-safe token for the public /pay/<token> route. Not guessable.
@@ -183,6 +184,16 @@ export async function settlePayment(
       .update({ deposit_status: "held", deposit_payment_id: match.paymentIntentId ?? row.id })
       .eq("id", row.booking_id)
       .eq("deposit_status", "none"); // don't clobber an applied/forfeited deposit
+  }
+
+  if (row.kind === "rent") {
+    // In-house rent invoice paid (rent-invoices-schema.sql). Errors ignored —
+    // the table may not be applied yet and a paid payment must never bounce.
+    await admin
+      .from("rent_invoices")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("payment_id", row.id)
+      .eq("status", "pending");
   }
 
   return { settled: true, paymentId: row.id, kind: row.kind };
