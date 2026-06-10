@@ -83,7 +83,11 @@ export const AFTERCARE_STATEMENTS: string[] = [
 // (defaults to now). Returns null if the dob is missing/unparseable.
 export function computeAgeOk(dob: string | null | undefined, asOf?: Date): boolean | null {
   if (!dob) return null;
-  const born = new Date(dob);
+  // Anchor a date-only DOB to LOCAL midnight: bare YYYY-MM-DD parses as UTC,
+  // and comparing that against local date components shifted birthdays a day
+  // early for anyone west of UTC (a minor could pass the gate on the eve of
+  // their 18th). Caught by tests/messaging.test.ts.
+  const born = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dob) ? `${dob}T00:00:00` : dob);
   if (Number.isNaN(born.getTime())) return null;
   const ref = asOf ?? new Date();
   let age = ref.getFullYear() - born.getFullYear();
