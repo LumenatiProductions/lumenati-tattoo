@@ -19,7 +19,11 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Pick a profile photo for your public room page.",
         "NSCameraUsageDescription": "Snap shelf photos to count inventory and receipts to log deductions.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Stripe needs your location to take secure Tap to Pay card payments."
+      },
+      "entitlements": {
+        "com.apple.developer.proximity-reader.payment.acceptance": true
       }
     },
     "android": {
@@ -59,7 +63,13 @@
         }
       ],
       "expo-notifications",
-      "expo-build-properties"
+      "expo-build-properties",
+      [
+        "@stripe/stripe-terminal-react-native",
+        {
+          "locationWhenInUsePermission": "Stripe needs your location to take secure Tap to Pay card payments."
+        }
+      ]
     ],
     "extra": {
       "router": {
