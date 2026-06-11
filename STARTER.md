@@ -1,3 +1,44 @@
+# NEXT SESSION — Tap to Pay videos + loose ends (teed up 2026-06-10, late)
+
+**State**: Both stores live for internal testers. A production iOS build with
+everything (4 parity screens, Y2K payment FX, sign-in fixes, POS artist
+picker) was queued ~midnight with --auto-submit — FIRST: verify it reached
+TestFlight (`npx eas-cli build:list --limit 2` from app-native/, and the
+submission). The Tap to Pay entitlement is DEV-RESTRICTED by Apple until
+their flow-video review passes (Case-ID 20445539; see
+memory project-lumenati-ttp-staged + the TTPOI Entitlements email).
+
+**Main quest — get Tap to Pay fully approved:**
+1. Register Scott's iPhone as a test device: `npx eas-cli device:create`
+   (sends a link/QR to open ON THE PHONE; registers the UDID).
+2. Dev build with the entitlement: `npx eas-cli build --profile development
+   --platform ios` (the dev profile sets TTP_ENTITLEMENT=1 + EXPO_PUBLIC_TTP=1
+   via eas.json; app.config.js injects the entitlement). May need one
+   interactive Terminal run for the ad-hoc/dev provisioning profile.
+3. Install on Scott's iPhone (internal distribution link), sign in, take a
+   test payment — the REAL Tap to Pay flow should run (Stripe test mode).
+4. Record the three videos Apple wants (screen-record the phone):
+   "New User Flow", "Existing User Flow", "Checkout Flow". Review the two
+   docs first: https://apple.box.com/v/ttpoirequirements
+5. Complete the App Review Requirements Checklist (link in the email),
+   upload videos + checklist via the email's File Uploader link, REPLY to
+   the email including: Case-ID: 20445539.
+6. When Apple lifts the restriction: make the entitlement unconditional
+   (move into app.json ios.entitlements or default TTP_ENTITLEMENT=1),
+   drop the EXPO_PUBLIC_TTP gate in lib/terminal.ts + eas.json, rebuild
+   production → whole crew has Tap to Pay via TestFlight.
+
+**Side quests (any order):**
+- Scott installs/tests the new TestFlight build — esp. sign-in (code email),
+  the 4 new screens, and that POS shows the honest fallback.
+- Android: Scott's tester Gmail + opt-in link
+  https://play.google.com/apps/internaltest/4701288504633492438
+- Push notifications: `npx eas-cli credentials` → create APNs key + FCM.
+- App parity wave 2: Payouts/Artists & Pay, Intake, Reconciliation, Staff,
+  Integrations (full-parity directive — artists use phones/iPads).
+- GO-LIVE Phase 2/3 when Scott's ready: live Stripe keys + Connect
+  onboarding (Tap to Pay charges real cards only after this).
+
 # STARTER — read this first (resume point)
 
 One doc to resume from in a fresh chat without re-reading history. If you (the
