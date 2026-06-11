@@ -1,43 +1,72 @@
-# NEXT SESSION — Tap to Pay videos + loose ends (teed up 2026-06-10, late)
+# NEXT SESSION — Tap to Pay dev build (needs SCOTT in Terminal) (updated 2026-06-11)
 
-**State**: Both stores live for internal testers. A production iOS build with
-everything (4 parity screens, Y2K payment FX, sign-in fixes, POS artist
-picker) was queued ~midnight with --auto-submit — FIRST: verify it reached
-TestFlight (`npx eas-cli build:list --limit 2` from app-native/, and the
-submission). The Tap to Pay entitlement is DEV-RESTRICTED by Apple until
-their flow-video review passes (Case-ID 20445539; see
-memory project-lumenati-ttp-staged + the TTPOI Entitlements email).
+**State (2026-06-11):** Build 14 (everything: parity screens, Y2K payment FX,
+sign-in fixes, POS picker) VERIFIED in TestFlight — submission FINISHED.
+**App parity wave 2 SHIPPED** (Payouts, Intake, Reconciliation, Staff,
+Integrations — the full-parity backlog is now EMPTY). The Tap to Pay
+entitlement is DEV-RESTRICTED by Apple until their flow-video review passes
+(Case-ID 20445539; memory project-lumenati-ttp-staged + the TTPOI email).
 
-**Main quest — get Tap to Pay fully approved:**
-1. Register Scott's iPhone as a test device: `npx eas-cli device:create`
-   (sends a link/QR to open ON THE PHONE; registers the UDID).
-2. Dev build with the entitlement: `npx eas-cli build --profile development
-   --platform ios` (the dev profile sets TTP_ENTITLEMENT=1 + EXPO_PUBLIC_TTP=1
-   via eas.json; app.config.js injects the entitlement). May need one
-   interactive Terminal run for the ad-hoc/dev provisioning profile.
-3. Install on Scott's iPhone (internal distribution link), sign in, take a
+**⚠️ ONE BLOCKER, needs Scott at a real Terminal (~5 min):** the dev build's
+ad-hoc provisioning profile needs an interactive Apple login. The assistant
+tried to drive it with expect and the prompt got garbled — a login attempt
+went out for a mangled username ("y") and Apple answered "This Apple Account
+has been locked for security reasons" (error -20209). That attempt was NOT
+for lumenati@icloud.com, so the real account is probably fine, but FIRST:
+sign in at https://appleid.apple.com to confirm (iforgot.apple.com if locked).
+Then run, answering prompts by hand (Apple ID default + password + 2FA,
+"Generate a new Apple Provisioning Profile" → yes, select the iPhone):
+
+    cd ~/lumenati-tattoo/app-native
+    npx eas-cli build --profile development --platform ios
+
+Already done for this: an iPhone UDID is registered on the team (2026-05-18),
+expo-dev-client is installed, and the `development` profile is now a DEVICE
+build (simulator variant moved to `development-simulator`). Heads-up: EAS
+build credits were at 93% for the month.
+
+**Main quest after that build (get Tap to Pay fully approved):**
+1. Install on Scott's iPhone (internal distribution link), sign in, take a
    test payment — the REAL Tap to Pay flow should run (Stripe test mode).
-4. Record the three videos Apple wants (screen-record the phone):
+2. Record the three videos Apple wants (screen-record the phone):
    "New User Flow", "Existing User Flow", "Checkout Flow". Review the two
    docs first: https://apple.box.com/v/ttpoirequirements
-5. Complete the App Review Requirements Checklist (link in the email),
+3. Complete the App Review Requirements Checklist (link in the email),
    upload videos + checklist via the email's File Uploader link, REPLY to
    the email including: Case-ID: 20445539.
-6. When Apple lifts the restriction: make the entitlement unconditional
+4. When Apple lifts the restriction: make the entitlement unconditional
    (move into app.json ios.entitlements or default TTP_ENTITLEMENT=1),
    drop the EXPO_PUBLIC_TTP gate in lib/terminal.ts + eas.json, rebuild
    production → whole crew has Tap to Pay via TestFlight.
 
 **Side quests (any order):**
-- Scott installs/tests the new TestFlight build — esp. sign-in (code email),
-  the 4 new screens, and that POS shows the honest fallback.
+- Scott installs/tests the TestFlight build (build 14) — esp. sign-in (code
+  email) and that POS shows the honest fallback. Wave-2 screens (Payouts,
+  Intake, Reconcile, Staff, Integrations) need build 15 or Expo Go/dev build.
+- Queue build 15 when convenient: `npx eas-cli build -p ios --profile
+  production --auto-submit` (picks up wave 2; mind the 93% build credits).
 - Android: Scott's tester Gmail + opt-in link
   https://play.google.com/apps/internaltest/4701288504633492438
-- Push notifications: `npx eas-cli credentials` → create APNs key + FCM.
-- App parity wave 2: Payouts/Artists & Pay, Intake, Reconciliation, Staff,
-  Integrations (full-parity directive — artists use phones/iPads).
+- Push notifications: `npx eas-cli credentials` → create APNs key + FCM
+  (also interactive). Event push in the web admin is already no-op-waiting
+  on device tokens.
 - GO-LIVE Phase 2/3 when Scott's ready: live Stripe keys + Connect
   onboarding (Tap to Pay charges real cards only after this).
+
+## App parity wave 2 (shipped 2026-06-11)
+Five screens, same component kit, RLS-direct where possible:
+- **Payouts**: per-artist statements with the web's settled_through math
+  (sales mirror + pending rent_invoices), Mark settled → /api/settlements
+  (receipt email still sends), artists see only their own statement.
+- **Intake**: needs-attention queue, start-a-form → share sheet with the
+  signing link (hex sign tokens via expo-crypto), confirm ID, void.
+- **Reconciliation**: /api/reconcile (headline diff hero, Stripe payouts,
+  drawer closes).
+- **Staff**: profiles allowlist add/remove (self-lockout guard), owner only.
+- **Integrations**: Square sync status + Sync now + member→artist mapping.
+- Server: `resolveStaff()` in lib/api-auth.ts — cookie OR Bearer for
+  /api/settlements, /api/reconcile, /api/square/sync POST (Bearer path uses
+  the service-role client AFTER the role check; artist scoping explicit).
 
 # STARTER — read this first (resume point)
 
