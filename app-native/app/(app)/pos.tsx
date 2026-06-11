@@ -57,7 +57,7 @@ function Fallback() {
             ? "Tap to Pay runs on the phone app. Open Lumenati on your iPhone to tap a card here — or send the client a pay link from the web admin."
             : Platform.OS === "android"
               ? "Tap to Pay on Android isn't enrolled yet — use an iPhone or send a pay link from the web admin."
-              : "Tap to Pay needs the installed app (TestFlight build), not Expo Go."}
+              : "Tap to Pay is in Apple\u2019s final review (flow videos) — it lights up here the day they approve. Until then, send a pay link from the web admin."}
         </Text>
       </Card>
       <View style={{ height: 18 }} />

@@ -10,8 +10,10 @@ import { apiPost } from "./appApi";
 export const inExpoGo = Constants.appOwnership === "expo";
 
 export function tapToPayAvailable(): boolean {
+  // Apple's grant is dev-restricted until the flow-video review passes, so
+  // only dev-profile builds (EXPO_PUBLIC_TTP=1) light up the real flow.
   // Android Tap to Pay needs separate Google enrollment — iOS first.
-  return Platform.OS === "ios" && !inExpoGo;
+  return Platform.OS === "ios" && !inExpoGo && process.env.EXPO_PUBLIC_TTP === "1";
 }
 
 // The connection token the SDK needs comes from our Bearer-authed endpoint.

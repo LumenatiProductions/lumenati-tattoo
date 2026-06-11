@@ -9,6 +9,10 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "TTP_ENTITLEMENT": "1",
+        "EXPO_PUBLIC_TTP": "1"
       }
     },
     "preview": {
