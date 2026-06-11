@@ -143,12 +143,13 @@ Smaller follow-ups:
 
 ## Roadmap (future — Scott-stated, not started)
 
-- **Merch sales** (2026-06-10): merch inventory + sales + barcodes. When it
-  lands, the primitives mostly exist: extend `inventory_items` with
-  SKU/barcode/price/stock (merch kind vs supplies), barcode scanning in the
-  app (expo camera — the snap-to-count camera plumbing is already there), a
-  merch line on the POS (Tap to Pay works today; merch ticket = shop revenue
-  or an artist-merch split), and a merch slice on Reports.
+- **Merch sales** (2026-06-10): merch inventory + sales. Scott: maybe no
+  barcodes — "take a photo of the tag or something easy" (vision recognition;
+  the snap-to-count vision pipeline already does exactly this shape). And
+  artists get a CUT on merch they sell — incentivize pushing it (rides the
+  existing per-artist split machinery + the POS For: picker). Extend
+  `inventory_items` with a merch kind (price/stock), merch line on the POS,
+  merch slice on Reports.
 - **App parity backlog** (full-parity directive): Payouts/Artists & Pay,
   Intake, Reconciliation, Staff, Integrations.
 - **Android Tap to Pay**: Google enrollment when an Android artist needs it.
