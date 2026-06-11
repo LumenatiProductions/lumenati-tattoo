@@ -3,7 +3,10 @@ import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-nati
 import { useStripeTerminal, type Reader } from "@stripe/stripe-terminal-react-native";
 import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
+import { Chips } from "@/components/form";
+import { supabase } from "@/lib/supabase";
 import { createTapToPayIntent, getLocationId } from "@/lib/terminal";
+import Y2kPaidFX from "@/components/Y2kPaidFX";
 
 // The real Tap to Pay flow (iOS, real builds only — pos.tsx gates rendering).
 // One screen, one motion: type the amount, hit charge, client taps their card
@@ -18,6 +21,9 @@ export default function TapToPayPos() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [paidCents, setPaidCents] = useState(0);
+  const [fx, setFx] = useState(false);
+  const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
+  const [who, setWho] = useState("shop");
   const readerRef = useRef<Reader.Type | null>(null);
 
   const {
@@ -37,6 +43,8 @@ export default function TapToPayPos() {
 
   useEffect(() => {
     initialize();
+    supabase.from("artists").select("id, name").eq("active", true).order("sort")
+      .then(({ data }) => setArtists((data ?? []) as { id: string; name: string }[]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -71,7 +79,7 @@ export default function TapToPayPos() {
     try {
       await ensureConnected();
       setPhase("collecting");
-      const { clientSecret } = await createTapToPayIntent(cents);
+      const { clientSecret } = await createTapToPayIntent(cents, who === "shop" ? {} : { artistId: who });
       const ret = await retrievePaymentIntent(clientSecret);
       if (ret.error || !ret.paymentIntent) throw new Error(ret.error?.message || "Could not load the payment");
       const col = await collectPaymentMethod({ paymentIntent: ret.paymentIntent });
@@ -79,6 +87,7 @@ export default function TapToPayPos() {
       const conf = await confirmPaymentIntent({ paymentIntent: col.paymentIntent });
       if (conf.error) throw new Error(conf.error.message);
       setPaidCents(cents);
+      setFx(true);
       setPhase("done");
       setAmount("");
     } catch (e) {
@@ -89,6 +98,8 @@ export default function TapToPayPos() {
 
   if (phase === "done") {
     return (
+      <>
+      {fx && <Y2kPaidFX cents={paidCents} onDone={() => setFx(false)} />}
       <Card>
         <Text style={styles.doneCheck}>✓</Text>
         <Text style={styles.doneTitle}>Paid {money(paidCents)}</Text>
@@ -96,6 +107,7 @@ export default function TapToPayPos() {
         <View style={{ height: 14 }} />
         <Button label="New payment" tone="ghost" onPress={() => setPhase("idle")} />
       </Card>
+      </>
     );
   }
 
@@ -116,6 +128,18 @@ export default function TapToPayPos() {
           editable={!busy}
         />
       </View>
+
+      {artists.length > 0 && (
+        <View style={{ marginTop: 16 }}>
+          <Chips
+            label="For"
+            value={who}
+            options={["shop", ...artists.map((a) => a.id)]}
+            display={(id) => (id === "shop" ? "Shop" : artists.find((a) => a.id === id)?.name ?? id)}
+            onChange={setWho}
+          />
+        </View>
+      )}
 
       {error && <Text style={styles.error}>{error}</Text>}
 
