@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { resolveStaff } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,35 +13,23 @@ const BOOKS = ["owner", "bookkeeper"] as const;
 const READ = ["owner", "bookkeeper", "artist"] as const;
 const METHODS = ["check", "cash", "stripe", "other"] as const;
 
-async function gate() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("email", user.email!)
-    .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
-}
 const can = (role: string | null, roles: readonly string[]) => !!role && roles.includes(role);
 
 // Postgres "relation does not exist" — schema not applied yet.
 const isMissingTable = (msg: string) => /relation .* does not exist|42P01/i.test(msg);
 
-// List recent settlements + each artist's latest settled_through.
-export async function GET() {
-  const { supabase, user, role } = await gate();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!can(role, READ)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+// List recent settlements + each artist's latest settled_through. Cookie or
+// app Bearer auth; an artist (either path) only sees their own rows.
+export async function GET(req: Request) {
+  const me = await resolveStaff(req);
+  if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!can(me.role, READ)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
 
-  const { data, error } = await supabase
-    .from("settlements")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(200);
+  let q = me.db.from("settlements").select("*").order("created_at", { ascending: false }).limit(200);
+  // Bearer callers read via the service-role client, so the artist scoping RLS
+  // would normally do has to be explicit here.
+  if (me.role === "artist") q = q.eq("artist_id", me.artistId ?? "-");
+  const { data, error } = await q;
   if (error) {
     if (isMissingTable(error.message)) {
       return NextResponse.json({ configured: false, settlements: [], settledThrough: {} });
@@ -62,9 +51,10 @@ export async function GET() {
 // Record a settlement. Owner / bookkeeper.
 // Body: { artistId, amountCents, settledThrough?, method?, note? }
 export async function POST(req: Request) {
-  const { supabase, user, role } = await gate();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!can(role, BOOKS)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  const me = await resolveStaff(req);
+  if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!can(me.role, BOOKS)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  const supabase = me.db;
 
   const b = (await req.json().catch(() => ({}))) as {
     artistId?: string;
@@ -91,7 +81,7 @@ export async function POST(req: Request) {
       settled_through: settledThrough,
       method,
       note: (b.note ?? "").trim(),
-      created_by: user.email ?? null,
+      created_by: me.email,
     })
     .select()
     .single();
@@ -118,7 +108,7 @@ export async function POST(req: Request) {
 }
 
 async function emailReceipt(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient,
   s: { artistId: string; amountCents: number; settledThrough: string; note: string },
 ): Promise<{ sent: boolean; reason?: string }> {
   const key = process.env.RESEND_API_KEY;

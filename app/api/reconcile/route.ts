@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { resolveStaff } from "@/lib/api-auth";
 import { stripe, isStripeConfigured } from "@/lib/stripe/client";
 
 export const dynamic = "force-dynamic";
@@ -14,20 +14,15 @@ const monthStart = () => {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`;
 };
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("email", user.email!)
-    .maybeSingle();
-  if (!profile || !["owner", "bookkeeper"].includes(profile.role)) {
+export async function GET(req: Request) {
+  // Cookie (web admin) or Bearer (the app). Owner/bookkeeper only either way,
+  // and they see everything — no artist scoping needed on these reads.
+  const me = await resolveStaff(req);
+  if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!["owner", "bookkeeper"].includes(me.role)) {
     return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
   }
+  const supabase = me.db;
 
   const from = monthStart();
   const fromIso = `${from}T00:00:00Z`;

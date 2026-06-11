@@ -1,4 +1,6 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 // Bearer-token auth for the app (POS-STARTER-6). The web admin uses cookie auth
 // (@supabase/ssr); the React Native app instead sends its Supabase access token
@@ -12,6 +14,43 @@ export type AppUser = {
   role: string | null;
   artistId: string | null;
 };
+
+// Cookie-or-Bearer gate for routes the app shares with the web admin. Cookie
+// sessions keep their RLS-scoped client; a Bearer caller gets the service-role
+// client AFTER the role check, so handlers must scope artist reads explicitly
+// (mirror the RLS policy in a .eq() — see /api/settlements).
+export type StaffCtx = {
+  db: SupabaseClient;
+  email: string | null;
+  role: string;
+  artistId: string | null;
+};
+
+export async function resolveStaff(req: Request): Promise<StaffCtx | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, artist_id")
+      .eq("email", user.email!)
+      .maybeSingle();
+    if (!profile?.role) return null;
+    return {
+      db: supabase,
+      email: user.email ?? null,
+      role: profile.role,
+      artistId: (profile.artist_id as string | null) ?? null,
+    };
+  }
+  const me = await userFromBearer(req);
+  if (!me?.role) return null;
+  const admin = createAdminClient();
+  if (!admin) return null;
+  return { db: admin, email: me.email, role: me.role, artistId: me.artistId };
+}
 
 export async function userFromBearer(req: Request): Promise<AppUser | null> {
   const header = req.headers.get("authorization") || "";
