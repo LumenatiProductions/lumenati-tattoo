@@ -194,6 +194,12 @@ Smaller follow-ups:
 - **App parity backlog** (full-parity directive): Payouts/Artists & Pay,
   Intake, Reconciliation, Staff, Integrations.
 - **Android Tap to Pay**: Google enrollment when an Android artist needs it.
+- **Productize (future-future, 2026-06-10)**: sell the command center to other
+  tattoo shops. Early shape: clone-per-shop template (own Supabase+Vercel,
+  config for brand/roster/splits); the per-artist money rails (splits,
+  cash-out, tax set-aside, booth rent) are the wedge no incumbent has. Y2K
+  front-of-house becomes a white-label personality layer; back office is
+  already brand-neutral.
 
 ## Resume prompt (paste into a new chat)
 > Read `STARTER.md`, then continue the Lumenati go-live. Do everything you can
