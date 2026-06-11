@@ -8,6 +8,7 @@ import type { Role } from "@/lib/auth";
 // app reads/writes Supabase under RLS, so each role only sees what it can touch.
 type Item = { href: string; label: string; icon: keyof typeof Ionicons.glyphMap; roles: Role[] };
 const ITEMS: Item[] = [
+  { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
   { href: "/room", label: "Rooms", icon: "color-palette-outline", roles: ["owner", "artist"] },
   { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
   { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner", "bookkeeper", "frontdesk"] },

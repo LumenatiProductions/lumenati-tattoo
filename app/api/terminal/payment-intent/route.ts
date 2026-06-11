@@ -22,11 +22,14 @@ export async function POST(req: Request) {
     artistId?: string;
     amountCents?: number;
     bookingId?: string;
+    shop?: boolean;
   };
 
-  // An artist taking their own payment defaults to themselves; front desk/owner
-  // may name the artist being paid.
-  const artistId = b.artistId || me.artistId;
+  // Who the ticket is for. `shop: true` is an explicit shop sale (merch — no
+  // split, money stays with the shop) and anyone can ring one up. Otherwise an
+  // artist can ONLY take payments as themselves (their own split terms apply);
+  // whatever artistId they send is ignored. Desk roles may name any artist.
+  const artistId = b.shop === true ? null : me.role === "artist" ? me.artistId : b.artistId || null;
   const amountCents = Math.round(Number(b.amountCents));
   if (!Number.isFinite(amountCents) || amountCents < 50) {
     return NextResponse.json({ error: "Amount must be at least $0.50." }, { status: 400 });

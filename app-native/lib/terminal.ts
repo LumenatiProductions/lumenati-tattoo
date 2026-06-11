@@ -33,7 +33,7 @@ export async function getLocationId(): Promise<string> {
 // Server mints the destination-charge PaymentIntent (split handled there).
 export async function createTapToPayIntent(
   amountCents: number,
-  opts: { artistId?: string; bookingId?: string } = {},
+  opts: { artistId?: string; bookingId?: string; shop?: boolean } = {},
 ): Promise<{ clientSecret: string }> {
   const r = await apiPost<{ clientSecret: string; paymentIntentId: string }>(
     "/api/terminal/payment-intent",

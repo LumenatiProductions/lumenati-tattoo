@@ -21,7 +21,8 @@
         "NSCameraUsageDescription": "Snap shelf photos to count inventory and receipts to log deductions.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Stripe needs your location to take secure Tap to Pay card payments."
-      }
+      },
+      "appleTeamId": "GBUTL2R6R6"
     },
     "android": {
       "package": "com.lumenati.app",

@@ -5,6 +5,7 @@ import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
 import { Chips } from "@/components/form";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { createTapToPayIntent, getLocationId } from "@/lib/terminal";
 import Y2kPaidFX from "@/components/Y2kPaidFX";
 
@@ -17,6 +18,7 @@ import Y2kPaidFX from "@/components/Y2kPaidFX";
 type Phase = "idle" | "connecting" | "collecting" | "done";
 
 export default function TapToPayPos() {
+  const { role, email } = useAuth();
   const [amount, setAmount] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +26,10 @@ export default function TapToPayPos() {
   const [fx, setFx] = useState(false);
   const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
   const [who, setWho] = useState("shop");
+  // Dev builds only: Stripe test mode declines real cards (test_mode_live_card),
+  // so a simulated reader is the only way to see a successful tap end to end
+  // until the live keys land. Never shown in TestFlight/production builds.
+  const [simulated, setSimulated] = useState(false);
   const readerRef = useRef<Reader.Type | null>(null);
 
   const {
@@ -43,8 +49,19 @@ export default function TapToPayPos() {
 
   useEffect(() => {
     initialize();
-    supabase.from("artists").select("id, name").eq("active", true).order("sort")
-      .then(({ data }) => setArtists((data ?? []) as { id: string; name: string }[]));
+    (async () => {
+      const { data } = await supabase.from("artists").select("id, name").eq("active", true).order("sort");
+      let roster = (data ?? []) as { id: string; name: string }[];
+      // Artists ring up themselves (their own terms apply) or the shop (merch).
+      // Never other artists — the server enforces the same rule.
+      if (role === "artist" && email) {
+        const { data: p } = await supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle();
+        const mine = p?.artist_id as string | null;
+        roster = roster.filter((a) => a.id === mine);
+        if (mine) setWho(mine);
+      }
+      setArtists(roster);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -54,7 +71,7 @@ export default function TapToPayPos() {
     if (connectedReader) return;
     setPhase("connecting");
     const locationId = await getLocationId();
-    await discoverReaders({ discoveryMethod: "tapToPay", simulated: false });
+    await discoverReaders({ discoveryMethod: "tapToPay", simulated });
     // discovery reports the phone's built-in reader via the callback
     const started = Date.now();
     while (!readerRef.current && Date.now() - started < 15000) {
@@ -71,7 +88,7 @@ export default function TapToPayPos() {
       autoReconnectOnUnexpectedDisconnect: true,
     });
     if (connErr) throw new Error(connErr.message);
-  }, [connectedReader, discoverReaders, cancelDiscovering, connectReader]);
+  }, [connectedReader, discoverReaders, cancelDiscovering, connectReader, simulated]);
 
   const take = useCallback(async () => {
     if (cents < 50) return;
@@ -79,7 +96,7 @@ export default function TapToPayPos() {
     try {
       await ensureConnected();
       setPhase("collecting");
-      const { clientSecret } = await createTapToPayIntent(cents, who === "shop" ? {} : { artistId: who });
+      const { clientSecret } = await createTapToPayIntent(cents, who === "shop" ? { shop: true } : { artistId: who });
       const ret = await retrievePaymentIntent(clientSecret);
       if (ret.error || !ret.paymentIntent) throw new Error(ret.error?.message || "Could not load the payment");
       const col = await collectPaymentMethod({ paymentIntent: ret.paymentIntent });
@@ -94,7 +111,7 @@ export default function TapToPayPos() {
       setError(e instanceof Error ? e.message : "Payment failed.");
       setPhase("idle");
     }
-  }, [cents, ensureConnected, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent]);
+  }, [cents, who, ensureConnected, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent]);
 
   if (phase === "done") {
     return (
@@ -137,6 +154,18 @@ export default function TapToPayPos() {
             options={["shop", ...artists.map((a) => a.id)]}
             display={(id) => (id === "shop" ? "Shop" : artists.find((a) => a.id === id)?.name ?? id)}
             onChange={setWho}
+          />
+        </View>
+      )}
+
+      {__DEV__ && !connectedReader && (
+        <View style={{ marginTop: 16 }}>
+          <Chips
+            label="Reader (dev only — test mode declines real cards)"
+            value={simulated ? "simulated" : "real"}
+            options={["real", "simulated"]}
+            display={(v) => (v === "real" ? "Real tap" : "Simulated tap")}
+            onChange={(v) => setSimulated(v === "simulated")}
           />
         </View>
       )}
