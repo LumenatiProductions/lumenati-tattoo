@@ -141,6 +141,18 @@ Smaller follow-ups:
   accent popup) — prefer Connect Hardware Keyboard or short input.
 - Driving Chrome: connect the **"Imac"** browser (`select_browser`), not "Studio".
 
+## Roadmap (future — Scott-stated, not started)
+
+- **Merch sales** (2026-06-10): merch inventory + sales + barcodes. When it
+  lands, the primitives mostly exist: extend `inventory_items` with
+  SKU/barcode/price/stock (merch kind vs supplies), barcode scanning in the
+  app (expo camera — the snap-to-count camera plumbing is already there), a
+  merch line on the POS (Tap to Pay works today; merch ticket = shop revenue
+  or an artist-merch split), and a merch slice on Reports.
+- **App parity backlog** (full-parity directive): Payouts/Artists & Pay,
+  Intake, Reconciliation, Staff, Integrations.
+- **Android Tap to Pay**: Google enrollment when an Android artist needs it.
+
 ## Resume prompt (paste into a new chat)
 > Read `STARTER.md`, then continue the Lumenati go-live. Do everything you can
 > without me and tell me which keys/accounts you need. Start with the next
