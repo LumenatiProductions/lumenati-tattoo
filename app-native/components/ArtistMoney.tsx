@@ -138,13 +138,6 @@ export default function ArtistMoney({
         </>
       )}
 
-      {preview && (
-        <Text style={styles.previewNote}>
-          Earnings above are {preview.name}&apos;s. Goals, deductions and taxes below are YOURS
-          (each artist gets their own private set) — set a goal to see how the pacing works.
-        </Text>
-      )}
-
       {/* Goal pacing */}
       {goalCents > 0 && (
         <>
@@ -245,7 +238,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 8,
   },
-  previewNote: { color: theme.textFaint, fontSize: 12.5, marginTop: 18, lineHeight: 17 },
   toggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
   tabOn: { backgroundColor: theme.brand, borderColor: theme.brand },
