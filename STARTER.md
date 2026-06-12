@@ -1,5 +1,25 @@
 # NEXT SESSION — record the Apple TTP videos (updated 2026-06-12)
 
+## NEW QUEST — Gusto integration (Scott asked 2026-06-12)
+The shop runs payroll on Gusto (W-2 artists set withholding there; coach
+copy already references it). Build, in order:
+1. **SCOTT FIRST:** create a developer app at https://dev.gusto.com →
+   org + application → copy Client ID + Secret → Vercel env
+   (GUSTO_CLIENT_ID, GUSTO_CLIENT_SECRET). Demo/sandbox company available
+   on the dev portal for testing before connecting the real company.
+2. OAuth connect flow on /admin/integrations (Gusto card next to Square):
+   redirect → callback route stores tokens (new gusto_connection table,
+   service-role only), refresh handling.
+3. Bookkeeper surfaces: payroll runs (gross/net/employer taxes) next to
+   the Stripe ledger on Reconciliation + an Expenses & Books payroll line;
+   per-W-2-artist wage info could feed their coach later.
+4. AI/MCP layer LAST: once the API integration exists, expose payroll
+   queries as tools (Gusto has no official MCP server) — for Scott/the
+   bookkeeper asking Claude things like "what did payroll cost last
+   quarter". Thin wrapper over our own synced tables, not direct Gusto.
+
+# (continued) — record the Apple TTP videos
+
 **State (2026-06-12): TAP TO PAY RUNS ON SCOTT'S IPHONE.** EAS dev builds
 turned out impossible while the entitlement is dev-restricted (ad-hoc
 profiles can't carry it — that's what killed the EAS dev build), so the
