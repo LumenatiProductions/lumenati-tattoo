@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { snapCash } from "@/lib/vision";
 import { theme, money } from "@/lib/theme";
 import { Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
@@ -31,6 +32,8 @@ export default function Cash() {
   const [note, setNote] = useState("");
   const [who, setWho] = useState("shop");
   const [busy, setBusy] = useState(false);
+  const [counting, setCounting] = useState(false);
+  const [countNote, setCountNote] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -98,6 +101,43 @@ export default function Cash() {
             {adding && (
               <Card style={{ marginTop: 14 }}>
                 <LabeledInput label="Amount ($, negative for payouts/drops)" value={amount} onChange={setAmount} keyboardType="numeric" placeholder="120" />
+                <View style={{ marginBottom: 12 }}>
+                  <Button
+                    label={counting ? "Counting…" : "Count with the camera"}
+                    tone="ghost"
+                    disabled={counting}
+                    onPress={async () => {
+                      setCounting(true);
+                      setCountNote(null);
+                      const r = await snapCash();
+                      setCounting(false);
+                      if (!r.ok || !r.cash) {
+                        if (r.error !== "canceled") setCountNote(r.error ?? "Could not read the photo.");
+                        return;
+                      }
+                      const breakdown = r.cash.stacks
+                        .sort((a, b) => b.denominationCents - a.denominationCents)
+                        .map((s) => `${s.count}×$${s.denominationCents / 100}`)
+                        .join(" + ");
+                      setAmount(String(r.cash.totalCents / 100));
+                      if (breakdown && !note.trim()) setNote(`counted: ${breakdown}`);
+                      setCountNote(
+                        [breakdown ? `Saw ${breakdown} = ${money(r.cash.totalCents)}` : "No bills found.", r.cash.caveat]
+                          .filter(Boolean)
+                          .join(" — "),
+                      );
+                    }}
+                  />
+                  {countNote ? (
+                    <Text style={{ color: theme.warn, fontSize: 12.5, marginTop: 8, lineHeight: 17 }}>
+                      {countNote} Double-check before saving.
+                    </Text>
+                  ) : (
+                    <Text style={{ color: theme.textFaint, fontSize: 12, marginTop: 8 }}>
+                      Spread the bills out flat — it counts what it can see.
+                    </Text>
+                  )}
+                </View>
                 <Chips
                   label="For"
                   value={who}

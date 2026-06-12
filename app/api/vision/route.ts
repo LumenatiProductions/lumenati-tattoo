@@ -30,6 +30,9 @@ export async function POST(req: Request) {
     if (b.kind === "inventory") {
       return NextResponse.json({ items: await provider.inventory(img) });
     }
+    if (b.kind === "cash") {
+      return NextResponse.json({ cash: await provider.cash(img) });
+    }
     return NextResponse.json({ receipt: await provider.receipt(img) });
   } catch (e) {
     return NextResponse.json(
