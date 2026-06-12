@@ -1,57 +1,61 @@
-# NEXT SESSION — Tap to Pay dev build (needs SCOTT in Terminal) (updated 2026-06-11)
+# NEXT SESSION — record the Apple TTP videos (updated 2026-06-12)
 
-**State (2026-06-11):** Build 14 (everything: parity screens, Y2K payment FX,
-sign-in fixes, POS picker) VERIFIED in TestFlight — submission FINISHED.
-**App parity wave 2 SHIPPED** (Payouts, Intake, Reconciliation, Staff,
-Integrations — the full-parity backlog is now EMPTY). The Tap to Pay
-entitlement is DEV-RESTRICTED by Apple until their flow-video review passes
-(Case-ID 20445539; memory project-lumenati-ttp-staged + the TTPOI email).
-
-**⚠️ ONE BLOCKER, needs Scott at a real Terminal (~5 min):** the dev build's
-ad-hoc provisioning profile needs an interactive Apple login. The assistant
-tried to drive it with expect and the prompt got garbled — a login attempt
-went out for a mangled username ("y") and Apple answered "This Apple Account
-has been locked for security reasons" (error -20209). That attempt was NOT
-for lumenati@icloud.com, so the real account is probably fine, but FIRST:
-sign in at https://appleid.apple.com to confirm (iforgot.apple.com if locked).
-Then run, answering prompts by hand (Apple ID default + password + 2FA,
-"Generate a new Apple Provisioning Profile" → yes, select the iPhone):
+**State (2026-06-12): TAP TO PAY RUNS ON SCOTT'S IPHONE.** EAS dev builds
+turned out impossible while the entitlement is dev-restricted (ad-hoc
+profiles can't carry it — that's what killed the EAS dev build), so the
+working path is a LOCAL Xcode dev build:
 
     cd ~/lumenati-tattoo/app-native
-    npx eas-cli build --profile development --platform ios
+    TTP_ENTITLEMENT=1 npx expo prebuild -p ios --no-install && npx pod-install
+    cd ios && xcodebuild -workspace Lumenati.xcworkspace -scheme Lumenati \
+      -configuration Debug -destination 'id=00008150-000110601A87801C' \
+      -allowProvisioningUpdates build
+    # install: xcrun devicectl device install app --device C9093A79-15C3-5069-9E32-73C546304162 \
+    #   ~/Library/Developer/Xcode/DerivedData/Lumenati-*/Build/Products/Debug-iphoneos/Lumenati.app
+    # JS: npx expo start --dev-client   (phone + iMac on shop Wi-Fi)
 
-Already done for this: an iPhone UDID is registered on the team (2026-05-18),
-expo-dev-client is installed, and the `development` profile is now a DEVICE
-build (simulator variant moved to `development-simulator`). Heads-up: EAS
-build credits were at 93% for the month.
+In place already: Xcode signed in (dev cert "Apple Development: SCOTT DALTON
+MCDONALD 3CGZH6KR85"), iPhone paired + Developer Mode on, TTP capability
+checked on com.lumenati.app, app-native/.env.local (API URL = the Vercel
+prod site, EXPO_PUBLIC_TTP=1), appleTeamId in app.json, generated ios/ is
+git-ignored ON PURPOSE (it carries the dev-only entitlement — never commit).
+The simulated end-to-end payment SUCCEEDS (real cards decline in test mode:
+test_mode_live_card — dev-only Simulated-tap toggle is on the POS screen).
 
-**Main quest after that build (get Tap to Pay fully approved):**
-1. Install on Scott's iPhone (internal distribution link), sign in, take a
-   test payment — the REAL Tap to Pay flow should run (Stripe test mode).
-2. Record the three videos Apple wants (screen-record the phone):
-   "New User Flow", "Existing User Flow", "Checkout Flow". Review the two
-   docs first: https://apple.box.com/v/ttpoirequirements
-3. Complete the App Review Requirements Checklist (link in the email),
-   upload videos + checklist via the email's File Uploader link, REPLY to
-   the email including: Case-ID: 20445539.
-4. When Apple lifts the restriction: make the entitlement unconditional
-   (move into app.json ios.entitlements or default TTP_ENTITLEMENT=1),
-   drop the EXPO_PUBLIC_TTP gate in lib/terminal.ts + eas.json, rebuild
-   production → whole crew has Tap to Pay via TestFlight.
+**Main quest — the three Apple review videos (Case-ID 20445539):**
+1. Best footage = real success: do GO-LIVE Phase 2 (live Stripe keys) first,
+   tap a real card for a few bucks, refund after. (Simulated works today if
+   Apple accepts it.) Docs: https://apple.box.com/v/ttpoirequirements
+2. Record on-phone: "New User Flow" (first launch + Apple TTP terms),
+   "Existing User Flow", "Checkout Flow".
+3. Checklist + File Uploader links are in the TTPOI email; REPLY with the
+   Case-ID. When Apple lifts the restriction: entitlement unconditional,
+   drop the EXPO_PUBLIC_TTP gate (lib/terminal.ts + eas.json), rebuild
+   production → crew gets TTP via TestFlight.
+
+**Shipped this session (2026-06-11→12):**
+- POS business rules (server-enforced in /api/terminal/payment-intent):
+  artists ring up ONLY themselves (their split/rent terms) or Shop; explicit
+  `shop: true` = no-split shop sale (merch) — before, an artist picking Shop
+  silently routed money to themselves. Desk roles pick anyone. "Take
+  payment" launcher tile for ALL roles (Scott: everyone sells merch).
+- POS register screen: giant lights-up display, reader dot, custom keypad.
+- Y2K payment blast v2: pixel fonts (Press Start 2P/VT323), CRT scanlines +
+  sweep + flicker, shockwave rings, slam+glitch, count-up, 2 confetti waves,
+  5.6s, tap-to-skip, transparent Modal (nothing covers it).
+- App-wide haptics (expo-haptics, NATIVE — TestFlight needs build 15):
+  lib/haptics.ts semantic kit wired into Button/ListRow/Chips/Launcher/POS.
+- Fixed prod EXPO_PUBLIC_API_URL on EAS (was localhost:3210 — build 14's
+  server calls were broken; fixed for the NEXT build).
 
 **Side quests (any order):**
-- Scott installs/tests the TestFlight build (build 14) — esp. sign-in (code
-  email) and that POS shows the honest fallback. Wave-2 screens (Payouts,
-  Intake, Reconcile, Staff, Integrations) need build 15 or Expo Go/dev build.
-- Queue build 15 when convenient: `npx eas-cli build -p ios --profile
-  production --auto-submit` (picks up wave 2; mind the 93% build credits).
+- Queue build 15 (haptics + wave 2 + POS rules + fixed API URL):
+  `npx eas-cli build -p ios --profile production --auto-submit`
+  (mind build credits — 93% used as of 2026-06-11).
 - Android: Scott's tester Gmail + opt-in link
   https://play.google.com/apps/internaltest/4701288504633492438
-- Push notifications: `npx eas-cli credentials` → create APNs key + FCM
-  (also interactive). Event push in the web admin is already no-op-waiting
-  on device tokens.
-- GO-LIVE Phase 2/3 when Scott's ready: live Stripe keys + Connect
-  onboarding (Tap to Pay charges real cards only after this).
+- Push notifications: `npx eas-cli credentials` → APNs key + FCM (interactive).
+- GO-LIVE Phase 2/3: live Stripe keys + Connect onboarding.
 
 ## App parity wave 2 (shipped 2026-06-11)
 Five screens, same component kit, RLS-direct where possible:
