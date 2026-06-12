@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { theme, money } from "@/lib/theme";
+import { tap } from "@/lib/haptics";
 import { Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
 import {
   loadMoney,
@@ -22,18 +24,33 @@ const RANGE_LABEL: Record<Range, string> = { week: "This week", month: "This mon
 
 // The artist money + coaching home. Earnings, realized hourly rate, goal pacing,
 // and the tax set-aside — all from their own RLS-scoped data. (POS 6b)
-export default function ArtistMoney({ firstName }: { firstName: string }) {
+// `preview` = an owner looking at an artist's home: earnings render from that
+// artist's rows; goals/deductions/taxes are the artist's PRIVATE data and stay
+// hidden.
+export default function ArtistMoney({
+  firstName,
+  preview,
+}: {
+  firstName: string;
+  preview?: { artistId: string; name: string };
+}) {
   const [range, setRange] = useState<Range>("week");
   const [snap, setSnap] = useState<MoneySnapshot | null>(null);
   const [goals, setGoals] = useState<Goals | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const load = useCallback(async () => {
+    if (preview) {
+      setSnap(await loadMoney(preview.artistId));
+      setGoals({ weekly_cents: 0, monthly_cents: 0, tax_setaside_pct: 0.3 });
+      setExpenses([]);
+      return;
+    }
     const [m, g, e] = await Promise.all([loadMoney(), loadGoals(), loadExpenses()]);
     setSnap(m);
     setGoals(g);
     setExpenses(e);
-  }, []);
+  }, [preview]);
   useEffect(() => {
     load();
   }, [load]);
@@ -57,7 +74,23 @@ export default function ArtistMoney({ firstName }: { firstName: string }) {
 
   return (
     <View>
-      <Text style={styles.greeting}>Hey {firstName}</Text>
+      <Text style={styles.greeting}>{preview ? preview.name : `Hey ${firstName}`}</Text>
+
+      {/* THE action — taking money is why the phone comes out of the pocket. */}
+      <Link href="/pos" asChild>
+        <Pressable
+          onPress={() => tap()}
+          style={({ pressed }) => [styles.hero, theme.glow, pressed && { transform: [{ scale: 0.98 }], opacity: 0.92 }]}
+        >
+          <Ionicons name="card-outline" size={26} color="#fff" />
+          <Text style={styles.heroText}>Take payment</Text>
+        </Pressable>
+      </Link>
+      <Link href="/cashout" asChild>
+        <Pressable onPress={() => tap()} style={({ pressed }) => [styles.actionGhost, pressed && { opacity: 0.8 }]}>
+          <Text style={styles.actionGhostText}>Cash out</Text>
+        </Pressable>
+      </Link>
 
       {/* Range toggle */}
       <View style={styles.toggle}>
@@ -72,20 +105,6 @@ export default function ArtistMoney({ firstName }: { firstName: string }) {
         ))}
       </View>
 
-      {/* Primary actions: take a payment, cash out */}
-      <View style={styles.actions}>
-        <Link href="/pos" asChild>
-          <Pressable style={styles.actionPrimary}>
-            <Text style={styles.actionPrimaryText}>Take payment</Text>
-          </Pressable>
-        </Link>
-        <Link href="/cashout" asChild>
-          <Pressable style={styles.actionGhost}>
-            <Text style={styles.actionGhostText}>Cash out</Text>
-          </Pressable>
-        </Link>
-      </View>
-
       <View style={styles.grid}>
         <Stat label="You earned" value={money(e.total)} sub={`${money(e.tips)} tips`} accent />
         <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
@@ -93,8 +112,14 @@ export default function ArtistMoney({ firstName }: { firstName: string }) {
         <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(goals.tax_setaside_pct * 100)}% set-aside`} warn />
       </View>
 
+      {preview && (
+        <Text style={styles.previewNote}>
+          Goals, deductions and taxes are private to {preview.name} — not shown in preview.
+        </Text>
+      )}
+
       {/* Goal pacing */}
-      {goalCents > 0 && (
+      {!preview && goalCents > 0 && (
         <>
           <SectionTitle>Goal</SectionTitle>
           <Card>
@@ -130,29 +155,33 @@ export default function ArtistMoney({ firstName }: { firstName: string }) {
         </View>
       </Card>
 
-      {/* Tax + deductions */}
-      <SectionTitle>Taxes</SectionTitle>
-      <Card>
-        <Row label="Earned YTD (1099 basis)" value={money(ytd.total)} />
-        <Row label="Deductions logged" value={money(deductYtd)} />
-        <Row label="Set aside for taxes" value={money(reserve)} strong />
-        <Text style={styles.taxNote}>
-          Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
-        </Text>
-        <View style={{ height: 10 }} />
-        <Link href="/expenses" asChild>
-          <Pressable style={styles.linkBtn}>
-            <Text style={styles.linkBtnText}>Log a deduction →</Text>
-          </Pressable>
-        </Link>
-      </Card>
+      {/* Tax + deductions — the artist's own business, never in preview */}
+      {!preview && (
+        <>
+          <SectionTitle>Taxes</SectionTitle>
+          <Card>
+            <Row label="Earned YTD (1099 basis)" value={money(ytd.total)} />
+            <Row label="Deductions logged" value={money(deductYtd)} />
+            <Row label="Set aside for taxes" value={money(reserve)} strong />
+            <Text style={styles.taxNote}>
+              Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
+            </Text>
+            <View style={{ height: 10 }} />
+            <Link href="/expenses" asChild>
+              <Pressable style={styles.linkBtn}>
+                <Text style={styles.linkBtnText}>Log a deduction →</Text>
+              </Pressable>
+            </Link>
+          </Card>
 
-      <View style={{ height: 14 }} />
-      <Link href="/goals" asChild>
-        <Pressable>
-          <Text style={styles.editGoals}>Edit goals &amp; tax %</Text>
-        </Pressable>
-      </Link>
+          <View style={{ height: 14 }} />
+          <Link href="/goals" asChild>
+            <Pressable>
+              <Text style={styles.editGoals}>Edit goals &amp; tax %</Text>
+            </Pressable>
+          </Link>
+        </>
+      )}
     </View>
   );
 }
@@ -178,11 +207,20 @@ function nextQuarterly(): string {
 const styles = StyleSheet.create({
   dim: { color: theme.textDim, marginTop: 40, textAlign: "center" },
   greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 8, marginBottom: 16 },
-  actions: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  actionPrimary: { flex: 2, backgroundColor: theme.brand, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-  actionPrimaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  actionGhost: { flex: 1, borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  hero: {
+    backgroundColor: theme.brand,
+    borderRadius: theme.radius.lg,
+    paddingVertical: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 10,
+  },
+  heroText: { color: "#fff", fontSize: 21, fontWeight: "800", letterSpacing: 0.2 },
+  actionGhost: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginBottom: 18 },
   actionGhostText: { color: theme.text, fontSize: 15, fontWeight: "600" },
+  previewNote: { color: theme.textFaint, fontSize: 12.5, marginTop: 18, lineHeight: 17 },
   toggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
   tabOn: { backgroundColor: theme.brand, borderColor: theme.brand },

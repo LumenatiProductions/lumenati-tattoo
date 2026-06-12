@@ -32,6 +32,18 @@ export default function Home() {
   const firstName = (fullName ?? "").trim().split(/\s+/)[0] || (email ?? "").split("@")[0];
   const [refreshing, setRefreshing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // Owner-only: see the app the way an artist does (their earnings, their
+  // home). Private stuff (goals/taxes/deductions) stays hidden in preview.
+  const [roster, setRoster] = useState<{ id: string; name: string }[]>([]);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role !== "owner") return;
+    supabase.from("artists").select("id, name").eq("active", true).order("sort")
+      .then(({ data }) => setRoster((data ?? []) as { id: string; name: string }[]));
+  }, [role]);
+
+  const previewArtist = roster.find((a) => a.id === previewId) ?? null;
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -55,9 +67,40 @@ export default function Home() {
         </Pressable>
       </View>
 
-      {isStaff ? <StaffHome firstName={firstName} reloadKey={reloadKey} /> : <ArtistMoney firstName={firstName} />}
+      {previewArtist ? (
+        <>
+          <View style={styles.previewBanner}>
+            <Text style={styles.previewBannerText}>Viewing as {previewArtist.name}</Text>
+            <Pressable onPress={() => setPreviewId(null)} hitSlop={8}>
+              <Text style={styles.previewExit}>Exit</Text>
+            </Pressable>
+          </View>
+          <ArtistMoney firstName={firstName} preview={{ artistId: previewArtist.id, name: previewArtist.name }} />
+        </>
+      ) : isStaff ? (
+        <StaffHome firstName={firstName} reloadKey={reloadKey} />
+      ) : (
+        <ArtistMoney firstName={firstName} />
+      )}
 
-      <Launcher role={role} />
+      {!previewArtist && <Launcher role={role} />}
+
+      {role === "owner" && !previewArtist && roster.length > 0 && (
+        <View style={{ marginTop: 26 }}>
+          <Text style={styles.sectionLabel}>View as artist</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {roster.map((a) => (
+              <Pressable
+                key={a.id}
+                onPress={() => setPreviewId(a.id)}
+                style={({ pressed }) => [styles.previewChip, pressed && { borderColor: theme.brandBorder }]}
+              >
+                <Text style={styles.previewChipText}>{a.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -198,4 +241,27 @@ const styles = StyleSheet.create({
   },
   attnRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, backgroundColor: theme.warn },
   attnText: { color: theme.text, fontSize: 14.5, lineHeight: 20, flex: 1 },
+  previewBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.brandSoft,
+    borderColor: theme.brandBorder,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 16,
+  },
+  previewBannerText: { color: theme.brand, fontSize: 13.5, fontWeight: "700" },
+  previewExit: { color: theme.text, fontSize: 13.5, fontWeight: "700" },
+  previewChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    borderColor: theme.borderStrong,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  previewChipText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
 });

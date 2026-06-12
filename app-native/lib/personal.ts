@@ -24,18 +24,23 @@ export type MoneySnapshot = {
   bookings: BookingRow[];
 };
 
-// Pull the raw rows once; the screen derives every range from them.
-export async function loadMoney(): Promise<MoneySnapshot> {
+// Pull the raw rows once; the screen derives every range from them. An artist's
+// RLS already scopes to their own rows; pass artistId only when an OWNER is
+// previewing an artist's home (their RLS sees everything, so filter explicitly).
+export async function loadMoney(artistId?: string): Promise<MoneySnapshot> {
   const yearStart = `${new Date().getFullYear()}-01-01`;
-  const [s, b] = await Promise.all([
-    supabase.from("sales").select("created_at, service_cents, tip_cents").gte("created_at", yearStart),
-    supabase
-      .from("bookings")
-      .select("starts_at, ends_at, status")
-      .gte("starts_at", yearStart)
-      .eq("status", "completed"),
-  ]);
-  return { sales: (s.data ?? []) as SaleRow[], bookings: (b.data ?? []) as BookingRow[] };
+  let s = supabase.from("sales").select("created_at, service_cents, tip_cents").gte("created_at", yearStart);
+  let b = supabase
+    .from("bookings")
+    .select("starts_at, ends_at, status")
+    .gte("starts_at", yearStart)
+    .eq("status", "completed");
+  if (artistId) {
+    s = s.eq("artist_id", artistId);
+    b = b.eq("artist_id", artistId);
+  }
+  const [sr, br] = await Promise.all([s, b]);
+  return { sales: (sr.data ?? []) as SaleRow[], bookings: (br.data ?? []) as BookingRow[] };
 }
 
 export function earnedInRange(sales: SaleRow[], range: Range) {
