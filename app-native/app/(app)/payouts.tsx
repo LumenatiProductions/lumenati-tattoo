@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, 
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { apiGet, apiPost } from "@/lib/appApi";
 import { theme, money } from "@/lib/theme";
@@ -66,13 +67,14 @@ function statementFor(
 export default function Payouts() {
   const insets = useSafeAreaInsets();
   const { role, email } = useAuth();
+  const { preview } = usePreview();
   const [statements, setStatements] = useState<Statement[] | null>(null);
   const [settleConfigured, setSettleConfigured] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const canSettle = role === "owner" || role === "bookkeeper";
+  const canSettle = (role === "owner" || role === "bookkeeper") && !preview;
 
   const load = useCallback(async () => {
     const [{ data: artists }, { data: sales }, { data: rent }, settle, mine] = await Promise.all([
@@ -97,11 +99,14 @@ export default function Payouts() {
     setSettleConfigured(settle.ok && settle.data?.configured === true);
 
     const myArtistId = (mine?.data as { artist_id?: string | null } | null)?.artist_id ?? null;
-    const visible = (artists ?? []).filter((a) => (role === "artist" ? a.id === myArtistId : true));
+    // Artists see their own statement; an owner previewing an artist sees that
+    // artist's; staff see everyone.
+    const scopeTo = role === "artist" ? myArtistId : preview?.artistId ?? null;
+    const visible = (artists ?? []).filter((a) => (scopeTo ? a.id === scopeTo : true));
     setStatements(
       visible.map((a) => statementFor(a as ArtistRow, (sales ?? []) as SaleRow[], rentOwed, settledThrough[a.id])),
     );
-  }, [role, email]);
+  }, [role, email, preview]);
 
   useEffect(() => {
     load();
@@ -165,7 +170,7 @@ export default function Payouts() {
           <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
         ) : (
           <>
-            {role !== "artist" && (
+            {role !== "artist" && !preview && (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
                 <Stat label="To pay artists" value={money(pays.reduce((a, s) => a + s.net, 0))} hero />
                 <Stat label="To collect" value={money(collects.reduce((a, s) => a - s.net, 0))} />

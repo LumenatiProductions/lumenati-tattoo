@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "@/lib/auth";
+import { PreviewProvider } from "@/lib/preview";
 import { theme } from "@/lib/theme";
 import { registerPush } from "@/lib/push";
 
@@ -21,5 +22,9 @@ export default function AppLayout() {
     );
   }
   if (!session) return <Redirect href="/sign-in" />;
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }} />;
+  return (
+    <PreviewProvider>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }} />
+    </PreviewProvider>
+  );
 }

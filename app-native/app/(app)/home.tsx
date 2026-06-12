@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
 import { Stat } from "@/components/ui";
@@ -32,9 +33,10 @@ export default function Home() {
   const firstName = (fullName ?? "").trim().split(/\s+/)[0] || (email ?? "").split("@")[0];
   const [refreshing, setRefreshing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  // Owner-only: see the app the way an artist does.
+  // Owner-only: see the app the way an artist does — global, every screen
+  // scopes to the previewed artist until Exit.
+  const { preview, setPreview } = usePreview();
   const [roster, setRoster] = useState<{ id: string; name: string }[]>([]);
-  const [previewId, setPreviewId] = useState<string | null>(null);
   // Staff who ALSO hold a chair (JD: co-owner + artist) get two homes in tabs.
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
   const [homeTab, setHomeTab] = useState<"shop" | "money">("shop");
@@ -50,7 +52,7 @@ export default function Home() {
     }
   }, [role, isStaff, email]);
 
-  const previewArtist = roster.find((a) => a.id === previewId) ?? null;
+  const previewArtist = preview;
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -80,11 +82,11 @@ export default function Home() {
         <>
           <View style={styles.previewBanner}>
             <Text style={styles.previewBannerText}>Viewing as {previewArtist.name}</Text>
-            <Pressable onPress={() => setPreviewId(null)} hitSlop={8}>
+            <Pressable onPress={() => setPreview(null)} hitSlop={8}>
               <Text style={styles.previewExit}>Exit</Text>
             </Pressable>
           </View>
-          <ArtistMoney firstName={firstName} artistId={previewArtist.id} previewName={previewArtist.name} />
+          <ArtistMoney firstName={firstName} artistId={previewArtist.artistId} previewName={previewArtist.name} />
           <Launcher role="artist" />
         </>
       ) : isStaff ? (
@@ -119,7 +121,7 @@ export default function Home() {
             {roster.map((a) => (
               <Pressable
                 key={a.id}
-                onPress={() => setPreviewId(a.id)}
+                onPress={() => setPreview({ artistId: a.id, name: a.name })}
                 style={({ pressed }) => [styles.previewChip, pressed && { borderColor: theme.brandBorder }]}
               >
                 <Text style={styles.previewChipText}>{a.name}</Text>

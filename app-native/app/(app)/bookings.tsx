@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Badge, Card, Button } from "@/components/ui";
@@ -39,6 +40,7 @@ const todayKey = () => {
 export default function Bookings() {
   const insets = useSafeAreaInsets();
   const { role } = useAuth();
+  const { preview } = usePreview();
   const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
 
   const [rows, setRows] = useState<Booking[]>([]);
@@ -50,13 +52,16 @@ export default function Bookings() {
 
   const load = useCallback(async () => {
     const start = todayKey();
-    const { data } = await supabase
+    let q = supabase
       .from("bookings")
       .select("id, starts_at, status, service_desc, client_id, artist_id, deposit_status, checked_in_at")
       .gte("starts_at", start)
       .neq("status", "cancelled")
       .order("starts_at", { ascending: true })
       .limit(80);
+    // Owner previewing an artist sees only that artist's book.
+    if (preview) q = q.eq("artist_id", preview.artistId);
+    const { data } = await q;
     const bookings = (data ?? []) as Booking[];
     setRows(bookings);
 
@@ -86,7 +91,7 @@ export default function Bookings() {
       );
     }
     setLoading(false);
-  }, [isStaff]);
+  }, [isStaff, preview]);
 
   useEffect(() => {
     load();

@@ -7,6 +7,7 @@ import { Button, Card } from "@/components/ui";
 import { Chips } from "@/components/form";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { createTapToPayIntent, getLocationId } from "@/lib/terminal";
 import Y2kPaidFX from "@/components/Y2kPaidFX";
 
@@ -20,6 +21,7 @@ type Phase = "idle" | "connecting" | "collecting" | "done";
 
 export default function TapToPayPos() {
   const { role, email } = useAuth();
+  const { preview } = usePreview();
   const [amount, setAmount] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +56,13 @@ export default function TapToPayPos() {
       const { data } = await supabase.from("artists").select("id, name").eq("active", true).order("sort");
       let roster = (data ?? []) as { id: string; name: string }[];
       // Artists ring up themselves (their own terms apply) or the shop (merch).
-      // Never other artists — the server enforces the same rule.
-      if (role === "artist" && email) {
+      // Never other artists — the server enforces the same rule. An owner
+      // previewing an artist gets the same view (charges attribute to that
+      // artist, which is who's being demoed).
+      if (preview) {
+        roster = roster.filter((a) => a.id === preview.artistId);
+        setWho(preview.artistId);
+      } else if (role === "artist" && email) {
         const { data: p } = await supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle();
         const mine = p?.artist_id as string | null;
         roster = roster.filter((a) => a.id === mine);

@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Button, Card, SectionTitle } from "@/components/ui";
@@ -39,8 +40,10 @@ type RosterArtist = { id: string; name: string; slug: string };
 
 export default function MyRoom() {
   const { email, role } = useAuth();
+  const { preview } = usePreview();
   const insets = useSafeAreaInsets();
-  const isOwner = role === "owner";
+  // Previewing = being that artist: their room only, no roster picker.
+  const isOwner = role === "owner" && !preview;
   const [roster, setRoster] = useState<RosterArtist[]>([]);
   const [artistId, setArtistId] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -62,10 +65,10 @@ export default function MyRoom() {
       const own = (profile?.artist_id as string | null) ?? null;
       const list = ((rosterRes.data ?? []) as RosterArtist[]) || [];
       setRoster(list);
-      setArtistId(own ?? (isOwner ? list[0]?.id ?? null : null));
+      setArtistId(preview?.artistId ?? own ?? (isOwner ? list[0]?.id ?? null : null));
       setLoading(false);
     })();
-  }, [email, isOwner]);
+  }, [email, isOwner, preview]);
 
   // Load the selected artist's room whenever the pick changes.
   useEffect(() => {
