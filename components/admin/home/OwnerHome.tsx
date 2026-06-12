@@ -23,11 +23,24 @@ export default function OwnerHome() {
   const statements = [...settled].sort((x, y) => y.grossService - x.grossService);
 
   const weekAgo = daysAgoLocal(7);
+  const twoWeeksAgo = daysAgoLocal(14);
   const wk = sales.filter((s2) => s2.date >= weekAgo);
-  const wkService = wk.reduce((a, s2) => a + s2.serviceCents, 0);
-  const wkTips = wk.reduce((a, s2) => a + s2.tipCents, 0);
-  const wkCard = wk.filter((s2) => s2.method !== "cash").reduce((a, s2) => a + s2.serviceCents + s2.tipCents, 0);
-  const wkCash = wk.filter((s2) => s2.method === "cash").reduce((a, s2) => a + s2.serviceCents + s2.tipCents, 0);
+  const prev = sales.filter((s2) => s2.date >= twoWeeksAgo && s2.date < weekAgo);
+  const sum = (rows: typeof sales, pick: (s2: (typeof sales)[number]) => number) =>
+    rows.reduce((a, s2) => a + pick(s2), 0);
+  const gross = (s2: (typeof sales)[number]) => s2.serviceCents + s2.tipCents;
+  const wkService = sum(wk, (s2) => s2.serviceCents);
+  const wkTips = sum(wk, (s2) => s2.tipCents);
+  const wkCard = sum(wk.filter((s2) => s2.method !== "cash"), gross);
+  const wkCash = sum(wk.filter((s2) => s2.method === "cash"), gross);
+  // vs the prior 7 days — hidden when last week had nothing to compare against.
+  const deltaVs = (now: number, before: number) => (before > 0 ? (now - before) / before : null);
+  const dGross = deltaVs(sum(wk, gross), sum(prev, gross));
+  const dService = deltaVs(wkService, sum(prev, (s2) => s2.serviceCents));
+  const dTips = deltaVs(wkTips, sum(prev, (s2) => s2.tipCents));
+  const dCard = deltaVs(wkCard, sum(prev.filter((s2) => s2.method !== "cash"), gross));
+  const dCash = deltaVs(wkCash, sum(prev.filter((s2) => s2.method === "cash"), gross));
+  const dTickets = deltaVs(wk.length, prev.length);
 
   return (
     <div>
@@ -42,12 +55,12 @@ export default function OwnerHome() {
       </SectionTitle>
       <Card className="mb-5">
         <div className="grid grid-cols-3 divide-x divide-y divide-black/5 sm:grid-cols-6 sm:divide-y-0">
-          <WeekTile label="Gross" value={fmt(wkService + wkTips)} strong />
-          <WeekTile label="Service" value={fmt(wkService)} />
-          <WeekTile label="Tips" value={fmt(wkTips)} />
-          <WeekTile label="Card" value={fmt(wkCard)} />
-          <WeekTile label="Cash" value={fmt(wkCash)} />
-          <WeekTile label="Tickets" value={String(wk.length)} />
+          <WeekTile label="Gross" value={fmt(wkService + wkTips)} strong delta={dGross} />
+          <WeekTile label="Service" value={fmt(wkService)} delta={dService} />
+          <WeekTile label="Tips" value={fmt(wkTips)} delta={dTips} />
+          <WeekTile label="Card" value={fmt(wkCard)} delta={dCard} />
+          <WeekTile label="Cash" value={fmt(wkCash)} delta={dCash} />
+          <WeekTile label="Tickets" value={String(wk.length)} delta={dTickets} />
         </div>
       </Card>
 

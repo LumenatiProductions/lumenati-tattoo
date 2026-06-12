@@ -16,13 +16,29 @@ export function PageHead({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-export function WeekTile({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+export function WeekTile({
+  label,
+  value,
+  strong,
+  delta,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  /** Fractional change vs the prior week (0.12 = +12%); null/undefined hides it. */
+  delta?: number | null;
+}) {
   return (
     <div className="px-4 py-3 text-center">
       <div className={`tnum ${strong ? "text-base font-bold text-brand" : "text-sm font-semibold"}`}>
         {value}
       </div>
       <div className="text-[11px] uppercase tracking-wide text-black/40">{label}</div>
+      {delta != null && (
+        <div className={`tnum text-[11px] font-medium ${delta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+          {delta >= 0 ? "↑" : "↓"} {Math.abs(Math.round(delta * 100))}% vs last wk
+        </div>
+      )}
     </div>
   );
 }
