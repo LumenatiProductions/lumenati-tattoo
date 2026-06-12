@@ -30,6 +30,7 @@ export function Stat({
   warn,
   hero,
   countTo,
+  onPress,
 }: {
   label: string;
   value: string;
@@ -40,21 +41,36 @@ export function Stat({
   hero?: boolean;
   /** Cents: the value ticks up from 0 on mount instead of just appearing. */
   countTo?: number;
+  /** Makes the tile tappable — a glance number that opens its screen. */
+  onPress?: () => void;
 }) {
   const display = countTo !== undefined ? <CountUpText cents={countTo} /> : value;
-  return (
-    <View
-      style={[
-        styles.stat,
-        accent && styles.statAccent,
-        hero && [styles.statHero, theme.glow],
-      ]}
-    >
+  const body = (
+    <>
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={[styles.statValue, tnum, warn && { color: theme.warn }, hero && styles.statValueHero]}>{display}</Text>
       {sub ? <Text style={styles.statSub}>{sub}</Text> : null}
-    </View>
+    </>
   );
+  const boxStyle: StyleProp<ViewStyle> = [
+    styles.stat,
+    accent && styles.statAccent,
+    hero && [styles.statHero, theme.glow],
+  ];
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={() => {
+          tap();
+          onPress();
+        }}
+        style={({ pressed }) => [boxStyle, pressed && { borderColor: theme.borderStrong, opacity: 0.85 }]}
+      >
+        {body}
+      </Pressable>
+    );
+  }
+  return <View style={boxStyle}>{body}</View>;
 }
 
 // Money ticking up beats money appearing. Re-runs whenever cents changes.

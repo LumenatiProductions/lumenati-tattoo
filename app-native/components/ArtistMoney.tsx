@@ -39,10 +39,13 @@ export default function ArtistMoney({
   firstName,
   artistId,
   previewName,
+  reloadKey = 0,
 }: {
   firstName: string;
   artistId?: string;
   previewName?: string;
+  /** Bumped by the home's pull-to-refresh — reloads everything. */
+  reloadKey?: number;
 }) {
   const router = useRouter();
   const [range, setRange] = useState<Range>("week");
@@ -67,7 +70,7 @@ export default function ArtistMoney({
   }, [artistId]);
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, reloadKey]);
 
   // One success buzz the moment the goal line is crossed while on the page
   // (hitRef stops it re-firing every render). Hook lives above the early

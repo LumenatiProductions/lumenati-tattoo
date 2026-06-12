@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { tap } from "@/lib/haptics";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
@@ -94,7 +96,7 @@ export default function Home() {
               <Text style={styles.previewExit}>Exit</Text>
             </Pressable>
           </View>
-          <ArtistMoney firstName={firstName} artistId={previewArtist.artistId} previewName={previewArtist.name} />
+          <ArtistMoney firstName={firstName} artistId={previewArtist.artistId} previewName={previewArtist.name} reloadKey={reloadKey} />
           <Launcher role="artist" />
         </>
       ) : isStaff ? (
@@ -111,13 +113,13 @@ export default function Home() {
             </View>
           )}
           {myArtistId && homeTab === "money" ? (
-            <ArtistMoney firstName={firstName} artistId={myArtistId} />
+            <ArtistMoney firstName={firstName} artistId={myArtistId} reloadKey={reloadKey} />
           ) : (
-            <StaffHome firstName={firstName} reloadKey={reloadKey} />
+            <StaffHome firstName={firstName} role={role} reloadKey={reloadKey} />
           )}
         </>
       ) : (
-        <ArtistMoney firstName={firstName} />
+        <ArtistMoney firstName={firstName} reloadKey={reloadKey} />
       )}
 
       {!previewArtist && <Launcher role={role} />}
@@ -144,16 +146,32 @@ export default function Home() {
 
 type StaffStats = {
   gross: number;
+  service: number;
+  tips: number;
+  card: number;
+  cash: number;
   apptsToday: number;
+  checkedIn: number;
   tickets: number;
   lowNames: string[];
+  outNames: string[];
   followupsDue: number;
   depositsHeld: number;
-  expiring: number;
+  expired: number;
+  expiringSoon: number;
 };
 
-function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: number }) {
+type Sev = "high" | "med" | "low";
+const SEV_COLOR: Record<Sev, string> = { high: theme.bad, med: theme.warn, low: theme.textFaint };
+type AttnItem = { icon: keyof typeof Ionicons.glyphMap; text: string; detail?: string; sev: Sev; href: string };
+
+function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: string | null; reloadKey: number }) {
+  const router = useRouter();
   const [stats, setStats] = useState<StaffStats | null>(null);
+  // Same role gating as the Launcher — a glance row never opens a screen the
+  // role can't use. Bookkeepers also skip ops noise (stock/follow-ups), like
+  // the web bookkeeper home.
+  const ops = role === "owner" || role === "frontdesk";
 
   useEffect(() => {
     (async () => {
@@ -162,29 +180,39 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
       const [salesRes, apptRes, invRes, fuRes, heldRes, compRes] = await Promise.all([
         // Last 7 days, same window as the web home + the Monday email — the
         // all-time number used to masquerade as "right now" here.
-        supabase.from("sales").select("service_cents, tip_cents").gte("created_at", daysAgoLocal(7)),
+        supabase.from("sales").select("service_cents, tip_cents, method").gte("created_at", daysAgoLocal(7)),
         supabase
           .from("bookings")
-          .select("id", { count: "exact", head: true })
+          .select("checked_in_at")
           .gte("starts_at", date)
           .lte("starts_at", `${date}T23:59:59.999`)
           .neq("status", "cancelled"),
         supabase.from("inventory_items").select("name, qty, reorder_at"),
         supabase.from("followups").select("id", { count: "exact", head: true }).eq("status", "pending").lte("scheduled_for", nowIso),
         supabase.from("bookings").select("deposit_cents").eq("deposit_status", "held"),
-        supabase.from("compliance_items").select("id", { count: "exact", head: true }).in("status", ["expiring", "expired"]),
+        supabase.from("compliance_items").select("status").in("status", ["expiring", "expired"]),
       ]);
-      const sales = (salesRes.data ?? []) as { service_cents: number; tip_cents: number }[];
+      const sales = (salesRes.data ?? []) as { service_cents: number; tip_cents: number; method: string }[];
+      const appts = (apptRes.data ?? []) as { checked_in_at: string | null }[];
       const inv = (invRes.data ?? []) as { name: string; qty: number; reorder_at: number }[];
       const held = (heldRes.data ?? []) as { deposit_cents: number }[];
+      const comp = (compRes.data ?? []) as { status: string }[];
+      const low = inv.filter((i) => Number(i.qty) <= Number(i.reorder_at));
       setStats({
         gross: sales.reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
-        apptsToday: (apptRes as { count?: number }).count ?? 0,
+        service: sales.reduce((a, s) => a + (s.service_cents ?? 0), 0),
+        tips: sales.reduce((a, s) => a + (s.tip_cents ?? 0), 0),
+        card: sales.filter((s) => s.method !== "cash").reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
+        cash: sales.filter((s) => s.method === "cash").reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
+        apptsToday: appts.length,
+        checkedIn: appts.filter((b) => b.checked_in_at).length,
         tickets: sales.length,
-        lowNames: inv.filter((i) => Number(i.qty) <= Number(i.reorder_at)).map((i) => i.name),
+        lowNames: low.filter((i) => Number(i.qty) > 0).map((i) => i.name),
+        outNames: low.filter((i) => Number(i.qty) <= 0).map((i) => i.name),
         followupsDue: (fuRes as { count?: number }).count ?? 0,
         depositsHeld: held.reduce((a, h) => a + (h.deposit_cents ?? 0), 0),
-        expiring: (compRes as { count?: number }).count ?? 0,
+        expired: comp.filter((c) => c.status === "expired").length,
+        expiringSoon: comp.filter((c) => c.status === "expiring").length,
       });
     })();
   }, [reloadKey]);
@@ -198,16 +226,22 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
     );
   }
 
-  const attention: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [];
-  if (stats.expiring)
-    attention.push({ icon: "shield-outline", text: `${stats.expiring} license/permit expiring or expired` });
-  if (stats.lowNames.length)
-    attention.push({
-      icon: "cube-outline",
-      text: `Reorder: ${stats.lowNames.slice(0, 4).join(", ")}${stats.lowNames.length > 4 ? "…" : ""}`,
-    });
-  if (stats.followupsDue)
-    attention.push({ icon: "chatbubble-ellipses-outline", text: `${stats.followupsDue} follow-up${stats.followupsDue === 1 ? "" : "s"} due` });
+  // Ranked like the web cockpit: most urgent first, each row opens where you act.
+  const attention: AttnItem[] = [];
+  if (role === "owner" && stats.expired)
+    attention.push({ icon: "shield-outline", sev: "high", text: `${stats.expired} license/permit expired`, detail: "renew to stay inspection-ready", href: "/compliance" });
+  if (ops && stats.outNames.length)
+    attention.push({ icon: "cube-outline", sev: "high", text: `${stats.outNames.length} suppl${stats.outNames.length === 1 ? "y" : "ies"} out`, detail: stats.outNames.slice(0, 3).join(", "), href: "/inventory" });
+  if (role === "owner" && stats.expiringSoon)
+    attention.push({ icon: "shield-outline", sev: "med", text: `${stats.expiringSoon} expiring within 30 days`, href: "/compliance" });
+  if (ops && stats.lowNames.length)
+    attention.push({ icon: "cube-outline", sev: "med", text: `Reorder: ${stats.lowNames.slice(0, 4).join(", ")}${stats.lowNames.length > 4 ? "…" : ""}`, href: "/inventory" });
+  if (ops && stats.followupsDue)
+    attention.push({ icon: "chatbubble-ellipses-outline", sev: "med", text: `${stats.followupsDue} follow-up${stats.followupsDue === 1 ? "" : "s"} due`, href: "/followups" });
+  if (stats.apptsToday)
+    attention.push({ icon: "calendar-outline", sev: "low", text: `${stats.apptsToday} appointment${stats.apptsToday === 1 ? "" : "s"} today`, detail: `${stats.checkedIn} checked in`, href: "/bookings" });
+  if (stats.depositsHeld)
+    attention.push({ icon: "card-outline", sev: "low", text: `${money(stats.depositsHeld)} in deposits held`, href: "/bookings" });
 
   return (
     <View>
@@ -215,10 +249,33 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
       <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
       <View style={styles.grid}>
         <Stat label="This week" value={money(stats.gross)} countTo={stats.gross} sub={`${stats.tickets} tickets · last 7 days`} hero />
-        <Stat label="Appointments today" value={String(stats.apptsToday)} />
-        <Stat label="Deposits held" value={money(stats.depositsHeld)} />
-        <Stat label="Low stock" value={String(stats.lowNames.length)} warn={stats.lowNames.length > 0} />
-        <Stat label="Follow-ups due" value={String(stats.followupsDue)} warn={stats.followupsDue > 0} />
+        <Stat label="Service" value={money(stats.service)} />
+        <Stat label="Tips" value={money(stats.tips)} />
+        <Stat label="Card" value={money(stats.card)} />
+        <Stat label="Cash" value={money(stats.cash)} />
+        <Stat
+          label="Today"
+          value={`${stats.checkedIn}/${stats.apptsToday}`}
+          sub="checked in"
+          onPress={() => router.push("/bookings")}
+        />
+        <Stat label="Deposits held" value={money(stats.depositsHeld)} onPress={() => router.push("/bookings")} />
+        {ops && (
+          <>
+            <Stat
+              label="Low stock"
+              value={String(stats.lowNames.length + stats.outNames.length)}
+              warn={stats.lowNames.length + stats.outNames.length > 0}
+              onPress={() => router.push("/inventory")}
+            />
+            <Stat
+              label="Follow-ups due"
+              value={String(stats.followupsDue)}
+              warn={stats.followupsDue > 0}
+              onPress={() => router.push("/followups")}
+            />
+          </>
+        )}
       </View>
 
       <Text style={styles.sectionLabel}>Needs attention</Text>
@@ -230,11 +287,22 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
       ) : (
         <View style={{ gap: 8 }}>
           {attention.map((a, i) => (
-            <View key={i} style={styles.attnCard}>
-              <View style={styles.attnRail} />
-              <Ionicons name={a.icon} size={17} color={theme.warn} style={{ marginRight: 10 }} />
-              <Text style={styles.attnText}>{a.text}</Text>
-            </View>
+            <Pressable
+              key={i}
+              onPress={() => {
+                tap();
+                router.push(a.href as never);
+              }}
+              style={({ pressed }) => [styles.attnCard, pressed && { backgroundColor: theme.surfaceRaised }]}
+            >
+              <View style={[styles.attnRail, { backgroundColor: SEV_COLOR[a.sev] }]} />
+              <Ionicons name={a.icon} size={17} color={SEV_COLOR[a.sev]} style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.attnText}>{a.text}</Text>
+                {a.detail ? <Text style={styles.attnDetail}>{a.detail}</Text> : null}
+              </View>
+              <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
+            </Pressable>
           ))}
         </View>
       )}
@@ -286,8 +354,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     overflow: "hidden",
   },
-  attnRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, backgroundColor: theme.warn },
-  attnText: { color: theme.text, fontSize: 14.5, lineHeight: 20, flex: 1 },
+  attnRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3 },
+  attnText: { color: theme.text, fontSize: 14.5, lineHeight: 20 },
+  attnDetail: { color: theme.textFaint, fontSize: 12.5, marginTop: 2 },
   previewBanner: {
     flexDirection: "row",
     justifyContent: "space-between",
