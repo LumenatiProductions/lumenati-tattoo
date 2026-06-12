@@ -5,7 +5,8 @@ import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRent } from "@/lib/admin/rent-context";
 import { useCash } from "@/lib/admin/cash-context";
-import { shopSummary, statementFor, fmt } from "@/lib/admin/calc";
+import { useSettledStatements } from "@/lib/admin/settlements-context";
+import { shopSummary, fmt } from "@/lib/admin/calc";
 import { StatCard, MockBanner } from "@/components/admin/ui";
 import { PageHead, StatementsTable, RentPanel } from "./shared";
 
@@ -17,11 +18,10 @@ export default function BookkeeperHome() {
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
   const { outstandingCents: cashOutstanding } = useCash();
+  const { statements: settled, payoutsOwed } = useSettledStatements();
 
   const s = shopSummary(artists, sales, []);
-  const statements = artists
-    .map((a) => statementFor(a, sales, []))
-    .sort((x, y) => y.grossService - x.grossService);
+  const statements = [...settled].sort((x, y) => y.grossService - x.grossService);
 
   return (
     <div>
@@ -36,7 +36,7 @@ export default function BookkeeperHome() {
           sub={`${fmt(s.splitRevenue)} splits + ${fmt(rentCollected)} rent`}
           accent
         />
-        <StatCard label="Payouts owed" value={fmt(s.payoutsOwed)} sub="shop → artists" tone="warn" />
+        <StatCard label="Payouts owed" value={fmt(payoutsOwed)} sub="shop → artists, since last settle" tone="warn" />
         <StatCard
           label="Cash to reconcile"
           value={fmt(cashOutstanding)}

@@ -1,80 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useRole } from "@/lib/admin/role-context";
 import { useSales } from "@/lib/admin/sales-context";
-import { useRent } from "@/lib/admin/rent-context";
-import { useArtists } from "@/lib/admin/artists-context";
-import { statementFor, fmt, type ArtistStatement } from "@/lib/admin/calc";
-import type { RentCharge } from "@/lib/admin/types";
+import { useSettledStatements } from "@/lib/admin/settlements-context";
+import { fmt, type ArtistStatement } from "@/lib/admin/calc";
 import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
 import PayoutsConnect from "@/components/admin/connect/PayoutsConnect";
 
 // Statements are computed from sales AFTER each artist's latest settlement
-// (settled_through), so "Mark settled" really clears the row. Rent comes from
-// Square invoices, matched to artists by payer name (best effort while Square
-// is still the rent system of record).
-
-const norm = (s: string) => s.trim().toLowerCase();
+// (settled_through), so "Mark settled" really clears the row. The math lives in
+// useSettledStatements — shared with the role homes so the numbers agree.
 
 export default function PayoutsPage() {
   const { role, asArtistId } = useRole();
-  const { sales, real } = useSales();
-  const { invoices } = useRent();
-  const { artists } = useArtists();
+  const { real } = useSales();
+  const { statements: all, configured: settleConfigured, refresh: refreshSettlements } = useSettledStatements();
 
-  const [settledThrough, setSettledThrough] = useState<Record<string, string>>({});
-  const [settleConfigured, setSettleConfigured] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-
-  const refreshSettlements = useCallback(async () => {
-    try {
-      const r = await fetch("/api/settlements");
-      const d = await r.json().catch(() => ({}));
-      if (r.ok) {
-        setSettledThrough(d.settledThrough || {});
-        setSettleConfigured(d.configured === true);
-      }
-    } catch {
-      /* leave the buttons hidden */
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshSettlements();
-  }, [refreshSettlements]);
-
-  // Square rent invoices -> per-artist unpaid rent, matched by payer name.
-  const rentCharges = useMemo<RentCharge[]>(() => {
-    const out: RentCharge[] = [];
-    for (const inv of invoices) {
-      const payer = norm(inv.name || "");
-      if (!payer) continue;
-      const artist = artists.find(
-        (a) => payer === norm(a.name) || payer.includes(norm(a.name)) || norm(a.name).includes(payer),
-      );
-      if (!artist) continue;
-      out.push({
-        id: inv.id,
-        artistId: artist.id,
-        periodLabel: inv.title,
-        amountCents: inv.amountCents,
-        dueDate: inv.dueDate ?? "",
-        paid: inv.paid,
-      });
-    }
-    return out;
-  }, [invoices, artists]);
-
-  const all = useMemo(
-    () =>
-      artists.map((a) => {
-        const since = settledThrough[a.id];
-        const mine = since ? sales.filter((s) => s.artistId !== a.id || s.date > since) : sales;
-        return statementFor(a, mine, rentCharges);
-      }),
-    [artists, sales, rentCharges, settledThrough],
-  );
 
   const visible = role === "artist" ? all.filter((s) => s.artist.id === asArtistId) : all;
 

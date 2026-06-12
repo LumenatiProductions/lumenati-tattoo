@@ -16,6 +16,14 @@ const todayLocal = () => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 
+// Local YYYY-MM-DD for N days ago — same anchoring as the web's daysAgoLocal so
+// the week window matches the Monday email.
+const daysAgoLocal = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+
 const ROLE_LABEL: Record<string, string> = {
   owner: "Co-owner",
   bookkeeper: "Bookkeeper",
@@ -152,7 +160,9 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
       const date = todayLocal();
       const nowIso = new Date().toISOString();
       const [salesRes, apptRes, invRes, fuRes, heldRes, compRes] = await Promise.all([
-        supabase.from("sales").select("service_cents, tip_cents"),
+        // Last 7 days, same window as the web home + the Monday email — the
+        // all-time number used to masquerade as "right now" here.
+        supabase.from("sales").select("service_cents, tip_cents").gte("created_at", daysAgoLocal(7)),
         supabase
           .from("bookings")
           .select("id", { count: "exact", head: true })
@@ -204,7 +214,7 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
       <Text style={styles.greeting}>Hey {firstName}</Text>
       <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
       <View style={styles.grid}>
-        <Stat label="Gross sales" value={money(stats.gross)} countTo={stats.gross} sub={`${stats.tickets} tickets`} hero />
+        <Stat label="This week" value={money(stats.gross)} countTo={stats.gross} sub={`${stats.tickets} tickets · last 7 days`} hero />
         <Stat label="Appointments today" value={String(stats.apptsToday)} />
         <Stat label="Deposits held" value={money(stats.depositsHeld)} />
         <Stat label="Low stock" value={String(stats.lowNames.length)} warn={stats.lowNames.length > 0} />

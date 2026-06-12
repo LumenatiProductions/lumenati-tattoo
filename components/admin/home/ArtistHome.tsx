@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useBookings } from "@/lib/admin/bookings-context";
+import { useSettledStatements } from "@/lib/admin/settlements-context";
 import { statementFor, fmt, payTypeLabel } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, Badge, MockBanner } from "@/components/admin/ui";
 import { PageHead, Empty, clock, greeting } from "./shared";
@@ -15,6 +16,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
   const { sales, real } = useSales();
   const { artists } = useArtists();
   const { bookings } = useBookings();
+  const { statements: settled } = useSettledStatements();
 
   const artist = artists.find((a) => a.id === artistId);
 
@@ -28,7 +30,10 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
   }, [bookings, artistId]);
 
   if (!artist) return null;
+  // Earnings/tips/tickets = period to date; the owed balance comes from the
+  // settlement-aware statement so it matches Payouts (and clears on settle).
   const st = statementFor(artist, sales, []);
+  const balance = settled.find((s) => s.artist.id === artistId) ?? st;
 
   return (
     <div>
@@ -39,10 +44,10 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
         <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips" accent />
         <StatCard label="Tips" value={fmt(st.grossTips)} />
         <StatCard
-          label={st.net >= 0 ? "Shop owes you" : "You owe shop"}
-          value={fmt(Math.abs(st.net))}
-          tone={st.net >= 0 ? "good" : "warn"}
-          sub={st.net >= 0 ? "from card sales" : "cash cut + rent"}
+          label={balance.net >= 0 ? "Shop owes you" : "You owe shop"}
+          value={fmt(Math.abs(balance.net))}
+          tone={balance.net >= 0 ? "good" : "warn"}
+          sub={balance.net >= 0 ? "since last settle" : "cash cut + rent"}
         />
         <StatCard label="Tickets" value={String(st.saleCount)} />
       </div>
