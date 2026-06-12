@@ -40,13 +40,10 @@ export default function ArtistMoney({
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const load = useCallback(async () => {
-    if (preview) {
-      setSnap(await loadMoney(preview.artistId));
-      setGoals({ weekly_cents: 0, monthly_cents: 0, tax_setaside_pct: 0.3 });
-      setExpenses([]);
-      return;
-    }
-    const [m, g, e] = await Promise.all([loadMoney(), loadGoals(), loadExpenses()]);
+    // Preview (owner): earnings come from THAT artist's rows; goals/expenses
+    // are per-user so the owner sees + edits their own — good enough to learn
+    // the flow while the roster has no real artists on it yet.
+    const [m, g, e] = await Promise.all([loadMoney(preview?.artistId), loadGoals(), loadExpenses()]);
     setSnap(m);
     setGoals(g);
     setExpenses(e);
@@ -114,12 +111,13 @@ export default function ArtistMoney({
 
       {preview && (
         <Text style={styles.previewNote}>
-          Goals, deductions and taxes are private to {preview.name} — not shown in preview.
+          Earnings above are {preview.name}&apos;s. Goals, deductions and taxes below are YOURS
+          (each artist gets their own private set) — set a goal to see how the pacing works.
         </Text>
       )}
 
       {/* Goal pacing */}
-      {!preview && goalCents > 0 && (
+      {goalCents > 0 && (
         <>
           <SectionTitle>Goal</SectionTitle>
           <Card>
@@ -155,33 +153,29 @@ export default function ArtistMoney({
         </View>
       </Card>
 
-      {/* Tax + deductions — the artist's own business, never in preview */}
-      {!preview && (
-        <>
-          <SectionTitle>Taxes</SectionTitle>
-          <Card>
-            <Row label="Earned YTD (1099 basis)" value={money(ytd.total)} />
-            <Row label="Deductions logged" value={money(deductYtd)} />
-            <Row label="Set aside for taxes" value={money(reserve)} strong />
-            <Text style={styles.taxNote}>
-              Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
-            </Text>
-            <View style={{ height: 10 }} />
-            <Link href="/expenses" asChild>
-              <Pressable style={styles.linkBtn}>
-                <Text style={styles.linkBtnText}>Log a deduction →</Text>
-              </Pressable>
-            </Link>
-          </Card>
+      {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
+      <SectionTitle>Taxes</SectionTitle>
+      <Card>
+        <Row label="Earned YTD (1099 basis)" value={money(ytd.total)} />
+        <Row label="Deductions logged" value={money(deductYtd)} />
+        <Row label="Set aside for taxes" value={money(reserve)} strong />
+        <Text style={styles.taxNote}>
+          Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
+        </Text>
+        <View style={{ height: 10 }} />
+        <Link href="/expenses" asChild>
+          <Pressable style={styles.linkBtn}>
+            <Text style={styles.linkBtnText}>Log a deduction →</Text>
+          </Pressable>
+        </Link>
+      </Card>
 
-          <View style={{ height: 14 }} />
-          <Link href="/goals" asChild>
-            <Pressable>
-              <Text style={styles.editGoals}>Edit goals &amp; tax %</Text>
-            </Pressable>
-          </Link>
-        </>
-      )}
+      <View style={{ height: 14 }} />
+      <Link href="/goals" asChild>
+        <Pressable>
+          <Text style={styles.editGoals}>Edit goals &amp; tax %</Text>
+        </Pressable>
+      </Link>
     </View>
   );
 }
