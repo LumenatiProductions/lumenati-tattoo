@@ -83,6 +83,41 @@ export function last7Days(sales: SaleRow[]): { label: string; cents: number }[] 
   return days;
 }
 
+// ── Booth rent (artists on rent or hybrid terms) ──
+export type RentStatus = {
+  payType: string; // rent | split | hybrid
+  rentCents: number; // monthly rent from their terms
+  unpaid: { id: string; period: string; amount_cents: number; due_date: string | null }[];
+};
+
+// Resolve "my" artist unless previewing (owner passes the artist explicitly).
+async function myArtistId(): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user?.email) return null;
+  const { data } = await supabase.from("profiles").select("artist_id").eq("email", u.user.email).maybeSingle();
+  return (data?.artist_id as string | null) ?? null;
+}
+
+export async function loadRent(artistId?: string): Promise<RentStatus | null> {
+  const id = artistId ?? (await myArtistId());
+  if (!id) return null;
+  const [{ data: a }, { data: inv }] = await Promise.all([
+    supabase.from("artists").select("pay_type, rent_cents").eq("id", id).maybeSingle(),
+    supabase
+      .from("rent_invoices")
+      .select("id, period, amount_cents, due_date")
+      .eq("artist_id", id)
+      .eq("status", "pending")
+      .order("period"),
+  ]);
+  if (!a) return null;
+  return {
+    payType: (a.pay_type as string) ?? "split",
+    rentCents: (a.rent_cents as number) ?? 0,
+    unpaid: (inv ?? []) as RentStatus["unpaid"],
+  };
+}
+
 // ── Goals (one row per user) ──
 export type Goals = { weekly_cents: number; monthly_cents: number; tax_setaside_pct: number };
 const DEFAULT_GOALS: Goals = { weekly_cents: 0, monthly_cents: 0, tax_setaside_pct: 0.3 };

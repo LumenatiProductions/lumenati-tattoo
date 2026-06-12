@@ -9,6 +9,8 @@ import {
   loadMoney,
   loadGoals,
   loadExpenses,
+  loadRent,
+  type RentStatus,
   earnedInRange,
   hourlyInRange,
   last7Days,
@@ -38,15 +40,22 @@ export default function ArtistMoney({
   const [snap, setSnap] = useState<MoneySnapshot | null>(null);
   const [goals, setGoals] = useState<Goals | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [rent, setRent] = useState<RentStatus | null>(null);
 
   const load = useCallback(async () => {
     // Preview (owner): earnings come from THAT artist's rows; goals/expenses
     // are per-user so the owner sees + edits their own — good enough to learn
     // the flow while the roster has no real artists on it yet.
-    const [m, g, e] = await Promise.all([loadMoney(preview?.artistId), loadGoals(), loadExpenses()]);
+    const [m, g, e, r] = await Promise.all([
+      loadMoney(preview?.artistId),
+      loadGoals(),
+      loadExpenses(),
+      loadRent(preview?.artistId),
+    ]);
     setSnap(m);
     setGoals(g);
     setExpenses(e);
+    setRent(r);
   }, [preview]);
   useEffect(() => {
     load();
@@ -108,6 +117,36 @@ export default function ArtistMoney({
         <Stat label="Tickets" value={String(e.tickets)} />
         <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(goals.tax_setaside_pct * 100)}% set-aside`} warn />
       </View>
+
+      {/* Booth rent — only for artists whose terms include rent */}
+      {rent && rent.payType !== "split" && (
+        <>
+          <SectionTitle>Booth rent</SectionTitle>
+          <Card style={rent.unpaid.length ? { borderColor: "rgba(251,191,36,0.45)" } : undefined}>
+            {rent.unpaid.length === 0 ? (
+              <Row label={`Paid up · ${money(rent.rentCents)}/mo`} value="✓" strong />
+            ) : (
+              <>
+                {rent.unpaid.map((inv) => {
+                  const overdue = !!inv.due_date && inv.due_date < new Date().toISOString().slice(0, 10);
+                  return (
+                    <Row
+                      key={inv.id}
+                      label={`${periodLabel(inv.period)}${inv.due_date ? ` · due ${inv.due_date.slice(5)}` : ""}${overdue ? " · OVERDUE" : ""}`}
+                      value={money(inv.amount_cents)}
+                      strong={overdue}
+                    />
+                  );
+                })}
+                <Text style={styles.taxNote}>
+                  Owed to the shop{rent.unpaid.length > 1 ? ` — ${money(rent.unpaid.reduce((a, i) => a + i.amount_cents, 0))} total` : ""}.
+                  Pay at the desk or with your rent link; it never comes out of your card payouts.
+                </Text>
+              </>
+            )}
+          </Card>
+        </>
+      )}
 
       {preview && (
         <Text style={styles.previewNote}>
@@ -187,6 +226,13 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
       <Text style={[styles.rowValue, strong && { color: theme.text, fontWeight: "800" }]}>{value}</Text>
     </View>
   );
+}
+
+// "2026-06" → "June 2026" for the rent rows.
+function periodLabel(period: string): string {
+  const [y, m] = period.split("-").map(Number);
+  if (!y || !m) return period;
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 // Next IRS estimated-tax due date (Apr 15 / Jun 15 / Sep 15 / Jan 15).
