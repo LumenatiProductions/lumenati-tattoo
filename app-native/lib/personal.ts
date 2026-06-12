@@ -68,6 +68,53 @@ export function hourlyInRange(sales: SaleRow[], bookings: BookingRow[], range: R
   return Math.round(service / hours);
 }
 
+// Cumulative earnings per day from the range start through today (the chart).
+export function cumulativeSeries(sales: SaleRow[], range: Range): number[] {
+  const from = startOf(range);
+  const today = new Date();
+  const start = new Date(`${from}T00:00:00`);
+  const days = Math.max(1, Math.round((today.getTime() - start.getTime()) / 86400000) + 1);
+  const perDay = new Array<number>(days).fill(0);
+  for (const s of sales) {
+    const d = (s.created_at || "").slice(0, 10);
+    if (d < from) continue;
+    const idx = Math.round((new Date(`${d}T00:00:00`).getTime() - start.getTime()) / 86400000);
+    if (idx >= 0 && idx < days) perDay[idx] += (s.service_cents ?? 0) + (s.tip_cents ?? 0);
+  }
+  let run = 0;
+  return perDay.map((v) => (run += v));
+}
+
+// Consecutive weeks at/over the weekly goal, counting back from this week
+// (this week counts as soon as it crosses the line).
+export function weeklyStreak(sales: SaleRow[], weeklyCents: number): number {
+  if (weeklyCents <= 0) return 0;
+  const weekTotal = (mondayMs: number) => {
+    const from = new Date(mondayMs - new Date(mondayMs).getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const to = new Date(mondayMs + 7 * 86400000 - new Date(mondayMs).getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 10);
+    return sales
+      .filter((s) => {
+        const d = (s.created_at || "").slice(0, 10);
+        return d >= from && d < to;
+      })
+      .reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0);
+  };
+  const now = new Date();
+  const day = (now.getDay() + 6) % 7;
+  const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day).getTime();
+  let streak = 0;
+  let monday = thisMonday;
+  if (weekTotal(monday) >= weeklyCents) streak++;
+  monday -= 7 * 86400000;
+  while (weekTotal(monday) >= weeklyCents && streak < 52) {
+    streak++;
+    monday -= 7 * 86400000;
+  }
+  return streak;
+}
+
 // Last 7 days, oldest→newest, total cents per day (for the bar strip).
 export function last7Days(sales: SaleRow[]): { label: string; cents: number }[] {
   const days: { label: string; cents: number }[] = [];

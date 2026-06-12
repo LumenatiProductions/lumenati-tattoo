@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { theme, money } from "@/lib/theme";
 import { tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
+import MoneyChart from "@/components/MoneyChart";
 import {
   loadMoney,
   loadGoals,
   loadExpenses,
   loadRent,
   type RentStatus,
+  cumulativeSeries,
+  weeklyStreak,
   earnedInRange,
   hourlyInRange,
   last7Days,
@@ -22,18 +25,22 @@ import {
 
 const RANGES: Range[] = ["week", "month", "year"];
 const RANGE_LABEL: Record<Range, string> = { week: "This week", month: "This month", year: "This year" };
+// screen padding (20×2) + card padding (16×2)
+const CHART_W = Dimensions.get("window").width - 72;
 
 // The artist money + coaching home. Earnings, realized hourly rate, goal pacing,
 // and the tax set-aside — all from their own RLS-scoped data. (POS 6b)
-// `preview` = an owner looking at an artist's home: earnings render from that
-// artist's rows; goals/deductions/taxes are the artist's PRIVATE data and stay
-// hidden.
+// `artistId` scopes sales/bookings/rent explicitly — used when an owner views
+// an artist (preview) or is one themselves (JD: co-owner with a chair).
+// `previewName` swaps the greeting for the previewed artist's name.
 export default function ArtistMoney({
   firstName,
-  preview,
+  artistId,
+  previewName,
 }: {
   firstName: string;
-  preview?: { artistId: string; name: string };
+  artistId?: string;
+  previewName?: string;
 }) {
   const router = useRouter();
   const [range, setRange] = useState<Range>("week");
@@ -43,20 +50,19 @@ export default function ArtistMoney({
   const [rent, setRent] = useState<RentStatus | null>(null);
 
   const load = useCallback(async () => {
-    // Preview (owner): earnings come from THAT artist's rows; goals/expenses
-    // are per-user so the owner sees + edits their own — good enough to learn
-    // the flow while the roster has no real artists on it yet.
+    // Goals/expenses are keyed to the signed-in user; sales/bookings/rent are
+    // scoped by RLS for artists or by the explicit artistId for owners.
     const [m, g, e, r] = await Promise.all([
-      loadMoney(preview?.artistId),
+      loadMoney(artistId),
       loadGoals(),
       loadExpenses(),
-      loadRent(preview?.artistId),
+      loadRent(artistId),
     ]);
     setSnap(m);
     setGoals(g);
     setExpenses(e);
     setRent(r);
-  }, [preview]);
+  }, [artistId]);
   useEffect(() => {
     load();
   }, [load]);
@@ -67,6 +73,7 @@ export default function ArtistMoney({
 
   const e = earnedInRange(snap.sales, range);
   const hourly = hourlyInRange(snap.sales, snap.bookings, range);
+  const streak = weeklyStreak(snap.sales, goals.weekly_cents);
   const goalCents = range === "month" ? goals.monthly_cents : range === "week" ? goals.weekly_cents : 0;
   const goalPct = goalCents > 0 ? e.total / goalCents : 0;
   const bars = last7Days(snap.sales);
@@ -80,7 +87,7 @@ export default function ArtistMoney({
 
   return (
     <View>
-      <Text style={styles.greeting}>{preview ? preview.name : `Hey ${firstName}`}</Text>
+      <Text style={styles.greeting}>{previewName ?? `Hey ${firstName}`}</Text>
 
       {/* THE action — taking money is why the phone comes out of the pocket. */}
       <Button label="Take payment" big onPress={() => router.push("/pos")} />
@@ -138,22 +145,37 @@ export default function ArtistMoney({
         </>
       )}
 
-      {/* Goal pacing */}
-      {goalCents > 0 && (
-        <>
-          <SectionTitle>Goal</SectionTitle>
-          <Card>
-            <View style={styles.goalRow}>
+      {/* The race: cumulative earnings vs the goal pace line */}
+      <SectionTitle right={goalCents > 0 ? <EditLink label="Edit" onPress={() => router.push("/goals")} /> : undefined}>
+        Goal
+      </SectionTitle>
+      <Card>
+        <MoneyChart
+          series={cumulativeSeries(snap.sales, range)}
+          startLabel={RANGE_LABEL[range].replace("This ", "")}
+          endLabel="today"
+          goalCents={goalCents > 0 ? goalCents : undefined}
+          width={CHART_W}
+        />
+        {goalCents > 0 ? (
+          <>
+            <View style={[styles.goalRow, { marginTop: 12 }]}>
               <Text style={styles.goalNow}>{money(e.total)}</Text>
               <Text style={styles.goalTarget}>of {money(goalCents)}</Text>
             </View>
             <ProgressBar pct={goalPct} tone={goalPct >= 1 ? theme.good : theme.brand} />
             <Text style={styles.goalNote}>
               {goalPct >= 1 ? "Goal hit — nice." : `${Math.round(goalPct * 100)}% there`}
+              {streak >= 2 ? `  ·  ${streak} weeks straight over goal` : ""}
             </Text>
-          </Card>
-        </>
-      )}
+          </>
+        ) : (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.goalPitch}>Pick a number to chase and this chart races you against it, every day.</Text>
+            <Button label="Set your goals" onPress={() => router.push("/goals")} />
+          </View>
+        )}
+      </Card>
 
       {/* 7-day strip */}
       <SectionTitle>Last 7 days</SectionTitle>
@@ -176,7 +198,7 @@ export default function ArtistMoney({
       </Card>
 
       {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
-      <SectionTitle>Taxes</SectionTitle>
+      <SectionTitle right={<EditLink label="Edit %" onPress={() => router.push("/goals")} />}>Taxes</SectionTitle>
       <Card>
         <Row label="Earned YTD (1099 basis)" value={money(ytd.total)} />
         <Row label="Deductions logged" value={money(deductYtd)} />
@@ -191,14 +213,22 @@ export default function ArtistMoney({
           </Pressable>
         </Link>
       </Card>
-
-      <View style={{ height: 14 }} />
-      <Link href="/goals" asChild>
-        <Pressable>
-          <Text style={styles.editGoals}>Edit goals &amp; tax %</Text>
-        </Pressable>
-      </Link>
     </View>
+  );
+}
+
+function EditLink({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      hitSlop={8}
+      style={({ pressed }) => [styles.editLink, pressed && { opacity: 0.7 }]}
+    >
+      <Text style={styles.editLinkText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -248,6 +278,9 @@ const styles = StyleSheet.create({
   goalNow: { color: theme.text, fontSize: 24, fontWeight: "800" },
   goalTarget: { color: theme.textDim, fontSize: 14 },
   goalNote: { color: theme.textFaint, fontSize: 12, marginTop: 8 },
+  goalPitch: { color: theme.textDim, fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  editLink: { paddingHorizontal: 2 },
+  editLinkText: { color: theme.brand, fontSize: 13, fontWeight: "700" },
   bars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 110 },
   barCol: { flex: 1, alignItems: "center" },
   barTrack: { height: 90, width: 14, justifyContent: "flex-end", borderRadius: 7, overflow: "hidden" },

@@ -32,16 +32,23 @@ export default function Home() {
   const firstName = (fullName ?? "").trim().split(/\s+/)[0] || (email ?? "").split("@")[0];
   const [refreshing, setRefreshing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  // Owner-only: see the app the way an artist does (their earnings, their
-  // home). Private stuff (goals/taxes/deductions) stays hidden in preview.
+  // Owner-only: see the app the way an artist does.
   const [roster, setRoster] = useState<{ id: string; name: string }[]>([]);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  // Staff who ALSO hold a chair (JD: co-owner + artist) get two homes in tabs.
+  const [myArtistId, setMyArtistId] = useState<string | null>(null);
+  const [homeTab, setHomeTab] = useState<"shop" | "money">("shop");
 
   useEffect(() => {
-    if (role !== "owner") return;
-    supabase.from("artists").select("id, name").eq("active", true).order("sort")
-      .then(({ data }) => setRoster((data ?? []) as { id: string; name: string }[]));
-  }, [role]);
+    if (role === "owner") {
+      supabase.from("artists").select("id, name").eq("active", true).order("sort")
+        .then(({ data }) => setRoster((data ?? []) as { id: string; name: string }[]));
+    }
+    if (isStaff && email) {
+      supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle()
+        .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
+    }
+  }, [role, isStaff, email]);
 
   const previewArtist = roster.find((a) => a.id === previewId) ?? null;
 
@@ -77,10 +84,28 @@ export default function Home() {
               <Text style={styles.previewExit}>Exit</Text>
             </Pressable>
           </View>
-          <ArtistMoney firstName={firstName} preview={{ artistId: previewArtist.id, name: previewArtist.name }} />
+          <ArtistMoney firstName={firstName} artistId={previewArtist.id} previewName={previewArtist.name} />
+          <Launcher role="artist" />
         </>
       ) : isStaff ? (
-        <StaffHome firstName={firstName} reloadKey={reloadKey} />
+        <>
+          {myArtistId && (
+            <View style={styles.homeTabs}>
+              {(["shop", "money"] as const).map((t) => (
+                <Pressable key={t} onPress={() => setHomeTab(t)} style={[styles.homeTab, homeTab === t && styles.homeTabOn]}>
+                  <Text style={[styles.homeTabText, homeTab === t && styles.homeTabTextOn]}>
+                    {t === "shop" ? "Shop" : "My money"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          {myArtistId && homeTab === "money" ? (
+            <ArtistMoney firstName={firstName} artistId={myArtistId} />
+          ) : (
+            <StaffHome firstName={firstName} reloadKey={reloadKey} />
+          )}
+        </>
       ) : (
         <ArtistMoney firstName={firstName} />
       )}
@@ -274,4 +299,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.03)",
   },
   previewChipText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
+  homeTabs: { flexDirection: "row", gap: 8, marginTop: 18 },
+  homeTab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
+  homeTabOn: { backgroundColor: theme.brand, borderColor: theme.brand },
+  homeTabText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
+  homeTabTextOn: { color: "#fff" },
 });
