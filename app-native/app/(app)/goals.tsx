@@ -133,7 +133,7 @@ export default function Goals() {
             <Text style={styles.help}>
               {taxStatus === "1099"
                 ? "Booth renters and most split artists are contractors: nothing is withheld for you, so the set-aside % is your tax money — move it to its own account every payout."
-                : "Employees get payroll withholding on wages. Keep a smaller set-aside for cash tips and side work, which usually have nothing withheld."}
+                : "Employees get payroll withholding on wages — your W-4 in Gusto controls how much. Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
             </Text>
           </View>
         )}

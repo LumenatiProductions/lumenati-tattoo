@@ -67,7 +67,7 @@ export function coachTips(opts: {
   } else {
     tips.push({
       title: "Payroll covers your wages — not your cash",
-      body: "You're a W-2 employee, so the shop withholds tax from your paychecks. But cash tips and any side work usually have NOTHING withheld — report them, and keep a set-aside for the tax they'll add. If that's not how you're paid, switch it on the Goals screen.",
+      body: "You're a W-2 employee — tax comes out of your paychecks based on the W-4 you set in Gusto (adjust it there if you keep owing or over-paying). But cash tips and side work usually have NOTHING withheld — report them, and keep a set-aside for the tax they'll add. If that's not how you're paid, switch it on the Goals screen.",
     });
   }
 
