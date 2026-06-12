@@ -14,7 +14,7 @@ import { PageHead, StatementsTable, RentPanel } from "./shared";
 // outstanding, and a straight line to Reports. (Owner gets the same money view
 // plus the cross-feature cockpit; the bookkeeper doesn't need bookings/stock.)
 export default function BookkeeperHome() {
-  const { sales, real } = useSales();
+  const { sales, real, loading } = useSales();
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
   const { outstandingCents: cashOutstanding } = useCash();
@@ -26,7 +26,7 @@ export default function BookkeeperHome() {
   return (
     <div>
       <PageHead title="Books" sub={real ? "Live from Square" : "Period to date · preview data"} />
-      {!real && <MockBanner source="Square & QuickBooks" />}
+      {!real && !loading && <MockBanner source="Square & QuickBooks" />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Gross sales" value={fmt(s.grossSales)} sub="service + tips" />

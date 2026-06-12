@@ -14,7 +14,7 @@ import PayoutsConnect from "@/components/admin/connect/PayoutsConnect";
 
 export default function PayoutsPage() {
   const { role, asArtistId } = useRole();
-  const { real } = useSales();
+  const { real, loading } = useSales();
   const { statements: all, configured: settleConfigured, refresh: refreshSettlements } = useSettledStatements();
 
   const [msg, setMsg] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export default function PayoutsPage() {
           is who writes whom a check.
         </p>
       </div>
-      {!real && <MockBanner source="Square" />}
+      {!real && !loading && <MockBanner source="Square" />}
 
       {/* Stripe Connect setup — owner only. Onboarded artists are auto-settled;
           the manual statement view below covers cash + non-onboarded artists. */}

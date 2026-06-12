@@ -13,7 +13,7 @@ import { PageHead, Empty, clock, greeting } from "./shared";
 // Artist: only their own numbers and work. No shop-wide anything (RLS scopes
 // their reads too). Compliance is owner-only, so it isn't shown here.
 export default function ArtistHome({ artistId }: { artistId: string }) {
-  const { sales, real } = useSales();
+  const { sales, real, loading } = useSales();
   const { artists } = useArtists();
   const { bookings } = useBookings();
   const { statements: settled } = useSettledStatements();
@@ -38,7 +38,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
   return (
     <div>
       <PageHead title={`${greeting()}, ${artist.name.split(" ")[0]}`} sub={payTypeLabel(artist)} />
-      {!real && <MockBanner source="Square" />}
+      {!real && !loading && <MockBanner source="Square" />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips" accent />
@@ -78,7 +78,11 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
         </div>
 
         <div className="lg:col-span-2">
-          <SectionTitle>Recent work</SectionTitle>
+          <SectionTitle
+            action={<Link href="/admin/payouts" className="text-xs font-medium text-brand">My statement →</Link>}
+          >
+            Recent work
+          </SectionTitle>
           <Card>
             <table className="w-full text-sm">
               <thead>
@@ -98,7 +102,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
                     </td>
                   </tr>
                 )}
-                {mine.map((s) => (
+                {mine.slice(0, 10).map((s) => (
                   <tr key={s.id} className="border-b border-black/5 last:border-0">
                     <td className="px-4 py-2.5 text-black/55">{s.date}</td>
                     <td className="px-4 py-2.5">{s.description}</td>
@@ -111,6 +115,11 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
                 ))}
               </tbody>
             </table>
+            {mine.length > 10 && (
+              <div className="border-t border-black/5 px-4 py-2 text-center text-xs text-black/40">
+                Last 10 of {mine.length} tickets
+              </div>
+            )}
           </Card>
         </div>
       </div>

@@ -38,7 +38,8 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
               tipCents: r.tip_cents ?? 0,
               method: r.method === "cash" ? "cash" : "card",
               squarePaymentId: r.id,
-              description: "Square sale",
+              // The Square mirror carries no line-item text — say what we know.
+              description: r.method === "cash" ? "Cash sale" : "Card sale",
             })),
           );
           setReal(true);

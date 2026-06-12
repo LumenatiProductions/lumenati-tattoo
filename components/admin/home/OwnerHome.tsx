@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRent } from "@/lib/admin/rent-context";
@@ -13,7 +14,7 @@ import { PageHead, WeekTile, StatementsTable, RentPanel, daysAgoLocal } from "./
 // Owner: the whole shop. The cross-feature cockpit (POS-STARTER-4) on top, then
 // the financial overview.
 export default function OwnerHome() {
-  const { sales, real } = useSales();
+  const { sales, real, loading } = useSales();
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
   const { outstandingCents: cashOutstanding } = useCash();
@@ -48,7 +49,22 @@ export default function OwnerHome() {
 
       <Cockpit />
 
-      {!real && <MockBanner source="Square & QuickBooks" />}
+      {!real && !loading && <MockBanner source="Square & QuickBooks" />}
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Link href="/admin/clients" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
+          New client
+        </Link>
+        <Link href="/admin/bookings" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+          Bookings
+        </Link>
+        <Link href="/admin/payouts" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+          Payouts
+        </Link>
+        <Link href="/admin/reports" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+          Reports
+        </Link>
+      </div>
 
       <SectionTitle>
         This week <span className="font-normal text-black/35">· last 7 days, same as your Monday email</span>
