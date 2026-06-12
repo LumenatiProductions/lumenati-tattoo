@@ -31,7 +31,7 @@ moments only.
 
 ## The queue (in order — daily-use first, then money, then ops, then edges)
 
-- [ ] 1. **Home base** — web `/admin` overview + app `home.tsx` (staff home,
+- [x] 1. **Home base** — web `/admin` overview + app `home.tsx` (staff home,
       artist home, JD's tabs, view-as-artist preview)
 - [ ] 2. **POS & payments** — app `pos.tsx` + `TapToPayPos` + Y2K blast; web
       pay links + `/pay/[token]` + tips; (TTP entitlement state)
@@ -78,4 +78,10 @@ moments only.
 
 ## Takeaways (filled as we go)
 
-(none yet)
+1. **Home base** (2026-06-12): biggest find was the homes computing "Payouts
+   owed"/Net from ALL sales with no rent and no settled_through — disagreeing
+   with Payouts. Fixed via shared `useSettledStatements` (lib/admin/
+   settlements-context.tsx) — any future who-owes-whom number must come from
+   there. Also: app staff home got cockpit parity (ranked attention, week
+   strip, tappable tiles), week-over-week deltas on the web strip, artist
+   pull-to-refresh now real. Built all 4 ranked upgrades same session.

@@ -1,10 +1,13 @@
-# NEXT SESSION — Review Tour, Stop 1: Home base (updated 2026-06-12)
+# NEXT SESSION — Review Tour, Stop 2: POS & payments (updated 2026-06-12)
 
 **The standing program: `REVIEW-TOUR.md`.** One surface per session, web +
 app together — explain it, state of it, gaps, make it better, build what
-Scott picks, check it off, point this line at the next stop. Stop 1 is
-**Home base** (web /admin overview + app home). Read REVIEW-TOUR.md first;
-its protocol is the session script.
+Scott picks, check it off, point this line at the next stop. Stop 2 is
+**POS & payments** (app pos.tsx + TapToPayPos + Y2K blast; web pay links +
+/pay/[token] + tips; TTP entitlement state). Read REVIEW-TOUR.md first; its
+protocol is the session script. Stop 1 (Home base) is done — takeaway in
+REVIEW-TOUR.md; who-owes-whom numbers now come ONLY from
+lib/admin/settlements-context.tsx (useSettledStatements).
 
 Parallel quests still open (do when Scott unblocks them, any session):
 - **Apple TTP videos** — see the quest below (blocked on recording/Phase 2).
