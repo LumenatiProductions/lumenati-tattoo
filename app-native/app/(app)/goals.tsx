@@ -6,7 +6,9 @@ import { theme, money } from "@/lib/theme";
 import { Button } from "@/components/ui";
 import { Chips } from "@/components/form";
 import GoalDial from "@/components/GoalDial";
-import { loadGoals, saveGoals } from "@/lib/personal";
+import { loadGoals, loadMoney, saveGoals } from "@/lib/personal";
+import { avgWeeklyCents, suggestedWeeklyCents } from "@/lib/coach";
+import { milestone } from "@/lib/haptics";
 
 // Set income targets + the tax set-aside % on the dial — drag, feel the
 // detents, watch it warm from pink to green. (POS 6b, dopamine pass)
@@ -29,12 +31,19 @@ export default function Goals() {
   const [taxPct, setTaxPct] = useState(30); // whole %
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggested, setSuggested] = useState(0);
+  const [avgWeek, setAvgWeek] = useState(0);
 
   useEffect(() => {
     loadGoals().then((g) => {
       setWeekly(g.weekly_cents);
       setMonthly(g.monthly_cents);
       setTaxPct(Math.round(g.tax_setaside_pct * 100));
+    });
+    // Coach: a suggestion grounded in their own last two months.
+    loadMoney().then((m) => {
+      setSuggested(suggestedWeeklyCents(m.sales));
+      setAvgWeek(avgWeeklyCents(m.sales));
     });
   }, []);
 
@@ -86,6 +95,22 @@ export default function Goals() {
           onChange={set}
         />
 
+        {mode === "weekly" && suggested > 0 && weekly !== suggested && (
+          <View style={{ alignItems: "center", marginTop: 6 }}>
+            <Button
+              label={`Use suggested · ${money(suggested)}/week`}
+              tone="ghost"
+              onPress={() => {
+                milestone();
+                setLinkedWeekly(suggested);
+              }}
+            />
+            <Text style={styles.suggestWhy}>
+              Your average week lately is {money(avgWeek)} — this is that plus a stretch.
+            </Text>
+          </View>
+        )}
+
         {/* the other two at a glance */}
         <View style={styles.summary}>
           <Summary label="Weekly" value={weekly ? money(weekly) : "—"} on={mode === "weekly"} />
@@ -128,5 +153,6 @@ const styles = StyleSheet.create({
   sumLabel: { color: theme.textFaint, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: "700" },
   sumValue: { color: theme.text, fontSize: 16, fontWeight: "700", marginTop: 3, fontVariant: ["tabular-nums"] },
   help: { color: theme.textFaint, fontSize: 12.5, lineHeight: 18, marginTop: 16 },
+  suggestWhy: { color: theme.textFaint, fontSize: 12, marginTop: 8, textAlign: "center" },
   error: { color: theme.bad, fontSize: 13.5, marginTop: 12 },
 });

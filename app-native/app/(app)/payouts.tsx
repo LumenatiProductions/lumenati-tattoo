@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Svg, { Polyline } from "react-native-svg";
+import { endStop } from "@/lib/haptics";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
@@ -36,6 +40,7 @@ type Statement = {
   cashService: number;
   rentOwed: number;
   net: number; // >0 shop pays artist, <0 artist pays shop
+  spark?: number[]; // last 14 days of daily totals, for the row sparkline
 };
 
 function statementFor(
@@ -103,8 +108,24 @@ export default function Payouts() {
     // artist's; staff see everyone.
     const scopeTo = role === "artist" ? myArtistId : preview?.artistId ?? null;
     const visible = (artists ?? []).filter((a) => (scopeTo ? a.id === scopeTo : true));
+
+    // Last 14 days of daily totals per artist — the row sparklines.
+    const today = new Date();
+    const dayIdx = (iso: string) =>
+      13 - Math.round((today.getTime() - new Date(`${iso.slice(0, 10)}T00:00:00`).getTime()) / 86400000);
+    const sparkBy: Record<string, number[]> = {};
+    for (const s of (sales ?? []) as SaleRow[]) {
+      if (!s.artist_id || !s.created_at) continue;
+      const i = dayIdx(s.created_at);
+      if (i < 0 || i > 13) continue;
+      (sparkBy[s.artist_id] ??= new Array(14).fill(0))[i] += (s.service_cents ?? 0) + (s.tip_cents ?? 0);
+    }
+
     setStatements(
-      visible.map((a) => statementFor(a as ArtistRow, (sales ?? []) as SaleRow[], rentOwed, settledThrough[a.id])),
+      visible.map((a) => ({
+        ...statementFor(a as ArtistRow, (sales ?? []) as SaleRow[], rentOwed, settledThrough[a.id]),
+        spark: sparkBy[a.id],
+      })),
     );
   }, [role, email, preview]);
 
@@ -224,6 +245,8 @@ export default function Payouts() {
   );
 }
 
+const SETTLE_DRAG = 150; // px of drag that commits a settle
+
 function StatementRow({
   st,
   kind,
@@ -244,34 +267,83 @@ function StatementRow({
     kind === "pay"
       ? `card ${money(st.cardService)} svc + ${money(st.cardTips)} tips`
       : `cash cut ${money(Math.round(st.cashService * split))}${st.rentOwed ? ` + rent ${money(st.rentOwed)}` : ""}`;
+
+  // Swipe-to-settle (Apple-Card-ish): drag the row right; past the threshold
+  // it clunks and commits. Spring back otherwise. Tap still works.
+  const tx = useSharedValue(0);
+  const commit = () => {
+    endStop();
+    onSettle();
+  };
+  const pan = Gesture.Pan()
+    .enabled(canSettle && !busy)
+    .activeOffsetX(12) // don't steal vertical scrolls
+    .onChange((e) => {
+      tx.value = Math.max(0, Math.min(e.translationX, SETTLE_DRAG + 30));
+    })
+    .onEnd(() => {
+      if (tx.value >= SETTLE_DRAG) runOnJS(commit)();
+      tx.value = withSpring(0, { damping: 16, stiffness: 160 });
+    });
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }] }));
+  const fillStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, tx.value / SETTLE_DRAG) }));
+
+  const spark = sparkPoints(st.spark, 64, 22);
+
   return (
-    <View
-      style={[
-        { flexDirection: "row", alignItems: "center", paddingVertical: 13 },
-        !first && { borderTopColor: theme.border, borderTopWidth: 1 },
-      ]}
-    >
-      <View style={{ flex: 1, marginRight: 12 }}>
-        <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>{st.artist.name}</Text>
-        <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 3 }}>{sub}</Text>
-      </View>
-      <Pressable
-        onPress={canSettle ? onSettle : undefined}
-        disabled={!canSettle || busy}
-        style={({ pressed }) => [{ alignItems: "flex-end", gap: 8 }, pressed && { opacity: 0.7 }]}
-      >
-        <Text
-          style={{
-            color: kind === "pay" ? theme.warn : theme.good,
-            fontSize: 17,
-            fontWeight: "700",
-            fontVariant: ["tabular-nums"],
-          }}
-        >
-          {money(Math.abs(st.net))}
-        </Text>
-        {canSettle && <Badge label={busy ? "Settling…" : "Mark settled"} tone="brand" />}
-      </Pressable>
+    <View style={!first && { borderTopColor: theme.border, borderTopWidth: 1 }}>
+      {canSettle && (
+        <Animated.View style={[StyleSheet.absoluteFill, styles.settleFill, fillStyle]}>
+          <Text style={styles.settleFillText}>Settle ✓</Text>
+        </Animated.View>
+      )}
+      <GestureDetector gesture={pan}>
+        <Animated.View style={[{ flexDirection: "row", alignItems: "center", paddingVertical: 13, backgroundColor: theme.surface }, rowStyle]}>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>{st.artist.name}</Text>
+            <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 3 }}>{sub}</Text>
+          </View>
+          {spark && (
+            <Svg width={64} height={22} style={{ marginRight: 12 }}>
+              <Polyline points={spark} stroke={kind === "pay" ? theme.good : theme.brand} strokeWidth={1.8} fill="none" />
+            </Svg>
+          )}
+          <Pressable
+            onPress={canSettle ? onSettle : undefined}
+            disabled={!canSettle || busy}
+            style={({ pressed }) => [{ alignItems: "flex-end", gap: 8 }, pressed && { opacity: 0.7 }]}
+          >
+            <Text
+              style={{
+                color: kind === "pay" ? theme.warn : theme.good,
+                fontSize: 17,
+                fontWeight: "700",
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {money(Math.abs(st.net))}
+            </Text>
+            {canSettle && <Badge label={busy ? "Settling…" : "Slide or tap to settle"} tone="brand" />}
+          </Pressable>
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
+
+// Tiny 14-day earnings line, normalized into a w×h box.
+function sparkPoints(daily: number[] | undefined, w: number, h: number): string | null {
+  if (!daily || daily.length < 2 || daily.every((v) => v === 0)) return null;
+  const max = Math.max(...daily, 1);
+  return daily.map((v, i) => `${(i / (daily.length - 1)) * w},${h - 2 - (v / max) * (h - 4)}`).join(" ");
+}
+
+const styles = StyleSheet.create({
+  settleFill: {
+    backgroundColor: theme.goodSoft,
+    borderRadius: theme.radius.sm,
+    justifyContent: "center",
+    paddingLeft: 14,
+  },
+  settleFillText: { color: theme.good, fontSize: 15, fontWeight: "800" },
+});

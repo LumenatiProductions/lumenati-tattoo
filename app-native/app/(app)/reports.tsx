@@ -2,9 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Dimensions } from "react-native";
 import { theme, money } from "@/lib/theme";
 import { Card, Stat } from "@/components/ui";
 import { apiGet } from "@/lib/appApi";
+import { supabase } from "@/lib/supabase";
+import MoneyChart from "@/components/MoneyChart";
+import { cumulativeSeries, type SaleRow } from "@/lib/personal";
 
 type Artist = {
   id: string;
@@ -39,12 +43,21 @@ const payLabel = (a: Artist) =>
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<Reports | null>(null);
+  const [monthSales, setMonthSales] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await apiGet<Reports>("/api/reports");
+    const [r, s] = await Promise.all([
+      apiGet<Reports>("/api/reports"),
+      // Month-to-date shop gross for the chart (owner/bookkeeper RLS sees all).
+      supabase
+        .from("sales")
+        .select("created_at, service_cents, tip_cents")
+        .gte("created_at", `${new Date().toISOString().slice(0, 7)}-01`),
+    ]);
+    setMonthSales(((s.data ?? []) as SaleRow[]) || []);
     if (r.ok && r.data) {
       setData(r.data);
       setError(null);
@@ -73,8 +86,19 @@ export default function ReportsScreen() {
               {data.range.from} → {data.range.to}
               {!data.real && " · no tickets yet"}
             </Text>
+            {monthSales.length > 0 && (
+              <Card style={{ marginBottom: 14 }}>
+                <Text style={styles.chartLabel}>SHOP · MONTH TO DATE</Text>
+                <MoneyChart
+                  series={cumulativeSeries(monthSales, "month")}
+                  startLabel="month"
+                  endLabel="today"
+                  width={Dimensions.get("window").width - 72}
+                />
+              </Card>
+            )}
             <View style={styles.grid}>
-              <Stat label="Gross sales" value={money(data.shop.grossSales)} accent />
+              <Stat label="Gross sales" value={money(data.shop.grossSales)} countTo={data.shop.grossSales} accent />
               <Stat label="Shop's cut" value={money(data.shop.splitRevenue)} />
               <Stat label="Rent collected" value={money(data.shop.rentCollected)} />
               <Stat label="To pay artists" value={money(data.shop.payoutsOwed)} warn={data.shop.payoutsOwed > 0} />
@@ -110,6 +134,7 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
+  chartLabel: { color: theme.textDim, fontSize: 11, letterSpacing: 1.6, fontWeight: "700", marginBottom: 8 },
   range: { color: theme.textFaint, fontSize: 12, marginBottom: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   section: { color: theme.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: "600", marginTop: 22, marginBottom: 10 },

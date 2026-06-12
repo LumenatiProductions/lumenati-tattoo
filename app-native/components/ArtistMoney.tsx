@@ -5,6 +5,8 @@ import { theme, money } from "@/lib/theme";
 import { success, tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
 import MoneyChart from "@/components/MoneyChart";
+import MiniConfetti from "@/components/MiniConfetti";
+import { coachTips } from "@/lib/coach";
 import {
   loadMoney,
   loadGoals,
@@ -71,11 +73,15 @@ export default function ArtistMoney({
   // (hitRef stops it re-firing every render). Hook lives above the early
   // return, so it guards its own nulls.
   const hitRef = useRef(false);
+  const [pop, setPop] = useState(false);
   const liveGoal = goals ? (range === "month" ? goals.monthly_cents : range === "week" ? goals.weekly_cents : 0) : 0;
   const liveEarned = snap ? earnedInRange(snap.sales, range).total : 0;
   const goalHit = liveGoal > 0 && liveEarned >= liveGoal;
   useEffect(() => {
-    if (goalHit && !hitRef.current) success();
+    if (goalHit && !hitRef.current) {
+      success();
+      setPop(true);
+    }
     hitRef.current = goalHit;
   }, [goalHit]);
 
@@ -167,8 +173,10 @@ export default function ArtistMoney({
           startLabel={RANGE_LABEL[range].replace("This ", "")}
           endLabel="today"
           goalCents={goalCents > 0 ? goalCents : undefined}
+          streak={streak}
           width={CHART_W}
         />
+        {pop && <MiniConfetti onDone={() => setPop(false)} />}
         {goalCents > 0 ? (
           <>
             <View style={[styles.goalRow, { marginTop: 12 }]}>
@@ -208,6 +216,25 @@ export default function ArtistMoney({
           ))}
         </View>
       </Card>
+
+      {/* The coach — plain-English money truths from their own numbers. The
+          first one is always the same: NOBODY withholds for you. */}
+      <SectionTitle>Coach</SectionTitle>
+      {coachTips({
+        sales: snap.sales,
+        expenses,
+        weeklyGoalCents: goals.weekly_cents,
+        taxPct: goals.tax_setaside_pct,
+        ytdCents: ytd.total,
+        reserveCents: reserve,
+      })
+        .slice(0, 3)
+        .map((tip, i) => (
+          <Card key={tip.title} style={i > 0 ? { marginTop: 10 } : undefined}>
+            <Text style={styles.coachTitle}>{tip.title}</Text>
+            <Text style={styles.coachBody}>{tip.body}</Text>
+          </Card>
+        ))}
 
       {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
       <SectionTitle right={<EditLink label="Edit %" onPress={() => router.push("/goals")} />}>Taxes</SectionTitle>
@@ -291,6 +318,8 @@ const styles = StyleSheet.create({
   goalTarget: { color: theme.textDim, fontSize: 14 },
   goalNote: { color: theme.textFaint, fontSize: 12, marginTop: 8 },
   goalPitch: { color: theme.textDim, fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  coachTitle: { color: theme.text, fontSize: 15.5, fontWeight: "700", marginBottom: 6 },
+  coachBody: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
   editLink: { paddingHorizontal: 2 },
   editLinkText: { color: theme.brand, fontSize: 13, fontWeight: "700" },
   bars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 110 },

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
 import { apiGet, apiPost } from "@/lib/appApi";
+import { chaChing, trouble } from "@/lib/haptics";
 
 // Instant payout — "cash out now" to the artist's debit card. The artist pays
 // Stripe's instant fee (~1.5%); standard payouts are free and arrive in ~2 days.
@@ -39,9 +40,11 @@ export default function CashOut() {
     const r = await apiPost<{ amountCents: number }>("/api/payouts/instant");
     setBusy(false);
     if (r.ok) {
+      chaChing(); // money moved — it should feel like it
       setMsg(`${money(r.data?.amountCents ?? 0)} on its way to your debit card.`);
       await load();
     } else {
+      trouble();
       setError(r.error ?? "Could not cash out.");
     }
   };

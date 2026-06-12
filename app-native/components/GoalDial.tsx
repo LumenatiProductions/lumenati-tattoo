@@ -46,12 +46,16 @@ export default function GoalDial({ value, min, max, step, format, caption, onCha
   const t = useSharedValue(max > min ? (value - min) / (max - min) : 0);
   const [shown, setShown] = useState(value);
 
-  // Re-sync when the caller switches modes (weekly → monthly → tax).
+  // Re-sync when the caller switches modes or sets the value from outside
+  // (e.g. the "Use suggested" button). During a drag value === shown, so this
+  // never fights the finger.
   useEffect(() => {
-    t.value = withSpring(max > min ? (value - min) / (max - min) : 0, { damping: 18, stiffness: 140 });
-    setShown(value);
+    if (value !== shown) {
+      t.value = withSpring(max > min ? (value - min) / (max - min) : 0, { damping: 18, stiffness: 140 });
+      setShown(value);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [min, max, step, caption]);
+  }, [value, min, max, step, caption]);
 
   const emit = (tv: number) => {
     const raw = min + tv * (max - min);

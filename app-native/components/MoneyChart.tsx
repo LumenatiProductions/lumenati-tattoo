@@ -21,6 +21,8 @@ type Props = {
   endLabel: string;
   /** Range goal — draws the pace line. Omit when no goal is set. */
   goalCents?: number;
+  /** 3+ week streak turns the pace line gold. */
+  streak?: number;
   width: number;
 };
 
@@ -42,7 +44,8 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export default function MoneyChart({ series, startLabel, endLabel, goalCents, width }: Props) {
+export default function MoneyChart({ series, startLabel, endLabel, goalCents, streak = 0, width }: Props) {
+  const onFire = streak >= 3;
   const draw = useRef(new Animated.Value(0)).current;
   const [drawn, setDrawn] = useState(false);
 
@@ -109,8 +112,8 @@ export default function MoneyChart({ series, startLabel, endLabel, goalCents, wi
         {paceLine && (
           <Line
             {...paceLine}
-            stroke="rgba(255,255,255,0.35)"
-            strokeWidth={1.5}
+            stroke={onFire ? "#FFD700" : "rgba(255,255,255,0.35)"}
+            strokeWidth={onFire ? 2 : 1.5}
             strokeDasharray="6 6"
           />
         )}
@@ -138,7 +141,9 @@ export default function MoneyChart({ series, startLabel, endLabel, goalCents, wi
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={{ color: theme.textFaint, fontSize: 11 }}>{startLabel}</Text>
         {goalCents ? (
-          <Text style={{ color: theme.textFaint, fontSize: 11 }}>goal {money(goalCents)} ⌁</Text>
+          <Text style={{ color: onFire ? "#FFD700" : theme.textFaint, fontSize: 11, fontWeight: onFire ? "700" : "400" }}>
+            goal {money(goalCents)}{onFire ? ` · ${streak}wk streak` : " ⌁"}
+          </Text>
         ) : null}
         <Text style={{ color: theme.textFaint, fontSize: 11 }}>{endLabel}</Text>
       </View>
