@@ -51,9 +51,20 @@ export default function Goals() {
     else setError(res.error ?? "Could not save.");
   };
 
+  // Weekly and monthly are ONE income goal seen two ways (52 weeks / 12
+  // months ≈ ×4.33) — turn either dial and the other follows.
+  const setLinkedWeekly = (w: number) => {
+    setWeekly(w);
+    setMonthly(Math.round((w * 52) / 12 / DIAL.monthly.step) * DIAL.monthly.step);
+  };
+  const setLinkedMonthly = (m: number) => {
+    setMonthly(m);
+    setWeekly(Math.round((m * 12) / 52 / DIAL.weekly.step) * DIAL.weekly.step);
+  };
+
   const d = DIAL[mode];
   const value = mode === "weekly" ? weekly : mode === "monthly" ? monthly : taxPct;
-  const set = mode === "weekly" ? setWeekly : mode === "monthly" ? setMonthly : setTaxPct;
+  const set = mode === "weekly" ? setLinkedWeekly : mode === "monthly" ? setLinkedMonthly : setTaxPct;
   const fmt = (v: number) => (mode === "tax" ? `${v}%` : money(v));
 
   return (
@@ -83,7 +94,8 @@ export default function Goals() {
         </View>
 
         <Text style={styles.help}>
-          A common tax starting point is 25–30%. Adjust with your tax pro — this app estimates, it doesn&apos;t file.
+          Weekly and monthly stay in sync — they&apos;re one goal, two views. A common tax
+          starting point is 25–30%; adjust with your tax pro — this app estimates, it doesn&apos;t file.
         </Text>
         {error && <Text style={styles.error}>{error}</Text>}
         <View style={{ height: 14 }} />

@@ -11,7 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { theme } from "@/lib/theme";
-import { picked } from "@/lib/haptics";
+import { detent, endStop, milestone } from "@/lib/haptics";
 
 // The Apple-Card-style dial: drag around the ring to pick a number. The arc
 // fills as you go, the color warms pink → gold → green with ambition, and every
@@ -57,7 +57,11 @@ export default function GoalDial({ value, min, max, step, format, caption, onCha
     const raw = min + tv * (max - min);
     const snapped = Math.round(raw / step) * step;
     if (snapped !== shown) {
-      picked(); // detent tick
+      // Crown feel: sharp tick per step, rounder thump on big round numbers,
+      // heavy clunk at the ends.
+      if (snapped === min || snapped === max) endStop();
+      else if (snapped % (step * 10) === 0) milestone();
+      else detent();
       setShown(snapped);
       onChange(snapped);
     }

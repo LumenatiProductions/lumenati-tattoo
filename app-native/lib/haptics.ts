@@ -32,6 +32,21 @@ export const trouble = () => {
   if (ios) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
 };
 
+/** Crown tick — the sharp little click of a detent (Apple Watch crown feel). */
+export const detent = () => {
+  if (ios) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
+};
+
+/** Milestone thump — a rounder hit when a dial crosses a big round number. */
+export const milestone = () => {
+  if (ios) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+};
+
+/** End stop — the heavy clunk of hitting a dial's min/max. */
+export const endStop = () => {
+  if (ios) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+};
+
 /** The money blast: success + escalating thumps timed for Y2kPaidFX. */
 export const chaChing = () => {
   if (!ios) return;

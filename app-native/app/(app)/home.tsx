@@ -204,7 +204,7 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
       <Text style={styles.greeting}>Hey {firstName}</Text>
       <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
       <View style={styles.grid}>
-        <Stat label="Gross sales" value={money(stats.gross)} sub={`${stats.tickets} tickets`} hero />
+        <Stat label="Gross sales" value={money(stats.gross)} countTo={stats.gross} sub={`${stats.tickets} tickets`} hero />
         <Stat label="Appointments today" value={String(stats.apptsToday)} />
         <Stat label="Deposits held" value={money(stats.depositsHeld)} />
         <Stat label="Low stock" value={String(stats.lowNames.length)} warn={stats.lowNames.length > 0} />

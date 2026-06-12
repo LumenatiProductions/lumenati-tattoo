@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
-import { theme } from "@/lib/theme";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { theme, money } from "@/lib/theme";
 import { tap, trouble } from "@/lib/haptics";
 
 // The app's component kit. Every screen builds from these so the whole app
@@ -28,6 +29,7 @@ export function Stat({
   accent,
   warn,
   hero,
+  countTo,
 }: {
   label: string;
   value: string;
@@ -36,7 +38,10 @@ export function Stat({
   warn?: boolean;
   /** Full-width money moment: bigger, pink wash, glow. */
   hero?: boolean;
+  /** Cents: the value ticks up from 0 on mount instead of just appearing. */
+  countTo?: number;
 }) {
+  const display = countTo !== undefined ? <CountUpText cents={countTo} /> : value;
   return (
     <View
       style={[
@@ -46,10 +51,23 @@ export function Stat({
       ]}
     >
       <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, tnum, warn && { color: theme.warn }, hero && styles.statValueHero]}>{value}</Text>
+      <Text style={[styles.statValue, tnum, warn && { color: theme.warn }, hero && styles.statValueHero]}>{display}</Text>
       {sub ? <Text style={styles.statSub}>{sub}</Text> : null}
     </View>
   );
+}
+
+// Money ticking up beats money appearing. Re-runs whenever cents changes.
+function CountUpText({ cents }: { cents: number }) {
+  const v = useRef(new Animated.Value(0)).current;
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const sub = v.addListener(({ value }) => setShown(Math.round(value)));
+    Animated.timing(v, { toValue: cents, duration: 650, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    return () => v.removeListener(sub);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cents]);
+  return <>{money(shown)}</>;
 }
 
 export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {

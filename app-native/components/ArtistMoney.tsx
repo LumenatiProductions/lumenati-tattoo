@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { theme, money } from "@/lib/theme";
-import { tap } from "@/lib/haptics";
+import { success, tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
 import MoneyChart from "@/components/MoneyChart";
 import {
@@ -67,6 +67,18 @@ export default function ArtistMoney({
     load();
   }, [load]);
 
+  // One success buzz the moment the goal line is crossed while on the page
+  // (hitRef stops it re-firing every render). Hook lives above the early
+  // return, so it guards its own nulls.
+  const hitRef = useRef(false);
+  const liveGoal = goals ? (range === "month" ? goals.monthly_cents : range === "week" ? goals.weekly_cents : 0) : 0;
+  const liveEarned = snap ? earnedInRange(snap.sales, range).total : 0;
+  const goalHit = liveGoal > 0 && liveEarned >= liveGoal;
+  useEffect(() => {
+    if (goalHit && !hitRef.current) success();
+    hitRef.current = goalHit;
+  }, [goalHit]);
+
   if (!snap || !goals) {
     return <Text style={styles.dim}>Loading your numbers…</Text>;
   }
@@ -109,7 +121,7 @@ export default function ArtistMoney({
       </View>
 
       <View style={styles.grid}>
-        <Stat label="You earned" value={money(e.total)} sub={`${money(e.tips)} tips`} accent />
+        <Stat label="You earned" value={money(e.total)} countTo={e.total} sub={`${money(e.tips)} tips`} accent />
         <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
         <Stat label="Tickets" value={String(e.tickets)} />
         <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(goals.tax_setaside_pct * 100)}% set-aside`} warn />
