@@ -46,20 +46,30 @@ export function coachTips(opts: {
   taxPct: number; // 0..1
   ytdCents: number;
   reserveCents: number;
+  taxStatus: "1099" | "w2";
 }): CoachTip[] {
   const tips: CoachTip[] = [];
   const avg = avgWeeklyCents(opts.sales);
   const suggestion = suggestedWeeklyCents(opts.sales);
+  const is1099 = opts.taxStatus !== "w2";
 
-  // The one thing every artist must hear, always first, never hidden.
-  tips.push({
-    title: "Nobody is withholding for you",
-    body: `You're a 1099 contractor — every payout you get is GROSS, before tax. The shop doesn't hold anything back, and neither does this app. Move ${Math.round(
-      opts.taxPct * 100,
-    )}% of every payout into a separate savings account the day you get paid. Right now that account should hold about ${usd(
-      opts.reserveCents,
-    )}.`,
-  });
+  // The most important card, always first. Different truth per tax status —
+  // set yours on the Goals screen.
+  if (is1099) {
+    tips.push({
+      title: "Nobody is withholding for you",
+      body: `You're paid as a contractor (1099) — every payout is GROSS, before tax. The shop doesn't hold anything back, and neither does this app. Move ${Math.round(
+        opts.taxPct * 100,
+      )}% of every payout into a separate savings account the day you get paid. Right now that account should hold about ${usd(
+        opts.reserveCents,
+      )}. If that's not how you're paid, switch it on the Goals screen.`,
+    });
+  } else {
+    tips.push({
+      title: "Payroll covers your wages — not your cash",
+      body: "You're a W-2 employee, so the shop withholds tax from your paychecks. But cash tips and any side work usually have NOTHING withheld — report them, and keep a set-aside for the tax they'll add. If that's not how you're paid, switch it on the Goals screen.",
+    });
+  }
 
   if (!opts.weeklyGoalCents && suggestion) {
     tips.push({
@@ -77,16 +87,18 @@ export function coachTips(opts: {
     });
   }
 
+  // Unreimbursed employee expenses aren't federally deductible for W-2s —
+  // only coach deductions for contractors.
   const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const recentDeductions = opts.expenses.filter((e) => e.date >= thirtyAgo);
-  if (opts.ytdCents > 0 && recentDeductions.length === 0) {
+  if (is1099 && opts.ytdCents > 0 && recentDeductions.length === 0) {
     tips.push({
       title: "You're leaving deductions on the table",
       body: "No deductions logged in 30 days. Needles, ink, gloves, machine parts, conventions, even part of your phone — every dollar you log lowers the income you're taxed on. Snap the receipt the moment you buy.",
     });
   }
 
-  if (opts.taxPct < 0.2 && opts.ytdCents > 1000000) {
+  if (is1099 && opts.taxPct < 0.2 && opts.ytdCents > 1000000) {
     tips.push({
       title: "Your set-aside looks thin",
       body: `You're saving ${Math.round(

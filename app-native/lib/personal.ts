@@ -166,13 +166,19 @@ export async function loadRent(artistId?: string): Promise<RentStatus | null> {
 }
 
 // ── Goals (one row per user) ──
-export type Goals = { weekly_cents: number; monthly_cents: number; tax_setaside_pct: number };
-const DEFAULT_GOALS: Goals = { weekly_cents: 0, monthly_cents: 0, tax_setaside_pct: 0.3 };
+export type TaxStatus = "1099" | "w2";
+export type Goals = {
+  weekly_cents: number;
+  monthly_cents: number;
+  tax_setaside_pct: number;
+  tax_status: TaxStatus;
+};
+const DEFAULT_GOALS: Goals = { weekly_cents: 0, monthly_cents: 0, tax_setaside_pct: 0.3, tax_status: "1099" };
 
 export async function loadGoals(): Promise<Goals> {
   const { data } = await supabase
     .from("artist_goals")
-    .select("weekly_cents, monthly_cents, tax_setaside_pct")
+    .select("weekly_cents, monthly_cents, tax_setaside_pct, tax_status")
     .maybeSingle();
   return data ? { ...DEFAULT_GOALS, ...data } : DEFAULT_GOALS;
 }

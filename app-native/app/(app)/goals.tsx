@@ -29,6 +29,7 @@ export default function Goals() {
   const [weekly, setWeekly] = useState(0); // cents
   const [monthly, setMonthly] = useState(0); // cents
   const [taxPct, setTaxPct] = useState(30); // whole %
+  const [taxStatus, setTaxStatus] = useState<"1099" | "w2">("1099");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggested, setSuggested] = useState(0);
@@ -39,6 +40,7 @@ export default function Goals() {
       setWeekly(g.weekly_cents);
       setMonthly(g.monthly_cents);
       setTaxPct(Math.round(g.tax_setaside_pct * 100));
+      setTaxStatus(g.tax_status);
     });
     // Coach: a suggestion grounded in their own last two months.
     loadMoney().then((m) => {
@@ -54,6 +56,7 @@ export default function Goals() {
       weekly_cents: weekly,
       monthly_cents: monthly,
       tax_setaside_pct: Math.max(0, Math.min(100, taxPct)) / 100,
+      tax_status: taxStatus,
     });
     setBusy(false);
     if (res.ok) router.back();
@@ -117,6 +120,23 @@ export default function Goals() {
           <Summary label="Monthly" value={monthly ? money(monthly) : "—"} on={mode === "monthly"} />
           <Summary label="Tax" value={`${taxPct}%`} on={mode === "tax"} />
         </View>
+
+        {mode === "tax" && (
+          <View style={{ marginTop: 16 }}>
+            <Chips
+              label="How are you paid?"
+              value={taxStatus}
+              options={["1099", "w2"] as const}
+              display={(v) => (v === "1099" ? "Contractor (1099)" : "Employee (W-2)")}
+              onChange={setTaxStatus}
+            />
+            <Text style={styles.help}>
+              {taxStatus === "1099"
+                ? "Booth renters and most split artists are contractors: nothing is withheld for you, so the set-aside % is your tax money — move it to its own account every payout."
+                : "Employees get payroll withholding on wages. Keep a smaller set-aside for cash tips and side work, which usually have nothing withheld."}
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.help}>
           Weekly and monthly stay in sync — they&apos;re one goal, two views. A common tax

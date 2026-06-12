@@ -227,6 +227,7 @@ export default function ArtistMoney({
         taxPct: goals.tax_setaside_pct,
         ytdCents: ytd.total,
         reserveCents: reserve,
+        taxStatus: goals.tax_status,
       })
         .slice(0, 3)
         .map((tip, i) => (
