@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { armed, picked, trouble } from "@/lib/haptics";
 import { useStripeTerminal, type Reader } from "@stripe/stripe-terminal-react-native";
 import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
@@ -99,15 +100,19 @@ export default function TapToPayPos() {
       const { clientSecret } = await createTapToPayIntent(cents, who === "shop" ? { shop: true } : { artistId: who });
       const ret = await retrievePaymentIntent(clientSecret);
       if (ret.error || !ret.paymentIntent) throw new Error(ret.error?.message || "Could not load the payment");
+      armed(); // heads-up thump: the tap sheet is coming up
       const col = await collectPaymentMethod({ paymentIntent: ret.paymentIntent });
       if (col.error || !col.paymentIntent) throw new Error(col.error?.message || "Card not collected");
       const conf = await confirmPaymentIntent({ paymentIntent: col.paymentIntent });
       if (conf.error) throw new Error(conf.error.message);
       setPaidCents(cents);
-      setFx(true);
       setPhase("done");
       setAmount("");
+      // Let the system payment sheet fully dismiss before the blast starts,
+      // so nothing sits on top of it.
+      setTimeout(() => setFx(true), 650);
     } catch (e) {
+      trouble();
       setError(e instanceof Error ? e.message : "Payment failed.");
       setPhase("idle");
     }
@@ -116,7 +121,6 @@ export default function TapToPayPos() {
   if (phase === "done") {
     return (
       <>
-      {fx && <Y2kPaidFX cents={paidCents} onDone={() => setFx(false)} />}
       <Card>
         <Text style={styles.doneCheck}>✓</Text>
         <Text style={styles.doneTitle}>Paid {money(paidCents)}</Text>
@@ -124,81 +128,154 @@ export default function TapToPayPos() {
         <View style={{ height: 14 }} />
         <Button label="New payment" tone="ghost" onPress={() => setPhase("idle")} />
       </Card>
+      {/* Rendered after the Card so the blast owns the whole screen. */}
+      {fx && <Y2kPaidFX cents={paidCents} onDone={() => setFx(false)} />}
       </>
     );
   }
 
   const busy = phase !== "idle";
+  const hasAmount = cents >= 50;
+
+  // Keypad editing: amount stays a plain string ("84", "84.5", "84.50").
+  const press = (k: string) => {
+    if (busy) return;
+    picked(); // softest tick the OS has
+    setAmount((a) => {
+      if (k === "del") return a.slice(0, -1);
+      if (k === ".") return a.includes(".") || a === "" ? a : a + ".";
+      const [, dec] = a.split(".");
+      if (dec !== undefined && dec.length >= 2) return a; // cents are full
+      if (a.replace(".", "").length >= 6) return a; // five figures is plenty
+      return a + k;
+    });
+  };
+
   return (
     <>
-      <Text style={styles.label}>Amount</Text>
-      <View style={styles.amountRow}>
-        <Text style={styles.dollar}>$</Text>
-        <TextInput
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="0"
-          placeholderTextColor={theme.textFaint}
-          keyboardType="numeric"
-          style={styles.amountInput}
-          autoFocus
-          editable={!busy}
-        />
+      {/* The display: one giant money moment, glowing once it's chargeable. */}
+      <View style={styles.display}>
+        <Text style={styles.displayLabel}>CHARGE</Text>
+        <Text style={[styles.displayAmount, hasAmount && styles.displayAmountLive]}>
+          {amount ? `$${amount}` : "$0"}
+        </Text>
+        <View style={styles.readerRow}>
+          <View style={[styles.readerDot, { backgroundColor: connectedReader ? theme.good : theme.textFaint }]} />
+          <Text style={styles.readerText}>
+            {connectedReader ? "Reader ready" : "Reader wakes on first charge"}
+          </Text>
+        </View>
       </View>
 
       {artists.length > 0 && (
-        <View style={{ marginTop: 16 }}>
-          <Chips
-            label="For"
-            value={who}
-            options={["shop", ...artists.map((a) => a.id)]}
-            display={(id) => (id === "shop" ? "Shop" : artists.find((a) => a.id === id)?.name ?? id)}
-            onChange={setWho}
-          />
-        </View>
+        <Chips
+          label="For"
+          value={who}
+          options={["shop", ...artists.map((a) => a.id)]}
+          display={(id) => (id === "shop" ? "Shop" : artists.find((a) => a.id === id)?.name ?? id)}
+          onChange={setWho}
+        />
       )}
 
       {__DEV__ && !connectedReader && (
-        <View style={{ marginTop: 16 }}>
-          <Chips
-            label="Reader (dev only — test mode declines real cards)"
-            value={simulated ? "simulated" : "real"}
-            options={["real", "simulated"]}
-            display={(v) => (v === "real" ? "Real tap" : "Simulated tap")}
-            onChange={(v) => setSimulated(v === "simulated")}
-          />
-        </View>
+        <Chips
+          label="Reader (dev only — test mode declines real cards)"
+          value={simulated ? "simulated" : "real"}
+          options={["real", "simulated"]}
+          display={(v) => (v === "real" ? "Real tap" : "Simulated tap")}
+          onChange={(v) => setSimulated(v === "simulated")}
+        />
       )}
+
+      {/* Keypad — the phone IS the register, no system keyboard. */}
+      <View style={styles.pad}>
+        {[["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], [".", "0", "del"]].map((row) => (
+          <View key={row[0]} style={styles.padRow}>
+            {row.map((k) => (
+              <Pressable
+                key={k}
+                onPress={() => press(k)}
+                onLongPress={k === "del" ? () => setAmount("") : undefined}
+                disabled={busy}
+                style={({ pressed }) => [styles.key, pressed && styles.keyPressed, busy && { opacity: 0.4 }]}
+              >
+                <Text style={styles.keyText}>{k === "del" ? "⌫" : k}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ))}
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <View style={{ height: 18 }} />
+      <View style={{ height: 14 }} />
       <Button
         label={
           phase === "connecting"
             ? "Waking the reader…"
             : phase === "collecting"
               ? "Tap the card on this phone…"
-              : `Charge ${money(cents)}`
+              : hasAmount
+                ? `Charge ${money(cents)}`
+                : "Enter an amount"
         }
         onPress={take}
-        disabled={busy || cents < 50}
+        disabled={busy || !hasAmount}
       />
       {busy && <ActivityIndicator color={theme.brand} style={{ marginTop: 16 }} />}
       <Text style={styles.note}>
         Card collected on this phone — nothing is typed. The shop&apos;s cut comes off
         automatically; the rest is yours.
-        {connectedReader ? "  ▪ reader ready" : ""}
       </Text>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { color: theme.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
-  amountRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dollar: { color: theme.textDim, fontSize: 40, fontWeight: "700" },
-  amountInput: { flex: 1, color: theme.text, fontSize: 56, fontWeight: "800", paddingVertical: 4 },
+  display: {
+    alignItems: "center",
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.lg,
+    paddingVertical: 22,
+    marginBottom: 16,
+  },
+  displayLabel: {
+    color: theme.textFaint,
+    fontSize: 11,
+    letterSpacing: 4,
+    fontWeight: "700",
+  },
+  displayAmount: {
+    color: theme.textFaint,
+    fontSize: 64,
+    fontWeight: "800",
+    letterSpacing: -1.5,
+    fontVariant: ["tabular-nums"],
+    marginTop: 4,
+  },
+  displayAmountLive: {
+    color: theme.text,
+    textShadowColor: "rgba(255,20,147,0.55)",
+    textShadowRadius: 18,
+  },
+  readerRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
+  readerDot: { width: 7, height: 7, borderRadius: 4 },
+  readerText: { color: theme.textFaint, fontSize: 12 },
+  pad: { gap: 10, marginTop: 6 },
+  padRow: { flexDirection: "row", gap: 10 },
+  key: {
+    flex: 1,
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  keyPressed: { backgroundColor: theme.surfaceRaised, borderColor: theme.brandBorder },
+  keyText: { color: theme.text, fontSize: 24, fontWeight: "600", fontVariant: ["tabular-nums"] },
   note: { color: theme.textFaint, fontSize: 12, marginTop: 14, lineHeight: 17 },
   error: { color: theme.bad, marginTop: 14, fontSize: 14 },
   doneCheck: { color: theme.good, fontSize: 40, textAlign: "center" },

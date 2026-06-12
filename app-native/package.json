@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo-google-fonts/press-start-2p": "^0.4.1",
+    "@expo-google-fonts/vt323": "^0.4.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "~8.2.0",
     "@stripe/stripe-terminal-react-native": "^0.0.1-beta.31",
@@ -22,6 +24,7 @@
     "expo-crypto": "~14.0.2",
     "expo-dev-client": "~5.0.20",
     "expo-font": "~13.0.4",
+    "expo-haptics": "~14.0.1",
     "expo-image-picker": "~16.0.6",
     "expo-linking": "~7.0.0",
     "expo-notifications": "~0.29.14",

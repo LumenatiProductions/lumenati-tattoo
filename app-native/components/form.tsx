@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { theme } from "@/lib/theme";
+import { picked } from "@/lib/haptics";
 
 // Shared form bits for the app's add/edit screens (POS 6e).
 
@@ -53,7 +54,14 @@ export function Chips<T extends string>({
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.chips}>
         {options.map((o) => (
-          <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, value === o && styles.chipOn]}>
+          <Pressable
+            key={o}
+            onPress={() => {
+              if (o !== value) picked();
+              onChange(o);
+            }}
+            style={[styles.chip, value === o && styles.chipOn]}
+          >
             <Text style={[styles.chipText, value === o && { color: "#fff" }]}>{display ? display(o) : o}</Text>
           </Pressable>
         ))}

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/lib/theme";
+import { tap } from "@/lib/haptics";
 import type { Role } from "@/lib/auth";
 
 // Role-aware nav into the back-office screens ported to the app (POS 6e). The
@@ -39,7 +40,10 @@ export default function Launcher({ role }: { role: Role | null }) {
         {items.map((it) => (
           <Pressable
             key={it.href}
-            onPress={() => router.push(it.href as never)}
+            onPress={() => {
+              tap();
+              router.push(it.href as never);
+            }}
             style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
           >
             <View style={styles.iconWrap}>

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { theme } from "@/lib/theme";
+import { tap, trouble } from "@/lib/haptics";
 
 // The app's component kit. Every screen builds from these so the whole app
 // moves together: soft depth on cards, pressed states on everything tappable,
@@ -77,7 +78,10 @@ export function Button({
     tone === "brand" ? styles.btnText : tone === "danger" ? styles.btnDangerText : styles.btnGhostText;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        (tone === "danger" ? trouble : tap)();
+        onPress();
+      }}
       disabled={disabled}
       style={({ pressed }) => [
         base,
@@ -146,7 +150,10 @@ export function ListRow({
   }
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
       style={({ pressed }) => [styles.row, !first && styles.rowDivider, pressed && { backgroundColor: "rgba(255,255,255,0.03)" }]}
     >
       {inner}
