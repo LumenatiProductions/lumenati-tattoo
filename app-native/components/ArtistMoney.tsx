@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { theme, money } from "@/lib/theme";
 import { tap } from "@/lib/haptics";
-import { Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
+import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
 import {
   loadMoney,
   loadGoals,
@@ -35,6 +35,7 @@ export default function ArtistMoney({
   firstName: string;
   preview?: { artistId: string; name: string };
 }) {
+  const router = useRouter();
   const [range, setRange] = useState<Range>("week");
   const [snap, setSnap] = useState<MoneySnapshot | null>(null);
   const [goals, setGoals] = useState<Goals | null>(null);
@@ -82,20 +83,10 @@ export default function ArtistMoney({
       <Text style={styles.greeting}>{preview ? preview.name : `Hey ${firstName}`}</Text>
 
       {/* THE action — taking money is why the phone comes out of the pocket. */}
-      <Link href="/pos" asChild>
-        <Pressable
-          onPress={() => tap()}
-          style={({ pressed }) => [styles.hero, theme.glow, pressed && { transform: [{ scale: 0.98 }], opacity: 0.92 }]}
-        >
-          <Text style={styles.heroText}>Take payment</Text>
-          <Text style={styles.heroSub}>Tap to Pay on this phone</Text>
-        </Pressable>
-      </Link>
-      <Link href="/cashout" asChild>
-        <Pressable onPress={() => tap()} style={({ pressed }) => pressed && { opacity: 0.7 }}>
-          <Text style={styles.cashoutLink}>Cash out →</Text>
-        </Pressable>
-      </Link>
+      <Button label="Take payment" big onPress={() => router.push("/pos")} />
+      <Pressable onPress={() => { tap(); router.push("/cashout"); }} style={({ pressed }) => pressed && { opacity: 0.7 }}>
+        <Text style={styles.cashoutLink}>Cash out early →</Text>
+      </Pressable>
 
       {/* Range toggle */}
       <View style={styles.toggle}>
@@ -245,17 +236,7 @@ function nextQuarterly(): string {
 
 const styles = StyleSheet.create({
   dim: { color: theme.textDim, marginTop: 40, textAlign: "center" },
-  greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 10, marginBottom: 20 },
-  hero: {
-    backgroundColor: theme.brand,
-    borderRadius: theme.radius.xl,
-    paddingVertical: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-  },
-  heroText: { color: "#fff", fontSize: 22, fontWeight: "800", letterSpacing: -0.3 },
-  heroSub: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "600" },
+  greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 8, marginBottom: 20 },
   cashoutLink: {
     color: theme.textDim,
     fontSize: 14.5,

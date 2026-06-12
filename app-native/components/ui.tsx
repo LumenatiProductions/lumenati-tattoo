@@ -66,11 +66,14 @@ export function Button({
   onPress,
   disabled,
   tone = "brand",
+  big,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   tone?: "brand" | "ghost" | "danger";
+  /** Hero-sized: taller, bigger type. For THE action on a screen. */
+  big?: boolean;
 }) {
   const base =
     tone === "brand" ? styles.btn : tone === "danger" ? styles.btnDanger : styles.btnGhost;
@@ -85,12 +88,13 @@ export function Button({
       disabled={disabled}
       style={({ pressed }) => [
         base,
+        big && styles.btnBig,
         tone === "brand" && !disabled && theme.glow,
         pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
         disabled && { opacity: 0.45 },
       ]}
     >
-      <Text style={textStyle}>{label}</Text>
+      <Text style={[textStyle, big && styles.btnBigText]}>{label}</Text>
     </Pressable>
   );
 }
@@ -218,6 +222,8 @@ const styles = StyleSheet.create({
   },
   btn: { backgroundColor: theme.brand, borderRadius: theme.radius.md, paddingVertical: 15, alignItems: "center" },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
+  btnBig: { paddingVertical: 21, borderRadius: theme.radius.lg },
+  btnBigText: { fontSize: 19 },
   btnGhost: {
     borderColor: theme.borderStrong,
     borderWidth: 1,

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
-import { Stat, Badge } from "@/components/ui";
+import { Stat } from "@/components/ui";
 import ArtistMoney from "@/components/ArtistMoney";
 import Launcher from "@/components/Launcher";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
@@ -58,14 +58,16 @@ export default function Home() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
     >
       <View style={styles.header}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <LumenatiLogo width={72} />
-          {role ? <Badge label={ROLE_LABEL[role] ?? role} tone="brand" /> : null}
-        </View>
+        <LumenatiLogo width={72} />
         <Pressable onPress={signOut} hitSlop={10} style={({ pressed }) => pressed && { opacity: 0.6 }}>
           <Ionicons name="log-out-outline" size={20} color={theme.textDim} />
         </Pressable>
       </View>
+
+      {/* Who the app thinks you are — quiet eyebrow, not a pill in the header */}
+      <Text style={styles.roleEyebrow}>
+        {previewArtist ? "Artist · preview" : role ? ROLE_LABEL[role] ?? role : ""}
+      </Text>
 
       {previewArtist ? (
         <>
@@ -205,7 +207,15 @@ function StaffHome({ firstName, reloadKey }: { firstName: string; reloadKey: num
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  greeting: { color: theme.text, fontSize: 32, fontWeight: "800", letterSpacing: -0.8, marginTop: 26 },
+  roleEyebrow: {
+    color: theme.textFaint,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+    fontWeight: "700",
+    marginTop: 24,
+  },
+  greeting: { color: theme.text, fontSize: 32, fontWeight: "800", letterSpacing: -0.8, marginTop: 8 },
   greetSub: { color: theme.textFaint, fontSize: 14, marginTop: 4, marginBottom: 18 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   sectionLabel: {
@@ -251,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    marginTop: 16,
+    marginTop: 12,
   },
   previewBannerText: { color: theme.brand, fontSize: 13.5, fontWeight: "700" },
   previewExit: { color: theme.text, fontSize: 13.5, fontWeight: "700" },
