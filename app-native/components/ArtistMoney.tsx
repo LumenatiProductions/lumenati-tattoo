@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { theme, money } from "@/lib/theme";
 import { tap } from "@/lib/haptics";
 import { Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
@@ -88,13 +87,13 @@ export default function ArtistMoney({
           onPress={() => tap()}
           style={({ pressed }) => [styles.hero, theme.glow, pressed && { transform: [{ scale: 0.98 }], opacity: 0.92 }]}
         >
-          <Ionicons name="card-outline" size={26} color="#fff" />
           <Text style={styles.heroText}>Take payment</Text>
+          <Text style={styles.heroSub}>Tap to Pay on this phone</Text>
         </Pressable>
       </Link>
       <Link href="/cashout" asChild>
-        <Pressable onPress={() => tap()} style={({ pressed }) => [styles.actionGhost, pressed && { opacity: 0.8 }]}>
-          <Text style={styles.actionGhostText}>Cash out</Text>
+        <Pressable onPress={() => tap()} style={({ pressed }) => pressed && { opacity: 0.7 }}>
+          <Text style={styles.cashoutLink}>Cash out →</Text>
         </Pressable>
       </Link>
 
@@ -246,20 +245,25 @@ function nextQuarterly(): string {
 
 const styles = StyleSheet.create({
   dim: { color: theme.textDim, marginTop: 40, textAlign: "center" },
-  greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 8, marginBottom: 16 },
+  greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 10, marginBottom: 20 },
   hero: {
     backgroundColor: theme.brand,
-    borderRadius: theme.radius.lg,
-    paddingVertical: 22,
+    borderRadius: theme.radius.xl,
+    paddingVertical: 26,
     alignItems: "center",
     justifyContent: "center",
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 10,
+    gap: 5,
   },
-  heroText: { color: "#fff", fontSize: 21, fontWeight: "800", letterSpacing: 0.2 },
-  actionGhost: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center", marginBottom: 18 },
-  actionGhostText: { color: theme.text, fontSize: 15, fontWeight: "600" },
+  heroText: { color: "#fff", fontSize: 22, fontWeight: "800", letterSpacing: -0.3 },
+  heroSub: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "600" },
+  cashoutLink: {
+    color: theme.textDim,
+    fontSize: 14.5,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingVertical: 14,
+    marginBottom: 8,
+  },
   previewNote: { color: theme.textFaint, fontSize: 12.5, marginTop: 18, lineHeight: 17 },
   toggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
