@@ -133,9 +133,17 @@ export default function Cash() {
                       {countNote} Double-check before saving.
                     </Text>
                   ) : (
-                    <Text style={{ color: theme.textFaint, fontSize: 12, marginTop: 8 }}>
-                      Spread the bills out flat — it counts what it can see.
-                    </Text>
+                    <View style={{ marginTop: 8, gap: 3 }}>
+                      <Text style={{ color: theme.textFaint, fontSize: 12, lineHeight: 17 }}>
+                        ▪ Lay the bills flat on the counter — no overlapping, no stacks
+                      </Text>
+                      <Text style={{ color: theme.textFaint, fontSize: 12, lineHeight: 17 }}>
+                        ▪ Shoot from straight above with every bill in frame
+                      </Text>
+                      <Text style={{ color: theme.textFaint, fontSize: 12, lineHeight: 17 }}>
+                        ▪ It only counts what it can see — check the total before saving
+                      </Text>
+                    </View>
                   )}
                 </View>
                 <Chips
