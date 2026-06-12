@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Text, TextInput } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/lib/auth";
 import { theme } from "@/lib/theme";
@@ -33,6 +34,7 @@ function TerminalProvider({ children }: { children: React.ReactNode }) {
 // so every route (and all three targets) shares one session.
 export default function RootLayout() {
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <AuthProvider>
        <TerminalProvider>
@@ -47,5 +49,6 @@ export default function RootLayout() {
        </TerminalProvider>
       </AuthProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

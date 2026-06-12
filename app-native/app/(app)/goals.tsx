@@ -1,89 +1,120 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme } from "@/lib/theme";
+import { theme, money } from "@/lib/theme";
 import { Button } from "@/components/ui";
+import { Chips } from "@/components/form";
+import GoalDial from "@/components/GoalDial";
 import { loadGoals, saveGoals } from "@/lib/personal";
 
-// Set income targets + the tax set-aside %. (POS 6b)
+// Set income targets + the tax set-aside % on the dial — drag, feel the
+// detents, watch it warm from pink to green. (POS 6b, dopamine pass)
+
+type Mode = "weekly" | "monthly" | "tax";
+const MODE_LABEL: Record<Mode, string> = { weekly: "Weekly", monthly: "Monthly", tax: "Tax %" };
+
+const DIAL: Record<Mode, { min: number; max: number; step: number; caption: string }> = {
+  weekly: { min: 0, max: 500000, step: 5000, caption: "per week" },
+  monthly: { min: 0, max: 2000000, step: 25000, caption: "per month" },
+  tax: { min: 0, max: 50, step: 1, caption: "set aside for taxes" },
+};
+
 export default function Goals() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [weekly, setWeekly] = useState("");
-  const [monthly, setMonthly] = useState("");
-  const [taxPct, setTaxPct] = useState("30");
+  const [mode, setMode] = useState<Mode>("weekly");
+  const [weekly, setWeekly] = useState(0); // cents
+  const [monthly, setMonthly] = useState(0); // cents
+  const [taxPct, setTaxPct] = useState(30); // whole %
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadGoals().then((g) => {
-      if (g.weekly_cents) setWeekly(String(g.weekly_cents / 100));
-      if (g.monthly_cents) setMonthly(String(g.monthly_cents / 100));
-      setTaxPct(String(Math.round(g.tax_setaside_pct * 100)));
+      setWeekly(g.weekly_cents);
+      setMonthly(g.monthly_cents);
+      setTaxPct(Math.round(g.tax_setaside_pct * 100));
     });
   }, []);
 
   const save = async () => {
     setBusy(true);
     setError(null);
-    const pct = Math.max(0, Math.min(100, Number(taxPct) || 0)) / 100;
     const res = await saveGoals({
-      weekly_cents: Math.round((Number(weekly) || 0) * 100),
-      monthly_cents: Math.round((Number(monthly) || 0) * 100),
-      tax_setaside_pct: pct,
+      weekly_cents: weekly,
+      monthly_cents: monthly,
+      tax_setaside_pct: Math.max(0, Math.min(100, taxPct)) / 100,
     });
     setBusy(false);
     if (res.ok) router.back();
     else setError(res.error ?? "Could not save.");
   };
 
+  const d = DIAL[mode];
+  const value = mode === "weekly" ? weekly : mode === "monthly" ? monthly : taxPct;
+  const set = mode === "weekly" ? setWeekly : mode === "monthly" ? setMonthly : setTaxPct;
+  const fmt = (v: number) => (mode === "tax" ? `${v}%` : money(v));
+
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Goals", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
-        <Field label="Weekly income goal ($)" value={weekly} onChange={setWeekly} placeholder="2000" />
-        <Field label="Monthly income goal ($)" value={monthly} onChange={setMonthly} placeholder="8000" />
-        <Field label="Set aside for taxes (%)" value={taxPct} onChange={setTaxPct} placeholder="30" />
+        <View style={{ alignItems: "center", marginBottom: 8 }}>
+          <Chips value={mode} options={["weekly", "monthly", "tax"] as Mode[]} display={(m) => MODE_LABEL[m]} onChange={setMode} />
+        </View>
+
+        <GoalDial
+          key={mode}
+          value={value}
+          min={d.min}
+          max={d.max}
+          step={d.step}
+          format={fmt}
+          caption={d.caption}
+          onChange={set}
+        />
+
+        {/* the other two at a glance */}
+        <View style={styles.summary}>
+          <Summary label="Weekly" value={weekly ? money(weekly) : "—"} on={mode === "weekly"} />
+          <Summary label="Monthly" value={monthly ? money(monthly) : "—"} on={mode === "monthly"} />
+          <Summary label="Tax" value={`${taxPct}%`} on={mode === "tax"} />
+        </View>
+
         <Text style={styles.help}>
-          A common starting point is 25–30%. Adjust with your tax pro — this app estimates, it doesn&apos;t file.
+          A common tax starting point is 25–30%. Adjust with your tax pro — this app estimates, it doesn&apos;t file.
         </Text>
         {error && <Text style={styles.error}>{error}</Text>}
-        <View style={{ height: 18 }} />
-        <Button label={busy ? "Saving…" : "Save"} onPress={save} disabled={busy} />
+        <View style={{ height: 14 }} />
+        <Button label={busy ? "Saving…" : "Save goals"} onPress={save} disabled={busy} />
       </ScrollView>
     </>
   );
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (s: string) => void; placeholder: string }) {
+function Summary({ label, value, on }: { label: string; value: string; on: boolean }) {
   return (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={theme.textFaint}
-        keyboardType="numeric"
-        style={styles.input}
-      />
+    <View style={[styles.sumCell, on && { borderColor: theme.brandBorder, backgroundColor: theme.brandSoft }]}>
+      <Text style={styles.sumLabel}>{label}</Text>
+      <Text style={styles.sumValue}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { color: theme.textDim, fontSize: 13, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 },
-  input: {
+  summary: { flexDirection: "row", gap: 10, marginTop: 18 },
+  sumCell: {
+    flex: 1,
     backgroundColor: theme.surface,
     borderColor: theme.border,
     borderWidth: 1,
-    borderRadius: 12,
-    color: theme.text,
-    fontSize: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: theme.radius.md,
+    paddingVertical: 10,
+    alignItems: "center",
   },
-  help: { color: theme.textFaint, fontSize: 13, lineHeight: 18, marginTop: 4 },
-  error: { color: "#fb7185", marginTop: 12 },
+  sumLabel: { color: theme.textFaint, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: "700" },
+  sumValue: { color: theme.text, fontSize: 16, fontWeight: "700", marginTop: 3, fontVariant: ["tabular-nums"] },
+  help: { color: theme.textFaint, fontSize: 12.5, lineHeight: 18, marginTop: 16 },
+  error: { color: theme.bad, fontSize: 13.5, marginTop: 12 },
 });
