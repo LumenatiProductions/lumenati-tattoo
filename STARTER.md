@@ -1,6 +1,16 @@
-# NEXT SESSION — record the Apple TTP videos (updated 2026-06-12)
+# NEXT SESSION — Review Tour, Stop 1: Home base (updated 2026-06-12)
 
-## NEW QUEST — Gusto integration (Scott asked 2026-06-12)
+**The standing program: `REVIEW-TOUR.md`.** One surface per session, web +
+app together — explain it, state of it, gaps, make it better, build what
+Scott picks, check it off, point this line at the next stop. Stop 1 is
+**Home base** (web /admin overview + app home). Read REVIEW-TOUR.md first;
+its protocol is the session script.
+
+Parallel quests still open (do when Scott unblocks them, any session):
+- **Apple TTP videos** — see the quest below (blocked on recording/Phase 2).
+- **Gusto** — blocked on Scott creating the dev.gusto.com app.
+
+## QUEST — Gusto integration (Scott asked 2026-06-12)
 The shop runs payroll on Gusto (W-2 artists set withholding there; coach
 copy already references it). Build, in order:
 1. **SCOTT FIRST:** create a developer app at https://dev.gusto.com →
