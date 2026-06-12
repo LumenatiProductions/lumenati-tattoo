@@ -237,6 +237,13 @@ Smaller follow-ups:
 
 ## Roadmap (future — Scott-stated, not started)
 
+- **Gusto integration** (2026-06-12): payroll connected to the platform.
+  OAuth app on dev.gusto.com (Scott creates, keys to Vercel) → Integrations
+  card → payroll runs on Reconciliation + Expenses & Books for the
+  bookkeeper → W-2 wage data into the artist coach → MCP/AI query layer
+  last ("what did payroll cost last quarter"). Full plan in the NEW QUEST
+  block at the top of this file.
+
 - **Merch sales** (2026-06-10): merch inventory + sales. Scott: maybe no
   barcodes — "take a photo of the tag or something easy" (vision recognition;
   the snap-to-count vision pipeline already does exactly this shape). And
