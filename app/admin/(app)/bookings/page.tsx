@@ -569,6 +569,28 @@ function BookingDrawer({
     setBusy(false);
     if (res.ok) setSaved(true);
     else setErr(res.error || "Could not save.");
+    return res;
+  };
+
+  // Save edits, then (if the time changed and the box is checked) text/email the
+  // client their new time. Independent of the save so a notify failure doesn't
+  // look like a save failure.
+  const [notify, setNotify] = useState(true);
+  const saveChanges = async () => {
+    setRemindMsg(null);
+    const before = new Date(booking.starts_at).toISOString();
+    const res = await run(buildPatch());
+    const after = new Date(`${f.date}T${f.time}`).toISOString();
+    if (res?.ok && notify && booking.client_id && after !== before) {
+      const r = await fetch("/api/bookings/remind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking.id, kind: "reschedule" }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) setRemindMsg(`New time ${d.via === "sms" ? "texted" : "emailed"} to ${clientName}.`);
+      else setErr(d.error || "Saved, but couldn't notify the client.");
+    }
   };
 
   // Refund the held deposit. When it was paid through Stripe we issue a real
@@ -753,12 +775,20 @@ function BookingDrawer({
           </Labeled>
 
           {canWrite && (
-            <div className="flex items-center gap-2 pt-1">
-              <button onClick={() => run(buildPatch())} disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
-                {busy ? "Saving…" : "Save changes"}
-              </button>
-              {saved && <span className="text-xs text-emerald-600">Saved</span>}
-              {err && <span className="text-xs text-rose-600">{err}</span>}
+            <div className="space-y-2 pt-1">
+              {booking.client_id && (
+                <label className="flex items-center gap-2 text-xs text-black/55">
+                  <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                  Text/email the client if I change the time
+                </label>
+              )}
+              <div className="flex items-center gap-2">
+                <button onClick={saveChanges} disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+                  {busy ? "Saving…" : "Save changes"}
+                </button>
+                {saved && <span className="text-xs text-emerald-600">Saved</span>}
+                {err && <span className="text-xs text-rose-600">{err}</span>}
+              </div>
             </div>
           )}
         </div>

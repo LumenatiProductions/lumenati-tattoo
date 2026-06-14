@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
@@ -10,6 +10,7 @@ import { Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
 import { uid } from "@/lib/ids";
+import { apiPost } from "@/lib/appApi";
 
 type Booking = {
   id: string;
@@ -301,7 +302,32 @@ function EditBooking({
         return;
       }
     }
-    await patch({ starts_at: startsAt, ...(endsAt ? { ends_at: endsAt } : {}) }, onChanged);
+    setBusy(true);
+    setErr(null);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ starts_at: startsAt, ...(endsAt ? { ends_at: endsAt } : {}) })
+      .eq("id", booking.id);
+    setBusy(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    // Offer to tell the client their new time (text first, email fallback).
+    if (booking.client_id) {
+      Alert.alert("Booking moved", "Text or email the client their new time?", [
+        { text: "Don't notify", style: "cancel", onPress: onChanged },
+        {
+          text: "Notify",
+          onPress: async () => {
+            await apiPost("/api/bookings/remind", { bookingId: booking.id, kind: "reschedule" });
+            onChanged();
+          },
+        },
+      ]);
+    } else {
+      onChanged();
+    }
   };
 
   const toggleConfirm = () => {
