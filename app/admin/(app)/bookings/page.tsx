@@ -13,6 +13,7 @@ import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
 import RequestsInbox from "@/components/admin/RequestsInbox";
 import WeekCalendar from "@/components/admin/WeekCalendar";
+import PayLinkDialog from "@/components/admin/PayLinkDialog";
 
 const money = (cents: number) =>
   (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -69,6 +70,7 @@ export default function BookingsPage() {
   const [adding, setAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [adHocPayLink, setAdHocPayLink] = useState(false);
 
   const clientName = useMemo(() => {
     const m = new Map(clients.map((c) => [c.id, `${c.first_name} ${c.last_name}`.trim() || "Unnamed"] as const));
@@ -161,6 +163,12 @@ export default function BookingsPage() {
               className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
             >
               {adding ? "Close" : "New booking"}
+            </button>
+            <button
+              onClick={() => setAdHocPayLink(true)}
+              className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-black/60 hover:bg-black/4"
+            >
+              Pay link
             </button>
             {canSync && (
               <button
@@ -306,6 +314,10 @@ export default function BookingsPage() {
           onClose={() => setSelectedId(null)}
           onSave={(patch) => updateBooking(selected.id, patch)}
         />
+      )}
+
+      {adHocPayLink && (
+        <PayLinkDialog onClose={() => setAdHocPayLink(false)} defaultKind="other" />
       )}
     </div>
   );
@@ -513,6 +525,8 @@ function BookingDrawer({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Pay link: pre-fill a deposit if none has been taken, else the est. ticket price.
+  const [payLink, setPayLink] = useState(false);
 
   const status = STATUS_BADGE[booking.status];
   const deposit = DEPOSIT_BADGE[booking.deposit_status];
@@ -578,6 +592,14 @@ function BookingDrawer({
                 <button onClick={() => run({ depositStatus: "refunded" })} disabled={busy} className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 disabled:opacity-40">Refund</button>
               </div>
             )}
+            {canWrite && (
+              <button
+                onClick={() => setPayLink(true)}
+                className="mt-3 rounded-md border border-brand/40 bg-brand/5 px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand/10"
+              >
+                Send pay link
+              </button>
+            )}
           </div>
 
           {/* Status transitions */}
@@ -641,6 +663,22 @@ function BookingDrawer({
           )}
         </div>
       </div>
+
+      {payLink && (
+        <PayLinkDialog
+          onClose={() => setPayLink(false)}
+          who={clientName}
+          bookingId={booking.id}
+          clientId={booking.client_id}
+          artistId={booking.artist_id}
+          defaultKind={booking.deposit_status === "none" ? "deposit" : "ticket"}
+          defaultAmountCents={
+            booking.deposit_status === "none"
+              ? booking.deposit_cents || undefined
+              : booking.est_price_cents || undefined
+          }
+        />
+      )}
     </div>
   );
 }
