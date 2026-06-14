@@ -33,7 +33,7 @@ moments only.
 
 - [x] 1. **Home base** — web `/admin` overview + app `home.tsx` (staff home,
       artist home, JD's tabs, view-as-artist preview)
-- [ ] 2. **POS & payments** — app `pos.tsx` + `TapToPayPos` + Y2K blast; web
+- [x] 2. **POS & payments** — app `pos.tsx` + `TapToPayPos` + Y2K blast; web
       pay links + `/pay/[token]` + tips; (TTP entitlement state)
 - [ ] 3. **Bookings** — web `/admin/bookings` (agenda/week, requests inbox,
       confirmations) + app `bookings.tsx`; public `/request`
@@ -85,3 +85,21 @@ moments only.
    there. Also: app staff home got cockpit parity (ranked attention, week
    strip, tappable tiles), week-over-week deltas on the web strip, artist
    pull-to-refresh now real. Built all 4 ranked upgrades same session.
+
+2. **POS & payments** (2026-06-14): biggest find — paid tickets never reached
+   the books. The only writer to `sales` was the Square sync, so every Tap to
+   Pay ticket and web pay-link ticket settled the `payments` row, moved the
+   money via Connect, then vanished from earnings/statements/Payouts/Reports
+   (and the Square cutover would have darked the whole money layer). Fixed:
+   `settlePayment` now mirrors a paid ticket/misc payment into `sales`
+   (`lum_<payment id>`, idempotent). RULE: native Stripe charges feed the books
+   only through that bridge — anything new that takes money must go through
+   `settlePayment` or write `sales` the same way. Also built: tip on in-person
+   Tap to Pay (fee on service only, tip to the artist — parity with the web pay
+   link); a web "send pay link" UI (PayLinkDialog) that finally wires the unused
+   `/api/payments` mint into the bookings drawer + an ad-hoc button; and a real
+   refund path (`/api/payments/refund`) that reverses the Connect transfer and
+   undoes the books, wired to the deposit Refund button. TTP entitlement state
+   unchanged (still dev-restricted, EXPO_PUBLIC_TTP gate, Apple videos pending).
+   Deferred: refunding a *ticket* has no UI yet (no payments-list surface) — the
+   API is ready; surface it when a payments list exists.

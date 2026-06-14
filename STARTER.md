@@ -1,13 +1,20 @@
-# NEXT SESSION — Review Tour, Stop 2: POS & payments (updated 2026-06-12)
+# NEXT SESSION — Review Tour, Stop 3: Bookings (updated 2026-06-14)
 
 **The standing program: `REVIEW-TOUR.md`.** One surface per session, web +
 app together — explain it, state of it, gaps, make it better, build what
-Scott picks, check it off, point this line at the next stop. Stop 2 is
-**POS & payments** (app pos.tsx + TapToPayPos + Y2K blast; web pay links +
-/pay/[token] + tips; TTP entitlement state). Read REVIEW-TOUR.md first; its
-protocol is the session script. Stop 1 (Home base) is done — takeaway in
-REVIEW-TOUR.md; who-owes-whom numbers now come ONLY from
-lib/admin/settlements-context.tsx (useSettledStatements).
+Scott picks, check it off, point this line at the next stop. Stop 3 is
+**Bookings** (web /admin/bookings: agenda/week, requests inbox, confirmations
++ app bookings.tsx; public /request). Read REVIEW-TOUR.md first; its protocol
+is the session script.
+
+Stops done — takeaways in REVIEW-TOUR.md:
+- Stop 1 (Home base): who-owes-whom numbers come ONLY from
+  lib/admin/settlements-context.tsx (useSettledStatements).
+- Stop 2 (POS & payments): native Stripe charges feed the books ONLY through
+  settlePayment's sales bridge (sales row id `lum_<payment id>`) — anything new
+  that takes money must go through it. Tip-on-Tap-to-Pay, web PayLinkDialog
+  (wires /api/payments), and /api/payments/refund all shipped. Ticket-refund
+  has no UI yet (needs a payments list); the refund API is ready.
 
 Parallel quests still open (do when Scott unblocks them, any session):
 - **Apple TTP videos** — see the quest below (blocked on recording/Phase 2).
