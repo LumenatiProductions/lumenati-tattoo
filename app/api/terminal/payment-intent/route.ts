@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as {
     artistId?: string;
     amountCents?: number;
+    tipCents?: number;
     bookingId?: string;
     shop?: boolean;
   };
@@ -34,15 +35,23 @@ export async function POST(req: Request) {
   if (!Number.isFinite(amountCents) || amountCents < 50) {
     return NextResponse.json({ error: "Amount must be at least $0.50." }, { status: 400 });
   }
-  // Fat-finger ceiling — same cap as the web pay-link mint.
+  // Fat-finger ceiling — same cap as the web pay-link mint. (Service only; the
+  // tip can push the charged total above it, same as the web checkout.)
   if (amountCents > 2_000_000) {
     return NextResponse.json({ error: "Amount is over the $20,000 limit." }, { status: 400 });
   }
+  // Client-chosen tip. Clamped 0..200% of service, exactly like the pay-link
+  // checkout route, so it can only ever ADD to the pre-set service amount.
+  const tipRaw = Math.round(Number(b.tipCents ?? 0));
+  const tipCents = Number.isFinite(tipRaw) ? Math.min(Math.max(0, tipRaw), amountCents * 2) : 0;
+  const totalCents = amountCents + tipCents;
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
   // Record the pending payment first so the webhook always has a row to settle.
+  // amount_cents is the SERVICE amount; the tip is stored separately and rides
+  // the transfer to the artist untouched (fee is on service only, below).
   const link = await createPaymentLink(admin, {
     bookingId: b.bookingId ?? null,
     artistId: artistId ?? null,
@@ -50,20 +59,25 @@ export async function POST(req: Request) {
     amountCents,
   });
   if (!link.ok) return NextResponse.json({ error: link.error }, { status: 502 });
+  if (tipCents > 0) {
+    await admin.from("payments").update({ tip_cents: tipCents }).eq("id", link.paymentId);
+  }
 
+  // Fee on SERVICE only — the tip transfers to the artist in full (same math as
+  // the web pay link).
   const split = await connectChargeParams(admin, artistId ?? null, "ticket", amountCents);
 
   try {
     const pi = await stripe.paymentIntents.create(
       {
-        amount: amountCents,
+        amount: totalCents,
         currency: "usd",
         payment_method_types: ["card_present"],
         capture_method: "automatic",
         ...(split
           ? { application_fee_amount: split.applicationFeeCents, transfer_data: { destination: split.destination } }
           : {}),
-        metadata: { payment_id: link.paymentId, pay_token: link.payToken, kind: "ticket" },
+        metadata: { payment_id: link.paymentId, pay_token: link.payToken, kind: "ticket", tip_cents: String(tipCents) },
       },
       { idempotencyKey: `terminal_${link.payToken}` },
     );

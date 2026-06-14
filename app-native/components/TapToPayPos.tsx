@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { armed, picked, trouble } from "@/lib/haptics";
 import { useStripeTerminal, type Reader } from "@stripe/stripe-terminal-react-native";
 import { theme, money } from "@/lib/theme";
@@ -19,6 +19,8 @@ import Y2kPaidFX from "@/components/Y2kPaidFX";
 
 type Phase = "idle" | "connecting" | "collecting" | "done";
 
+const TIP_PRESETS = [15, 20, 25] as const;
+
 export default function TapToPayPos() {
   const { role, email } = useAuth();
   const { preview } = usePreview();
@@ -29,6 +31,10 @@ export default function TapToPayPos() {
   const [fx, setFx] = useState(false);
   const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
   const [who, setWho] = useState("shop");
+  // Client-chosen tip, off the service amount. Only for artist tickets — a shop
+  // (merch) sale has no artist to tip. Tip rides to the artist in full.
+  const [tipPct, setTipPct] = useState<number | "custom" | null>(null);
+  const [tipCustom, setTipCustom] = useState("");
   // Dev builds only: Stripe test mode declines real cards (test_mode_live_card),
   // so a simulated reader is the only way to see a successful tap end to end
   // until the live keys land. Never shown in TestFlight/production builds.
@@ -74,6 +80,16 @@ export default function TapToPayPos() {
   }, []);
 
   const cents = Math.round((Number(amount) || 0) * 100);
+  const tippable = who !== "shop";
+  const whoName = artists.find((a) => a.id === who)?.name ?? "";
+  const tipCents = !tippable
+    ? 0
+    : tipPct === "custom"
+      ? Math.max(0, Math.round((Number(tipCustom) || 0) * 100))
+      : tipPct
+        ? Math.round((cents * tipPct) / 100)
+        : 0;
+  const totalCents = cents + tipCents;
 
   const ensureConnected = useCallback(async () => {
     if (connectedReader) return;
@@ -104,7 +120,10 @@ export default function TapToPayPos() {
     try {
       await ensureConnected();
       setPhase("collecting");
-      const { clientSecret } = await createTapToPayIntent(cents, who === "shop" ? { shop: true } : { artistId: who });
+      const { clientSecret } = await createTapToPayIntent(
+        cents,
+        who === "shop" ? { shop: true } : { artistId: who, tipCents },
+      );
       const ret = await retrievePaymentIntent(clientSecret);
       if (ret.error || !ret.paymentIntent) throw new Error(ret.error?.message || "Could not load the payment");
       armed(); // heads-up thump: the tap sheet is coming up
@@ -112,9 +131,11 @@ export default function TapToPayPos() {
       if (col.error || !col.paymentIntent) throw new Error(col.error?.message || "Card not collected");
       const conf = await confirmPaymentIntent({ paymentIntent: col.paymentIntent });
       if (conf.error) throw new Error(conf.error.message);
-      setPaidCents(cents);
+      setPaidCents(totalCents); // service + tip — what the card was actually charged
       setPhase("done");
       setAmount("");
+      setTipPct(null);
+      setTipCustom("");
       // Let the system payment sheet fully dismiss before the blast starts,
       // so nothing sits on top of it.
       setTimeout(() => setFx(true), 650);
@@ -123,7 +144,7 @@ export default function TapToPayPos() {
       setError(e instanceof Error ? e.message : "Payment failed.");
       setPhase("idle");
     }
-  }, [cents, who, ensureConnected, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent]);
+  }, [cents, who, tipCents, totalCents, ensureConnected, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent]);
 
   if (phase === "done") {
     return (
@@ -213,6 +234,65 @@ export default function TapToPayPos() {
         ))}
       </View>
 
+      {/* Tip — turn the phone to the client. Off the service amount; goes to the
+          artist in full. Hidden for shop/merch sales (no artist to tip). */}
+      {tippable && hasAmount && !busy && (
+        <View style={styles.tipWrap}>
+          <Text style={styles.tipLabel}>
+            Add a tip{whoName ? ` for ${whoName}` : ""}
+          </Text>
+          <View style={styles.tipRow}>
+            {TIP_PRESETS.map((p) => {
+              const on = tipPct === p;
+              return (
+                <Pressable
+                  key={p}
+                  onPress={() => {
+                    picked();
+                    setTipPct(on ? null : p);
+                  }}
+                  style={[styles.tipChip, on && styles.tipChipOn]}
+                >
+                  <Text style={[styles.tipChipText, on && styles.tipChipTextOn]}>{p}%</Text>
+                  <Text style={[styles.tipChipSub, on && styles.tipChipTextOn]}>
+                    {money(Math.round((cents * p) / 100))}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            <Pressable
+              onPress={() => {
+                picked();
+                setTipPct(tipPct === "custom" ? null : "custom");
+              }}
+              style={[styles.tipChip, tipPct === "custom" && styles.tipChipOn]}
+            >
+              <Text style={[styles.tipChipText, tipPct === "custom" && styles.tipChipTextOn]}>Other</Text>
+            </Pressable>
+          </View>
+          {tipPct === "custom" && (
+            <View style={styles.tipCustomRow}>
+              <Text style={styles.tipDollar}>$</Text>
+              <TextInput
+                value={tipCustom}
+                onChangeText={(t) => setTipCustom(t.replace(/[^\d.]/g, ""))}
+                placeholder="0"
+                placeholderTextColor={theme.textFaint}
+                keyboardType="numeric"
+                style={styles.tipCustomInput}
+                autoFocus
+              />
+              <Text style={styles.tipCustomHint}>tip amount</Text>
+            </View>
+          )}
+          {tipCents > 0 && (
+            <Text style={styles.tipSummary}>
+              {money(cents)} + {money(tipCents)} tip
+            </Text>
+          )}
+        </View>
+      )}
+
       {error && <Text style={styles.error}>{error}</Text>}
 
       <View style={{ height: 14 }} />
@@ -223,7 +303,7 @@ export default function TapToPayPos() {
             : phase === "collecting"
               ? "Tap the card on this phone…"
               : hasAmount
-                ? `Charge ${money(cents)}`
+                ? `Charge ${money(totalCents)}`
                 : "Enter an amount"
         }
         onPress={take}
@@ -285,6 +365,36 @@ const styles = StyleSheet.create({
   keyText: { color: theme.text, fontSize: 24, fontWeight: "600", fontVariant: ["tabular-nums"] },
   note: { color: theme.textFaint, fontSize: 12, marginTop: 14, lineHeight: 17 },
   error: { color: theme.bad, marginTop: 14, fontSize: 14 },
+  tipWrap: { marginTop: 18 },
+  tipLabel: { color: theme.textDim, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600", marginBottom: 8 },
+  tipRow: { flexDirection: "row", gap: 8 },
+  tipChip: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 10,
+  },
+  tipChipOn: { backgroundColor: theme.brand, borderColor: theme.brand },
+  tipChipText: { color: theme.text, fontSize: 15, fontWeight: "700" },
+  tipChipTextOn: { color: "#fff" },
+  tipChipSub: { color: theme.textFaint, fontSize: 11, marginTop: 2, fontVariant: ["tabular-nums"] },
+  tipCustomRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+  tipDollar: { color: theme.textDim, fontSize: 20, fontWeight: "700" },
+  tipCustomInput: {
+    minWidth: 90,
+    color: theme.text,
+    fontSize: 22,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    borderBottomColor: theme.borderStrong,
+    borderBottomWidth: 1,
+    paddingVertical: 2,
+  },
+  tipCustomHint: { color: theme.textFaint, fontSize: 12 },
+  tipSummary: { color: theme.textDim, fontSize: 13, marginTop: 10, fontVariant: ["tabular-nums"] },
   doneCheck: { color: theme.good, fontSize: 40, textAlign: "center" },
   doneTitle: { color: theme.text, fontSize: 24, fontWeight: "800", textAlign: "center", marginTop: 8 },
   doneSub: { color: theme.textDim, fontSize: 14, textAlign: "center", marginTop: 6 },
