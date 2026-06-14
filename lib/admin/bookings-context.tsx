@@ -37,6 +37,7 @@ export type NewBooking = {
   estPriceCents?: number;
   depositCents?: number;
   notes?: string;
+  force?: boolean; // bypass the double-booking guard (desk confirmed)
 };
 
 // A patch may carry plain field edits and/or a status transition; the API
@@ -54,6 +55,8 @@ export type BookingPatch = {
   saleId?: string | null;
   notes?: string;
   status?: BookingStatus;
+  force?: boolean; // bypass the double-booking guard (desk confirmed)
+  notifyClient?: boolean; // text/email the client their new time on a reschedule
 };
 
 type BookingsCtx = {
@@ -64,8 +67,8 @@ type BookingsCtx = {
   today: number;
   depositsHeld: number; // cents currently held across all bookings
   refresh: () => Promise<void>;
-  addBooking: (input: NewBooking) => Promise<{ ok: boolean; error?: string; booking?: Booking }>;
-  updateBooking: (id: string, patch: BookingPatch) => Promise<{ ok: boolean; error?: string }>;
+  addBooking: (input: NewBooking) => Promise<{ ok: boolean; error?: string; conflict?: boolean; booking?: Booking }>;
+  updateBooking: (id: string, patch: BookingPatch) => Promise<{ ok: boolean; error?: string; conflict?: boolean }>;
   syncFromSquare: () => Promise<{ ok: boolean; error?: string; mirrored?: number; autoFlaggedNoShow?: number }>;
 };
 
@@ -125,7 +128,7 @@ export function BookingsProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(input),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) return { ok: false, error: d.error || "Could not create that booking." };
+      if (!r.ok) return { ok: false, error: d.error || "Could not create that booking.", conflict: !!d.conflict };
       await refresh();
       return { ok: true, booking: d.booking };
     },
@@ -141,7 +144,7 @@ export function BookingsProvider({ children }: { children: React.ReactNode }) {
       });
       const d = await r.json().catch(() => ({}));
       await refresh();
-      if (!r.ok) return { ok: false, error: d.error || "Could not save." };
+      if (!r.ok) return { ok: false, error: d.error || "Could not save.", conflict: !!d.conflict };
       return { ok: true };
     },
     [refresh],

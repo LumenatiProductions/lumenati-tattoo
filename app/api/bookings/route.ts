@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,54 @@ export const dynamic = "force-dynamic";
 // artist_id = my_artist(), and we gate here for clean 401/403s).
 const WRITE_ROLES = ["owner", "bookkeeper", "frontdesk"] as const;
 const READ_ROLES = ["owner", "bookkeeper", "frontdesk", "artist"] as const;
+
+// An artist works one client at a time, so two scheduled bookings on the same
+// artist that overlap in time is almost always a mistake. We block it (409 with
+// conflict:true) unless the desk passes force — sometimes they really do want a
+// guest or back-to-back. A booking with no end time is treated as one hour, the
+// same assumption the week grid draws.
+const DEFAULT_DURATION_MS = 60 * 60 * 1000;
+const SHOP_TZ = process.env.SHOP_TIMEZONE || "America/Denver";
+
+async function findConflict(
+  supabase: SupabaseClient,
+  artistId: string,
+  startsAt: string,
+  endsAt: string | null,
+  excludeId?: string,
+): Promise<{ id: string; startsAt: string } | null> {
+  const start = new Date(startsAt).getTime();
+  if (Number.isNaN(start)) return null;
+  const end = endsAt ? new Date(endsAt).getTime() : start + DEFAULT_DURATION_MS;
+  // ±12h around the new slot covers any realistic session without scanning the book.
+  const windowMs = 12 * 60 * 60 * 1000;
+  const { data } = await supabase
+    .from("bookings")
+    .select("id, starts_at, ends_at")
+    .eq("artist_id", artistId)
+    .eq("status", "scheduled")
+    .gte("starts_at", new Date(start - windowMs).toISOString())
+    .lte("starts_at", new Date(end + windowMs).toISOString());
+  for (const row of data ?? []) {
+    if (excludeId && row.id === excludeId) continue;
+    const s2 = new Date(row.starts_at as string).getTime();
+    const e2 = row.ends_at ? new Date(row.ends_at as string).getTime() : s2 + DEFAULT_DURATION_MS;
+    if (start < e2 && s2 < end) return { id: row.id as string, startsAt: row.starts_at as string };
+  }
+  return null;
+}
+
+function conflictResponse(at: string) {
+  const when = new Date(at).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: SHOP_TZ,
+  });
+  return NextResponse.json(
+    { error: `This overlaps another booking for that artist at ${when}. Book anyway?`, conflict: true },
+    { status: 409 },
+  );
+}
 
 async function staff() {
   const supabase = await createClient();
@@ -74,9 +123,16 @@ export async function POST(req: Request) {
     depositPaymentId?: string;
     notes?: string;
     source?: string;
+    force?: boolean;
   };
   if (!b.startsAt) {
     return NextResponse.json({ error: "A start date/time is required." }, { status: 400 });
+  }
+
+  // Double-booking guard (an artist + a time). Skipped for unassigned bookings.
+  if (b.artistId && !b.force) {
+    const clash = await findConflict(supabase, b.artistId, b.startsAt, b.endsAt || null);
+    if (clash) return conflictResponse(clash.startsAt);
   }
 
   const deposit = Math.max(0, Math.round(b.depositCents ?? 0));
@@ -136,6 +192,7 @@ export async function PATCH(req: Request) {
     saleId?: string | null;
     notes?: string;
     status?: string;
+    force?: boolean;
   };
   if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
@@ -146,6 +203,25 @@ export async function PATCH(req: Request) {
   const VALID_DEPOSIT = ["none", "held", "applied", "forfeited", "refunded"];
   if (b.depositStatus !== undefined && !VALID_DEPOSIT.includes(b.depositStatus)) {
     return NextResponse.json({ error: "Invalid deposit status" }, { status: 400 });
+  }
+
+  // A move (time or artist change) re-runs the double-booking guard against the
+  // effective slot — current values fill in whatever the patch leaves alone.
+  // Status-only edits (complete/no-show) never trip it.
+  const movesSlot = b.startsAt !== undefined || b.endsAt !== undefined || b.artistId !== undefined;
+  if (movesSlot && (b.status === undefined || b.status === "scheduled") && !b.force) {
+    const { data: cur } = await supabase
+      .from("bookings")
+      .select("artist_id, starts_at, ends_at")
+      .eq("id", b.id)
+      .maybeSingle();
+    const artistId = b.artistId !== undefined ? b.artistId : (cur?.artist_id as string | null);
+    const startsAt = b.startsAt !== undefined ? b.startsAt : (cur?.starts_at as string | undefined);
+    const endsAt = b.endsAt !== undefined ? b.endsAt : (cur?.ends_at as string | null);
+    if (artistId && startsAt) {
+      const clash = await findConflict(supabase, artistId, startsAt, endsAt ?? null, b.id);
+      if (clash) return conflictResponse(clash.startsAt);
+    }
   }
 
   const patch: Record<string, unknown> = {};

@@ -403,7 +403,8 @@ function AddForm({
     serviceDesc?: string;
     estPriceCents?: number;
     depositCents?: number;
-  }) => Promise<{ ok: boolean; error?: string }>;
+    force?: boolean;
+  }) => Promise<{ ok: boolean; error?: string; conflict?: boolean }>;
   onCancel: () => void;
 }) {
   const [f, setF] = useState({
@@ -429,7 +430,7 @@ function AddForm({
     setErr(null);
     const startsAt = new Date(`${f.date}T${f.time}`).toISOString();
     const endsAt = f.endTime ? new Date(`${f.date}T${f.endTime}`).toISOString() : undefined;
-    const res = await onAdd({
+    const payload = {
       startsAt,
       endsAt,
       clientId: f.clientId || null,
@@ -437,7 +438,16 @@ function AddForm({
       serviceDesc: f.serviceDesc,
       estPriceCents: f.estPrice ? Math.round(parseFloat(f.estPrice) * 100) : 0,
       depositCents: f.deposit ? Math.round(parseFloat(f.deposit) * 100) : 0,
-    });
+    };
+    let res = await onAdd(payload);
+    // Overlap with this artist — let the desk override on purpose.
+    if (!res.ok && res.conflict) {
+      if (!window.confirm(res.error || "This overlaps another booking. Book anyway?")) {
+        setBusy(false);
+        return;
+      }
+      res = await onAdd({ ...payload, force: true });
+    }
     setBusy(false);
     if (!res.ok) setErr(res.error || "Could not create that booking.");
   };
@@ -504,7 +514,7 @@ function BookingDrawer({
   clients: { id: string; name: string }[];
   canWrite: boolean;
   onClose: () => void;
-  onSave: (patch: BookingPatch) => Promise<{ ok: boolean; error?: string }>;
+  onSave: (patch: BookingPatch) => Promise<{ ok: boolean; error?: string; conflict?: boolean }>;
 }) {
   const start = new Date(booking.starts_at);
   const toDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -547,7 +557,15 @@ function BookingDrawer({
     setBusy(true);
     setErr(null);
     setSaved(false);
-    const res = await onSave(patch);
+    let res = await onSave(patch);
+    // Reschedule lands on a slot the artist already has — offer to override.
+    if (!res.ok && res.conflict) {
+      if (!window.confirm(res.error || "This overlaps another booking. Move it anyway?")) {
+        setBusy(false);
+        return;
+      }
+      res = await onSave({ ...patch, force: true });
+    }
     setBusy(false);
     if (res.ok) setSaved(true);
     else setErr(res.error || "Could not save.");

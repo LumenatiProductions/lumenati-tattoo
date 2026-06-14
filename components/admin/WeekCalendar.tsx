@@ -56,6 +56,30 @@ export default function WeekCalendar({
     return m;
   }, [bookings, days]);
 
+  // Ids of scheduled bookings that overlap another scheduled booking for the
+  // SAME artist — flagged with a red ring so a double-book is obvious at a glance.
+  const conflictIds = useMemo(() => {
+    const HOUR_MS = 3_600_000;
+    const span = (b: Booking) => {
+      const s = new Date(b.starts_at).getTime();
+      return [s, b.ends_at ? new Date(b.ends_at).getTime() : s + HOUR_MS] as const;
+    };
+    const out = new Set<string>();
+    const sched = bookings.filter((b) => b.status === "scheduled" && b.artist_id);
+    for (let i = 0; i < sched.length; i++) {
+      for (let j = i + 1; j < sched.length; j++) {
+        if (sched[i].artist_id !== sched[j].artist_id) continue;
+        const [s1, e1] = span(sched[i]);
+        const [s2, e2] = span(sched[j]);
+        if (s1 < e2 && s2 < e1) {
+          out.add(sched[i].id);
+          out.add(sched[j].id);
+        }
+      }
+    }
+    return out;
+  }, [bookings]);
+
   const artistOf = (id: string | null) => artists.find((a) => a.id === id);
   const todayK = dayKey(new Date());
   const hours = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i);
@@ -125,15 +149,17 @@ export default function WeekCalendar({
                     const height = Math.max(22, Math.min((endH - startH) * HOUR_PX, hours.length * HOUR_PX - top) - 2);
                     const artist = artistOf(b.artist_id);
                     const color = artist?.color ?? "#999";
+                    const clash = conflictIds.has(b.id);
                     return (
                       <button
                         key={b.id}
                         onClick={() => onOpen(b.id)}
-                        title={`${start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}${artist ? ` · ${artist.name}` : ""}${b.service_desc ? ` · ${b.service_desc}` : ""}`}
-                        className="absolute inset-x-0.5 overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-opacity hover:opacity-80"
+                        title={`${start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}${artist ? ` · ${artist.name}` : ""}${b.service_desc ? ` · ${b.service_desc}` : ""}${clash ? " · ⚠ overlaps another booking" : ""}`}
+                        className={`absolute inset-x-0.5 overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-left text-[11px] leading-tight shadow-sm transition-opacity hover:opacity-80 ${clash ? "ring-2 ring-rose-500" : ""}`}
                         style={{ top, height, borderLeftColor: color, backgroundColor: `${color}1a` }}
                       >
                         <span className="block truncate font-semibold text-black/75">
+                          {clash ? "⚠ " : ""}
                           {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" ", "")}
                           {b.confirmed_at ? " ✓" : ""}
                         </span>
