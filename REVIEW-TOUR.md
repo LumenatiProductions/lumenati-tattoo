@@ -35,7 +35,7 @@ moments only.
       artist home, JD's tabs, view-as-artist preview)
 - [x] 2. **POS & payments** — app `pos.tsx` + `TapToPayPos` + Y2K blast; web
       pay links + `/pay/[token]` + tips; (TTP entitlement state)
-- [ ] 3. **Bookings** — web `/admin/bookings` (agenda/week, requests inbox,
+- [x] 3. **Bookings** — web `/admin/bookings` (agenda/week, requests inbox,
       confirmations) + app `bookings.tsx`; public `/request`
 - [ ] 4. **Clients** — web `/admin/clients` (history, merge) + app
       `clients.tsx`
@@ -103,3 +103,16 @@ moments only.
    unchanged (still dev-restricted, EXPO_PUBLIC_TTP gate, Apple videos pending).
    Deferred: refunding a *ticket* has no UI yet (no payments-list surface) — the
    API is ready; surface it when a payments list exists.
+
+3. **Bookings** (2026-06-14): biggest find — nothing stopped double-booking an
+   artist; the booking API did zero overlap checking. Added a server guard
+   (POST+PATCH, 409 conflict:true, desk can force) + a red ⚠ ring in the week
+   view; the APP inserts bookings directly under RLS, so the same check runs
+   client-side there too (findClash). RULE: any new booking write must run the
+   overlap check — server for the API, findClash in the app. Also built: manual
+   confirm + 'send reminder now' in the drawer (confirmations were dark until
+   Twilio; now work via email today); app edit sheet (reschedule/deposit/confirm
+   — refunds stay web-only, they need the cookie-authed Stripe route); and
+   notify-client-on-reschedule (generalized /api/bookings/remind takes kind +
+   Bearer so web + app both use it). Confirm/remind/notify all text-first with
+   email fallback.

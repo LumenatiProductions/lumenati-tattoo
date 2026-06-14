@@ -1,11 +1,10 @@
-# NEXT SESSION — Review Tour, Stop 3: Bookings (updated 2026-06-14)
+# NEXT SESSION — Review Tour, Stop 4: Clients (updated 2026-06-14)
 
 **The standing program: `REVIEW-TOUR.md`.** One surface per session, web +
 app together — explain it, state of it, gaps, make it better, build what
-Scott picks, check it off, point this line at the next stop. Stop 3 is
-**Bookings** (web /admin/bookings: agenda/week, requests inbox, confirmations
-+ app bookings.tsx; public /request). Read REVIEW-TOUR.md first; its protocol
-is the session script.
+Scott picks, check it off, point this line at the next stop. Stop 4 is
+**Clients** (web /admin/clients: history, merge + app clients.tsx). Read
+REVIEW-TOUR.md first; its protocol is the session script.
 
 Stops done — takeaways in REVIEW-TOUR.md:
 - Stop 1 (Home base): who-owes-whom numbers come ONLY from
@@ -15,6 +14,10 @@ Stops done — takeaways in REVIEW-TOUR.md:
   that takes money must go through it. Tip-on-Tap-to-Pay, web PayLinkDialog
   (wires /api/payments), and /api/payments/refund all shipped. Ticket-refund
   has no UI yet (needs a payments list); the refund API is ready.
+- Stop 3 (Bookings): any new booking write must run the overlap check (server
+  for the API, findClash() in the app). Manual confirm + send-reminder-now,
+  app edit sheet (reschedule/deposit/confirm), notify-on-reschedule all shipped;
+  /api/bookings/remind takes kind:"reminder"|"reschedule" + cookie-or-Bearer.
 
 Parallel quests still open (do when Scott unblocks them, any session):
 - **Apple TTP videos** — see the quest below (blocked on recording/Phase 2).
