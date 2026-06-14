@@ -5,8 +5,9 @@ import { createClient } from "@/lib/supabase/browser";
 import { SALES as MOCK_SALES } from "./mock-data";
 import type { Sale } from "./types";
 
-// Sales come from the Supabase `sales` mirror (synced from Square). Until there
-// are any rows the user can see, we fall back to the mock dataset so the
+// Sales come from the Supabase `sales` table: Square's mirror PLUS native
+// Stripe charges (Tap to Pay + pay-link tickets, written by settlePayment). Until
+// there are any rows the user can see, we fall back to the mock dataset so the
 // dashboard is never empty during setup. RLS scopes rows per role (owners see
 // all, an artist sees only their own).
 type SalesCtx = { sales: Sale[]; real: boolean; loading: boolean };

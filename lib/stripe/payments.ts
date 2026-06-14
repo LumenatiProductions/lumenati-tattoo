@@ -170,11 +170,12 @@ export async function settlePayment(
   if (!row) return { settled: false, reason: "payment not found" };
   if (row.status === "paid") return { settled: false, reason: "already paid" };
 
+  const paidAt = new Date().toISOString();
   await admin
     .from("payments")
     .update({
       status: "paid",
-      paid_at: new Date().toISOString(),
+      paid_at: paidAt,
       ...(match.paymentIntentId ? { stripe_payment_intent_id: match.paymentIntentId } : {}),
     })
     .eq("id", row.id);
@@ -195,6 +196,30 @@ export async function settlePayment(
       .update({ status: "paid", paid_at: new Date().toISOString() })
       .eq("payment_id", row.id)
       .eq("status", "pending");
+  }
+
+  // Feed the books. Every dashboard (earnings, statements, Payouts, Reports)
+  // reads `sales`, which until now only Square wrote — so a Tap to Pay or
+  // pay-link charge was invisible to the books, and the Square cutover would
+  // dark out the money layer entirely. A paid ticket/misc payment IS a sale, so
+  // mirror it here. Deposits (a hold) and rent (shop income, not service
+  // revenue) are excluded. Deterministic id (lum_<payment id>) keeps this
+  // idempotent on Stripe's webhook retries and can't collide with Square ids.
+  // Errors ignored — a settled payment must never bounce on a books write.
+  if (row.kind === "ticket" || row.kind === "other") {
+    await admin.from("sales").upsert(
+      {
+        id: `lum_${row.id}`,
+        created_at: paidAt,
+        service_cents: row.amount_cents,
+        tip_cents: Math.max(0, Math.round(row.tip_cents ?? 0)),
+        method: "card", // Stripe is always card (Tap to Pay is card-present)
+        artist_id: row.artist_id,
+        status: "paid",
+        synced_at: paidAt,
+      },
+      { onConflict: "id" },
+    );
   }
 
   // Phone ping for money landing — owner always, plus the artist it belongs to.

@@ -155,8 +155,8 @@ export default function ReconcilePage() {
               <SectionTitle>Our records</SectionTitle>
               <Card>
                 <div className="grid grid-cols-2 divide-x divide-black/5 border-b border-black/5">
-                  <Cell label="Square card sales" value={fmtPrecise(data.square.cardCents)} />
-                  <Cell label="Square cash sales" value={fmtPrecise(data.square.cashCents)} />
+                  <Cell label="Card sales (recorded)" value={fmtPrecise(data.square.cardCents)} />
+                  <Cell label="Cash sales (Square)" value={fmtPrecise(data.square.cashCents)} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-black/5 border-b border-black/5">
                   <Cell label="Cash logged" value={fmtPrecise(data.cash.loggedCents)} />
