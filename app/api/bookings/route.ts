@@ -192,6 +192,7 @@ export async function PATCH(req: Request) {
     saleId?: string | null;
     notes?: string;
     status?: string;
+    confirmedAt?: string | null;
     force?: boolean;
   };
   if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
@@ -235,6 +236,9 @@ export async function PATCH(req: Request) {
   if (b.depositPaymentId !== undefined) patch.deposit_payment_id = b.depositPaymentId || null;
   if (b.saleId !== undefined) patch.sale_id = b.saleId || null;
   if (b.notes !== undefined) patch.notes = b.notes.trim();
+  // Manual confirm: the desk confirming for a client who said yes by phone/in
+  // person (the SMS "reply C" loop sets this too). null clears it.
+  if (b.confirmedAt !== undefined) patch.confirmed_at = b.confirmedAt;
 
   // Status transition + deposit cascade. We read the current deposit_status so a
   // cascade only acts on a held deposit (idempotent if re-run).

@@ -599,6 +599,24 @@ function BookingDrawer({
     else setErr(res.error || "Refunded in Stripe, but the booking didn't update.");
   };
 
+  // Send a reminder/confirm message to the client now (text first, email
+  // fallback). Independent of the nightly cron.
+  const [remindMsg, setRemindMsg] = useState<string | null>(null);
+  const sendReminder = async () => {
+    setRemindMsg(null);
+    setErr(null);
+    setBusy(true);
+    const r = await fetch("/api/bookings/remind", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId: booking.id }),
+    });
+    const d = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (r.ok) setRemindMsg(`Reminder ${d.via === "sms" ? "texted" : "emailed"} to ${clientName}.`);
+    else setErr(d.error || "Could not send the reminder.");
+  };
+
   const set = (key: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setF((s) => ({ ...s, [key]: e.target.value }));
     setSaved(false);
@@ -663,6 +681,42 @@ function BookingDrawer({
                   {STATUS_BADGE[s].label}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Confirmation — manual confirm + a reminder/confirm nudge. */}
+          {canWrite && booking.status === "scheduled" && (
+            <div className="rounded-lg border border-black/8 bg-black/2 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {booking.confirmed_at ? (
+                  <>
+                    <Badge tone="good">Confirmed ✓</Badge>
+                    <button
+                      onClick={() => run({ confirmedAt: null })}
+                      disabled={busy}
+                      className="text-xs font-medium text-black/45 underline hover:text-black/70 disabled:opacity-40"
+                    >
+                      Undo
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => run({ confirmedAt: new Date().toISOString() })}
+                    disabled={busy}
+                    className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
+                  >
+                    Mark confirmed
+                  </button>
+                )}
+                <button
+                  onClick={sendReminder}
+                  disabled={busy}
+                  className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+                >
+                  Send reminder now
+                </button>
+              </div>
+              {remindMsg && <div className="mt-2 text-xs text-emerald-600">{remindMsg}</div>}
             </div>
           )}
 

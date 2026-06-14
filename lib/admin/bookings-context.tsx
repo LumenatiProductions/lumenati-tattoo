@@ -55,6 +55,7 @@ export type BookingPatch = {
   saleId?: string | null;
   notes?: string;
   status?: BookingStatus;
+  confirmedAt?: string | null; // manual confirm (or undo with null)
   force?: boolean; // bypass the double-booking guard (desk confirmed)
   notifyClient?: boolean; // text/email the client their new time on a reschedule
 };
