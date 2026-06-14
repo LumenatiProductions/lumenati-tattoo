@@ -553,6 +553,34 @@ function BookingDrawer({
     else setErr(res.error || "Could not save.");
   };
 
+  // Refund the held deposit. When it was paid through Stripe we issue a real
+  // refund (the server reverses the transfer for split charges); a deposit with
+  // no Stripe payment on file (e.g. cash) just flips status. Either way the
+  // booking lands on `refunded`.
+  const refundDeposit = async () => {
+    if (!window.confirm(`Refund the ${money(booking.deposit_cents)} deposit for ${clientName}?`)) return;
+    setBusy(true);
+    setErr(null);
+    setSaved(false);
+    if (booking.deposit_payment_id) {
+      const r = await fetch("/api/payments/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentIntentId: booking.deposit_payment_id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setBusy(false);
+        setErr(d.error || "Refund failed.");
+        return;
+      }
+    }
+    const res = await onSave({ depositStatus: "refunded" });
+    setBusy(false);
+    if (res.ok) setSaved(true);
+    else setErr(res.error || "Refunded in Stripe, but the booking didn't update.");
+  };
+
   const set = (key: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setF((s) => ({ ...s, [key]: e.target.value }));
     setSaved(false);
@@ -589,7 +617,7 @@ function BookingDrawer({
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <button onClick={() => run({ depositStatus: "applied" })} disabled={busy} className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 disabled:opacity-40">Apply to ticket</button>
                 <button onClick={() => run({ depositStatus: "forfeited" })} disabled={busy} className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 disabled:opacity-40">Forfeit</button>
-                <button onClick={() => run({ depositStatus: "refunded" })} disabled={busy} className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 disabled:opacity-40">Refund</button>
+                <button onClick={refundDeposit} disabled={busy} className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 disabled:opacity-40">Refund</button>
               </div>
             )}
             {canWrite && (
