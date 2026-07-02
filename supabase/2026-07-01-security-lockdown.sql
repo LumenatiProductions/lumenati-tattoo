@@ -48,11 +48,15 @@ create policy room_photos_staff_delete on storage.objects for delete to authenti
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- #2  Hide artists' private business terms from the public/anon key.
---     Public site only needs id/slug/name/handle/color/guest/active/room_extras/sort.
---     (App public reads were updated to select only those columns.)
+--     NOTE: a column-level REVOKE is a no-op while the role still holds a
+--     table-level SELECT grant (Postgres keeps the table grant). So we drop the
+--     table-level grant for anon and re-grant ONLY the public display columns.
+--     Staff (authenticated) and server (service_role) are untouched.
+--     App public reads (lib/admin/artists-data.ts) select exactly these columns.
 -- ─────────────────────────────────────────────────────────────────────────
-revoke select (pay_type, rent_cents, split_pct, stripe_account_id, stripe_onboarded)
-  on public.artists from anon;
+revoke select on public.artists from anon;
+grant select (id, slug, name, handle, color, guest, active, room_extras, sort, created_at)
+  on public.artists to anon;
 
 commit;
 
