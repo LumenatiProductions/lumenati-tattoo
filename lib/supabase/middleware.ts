@@ -35,11 +35,30 @@ export async function updateSession(request: NextRequest) {
   const isAdmin = path.startsWith("/admin");
   const isLogin = path.startsWith("/admin/login");
 
-  if (isAdmin && !isLogin && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
+  if (isAdmin && !isLogin) {
+    // Must be signed in...
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("next", path);
+      return NextResponse.redirect(url);
+    }
+    // ...AND on the staff allowlist. A valid Supabase session for an email that
+    // isn't in `profiles` must not load the admin shell (defense in depth — the
+    // data is already RLS-protected, but the door shouldn't open at all).
+    // RLS lets an authenticated user read only their own profiles row.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("email", user.email ?? "")
+      .maybeSingle();
+    if (!profile) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("next", path);
+      url.searchParams.set("denied", "1");
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

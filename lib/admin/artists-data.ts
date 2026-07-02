@@ -10,13 +10,20 @@ type Row = {
   name: string;
   handle: string;
   color: string;
-  pay_type: "rent" | "split" | "hybrid";
-  rent_cents: number;
-  split_pct: number | string;
+  // Private business terms — only present on authenticated (staff) reads. The
+  // public/anon key can no longer read these columns (see security-lockdown.sql),
+  // so public reads omit them and they arrive undefined.
+  pay_type?: "rent" | "split" | "hybrid";
+  rent_cents?: number;
+  split_pct?: number | string;
   guest: boolean;
   active: boolean;
   room_extras: boolean;
 };
+
+// Columns the public/anon key is allowed to read. Sensitive pay columns are
+// deliberately excluded so `select *` never trips the column-level lockdown.
+const PUBLIC_COLS = "id,slug,name,handle,color,guest,active,room_extras,sort";
 
 export function rowToArtist(r: Row): Artist {
   return {
@@ -28,7 +35,11 @@ export function rowToArtist(r: Row): Artist {
     active: r.active,
     guest: r.guest,
     roomExtras: r.room_extras,
-    pay: { type: r.pay_type, rentCents: r.rent_cents, shopSplitPct: Number(r.split_pct) },
+    pay: {
+      type: r.pay_type ?? "split",
+      rentCents: r.rent_cents ?? 0,
+      shopSplitPct: r.split_pct == null ? 0 : Number(r.split_pct),
+    },
     squareTeamMemberId: null,
   };
 }
@@ -39,7 +50,7 @@ export async function fetchArtists(): Promise<Artist[]> {
   if (!sb) return FALLBACK;
   const { data, error } = await sb
     .from("artists")
-    .select("*")
+    .select(PUBLIC_COLS)
     .eq("active", true)
     .order("sort");
   if (error || !data || !data.length) return FALLBACK;
@@ -50,6 +61,6 @@ export async function fetchArtists(): Promise<Artist[]> {
 export async function fetchArtistBySlug(slug: string): Promise<Artist | null> {
   const sb = getSupabase();
   if (!sb) return FALLBACK.find((a) => a.slug === slug) ?? null;
-  const { data } = await sb.from("artists").select("*").eq("slug", slug).maybeSingle();
+  const { data } = await sb.from("artists").select(PUBLIC_COLS).eq("slug", slug).maybeSingle();
   return data ? rowToArtist(data as Row) : null;
 }
