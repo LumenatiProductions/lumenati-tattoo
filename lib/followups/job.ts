@@ -300,7 +300,10 @@ async function postResend(to: string, subject: string, html: string) {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: `${SHOP_NAME} <onboarding@resend.dev>`,
+      // Set RESEND_FROM to a verified-domain address once the domain is moved
+      // over (e.g. "Lumenati Tattoo <hello@lumenati.com>"); until then the
+      // sandbox sender works for testing but lands in spam.
+      from: process.env.RESEND_FROM || `${SHOP_NAME} <onboarding@resend.dev>`,
       to: [to],
       subject,
       html,
@@ -427,11 +430,11 @@ export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap)
 }
 
 /**
- * Daily ops job. Always enqueues (no external send, safe). Sending automated
- * client email is gated behind FOLLOWUPS_AUTOSEND === "true" AND a configured
- * RESEND_API_KEY — so the queue fills up but nothing goes out until Scott has
- * confirmed the Resend sending domain (avoids burning domain reputation; see
- * STARTER-4-FOLLOWUPS.md). Manual "send now" from the page always works.
+ * Daily ops job. Always enqueues (no external send, safe). Automated sending is
+ * gated behind FOLLOWUPS_AUTOSEND === "true" AND a configured channel — Twilio
+ * (SMS, preferred for rebooking) OR Resend (email). So the queue fills up but
+ * nothing goes out until Scott flips the switch and at least one channel is
+ * live. Manual "send now" from the page always works.
  */
 export async function runDailyJob(admin: unknown) {
   const client = admin as SupabaseClient;
@@ -439,7 +442,7 @@ export async function runDailyJob(admin: unknown) {
   const enqueued = await enqueueFollowups(client, tpl);
 
   const autosend = process.env.FOLLOWUPS_AUTOSEND === "true";
-  const canSend = autosend && !!process.env.RESEND_API_KEY;
+  const canSend = autosend && (isSmsConfigured || !!process.env.RESEND_API_KEY);
   const sent = canSend
     ? await sendDueFollowups(client, tpl)
     : { sent: 0, skipped: 0, failed: 0, due: 0 };
