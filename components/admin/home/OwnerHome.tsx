@@ -45,7 +45,7 @@ export default function OwnerHome() {
 
   return (
     <div>
-      <PageHead title="Shop Overview" sub={real ? "Live from Square" : "Period to date · preview data"} />
+      <PageHead title="Shop Overview" sub={real ? "Live" : "Period to date · preview data"} />
 
       <Cockpit />
 

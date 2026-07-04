@@ -24,7 +24,8 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
       try {
         const sb = createClient();
         const { data } = await sb
-          .from("sales")
+          // Canonical ledger (as sales-shaped rows) — the money source of truth.
+          .from("ledger_sales")
           .select("id, created_at, service_cents, tip_cents, method, artist_id")
           .order("created_at", { ascending: false })
           .limit(3000);

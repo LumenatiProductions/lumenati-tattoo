@@ -80,7 +80,8 @@ export async function GET(req: Request) {
   const [artistsRes, salesRes, bookingsRes, inventoryRes] = await Promise.all([
     db.from("artists").select("*").eq("active", true).order("sort"),
     db
-      .from("sales")
+      // Reads the canonical ledger (as sales-shaped rows) — the money source of truth.
+      .from("ledger_sales")
       .select("id, created_at, service_cents, tip_cents, method, artist_id")
       .gte("created_at", from)
       .lte("created_at", toExclusiveEnd)

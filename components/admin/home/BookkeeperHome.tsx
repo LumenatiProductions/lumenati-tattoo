@@ -25,7 +25,7 @@ export default function BookkeeperHome() {
 
   return (
     <div>
-      <PageHead title="Books" sub={real ? "Live from Square" : "Period to date · preview data"} />
+      <PageHead title="Books" sub={real ? "Live" : "Period to date · preview data"} />
       {!real && !loading && <MockBanner source="Square & QuickBooks" />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
