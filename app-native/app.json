@@ -19,6 +19,8 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Pick a profile photo for your public room page.",
         "NSCameraUsageDescription": "Snap shelf photos to count inventory and receipts to log deductions.",
+        "NSCalendarsFullAccessUsageDescription": "Lumenati adds your bookings to your calendar and checks for conflicts with your schedule.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Lumenati adds your bookings to your calendar.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Stripe needs your location to take secure Tap to Pay card payments."
       },
