@@ -1,74 +1,57 @@
-# Artist calendar integration — plan
+# Artist calendar integration — plan (phone-native)
 
-Status: PROPOSED (awaiting scope decision). Idea from Scott, 2026-07-02: let artists
-connect their own calendar so shop bookings land in it automatically AND the shop
-can see conflicts with their outside schedule.
+Status: SCOPE DECIDED — full two-way, phone-native (Scott, 2026-07-02).
+Artists are phone-only, so we integrate with the iPhone's own Calendar (EventKit
+via `expo-calendar`), NOT a Google server OAuth. iOS Calendar already aggregates
+the artist's iCloud + Google + any other accounts, so one native integration
+covers all of them, with no Google Cloud project and no server-stored OAuth tokens.
 
 ## Goal
-- An artist connects their personal calendar (Google and/or Apple) once.
-- Every shop booking for that artist appears on their personal calendar (with a
-  reminder), and updates/cancels when the booking changes.
-- When staff book or move an appointment, the app warns if it clashes with the
-  artist's OUTSIDE (personal) commitments, not just other shop bookings.
+- Artist grants calendar access once (one iOS permission prompt).
+- Every shop booking for that artist is written to their phone calendar, and stays
+  in sync when the booking changes or cancels.
+- When staff book or move an appointment, warn about clashes with the artist's
+  OUTSIDE commitments (read from all their phone calendars over the slot).
 
 ## What already exists (don't rebuild)
-- In-shop double-booking is already checked: web `/api/bookings` conflict guard and
-  mobile `findClash()` in `app-native/app/(app)/bookings.tsx`. The new work is the
-  EXTERNAL calendar layer only.
+- In-shop double-booking check: web `/api/bookings` + mobile `findClash()`.
+- The new work is the phone-calendar (EventKit) layer.
 
-## Scope options
-1. **Full two-way (recommended, matches the ask).** OAuth connect to Google
-   Calendar (and Apple). Push shop bookings out as events; pull the artist's busy
-   times in to flag outside conflicts. Biggest build.
-2. **One-way push.** Shop bookings appear on their calendar with reminders; no
-   outside-conflict awareness. Simpler.
-3. **Subscribe link (ICS).** A private per-artist feed URL they add to any calendar
-   app. No sign-in. One-way, slow refresh (hours). Quickest, roughest.
+## Approach: `expo-calendar` (EventKit), on-device
+- Add `expo-calendar`; rebuild the dev/EAS client (native module).
+- Permission: `Calendar.requestCalendarPermissionsAsync()`.
+- Choose target calendar: default to the artist's primary; let them pick in a
+  small settings row (writable calendars via `getCalendarsAsync`).
+- **Write:** on sync, upsert an event per booking (title, artist, service, start/
+  end, location = shop). Tag each event with the booking id (in `notes`/`url`) so
+  we can find + update/cancel it later without server-stored device ids.
+- **Conflict read:** before confirming a new/moved slot, `getEventsAsync` across
+  the artist's calendars over the window; if busy, show a soft warning (never a
+  hard block).
+- **Sync trigger:** reconcile on app foreground + when a booking-change push
+  arrives. (Phone-only artists don't need server push to their calendar.)
 
-## Two-way design (if chosen)
-### Data
-- New table `artist_calendar_connections` (tenant-scoped via `shop_id`):
-  `artist_id`, `provider` (google|apple), encrypted `access_token`/`refresh_token`,
-  `calendar_id`, `sync_token`, `expires_at`, `connected_at`. RLS: an artist manages
-  their own row; owner can see connection status (not tokens).
-- On `bookings`: add `external_event_id` (the pushed calendar event's id, per
-  provider) so updates/cancels map 1:1.
+## Where it plugs in (mobile app)
+- `app-native/app/(app)/bookings.tsx`: extend `findClash` to also check the phone
+  calendar; add "Add to my calendar" / connection state.
+- A `lib/calendar.ts` module: permission, pick calendar, upsert/delete event by
+  booking id, freebusy check. Keep it self-contained.
+- Artist settings: a "Calendar sync" toggle + which calendar.
 
-### Google (primary)
-- OAuth 2.0, scope `calendar.events` (read+write) + `calendar.readonly` for busy
-  lookups. Needs a Google Cloud project + OAuth consent screen (Scott action).
-- Push: on booking create/update/cancel, upsert/delete the event via Calendar API.
-- Conflict read: `freebusy.query` for the artist's calendar over the proposed slot;
-  if busy, surface a soft warning in the booking UI (never a hard block).
-- Keep in sync with incremental `syncToken`; refresh tokens server-side.
+## Data (minimal)
+- Likely NO server schema needed for v1: events are matched on-device by booking
+  id embedded in the event. If we later want cross-device/reinstall robustness,
+  add a mapping table then.
 
-### Apple
-- No simple server OAuth. Two realistic paths:
-  - iOS app: native EventKit (ask calendar permission, write events + read busy)
-    directly on device. Clean on mobile, but mobile-only.
-  - Web/cross-platform: CalDAV with an app-specific password (clunky) — defer.
-- Recommendation: Google first (server, works web+mobile), Apple via EventKit in the
-  native app as a fast-follow.
+## Phasing
+- Phase 1: permission + write bookings to the phone calendar (the visible win).
+- Phase 2: outside-conflict warnings on book/move.
+- Phase 3: polish (calendar picker, sync-on-push, dupe guards on reinstall).
 
-### Where it plugs in
-- Web: `/api/bookings` create/update/cancel + a "Connect calendar" control on the
-  artist's own settings / Artists & Pay.
-- Mobile: `app-native/app/(app)/bookings.tsx` (extend `findClash` to also check the
-  external busy window) + a connect button in the artist's area.
-- A small server module `lib/calendar/` (providers behind one interface) so web +
-  mobile share push/conflict logic through the API.
+## Optional later (NOT now)
+- Server-side Google OAuth: only if bookings must land in an artist's calendar
+  when their phone isn't involved (e.g., web-only admin flows). Deferred; the
+  phone-native path covers the artist reality today.
 
-## Effort / phasing
-- Phase 1: Google OAuth connect + one-way push (bookings → their calendar). Ship the
-  visible win first.
-- Phase 2: freebusy conflict warnings on book/move (the "see outside conflicts" part).
-- Phase 3: Apple via EventKit in the native app.
-
-## Open decisions (need Scott)
-- Scope (1/2/3 above). His description = option 1 (two-way).
-- Google-first vs also Apple now.
-- Whether outside conflicts are a soft warning (recommended) or a hard block.
-
-## External prerequisites (Scott actions when we build)
-- Google Cloud project + OAuth consent screen + client id/secret.
-- (Apple/EventKit needs nothing extra beyond the native app.)
+## Open decisions
+- Soft warning vs hard block on outside conflicts (recommend soft warning).
