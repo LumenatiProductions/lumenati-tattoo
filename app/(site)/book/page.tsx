@@ -1,7 +1,8 @@
-import LegacyBlock from "@/components/LegacyBlock";
-import { readLegacyBlock } from "@/lib/legacy";
+import { redirect } from "next/navigation";
 
+// /book was a dead duplicate of /contact. The real booking flow is /request
+// (public booking-request form → deposit link). Send /book straight there so
+// the intuitive URL actually books.
 export default function BookPage() {
-  const html = readLegacyBlock("contact-y2k.html");
-  return <LegacyBlock html={html} />;
+  redirect("/request");
 }
