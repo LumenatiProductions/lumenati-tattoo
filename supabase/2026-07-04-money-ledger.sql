@@ -28,9 +28,11 @@ create table if not exists public.ledger (
   note         text
 );
 
--- Idempotency: an external event (Stripe) can only ever land once.
-create unique index if not exists ledger_source_external_uniq
-  on public.ledger(source, external_id) where external_id is not null;
+-- Idempotency: an external event (Stripe) can only ever land once. NULLs are
+-- distinct, so cash rows (external_id null) are unconstrained; upsert can target
+-- this constraint by (source, external_id).
+alter table public.ledger drop constraint if exists ledger_source_external_uniq;
+alter table public.ledger add constraint ledger_source_external_uniq unique (source, external_id);
 create index if not exists ledger_shop_idx     on public.ledger(shop_id);
 create index if not exists ledger_artist_idx   on public.ledger(artist_id);
 create index if not exists ledger_occurred_idx on public.ledger(occurred_at desc);

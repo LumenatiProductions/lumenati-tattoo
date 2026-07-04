@@ -180,6 +180,34 @@ export async function settlePayment(
     })
     .eq("id", row.id);
 
+  // ── Dual-write to the canonical ledger (money source of truth, staged rollout).
+  // Idempotent per payment via stable external ids + unique(source, external_id)
+  // (ON CONFLICT DO NOTHING), so Stripe webhook retries never double-count.
+  // Errors ignored — a settled payment must never bounce on a books write.
+  {
+    const tipCents = Math.max(0, Math.round(row.tip_cents ?? 0));
+    const base = {
+      source: "stripe",
+      direction: "in",
+      currency: row.currency || "usd",
+      artist_id: row.artist_id,
+      client_id: row.client_id,
+      booking_id: row.booking_id,
+      occurred_at: paidAt,
+      created_by: "stripe",
+    };
+    const ledgerRows: Record<string, unknown>[] = [];
+    if (row.kind === "deposit") {
+      ledgerRows.push({ ...base, kind: "deposit", amount_cents: row.amount_cents, external_id: `pay_${row.id}_dep` });
+    } else if (row.kind === "rent") {
+      ledgerRows.push({ ...base, kind: "rent", amount_cents: row.amount_cents, external_id: `pay_${row.id}_rent` });
+    } else {
+      ledgerRows.push({ ...base, kind: "sale", amount_cents: row.amount_cents, external_id: `pay_${row.id}_svc` });
+      if (tipCents > 0) ledgerRows.push({ ...base, kind: "tip", amount_cents: tipCents, external_id: `pay_${row.id}_tip` });
+    }
+    await admin.from("ledger").upsert(ledgerRows, { onConflict: "source,external_id", ignoreDuplicates: true });
+  }
+
   if (row.kind === "deposit" && row.booking_id) {
     await admin
       .from("bookings")

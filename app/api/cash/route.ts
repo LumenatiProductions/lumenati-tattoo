@@ -83,6 +83,23 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Dual-write to the canonical ledger (money source of truth, staged rollout).
+  // Cash is entered by staff and stamped with who logged it; RLS lets staff
+  // insert only source='cash' rows. Best-effort — a ledger hiccup must not block
+  // logging cash; the reconcile step catches any drift.
+  await supabase.from("ledger").insert({
+    source: "cash",
+    kind: amountCents >= 0 ? "sale" : "adjustment",
+    direction: amountCents >= 0 ? "in" : "out",
+    amount_cents: Math.abs(amountCents),
+    artist_id: b.artistId || null,
+    occurred_at: date,
+    created_by: user.email ?? null,
+    external_id: `cash_${data.id}`,
+    note: (b.note ?? "").trim() || null,
+  });
+
   return NextResponse.json({ entry: data });
 }
 
@@ -115,5 +132,26 @@ export async function DELETE(req: Request) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   const { error } = await supabase.from("cash_entries").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // The ledger is append-only, so a deleted cash entry is reversed with a
+  // compensating row rather than removed — the money history stays intact.
+  const { data: orig } = await supabase
+    .from("ledger")
+    .select("id, amount_cents, direction, artist_id")
+    .eq("external_id", `cash_${id}`)
+    .maybeSingle();
+  if (orig) {
+    await supabase.from("ledger").insert({
+      source: "cash",
+      kind: "adjustment",
+      direction: orig.direction === "in" ? "out" : "in",
+      amount_cents: orig.amount_cents,
+      artist_id: orig.artist_id,
+      reverses: orig.id,
+      external_id: `cash_${id}_rev`,
+      created_by: user.email ?? null,
+      note: "Reversed deleted cash entry",
+    });
+  }
   return NextResponse.json({ ok: true });
 }
