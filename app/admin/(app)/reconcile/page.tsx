@@ -27,12 +27,65 @@ type Data = {
     unreconciledCents: number;
     sessions: { openedAt: string; overShortCents: number | null }[];
   };
+  recent?: {
+    id: string;
+    at: string;
+    kind: string;
+    status: string;
+    amountCents: number;
+    artist: string;
+    client: string;
+    refundable: boolean;
+  }[];
+};
+
+const KIND_LABEL: Record<string, string> = {
+  ticket: "Ticket",
+  deposit: "Deposit",
+  other: "Charge",
 };
 
 export default function ReconcilePage() {
   const { realRole } = useRole();
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refunding, setRefunding] = useState<string | null>(null);
+  const [refundErr, setRefundErr] = useState<string | null>(null);
+
+  // Refund a card payment through the engine (reverses split transfers, fixes
+  // the books + ledger server-side). Idempotent, so a double click is safe.
+  const refund = async (p: NonNullable<Data["recent"]>[number]) => {
+    const who = p.client || p.artist || "this payment";
+    if (!window.confirm(`Refund ${fmtPrecise(p.amountCents)} to ${who}? The money goes back to their card.`)) return;
+    setRefunding(p.id);
+    setRefundErr(null);
+    try {
+      const r = await fetch("/api/payments/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId: p.id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setRefundErr(d.error || "Refund failed.");
+      } else {
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                recent: (prev.recent ?? []).map((x) =>
+                  x.id === p.id ? { ...x, status: "refunded", refundable: false } : x,
+                ),
+              }
+            : prev,
+        );
+      }
+    } catch {
+      setRefundErr("Refund failed — check the connection and try again.");
+    } finally {
+      setRefunding(null);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -191,6 +244,60 @@ export default function ReconcilePage() {
                   )}
                 </div>
               </Card>
+
+              {/* Individual card payments, with the refund action. */}
+              <div className="mt-5">
+                <SectionTitle>Card payments this month</SectionTitle>
+                <Card>
+                  {(data.recent ?? []).length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-black/40">
+                      No card payments yet this month.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-black/5">
+                      {(data.recent ?? []).map((p) => (
+                        <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium text-ink">
+                              {p.client || p.artist || KIND_LABEL[p.kind] || "Payment"}
+                              <span className="ml-2 text-xs font-normal text-black/40">
+                                {KIND_LABEL[p.kind] ?? p.kind}
+                                {p.artist && p.client ? ` · ${p.artist}` : ""}
+                              </span>
+                            </div>
+                            <div className="text-xs text-black/45">
+                              {new Date(p.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              {" · "}
+                              {new Date(p.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="tnum font-semibold">{fmtPrecise(p.amountCents)}</span>
+                            {p.status === "refunded" ? (
+                              <Badge tone="neutral">refunded</Badge>
+                            ) : p.refundable ? (
+                              <button
+                                onClick={() => refund(p)}
+                                disabled={refunding === p.id}
+                                className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:border-black/25 hover:text-ink disabled:opacity-40"
+                              >
+                                {refunding === p.id ? "Refunding…" : "Refund"}
+                              </button>
+                            ) : (
+                              <Badge tone={p.status === "paid" ? "good" : "neutral"}>{p.status}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+                {refundErr && (
+                  <div className="mt-3 rounded-lg border border-rose-300/60 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                    {refundErr}
+                  </div>
+                )}
+              </div>
 
               {data.recorded.pendingCount > 0 && (
                 <div className="mt-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">

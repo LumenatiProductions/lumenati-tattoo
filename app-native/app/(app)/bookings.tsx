@@ -5,7 +5,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
-import { enableCalendar, disableCalendar, isCalendarEnabled, syncAll } from "@/lib/calendar";
+import {
+  enableCalendar,
+  disableCalendar,
+  isCalendarEnabled,
+  syncAll,
+  findOutsideConflicts,
+  listWritableCalendars,
+  getCalendarId,
+  changeCalendar,
+  type Conflict,
+} from "@/lib/calendar";
 import { theme } from "@/lib/theme";
 import { Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
@@ -57,6 +67,42 @@ async function findClash(
   return null;
 }
 
+// Calendar sync Phase 2: before booking/moving a slot, peek at this phone's
+// calendars for outside commitments (gym, dentist, school run) over the window.
+// Soft warning only — the booking can always go through. Only meaningful when
+// the person on THIS phone is the artist being booked (their calendars live
+// here); booking someone else skips silently. Resolves true to proceed.
+async function confirmOutsideConflicts(
+  artistId: string | null,
+  myArtistId: string | null,
+  startsAt: string,
+  endsAt: string | null,
+  verb: "Book" | "Save" = "Book",
+): Promise<boolean> {
+  if (!artistId || !myArtistId || artistId !== myArtistId) return true;
+  const start = new Date(startsAt);
+  if (Number.isNaN(start.getTime())) return true;
+  const end = endsAt ? new Date(endsAt) : new Date(start.getTime() + HOUR_MS);
+  let conflicts: Conflict[] = [];
+  try {
+    conflicts = await findOutsideConflicts(start.toISOString(), end.toISOString());
+  } catch {
+    return true; // calendar read is best-effort, never blocks the desk
+  }
+  if (conflicts.length === 0) return true;
+  const shown = conflicts
+    .slice(0, 2)
+    .map((c) => `"${c.title}" ${clock(c.startISO)} to ${clock(c.endISO)}`)
+    .join(" and ");
+  const extra = conflicts.length > 2 ? ` plus ${conflicts.length - 2} more` : "";
+  return new Promise((resolve) => {
+    Alert.alert("Already on your calendar", `This time overlaps ${shown}${extra}. ${verb} anyway?`, [
+      { text: "Pick another time", style: "cancel", onPress: () => resolve(false) },
+      { text: `${verb} anyway`, onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 const STATUS_TONE: Record<string, string> = {
   scheduled: theme.textDim,
   completed: theme.good,
@@ -74,7 +120,7 @@ const todayKey = () => {
 // staff can mark complete / no-show by writing under RLS — no API needed.
 export default function Bookings() {
   const insets = useSafeAreaInsets();
-  const { role } = useAuth();
+  const { role, email } = useAuth();
   const { preview } = usePreview();
   const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
 
@@ -86,10 +132,46 @@ export default function Bookings() {
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(false);
+  const [myArtistId, setMyArtistId] = useState<string | null>(null);
+  const [calChoices, setCalChoices] = useState<{ id: string; title: string; source: string }[]>([]);
+  const [calId, setCalId] = useState<string | null>(null);
+  const [pickingCal, setPickingCal] = useState(false);
 
   useEffect(() => {
     isCalendarEnabled().then(setCalOn);
   }, []);
+
+  // Which artist is holding this phone (profiles.artist_id). Gates the
+  // outside-conflict check: only your own calendar lives on your phone.
+  useEffect(() => {
+    if (!email) return;
+    supabase
+      .from("profiles")
+      .select("artist_id")
+      .eq("email", email)
+      .maybeSingle()
+      .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
+  }, [email]);
+
+  // When sync is on, know which calendar we write into and what else is
+  // available, so the artist can retarget (e.g. keep work off the family one).
+  useEffect(() => {
+    if (!calOn) {
+      setPickingCal(false);
+      return;
+    }
+    Promise.all([listWritableCalendars(), getCalendarId()]).then(([cals, id]) => {
+      setCalChoices(cals);
+      setCalId(id);
+    });
+  }, [calOn]);
+
+  const pickCalendar = async (id: string) => {
+    setPickingCal(false);
+    if (id === calId) return;
+    await changeCalendar(id); // clears old events; the sync effect below rewrites
+    setCalId(id);
+  };
 
   const toggleCal = async () => {
     if (calOn) {
@@ -168,7 +250,7 @@ export default function Bookings() {
         location: "Lumenati Tattoo",
       }));
     if (events.length) syncAll(events);
-  }, [calOn, rows, names]);
+  }, [calOn, rows, names, calId]);
 
   const setStatus = async (id: string, status: string) => {
     setRows((p) => p.map((b) => (b.id === id ? { ...b, status } : b)));
@@ -243,6 +325,26 @@ export default function Bookings() {
             {calOn ? "Calendar sync on — bookings land in your calendar" : "Sync bookings to my calendar"}
           </Text>
         </Pressable>
+        {calOn && calChoices.length > 1 && (
+          <View style={styles.calPick}>
+            <Pressable onPress={() => setPickingCal((v) => !v)} style={styles.calPickRow}>
+              <Text style={styles.calPickLabel}>Syncing into</Text>
+              <Text style={styles.calPickValue}>
+                {calChoices.find((c) => c.id === calId)?.title ?? "Default calendar"}
+              </Text>
+            </Pressable>
+            {pickingCal &&
+              calChoices.map((c) => (
+                <Pressable key={c.id} onPress={() => pickCalendar(c.id)} style={styles.calOption}>
+                  <Text style={[styles.calOptionText, c.id === calId && { color: theme.good }]}>
+                    {c.title}
+                    {c.source ? ` (${c.source})` : ""}
+                    {c.id === calId ? "  ✓" : ""}
+                  </Text>
+                </Pressable>
+              ))}
+          </View>
+        )}
         {isStaff && (
           <View style={{ marginBottom: 12 }}>
             <Button label={adding ? "Cancel" : "New booking"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
@@ -252,6 +354,7 @@ export default function Bookings() {
           <NewBooking
             artists={artists}
             clients={recentClients}
+            myArtistId={myArtistId}
             onSaved={() => {
               setAdding(false);
               load();
@@ -302,6 +405,7 @@ export default function Bookings() {
             <EditBooking
               booking={b}
               clientName={clientName(b.client_id)}
+              myArtistId={myArtistId}
               onClose={() => setEditId(null)}
               onChanged={() => {
                 setEditId(null);
@@ -317,11 +421,13 @@ export default function Bookings() {
 function EditBooking({
   booking,
   clientName,
+  myArtistId,
   onClose,
   onChanged,
 }: {
   booking: Booking;
   clientName: string;
+  myArtistId: string | null;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -363,6 +469,8 @@ function EditBooking({
         return;
       }
     }
+    // Outside life check (phone calendar), soft warning only.
+    if (!(await confirmOutsideConflicts(booking.artist_id, myArtistId, startsAt, endsAt, "Save"))) return;
     setBusy(true);
     setErr(null);
     const { error } = await supabase
@@ -456,10 +564,12 @@ function EditBooking({
 function NewBooking({
   artists,
   clients,
+  myArtistId,
   onSaved,
 }: {
   artists: { id: string; name: string }[];
   clients: { id: string; name: string }[];
+  myArtistId: string | null;
   onSaved: () => void;
 }) {
   const [artistId, setArtistId] = useState(artists[0]?.id ?? "");
@@ -488,6 +598,11 @@ function NewBooking({
     if (clash) {
       setBusy(false);
       setErr(`That artist already has a booking at ${clock(clash)}. Pick another time.`);
+      return;
+    }
+    // Outside life check (phone calendar), soft warning only.
+    if (!(await confirmOutsideConflicts(artistId, myArtistId, startsAt, null))) {
+      setBusy(false);
       return;
     }
     const depositCents = Math.round((Number(deposit) || 0) * 100);
@@ -567,6 +682,12 @@ const styles = StyleSheet.create({
   depBtn: { flex: 1, borderColor: theme.border, borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center" },
   depBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },
   depNote: { color: theme.textFaint, fontSize: 12, marginTop: 8 },
+  calPick: { marginTop: -6, marginBottom: 12, borderColor: theme.border, borderWidth: 1, borderRadius: 12, backgroundColor: theme.surface, overflow: "hidden" },
+  calPickRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14 },
+  calPickLabel: { color: theme.textFaint, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
+  calPickValue: { color: theme.text, fontSize: 13.5, fontWeight: "600" },
+  calOption: { borderTopColor: theme.border, borderTopWidth: 1, paddingVertical: 11, paddingHorizontal: 14 },
+  calOptionText: { color: theme.textDim, fontSize: 13.5 },
   cancelBtn: { borderColor: "rgba(251,113,133,0.4)", borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center" },
   cancelText: { color: "#fb7185", fontSize: 14, fontWeight: "600" },
 });

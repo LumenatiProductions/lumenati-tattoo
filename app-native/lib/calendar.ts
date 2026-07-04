@@ -94,6 +94,30 @@ export async function setCalendarId(id: string) {
   await AsyncStorage.setItem(CAL_KEY, id);
 }
 
+/** The calendar id we're currently syncing into (null before first enable). */
+export async function getCalendarId(): Promise<string | null> {
+  if (!isNative) return null;
+  return AsyncStorage.getItem(CAL_KEY);
+}
+
+/**
+ * Switch the sync target. EventKit can't move events between calendars, so we
+ * delete what we wrote and clear the map; the next syncAll recreates everything
+ * in the new calendar.
+ */
+export async function changeCalendar(id: string): Promise<void> {
+  const map = await readMap();
+  for (const eventId of Object.values(map)) {
+    try {
+      await Calendar.deleteEventAsync(eventId);
+    } catch {
+      /* already gone */
+    }
+  }
+  await writeMap({});
+  await AsyncStorage.setItem(CAL_KEY, id);
+}
+
 /** Create or update the calendar event for a booking. No-op if sync is off. */
 export async function syncBooking(b: BookingEvent): Promise<void> {
   if (!(await isCalendarEnabled())) return;
@@ -111,7 +135,28 @@ export async function syncBooking(b: BookingEvent): Promise<void> {
     timeZone: undefined,
   };
   const map = await readMap();
-  const existing = map[b.id];
+  let existing = map[b.id];
+  if (!existing) {
+    // Reinstall guard: the booking->event map lives in AsyncStorage, so a fresh
+    // install forgets every event it wrote and would duplicate them all. Each
+    // event carries its booking id in the url, so adopt a match instead.
+    try {
+      const dayMs = 24 * 60 * 60 * 1000;
+      const nearby = await Calendar.getEventsAsync(
+        [calId],
+        new Date(start.getTime() - dayMs),
+        new Date(end.getTime() + dayMs),
+      );
+      const mine = nearby.find((e) => typeof e.url === "string" && e.url.includes(b.id));
+      if (mine) {
+        existing = mine.id;
+        map[b.id] = mine.id;
+        await writeMap(map);
+      }
+    } catch {
+      /* guard is best-effort */
+    }
+  }
   try {
     if (existing) {
       await Calendar.updateEventAsync(existing, details);

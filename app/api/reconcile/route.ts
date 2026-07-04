@@ -31,8 +31,10 @@ export async function GET(req: Request) {
   const [paymentsRes, salesRes, cashRes, sessionsRes] = await Promise.all([
     supabase
       .from("payments")
-      .select("amount_cents, tip_cents, status, kind, paid_at")
-      .gte("created_at", fromIso),
+      .select("id, amount_cents, tip_cents, status, kind, paid_at, created_at, artist_id, client_id, stripe_payment_intent_id")
+      .gte("created_at", fromIso)
+      .order("created_at", { ascending: false })
+      .limit(200),
     supabase.from("sales").select("service_cents, tip_cents, method, created_at").gte("created_at", fromIso),
     supabase.from("cash_entries").select("amount_cents, reconciled").gte("created_at", fromIso),
     supabase
@@ -61,6 +63,34 @@ export async function GET(req: Request) {
       .filter((s) => s.method === "cash")
       .reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
   };
+
+  // Individual card payments for the refund list. Names resolved here so the
+  // page doesn't need extra reads; refundable = paid + has a Stripe charge.
+  const aIds = [...new Set(payments.map((p) => p.artist_id).filter(Boolean))] as string[];
+  const cIds = [...new Set(payments.map((p) => p.client_id).filter(Boolean))] as string[];
+  const [aRes, cRes] = await Promise.all([
+    aIds.length ? supabase.from("artists").select("id, name").in("id", aIds) : Promise.resolve({ data: [] }),
+    cIds.length ? supabase.from("clients").select("id, first_name, last_name").in("id", cIds) : Promise.resolve({ data: [] }),
+  ]);
+  const artistName = new Map(((aRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]));
+  const clientName = new Map(
+    ((cRes.data ?? []) as { id: string; first_name: string; last_name: string }[]).map((c) => [
+      c.id,
+      `${c.first_name} ${c.last_name}`.trim(),
+    ]),
+  );
+  const recent = payments
+    .filter((p) => p.status !== "pending") // unpaid links live on their own banner
+    .map((p) => ({
+      id: p.id as string,
+      at: (p.paid_at ?? p.created_at) as string,
+      kind: p.kind as string,
+      status: p.status as string,
+      amountCents: (p.amount_cents as number) + Math.max(0, Math.round((p.tip_cents as number | null) ?? 0)),
+      artist: p.artist_id ? artistName.get(p.artist_id as string) ?? "" : "",
+      client: p.client_id ? clientName.get(p.client_id as string) ?? "" : "",
+      refundable: p.status === "paid" && !!p.stripe_payment_intent_id,
+    }));
 
   const cashEntries = cashRes.data ?? [];
   const cash = {
@@ -117,5 +147,6 @@ export async function GET(req: Request) {
     recorded: stripeRecorded,
     square: squareRecorded,
     cash,
+    recent,
   });
 }

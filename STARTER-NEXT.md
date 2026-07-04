@@ -32,19 +32,88 @@ terminals). Everything runs through the canonical **ledger** (see below).
 - **Clients**: ledger-based lifetime value + a "Bring them back" retention panel
   (birthdays / due-to-rebook / lapsed).
 - **Calendar**: phone-native (expo-calendar) sync of bookings + conflict reader.
-  Phase 1 (toggle + sync) shipped; conflict warnings in book/move flow are next.
+  Phase 1 (toggle + sync) AND Phase 2 shipped: book/move now soft-warns when the
+  slot overlaps the artist's OWN phone calendar (gated to booking yourself via
+  profiles.artist_id; never blocks). Polish: pick which calendar to sync into
+  (events move over), reinstall dupe guard (events matched by booking id).
+  Needs a real-device check (sim blocks taps). Sync-on-push still open.
 - **Artist rewards**: `lib/rewards.ts` + RewardsStrip badges on the money home.
 - **/book** redirects to /request. Bug sweep run + fixed before a TestFlight build.
+
+## NEXT SESSION — the actual focus (Scott, 2026-07-04)
+The theme is GET ORGANIZED MOVING FORWARD. Scott is changing systems + moving
+locations and using that to stand this product up as the real system of record.
+Two priorities, roughly in order:
+
+1. **Get the full artist roster in.** The platform only has 6 artists
+   (elaine, jd, kalypso, moonie, sam, shorty) and NOT ALL CURRENT ARTISTS ARE IN
+   YET. "Grey" is at least one missing artist (has 16 Square sales, $1k, 2026).
+   Ask Scott for the complete current roster (names, pay type rent/split/hybrid +
+   %, contact) and add them. Then map Grey's Square team id -> the new artist so
+   his history attributes (the sync re-resolves artist_id on every run).
+2. **Complete the money layer so ALL finances live here** (replace QuickBooks).
+   In priority order (see the assessment we did):
+   - **Profit & Loss view** — one screen: money in (ledger) minus money out
+     (expenses + payouts + rent-the-shop-pays) = actual profit, per month/quarter/
+     year. Highest value; the ledger already has the income side.
+   - **All money OUT, not just supplies** — a simple bills/expenses area with
+     recurring items (shop lease, utilities, software) + due dates, so P&L is real.
+   - **Sales tax** — nothing tracks tax collected/owed today. Needed if aftercare
+     products (or services, per state) are taxable. Add tax capture + a remittance
+     figure.
+   - **Owner pay / draws** — record money Scott takes out, separate from expenses.
+   - **Accountant export** — a full P&L / general-ledger CSV for tax time (1099
+     CSV already exists).
+   - Smaller: **mark rent paid** (cash/check) on in-house rent invoices;
+     Reports **date range picker** back to 2021 (history is in the ledger now but
+     the presets only reach Jan 2026); W-2 **Gusto payroll** if any employees.
+
+## Historical data — STAGED, not cut over (2026-07-04)
+- Square has 2,467 payments back to 2021; only 39 had ever imported (the sync
+  looked back just 31 days on first run). Ran a ONE-TIME full backfill:
+  `scripts/square-full-backfill.mjs --commit` -> **2,378 completed sales
+  ($701,852 gross) now in `sales` + the ledger**. Idempotent; safe to re-run.
+- **Attribution:** J.D. Pruitt is the only continuing artist who used Square
+  (~668 sales attributed to `jd`). The other big Square names (Stephanie Moore,
+  Gavin Anstey, Connor Hagerty, Louis Chavez) were FLASH-DAY guests / former
+  residents — left as shop revenue on purpose, NOT force-mapped to current
+  artists. Grey pending (see roster item above).
+- Audit tool: `scripts/historical-audit.mjs` (read-only). Clients: 895 (894 from
+  Square), ~133 are ghosts (no name + no contact), ~9 duplicate pairs (2 email-
+  exact, 7 name). Client de-dupe deferred as low-stakes; `app/api/clients/merge`
+  exists when we want it.
+- NOT cutting over from Square yet — this just stages the history so the switch
+  is painless later.
 
 ## What's left
 - **External setup (Scott's, gating launch)** — see `docs/owner-setup-checklist.md`:
   Twilio trial upgrade, move email domain + set RESEND_FROM, live Stripe keys +
   webhook secret, legal review of consent copy (then LEGAL_COPY_REVIEWED=true),
   FOLLOWUPS_AUTOSEND=true when ready.
-- **Buildable**: calendar conflict warnings (Phase 2) + Apple EventKit polish;
-  ticket-refund UI (engine exists, no button); Gusto payroll (needs Gusto acct);
-  web Command Center charts; deeper security (encrypt consent medical/ID fields,
-  RLS break-in test); backfill historical held deposits.
+- **Buildable (secondary to the finance + roster focus above)**: calendar
+  sync-on-push (needs booking-change push); web Command Center charts; deeper
+  security (encrypt consent medical/ID fields); backfill historical held deposits.
+
+## Also shipped 2026-07-04 (second pass)
+- **Ticket-refund UI**: Reconciliation page now lists each card payment this
+  month with a Refund button (owner/bookkeeper). Uses the existing refund engine
+  (reverses split transfers, fixes books + ledger, idempotent). Deposit refunds
+  already had their own button on Bookings; unchanged.
+- **RLS break-in test**: `node scripts/rls-breakin-test.mjs` acts as an anonymous
+  visitor and confirms 21 money/PII/medical tables leak no rows and refuse writes.
+  PASSES. It has a control gate: aborts if the anon key is invalid so a bad key
+  can't fake a pass.
+- **Fixed corrupt local env values**: `.env.local` had four values wrapped in
+  quotes with a trailing `\n` (same bug that broke mobile login): the Supabase
+  anon key, the Supabase URL, `SQUARE_ACCESS_TOKEN`, and `SQUARE_ENV`. The bad
+  anon key made the REST API reject every browser-side read (fell back to mock in
+  local dev); the bad Square token (newline in an HTTP header) made every Square
+  call throw, so Booth Rent / weekly digest silently failed. Cleaned all four,
+  restarted dev; Clients + Booth Rent now show real data. Prod (Vercel env) was
+  NOT affected. Swept the whole file + mobile `.env` — no trailing `\n` left.
+- **NOTE**: a broad `pkill -f next-server` I ran likely also stopped another
+  Next.js dev server that was on port 3000/3001. Lumenati is back on :3002 and
+  3000/3001 are free again; restart your other project if it was one of those.
 
 ## How to work
 - Web dev: `cd ~/lumenati-tattoo && npm run dev` (lands on :3002; 3000/3001 taken).
