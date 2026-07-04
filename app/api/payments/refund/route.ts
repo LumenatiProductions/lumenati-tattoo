@@ -90,6 +90,32 @@ export async function POST(req: Request) {
   if (row.kind === "ticket" || row.kind === "other") {
     await admin.from("sales").delete().eq("id", `lum_${row.id}`);
   }
+
+  // Reverse this payment's ledger rows (append-only: a correction is a new row
+  // pointing at the original, which ledger_sales then excludes). Idempotent.
+  const { data: origLedger } = await admin
+    .from("ledger")
+    .select("id, kind, amount_cents, artist_id, client_id, booking_id, external_id")
+    .eq("source", "stripe")
+    .like("external_id", `pay_${row.id}_%`)
+    .is("reverses", null);
+  if (origLedger?.length) {
+    await admin.from("ledger").upsert(
+      origLedger.map((o) => ({
+        source: "stripe",
+        kind: "refund",
+        direction: "out",
+        amount_cents: o.amount_cents,
+        artist_id: o.artist_id,
+        client_id: o.client_id,
+        booking_id: o.booking_id,
+        reverses: o.id,
+        external_id: `${o.external_id}_rev`,
+        created_by: "refund",
+      })),
+      { onConflict: "source,external_id", ignoreDuplicates: true },
+    );
+  }
   if (row.kind === "deposit" && row.booking_id) {
     await admin
       .from("bookings")

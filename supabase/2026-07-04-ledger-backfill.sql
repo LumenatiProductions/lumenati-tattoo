@@ -12,7 +12,7 @@ select
   case when exists (select 1 from public.artists a where a.id = s.artist_id) then s.artist_id else null end,
   s.created_at, 'backfill', 'sale_' || s.id || '_svc', 'backfill from sales'
 from public.sales s
-where s.service_cents > 0
+where s.service_cents > 0 and s.id not like 'lum_%'
 on conflict (source, external_id) do nothing;
 
 insert into public.ledger (source, kind, direction, amount_cents, artist_id, occurred_at, created_by, external_id, note)
@@ -22,5 +22,5 @@ select
   case when exists (select 1 from public.artists a where a.id = s.artist_id) then s.artist_id else null end,
   s.created_at, 'backfill', 'sale_' || s.id || '_tip', 'backfill from sales'
 from public.sales s
-where coalesce(s.tip_cents, 0) > 0
+where coalesce(s.tip_cents, 0) > 0 and s.id not like 'lum_%'
 on conflict (source, external_id) do nothing;

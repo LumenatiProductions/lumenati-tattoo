@@ -80,6 +80,11 @@ export async function syncSquare(supabase: SupabaseClient) {
       await supabase.from("sales").update({ artist_id: artistId }).eq("team_member_id", squareId);
   }
 
+  // Mirror new Square sales into the canonical ledger (idempotent; skips Stripe
+  // lum_ rows). Reports read the ledger, so this keeps them complete while Square
+  // is still live.
+  await supabase.rpc("sync_sales_to_ledger");
+
   // 5. Bookkeeping.
   const result = `Synced ${payments.length} payments, ${members.length} team members`;
   await supabase
