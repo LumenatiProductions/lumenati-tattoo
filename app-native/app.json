@@ -67,6 +67,12 @@
         {
           "locationWhenInUsePermission": "Stripe needs your location to take secure Tap to Pay card payments."
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Lumenati adds your bookings to your calendar and checks for conflicts with your schedule."
+        }
       ]
     ],
     "extra": {

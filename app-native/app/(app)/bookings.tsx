@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
+import { enableCalendar, disableCalendar, isCalendarEnabled, syncAll } from "@/lib/calendar";
 import { theme } from "@/lib/theme";
 import { Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
@@ -84,6 +85,27 @@ export default function Bookings() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [calOn, setCalOn] = useState(false);
+
+  useEffect(() => {
+    isCalendarEnabled().then(setCalOn);
+  }, []);
+
+  const toggleCal = async () => {
+    if (calOn) {
+      await disableCalendar();
+      setCalOn(false);
+      return;
+    }
+    const ok = await enableCalendar();
+    setCalOn(ok);
+    if (!ok) {
+      Alert.alert(
+        "Calendar access needed",
+        "Turn on Calendar access for Lumenati in Settings to sync your bookings.",
+      );
+    }
+  };
 
   const load = useCallback(async () => {
     const start = todayKey();
@@ -131,6 +153,22 @@ export default function Bookings() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Keep the phone calendar in sync with the artist's scheduled bookings.
+  useEffect(() => {
+    if (!calOn) return;
+    const events = rows
+      .filter((b) => b.status === "scheduled")
+      .map((b) => ({
+        id: b.id,
+        title: `${b.client_id ? names.c.get(b.client_id) ?? "Client" : "Walk-in"}${b.service_desc ? " · " + b.service_desc : ""}`,
+        startISO: b.starts_at,
+        endISO: b.ends_at,
+        notes: "Lumenati booking",
+        location: "Lumenati Tattoo",
+      }));
+    if (events.length) syncAll(events);
+  }, [calOn, rows, names]);
 
   const setStatus = async (id: string, status: string) => {
     setRows((p) => p.map((b) => (b.id === id ? { ...b, status } : b)));
@@ -188,6 +226,23 @@ export default function Bookings() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <Pressable
+          onPress={toggleCal}
+          style={{
+            marginBottom: 12,
+            paddingVertical: 11,
+            paddingHorizontal: 14,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: calOn ? theme.good : theme.border,
+            backgroundColor: theme.surface,
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ color: calOn ? theme.good : theme.textDim, fontSize: 14, fontWeight: "600" }}>
+            {calOn ? "Calendar sync on — bookings land in your calendar" : "Sync bookings to my calendar"}
+          </Text>
+        </Pressable>
         {isStaff && (
           <View style={{ marginBottom: 12 }}>
             <Button label={adding ? "Cancel" : "New booking"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
