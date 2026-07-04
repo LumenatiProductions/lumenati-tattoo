@@ -123,7 +123,15 @@ export function last7Days(sales: SaleRow[]): { label: string; cents: number }[] 
     const d = new Date(now.getTime() - i * 86400000);
     const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const cents = sales
-      .filter((s) => (s.created_at || "").slice(0, 10) === iso)
+      .filter((s) => {
+        // Match on the sale's LOCAL date, not its raw UTC date, so an evening
+        // sale lands on the right bar (bar dates are local).
+        const t = new Date(s.created_at || "");
+        const sd = isNaN(t.getTime())
+          ? (s.created_at || "").slice(0, 10)
+          : new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        return sd === iso;
+      })
       .reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0);
     days.push({ label: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()], cents });
   }

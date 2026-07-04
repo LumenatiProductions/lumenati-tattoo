@@ -10,10 +10,20 @@ export type Badge = { id: string; label: string; icon: string; tone: BadgeTone }
 
 const money = (c: number) => `$${Math.round(c / 100).toLocaleString("en-US")}`;
 
+// Local calendar date of a UTC timestamp (evening sales must count as today,
+// not tomorrow-UTC) — same anchoring as localToday so buckets line up.
+const localDate = (iso: string) => {
+  if (!iso) return "";
+  const t = new Date(iso);
+  return isNaN(t.getTime())
+    ? iso.slice(0, 10)
+    : new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+
 function dayTotals(sales: SaleRow[]): Map<string, number> {
   const m = new Map<string, number>();
   for (const s of sales) {
-    const d = (s.created_at || "").slice(0, 10);
+    const d = localDate(s.created_at || "");
     if (!d) continue;
     m.set(d, (m.get(d) ?? 0) + (s.service_cents ?? 0) + (s.tip_cents ?? 0));
   }

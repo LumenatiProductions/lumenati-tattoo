@@ -11,7 +11,11 @@ const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 export const supabaseConfigured = Boolean(url && anon);
 
-export const supabase = createClient(url, anon, {
+// supabase-js throws synchronously on an empty url, and this module is imported
+// at launch — so a build missing the env vars would white-screen instantly.
+// Fall back to inert placeholders; supabaseConfigured stays false so the UI can
+// degrade gracefully instead of crashing.
+export const supabase = createClient(url || "https://unconfigured.supabase.co", anon || "unconfigured", {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

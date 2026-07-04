@@ -293,17 +293,23 @@ export default function Bookings() {
         )}
       </ScrollView>
 
-      {editId && (
-        <EditBooking
-          booking={rows.find((b) => b.id === editId)!}
-          clientName={clientName(rows.find((b) => b.id === editId)!.client_id)}
-          onClose={() => setEditId(null)}
-          onChanged={() => {
-            setEditId(null);
-            load();
-          }}
-        />
-      )}
+      {editId &&
+        (() => {
+          // Guard: a refresh could drop the row while the sheet is open.
+          const b = rows.find((x) => x.id === editId);
+          if (!b) return null;
+          return (
+            <EditBooking
+              booking={b}
+              clientName={clientName(b.client_id)}
+              onClose={() => setEditId(null)}
+              onChanged={() => {
+                setEditId(null);
+                load();
+              }}
+            />
+          );
+        })()}
     </>
   );
 }

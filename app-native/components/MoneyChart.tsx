@@ -88,7 +88,7 @@ export default function MoneyChart({ series, startLabel, endLabel, goalCents, st
   }, [series, goalCents, width]);
 
   // Rough path length for the draw-in animation (overshoot is harmless).
-  const approxLen = width * 1.6 + maxY > 0 ? width * 1.8 : width;
+  const approxLen = width * 1.8;
   const dashOffset = draw.interpolate({ inputRange: [0, 1], outputRange: [approxLen, 0] });
 
   const lineColor = ahead ? theme.good : theme.brand;
