@@ -6,6 +6,7 @@ import { success, tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
 import MoneyChart from "@/components/MoneyChart";
 import MiniConfetti from "@/components/MiniConfetti";
+import RewardsStrip from "@/components/RewardsStrip";
 import { coachTips } from "@/lib/coach";
 import {
   loadMoney,
@@ -135,6 +136,10 @@ export default function ArtistMoney({
         <Stat label="Tickets" value={String(e.tickets)} />
         <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(goals.tax_setaside_pct * 100)}% set-aside`} warn />
       </View>
+
+      {/* Rewards — earned milestones from their own numbers, plus the next to chase */}
+      <SectionTitle>Rewards</SectionTitle>
+      <RewardsStrip snap={snap} goals={goals} />
 
       {/* Booth rent — only for artists whose terms include rent */}
       {rent && rent.payType !== "split" && (
