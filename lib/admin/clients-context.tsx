@@ -15,6 +15,8 @@ export type Client = {
   notes: string;
   preferred_artist_id: string | null;
   total_spent_cents: number;
+  /** Square historical baseline + ledger-attributed spend (money source of truth). */
+  lifetime_cents?: number;
   first_seen: string | null;
   last_seen: string | null;
   source: "manual" | "square";

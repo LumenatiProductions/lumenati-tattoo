@@ -46,7 +46,29 @@ export async function GET(req: Request) {
     .order("last_seen", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message, clients: [] }, { status: 500 });
-  return NextResponse.json({ clients: data ?? [] });
+
+  // Lifetime value = the Square historical baseline (total_spent_cents) PLUS any
+  // ledger-attributed spend (new cash/Stripe money tied to this client). The two
+  // don't overlap (baseline is pre-cutover, ledger client rows are new), so it's
+  // additive and stays right as Square goes away. Sources remain unblended in the
+  // ledger; this is only the per-client rollup.
+  const clients = data ?? [];
+  const { data: led } = await supabase
+    .from("ledger")
+    .select("client_id, amount_cents")
+    .not("client_id", "is", null)
+    .in("kind", ["sale", "tip"])
+    .eq("direction", "in")
+    .is("reverses", null);
+  const byClient = new Map<string, number>();
+  for (const r of (led ?? []) as { client_id: string | null; amount_cents: number }[]) {
+    if (r.client_id) byClient.set(r.client_id, (byClient.get(r.client_id) ?? 0) + (r.amount_cents ?? 0));
+  }
+  const enriched = clients.map((c) => ({
+    ...c,
+    lifetime_cents: (c.total_spent_cents ?? 0) + (byClient.get(c.id) ?? 0),
+  }));
+  return NextResponse.json({ clients: enriched });
 }
 
 // Add a walk-in by hand. Owner / bookkeeper / front desk.

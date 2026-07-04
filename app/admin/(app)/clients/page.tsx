@@ -31,6 +31,7 @@ export default function ClientsPage() {
   const [adding, setAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [retView, setRetView] = useState<null | "birthdays" | "due" | "lapsed">(null);
 
   const artistName = useMemo(() => {
     const m = new Map(artists.map((a) => [a.id, a.name] as const));
@@ -41,15 +42,42 @@ export default function ClientsPage() {
     return (id: string | null) => (id ? m.get(id) ?? "#999" : "#111");
   }, [artists]);
 
+  // Retention buckets — the fuel for the repeat-client loop, from data already
+  // on file (last visit + birthday). Windows: due 60–120 days since last visit,
+  // lapsed 120–365. Birthdays = anyone whose birthday falls this month.
+  const retention = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const daysSince = (iso: string | null) => {
+      if (!iso) return null;
+      const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+      return Math.floor((now.getTime() - d.getTime()) / 86_400_000);
+    };
+    return {
+      birthdays: clients.filter(
+        (c) => c.birthdate && new Date(`${c.birthdate.slice(0, 10)}T00:00:00`).getMonth() === month,
+      ),
+      due: clients.filter((c) => {
+        const d = daysSince(c.last_seen);
+        return d !== null && d >= 60 && d < 120;
+      }),
+      lapsed: clients.filter((c) => {
+        const d = daysSince(c.last_seen);
+        return d !== null && d >= 120 && d < 365;
+      }),
+    };
+  }, [clients]);
+
   const filtered = useMemo(() => {
+    const base = retView ? retention[retView] : clients;
     const needle = q.trim().toLowerCase();
-    if (!needle) return clients;
-    return clients.filter((c) =>
+    if (!needle) return base;
+    return base.filter((c) =>
       [c.first_name, c.last_name, c.email, c.phone, c.instagram]
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(needle)),
     );
-  }, [clients, q]);
+  }, [clients, q, retView, retention]);
 
   // "Returning" = seen on more than one day (came back after the first visit).
   const returning = clients.filter((c) => c.first_seen && c.last_seen && c.last_seen > c.first_seen).length;
@@ -103,6 +131,41 @@ export default function ClientsPage() {
         <StatCard label="New this month" value={String(newThisMonth)} tone={newThisMonth ? "good" : "neutral"} />
         <StatCard label="Returning" value={`${returningRate}%`} sub={`${returning} came back`} />
         <StatCard label="Source" value={fromSquare ? "Square + manual" : "Manual"} sub={fromSquare ? "synced nightly" : "auto-pull not run yet"} />
+      </div>
+
+      {/* Bring them back — the retention flywheel's fuel, from data already on file. */}
+      <div className="mb-5">
+        <SectionTitle>Bring them back</SectionTitle>
+        <div className="grid grid-cols-3 gap-3">
+          {(
+            [
+              ["birthdays", "Birthdays this month", retention.birthdays.length],
+              ["due", "Due to rebook", retention.due.length],
+              ["lapsed", "Lapsed", retention.lapsed.length],
+            ] as const
+          ).map(([key, label, count]) => (
+            <button
+              key={key}
+              onClick={() => setRetView((v) => (v === key ? null : key))}
+              className={`rounded-xl border px-4 py-3 text-left transition ${
+                retView === key ? "border-brand bg-brand/5" : "border-black/10 bg-white hover:bg-black/3"
+              }`}
+            >
+              <div className="tnum text-2xl font-bold">{count}</div>
+              <div className="text-xs text-black/50">{label}</div>
+            </button>
+          ))}
+        </div>
+        {retView && (
+          <p className="mt-2 text-xs text-black/45">
+            {retView === "birthdays"
+              ? "Clients with a birthday this month."
+              : retView === "due"
+                ? "Clients due for a rebook (last visit 60–120 days ago)."
+                : "Lapsed clients (last visit 120–365 days ago)."}{" "}
+            Tap the card again to clear.
+          </p>
+        )}
       </div>
 
       {syncMsg && (
@@ -184,7 +247,7 @@ export default function ClientsPage() {
                 </div>
               )}
               <div className="w-20 text-right">
-                <div className="tnum text-sm font-semibold">{money(c.total_spent_cents)}</div>
+                <div className="tnum text-sm font-semibold">{money(c.lifetime_cents ?? c.total_spent_cents)}</div>
                 <div className="text-[11px] text-black/40">{fmtDate(c.last_seen)}</div>
               </div>
             </button>
