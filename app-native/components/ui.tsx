@@ -55,7 +55,7 @@ export function Stat({
   const boxStyle: StyleProp<ViewStyle> = [
     styles.stat,
     accent && styles.statAccent,
-    hero && [styles.statHero, theme.glow],
+    hero && [styles.statHero, theme.shadow],
   ];
   if (onPress) {
     return (
@@ -219,9 +219,12 @@ export function ProgressBar({ pct, tone = theme.brand }: { pct: number; tone?: s
 }
 
 const styles = StyleSheet.create({
+  // Glass panels: translucent fill, lit from the top edge. The lighter top
+  // border is what sells the material — light hits glass from above.
   card: {
     backgroundColor: theme.surface,
     borderColor: theme.border,
+    borderTopColor: theme.glassEdge,
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     padding: 16,
@@ -229,6 +232,7 @@ const styles = StyleSheet.create({
   stat: {
     backgroundColor: theme.surface,
     borderColor: theme.border,
+    borderTopColor: theme.glassEdge,
     borderWidth: 1,
     borderRadius: theme.radius.lg,
     padding: 16,
@@ -236,15 +240,18 @@ const styles = StyleSheet.create({
     flexBasis: "45%",
   },
   statAccent: { borderColor: theme.brandBorder, backgroundColor: theme.brandSoft },
+  // The hero money tile is glass like everything else — the NUMBER is the
+  // event, not a pink box around it. Pink stays reserved for money actions.
   statHero: {
     flexBasis: "100%",
-    backgroundColor: theme.brandSoft,
-    borderColor: theme.brandBorder,
-    paddingVertical: 20,
+    backgroundColor: theme.surfaceRaised,
+    borderColor: theme.border,
+    borderTopColor: theme.glassEdge,
+    paddingVertical: 22,
   },
   statLabel: { color: theme.textDim, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
-  statValue: { color: theme.text, fontSize: 26, fontWeight: "700", marginTop: 6, letterSpacing: -0.4 },
-  statValueHero: { fontSize: 40, fontWeight: "800", letterSpacing: -1, marginTop: 8 },
+  statValue: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 6, letterSpacing: -0.5 },
+  statValueHero: { fontSize: 52, fontWeight: "800", letterSpacing: -1.6, marginTop: 8 },
   statSub: { color: theme.textFaint, fontSize: 12, marginTop: 4 },
   sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 26, marginBottom: 10 },
   section: {
@@ -260,11 +267,12 @@ const styles = StyleSheet.create({
   btnBigText: { fontSize: 19 },
   btnGhost: {
     borderColor: theme.borderStrong,
+    borderTopColor: theme.glassEdge,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: theme.surface,
   },
   btnGhostText: { color: theme.text, fontSize: 15, fontWeight: "600" },
   btnDanger: { backgroundColor: theme.badSoft, borderColor: "rgba(251,113,133,0.4)", borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 14, alignItems: "center" },

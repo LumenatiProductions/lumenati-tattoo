@@ -115,7 +115,7 @@ export default function HealedShots() {
         {note && <Text style={styles.note}>{note}</Text>}
 
         {shots === null ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : shots.length === 0 ? (
           <Card style={{ marginTop: 8 }}>
             <Text style={styles.emptyTitle}>No healed shots yet</Text>
@@ -141,7 +141,7 @@ export default function HealedShots() {
                       {s.status === "approved" ? "in portfolio" : "pending approval"}
                     </Text>
                     {busyId === s.id ? (
-                      <ActivityIndicator size="small" color={theme.brand} />
+                      <ActivityIndicator size="small" color={theme.textDim} />
                     ) : (
                       <Text style={styles.shareText}>Share</Text>
                     )}
@@ -158,7 +158,7 @@ export default function HealedShots() {
 
 const styles = StyleSheet.create({
   lede: { color: theme.textDim, fontSize: 14, lineHeight: 20, marginBottom: 8 },
-  captionLink: { color: theme.brand, fontSize: 13.5, fontWeight: "700", marginBottom: 10 },
+  captionLink: { color: theme.text, fontSize: 13.5, fontWeight: "700", marginBottom: 10 },
   note: { color: theme.good, fontSize: 13, marginBottom: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   cell: {
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   badge: { fontSize: 10.5, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   badgeGood: { color: theme.good },
   badgePending: { color: theme.warn },
-  shareText: { color: theme.brand, fontSize: 13, fontWeight: "700" },
+  shareText: { color: theme.text, fontSize: 13, fontWeight: "700" },
   emptyTitle: { color: theme.text, fontSize: 16, fontWeight: "700", marginBottom: 6 },
   emptyBody: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
 });

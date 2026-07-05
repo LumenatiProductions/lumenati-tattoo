@@ -75,7 +75,7 @@ export default function Followups() {
       sub={`${KIND_LABEL[r.kind] ?? r.kind} · ${r.channel}${r.scheduled_for ? ` · ${r.scheduled_for}` : ""}`}
       right={
         <Text style={{ flexDirection: "row" }}>
-          <Text onPress={() => act(r.id, "now")} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
+          <Text onPress={() => act(r.id, "now")} style={{ color: theme.text, fontSize: 13.5, fontWeight: "700" }}>
             Send now
           </Text>
           <Text style={{ color: theme.textFaint }}>{"   "}</Text>
@@ -93,10 +93,10 @@ export default function Followups() {
       <ScrollView
         style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         {rows === null ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
             <SectionTitle right={<Badge label={`${due.length} due`} tone={due.length ? "warn" : "good"} />}>Due now</SectionTitle>

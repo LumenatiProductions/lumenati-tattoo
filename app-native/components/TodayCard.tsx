@@ -54,7 +54,7 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
           </View>
         </Card>
       ) : (
-        <Card style={next ? { borderColor: theme.brandBorder } : undefined}>
+        <Card style={next ? { borderColor: theme.borderStrong } : undefined}>
           {next ? (
             <Pressable
               onPress={() => {
@@ -103,7 +103,7 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
 
 const styles = StyleSheet.create({
   hero: { flexDirection: "row", alignItems: "center", gap: 10 },
-  heroWhen: { color: theme.brand, fontSize: 12.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.6 },
+  heroWhen: { color: theme.text, fontSize: 12.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.6 },
   heroName: { color: theme.text, fontSize: 22, fontWeight: "800", marginTop: 3 },
   heroDesc: { color: theme.textDim, fontSize: 13.5, marginTop: 2 },
   restWrap: { borderTopColor: theme.border, borderTopWidth: 1, marginTop: 12, paddingTop: 6 },

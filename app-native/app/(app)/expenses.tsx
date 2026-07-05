@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   cats: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   cat: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 9, borderColor: theme.border, borderWidth: 1 },
-  catOn: { backgroundColor: theme.brand, borderColor: theme.brand },
+  catOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   catText: { color: theme.textDim, fontSize: 13 },
   scanNote: { color: theme.textDim, fontSize: 13, marginTop: 8, lineHeight: 18 },
   empty: { color: theme.textFaint, fontSize: 14, lineHeight: 20 },

@@ -135,7 +135,7 @@ export default function Inventory() {
         )}
 
         {loading ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
             {low.length > 0 && (
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   step: { height: 30, width: 30, borderRadius: 8, borderColor: theme.border, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   stepText: { color: theme.text, fontSize: 18, lineHeight: 20 },
   qty: { color: theme.text, fontSize: 16, fontWeight: "700", minWidth: 28, textAlign: "center" },
-  addBtn: { backgroundColor: theme.brand, borderRadius: 9, paddingVertical: 8, paddingHorizontal: 14 },
+  addBtn: { backgroundColor: theme.surfaceRaised, borderWidth: 1, borderColor: theme.borderStrong, borderRadius: 9, paddingVertical: 8, paddingHorizontal: 14 },
   addText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
   errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },

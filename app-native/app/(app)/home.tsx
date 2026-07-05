@@ -9,6 +9,7 @@ import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
 import { Stat } from "@/components/ui";
+import InkWash from "@/components/InkWash";
 import ArtistMoney from "@/components/ArtistMoney";
 import Launcher from "@/components/Launcher";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
@@ -73,10 +74,13 @@ export default function Home() {
   }, []);
 
   return (
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    {/* Fixed ink atmosphere; the glass panels scroll over it. */}
+    <InkWash />
     <ScrollView
-      style={{ backgroundColor: theme.bg }}
+      style={{ flex: 1 }}
       contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
     >
       <View style={styles.header}>
         <LumenatiLogo width={72} />
@@ -134,7 +138,7 @@ export default function Home() {
               <Pressable
                 key={a.id}
                 onPress={() => setPreview({ artistId: a.id, name: a.name })}
-                style={({ pressed }) => [styles.previewChip, pressed && { borderColor: theme.brandBorder }]}
+                style={({ pressed }) => [styles.previewChip, pressed && { borderColor: theme.borderStrong }]}
               >
                 <Text style={styles.previewChipText}>{a.name}</Text>
               </Pressable>
@@ -143,6 +147,7 @@ export default function Home() {
         </View>
       )}
     </ScrollView>
+    </View>
   );
 }
 
@@ -223,7 +228,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
     return (
       <View>
         <Text style={styles.greeting}>Hey {firstName}</Text>
-        <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
       </View>
     );
   }
@@ -363,15 +368,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: theme.brandSoft,
-    borderColor: theme.brandBorder,
+    backgroundColor: theme.surfaceRaised,
+    borderColor: theme.border,
+    borderTopColor: theme.glassEdge,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginTop: 12,
   },
-  previewBannerText: { color: theme.brand, fontSize: 13.5, fontWeight: "700" },
+  previewBannerText: { color: theme.text, fontSize: 13.5, fontWeight: "700" },
   previewExit: { color: theme.text, fontSize: 13.5, fontWeight: "700" },
   previewChip: {
     paddingVertical: 8,
@@ -384,7 +390,8 @@ const styles = StyleSheet.create({
   previewChipText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
   homeTabs: { flexDirection: "row", gap: 8, marginTop: 18 },
   homeTab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
-  homeTabOn: { backgroundColor: theme.brand, borderColor: theme.brand },
+  // Tab selection is a lift, not a pink fill — pink is money-only now.
+  homeTabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   homeTabText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
   homeTabTextOn: { color: "#fff" },
 });

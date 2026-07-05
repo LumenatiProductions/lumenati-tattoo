@@ -91,6 +91,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: "rgba(255,255,255,0.03)",
   },
-  chipOn: { backgroundColor: theme.brand, borderColor: theme.brand },
+  // Selection is a lift, not a pink fill — pink is reserved for money actions.
+  chipOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   chipText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
 });

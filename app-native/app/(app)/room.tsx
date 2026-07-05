@@ -148,7 +148,7 @@ export default function MyRoom() {
       <Stack.Screen options={{ headerShown: true, title: "My Room", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}>
         {loading ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 60 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 60 }} />
         ) : !artistId ? (
           <Card>
             <Text style={styles.note}>
@@ -174,7 +174,7 @@ export default function MyRoom() {
             </Text>
 
             {!room ? (
-              <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+              <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
             ) : (
             <>
             <SectionTitle>Identity</SectionTitle>

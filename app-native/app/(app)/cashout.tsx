@@ -57,7 +57,7 @@ export default function CashOut() {
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <Card>
           {loading ? (
-            <ActivityIndicator color={theme.brand} />
+            <ActivityIndicator color={theme.textDim} />
           ) : (
             <>
               <Text style={styles.label}>Available now</Text>

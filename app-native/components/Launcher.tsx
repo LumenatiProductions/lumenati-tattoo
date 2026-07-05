@@ -85,7 +85,7 @@ export default function Launcher({ role }: { role: Role | null }) {
                 style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
               >
                 <View style={styles.iconWrap}>
-                  <Ionicons name={it.icon} size={18} color={theme.brand} />
+                  <Ionicons name={it.icon} size={18} color={theme.textDim} />
                 </View>
                 <Text style={styles.tileText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{it.label}</Text>
                 <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 9,
-    backgroundColor: theme.brandSoft,
+    backgroundColor: theme.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
   },

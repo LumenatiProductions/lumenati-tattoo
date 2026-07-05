@@ -142,7 +142,7 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
   const approxLen = width * 1.8;
   const dashOffset = draw.interpolate({ inputRange: [0, 1], outputRange: [approxLen, 0] });
 
-  const lineColor = ahead ? theme.good : theme.brand;
+  const lineColor = ahead ? theme.good : "rgba(235,240,255,0.55)";
 
   return (
     <View>

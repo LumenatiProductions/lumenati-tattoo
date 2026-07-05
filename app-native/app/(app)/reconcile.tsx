@@ -71,10 +71,10 @@ export default function Reconcile() {
       <ScrollView
         style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         {!data && !error ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : error ? (
           <Card>
             <Empty>{error}</Empty>

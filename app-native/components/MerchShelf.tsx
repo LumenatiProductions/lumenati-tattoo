@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
   },
-  tileOn: { borderColor: theme.brandBorder, backgroundColor: theme.surfaceRaised },
+  tileOn: { borderColor: theme.borderStrong, borderTopColor: theme.glassEdge, backgroundColor: theme.surfaceRaised },
   tilePressed: { backgroundColor: theme.surfaceRaised },
   tileName: { color: theme.text, fontSize: 14, fontWeight: "600" },
   tilePrice: { color: theme.textDim, fontSize: 13, marginTop: 3, fontVariant: ["tabular-nums"] },

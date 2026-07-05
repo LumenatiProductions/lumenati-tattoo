@@ -109,7 +109,7 @@ export default function Compliance() {
         )}
 
         {loading ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <Card style={{ padding: 0 }}>
             {sorted.length === 0 ? (

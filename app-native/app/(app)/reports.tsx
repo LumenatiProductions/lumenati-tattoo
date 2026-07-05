@@ -75,7 +75,7 @@ export default function ReportsScreen() {
       <Stack.Screen options={{ headerShown: true, title: "Reports", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         {loading ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : error ? (
           <Card>
             <Text style={styles.err}>{error}</Text>

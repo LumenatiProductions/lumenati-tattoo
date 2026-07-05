@@ -7,6 +7,7 @@ import { Button, Card } from "@/components/ui";
 import { tapToPayAvailable } from "@/lib/terminal";
 import { useMerch } from "@/lib/merch";
 import MerchShelf from "@/components/MerchShelf";
+import InkWash from "@/components/InkWash";
 
 // Take an in-person payment with Tap to Pay (POS 6c). On real iOS builds the
 // native flow renders (components/TapToPayPos); Expo Go / web / Android get an
@@ -24,13 +25,16 @@ export default function Pos() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Take payment", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled">
-        {Real ? (
-          <Real />
-        ) : (
-          <Fallback />
-        )}
-      </ScrollView>
+      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+        <InkWash />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled">
+          {Real ? (
+            <Real />
+          ) : (
+            <Fallback />
+          )}
+        </ScrollView>
+      </View>
     </>
   );
 }

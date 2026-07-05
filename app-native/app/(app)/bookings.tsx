@@ -365,7 +365,7 @@ export default function Bookings() {
         )}
 
         {loading ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
             <Text style={styles.section}>Today</Text>

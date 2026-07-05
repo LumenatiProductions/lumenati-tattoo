@@ -83,7 +83,7 @@ export default function Clients() {
           style={styles.search}
         />
         {loading ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <Card style={{ padding: 0, marginTop: 14 }}>
             {filtered.length === 0 ? (
@@ -107,7 +107,7 @@ export default function Clients() {
                       onPress={() => Linking.openURL(`tel:${c.phone}`)}
                       style={({ pressed }) => [styles.call, pressed && { opacity: 0.7 }]}
                     >
-                      <Ionicons name="call-outline" size={15} color={theme.brand} />
+                      <Ionicons name="call-outline" size={15} color={theme.textDim} />
                       <Text style={styles.callText}>Call</Text>
                     </Pressable>
                   )}
@@ -182,6 +182,6 @@ const styles = StyleSheet.create({
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },
   sub: { color: theme.textDim, fontSize: 13, marginTop: 2 },
   call: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.brandSoft, borderColor: theme.brandBorder, borderWidth: 1, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 },
-  callText: { color: theme.brand, fontSize: 13, fontWeight: "700" },
+  callText: { color: theme.text, fontSize: 13, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
 });

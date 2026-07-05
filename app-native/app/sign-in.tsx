@@ -163,7 +163,7 @@ export default function SignIn() {
         )}
 
         {error && <Text style={styles.error}>{error}</Text>}
-        {busy && <ActivityIndicator color={theme.brand} style={{ marginTop: 12 }} />}
+        {busy && <ActivityIndicator color={theme.textDim} style={{ marginTop: 12 }} />}
       </View>
       </ScrollView>
     </KeyboardAvoidingView>

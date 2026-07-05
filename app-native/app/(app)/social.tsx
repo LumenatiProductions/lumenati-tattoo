@@ -55,10 +55,10 @@ export default function Social() {
       <ScrollView
         style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         {rows === null ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
             <SectionTitle right={<Badge label={`${rows.length} waiting`} tone={rows.length ? "brand" : "good"} />}>

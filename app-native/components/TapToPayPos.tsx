@@ -379,7 +379,7 @@ export default function TapToPayPos() {
           <Button label={`Paid cash · ${money(totalCents)}`} tone="ghost" onPress={takeCash} />
         </>
       )}
-      {busy && <ActivityIndicator color={theme.brand} style={{ marginTop: 16 }} />}
+      {busy && <ActivityIndicator color={theme.textDim} style={{ marginTop: 16 }} />}
       <Text style={styles.note}>
         Card collected on this phone — nothing is typed. The shop&apos;s cut comes off
         automatically; the rest is yours.
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
   },
-  keyPressed: { backgroundColor: theme.surfaceRaised, borderColor: theme.brandBorder },
+  keyPressed: { backgroundColor: theme.surfaceRaised, borderColor: theme.borderStrong },
   keyText: { color: theme.text, fontSize: 24, fontWeight: "600", fontVariant: ["tabular-nums"] },
   note: { color: theme.textFaint, fontSize: 12, marginTop: 14, lineHeight: 17 },
   error: { color: theme.bad, marginTop: 14, fontSize: 14 },

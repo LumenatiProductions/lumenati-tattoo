@@ -185,10 +185,10 @@ export default function Payouts() {
       <ScrollView
         style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         {statements === null ? (
-          <ActivityIndicator color={theme.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
             {role !== "artist" && !preview && (
@@ -305,7 +305,7 @@ function StatementRow({
           </View>
           {spark && (
             <Svg width={64} height={22} style={{ marginRight: 12 }}>
-              <Polyline points={spark} stroke={kind === "pay" ? theme.good : theme.brand} strokeWidth={1.8} fill="none" />
+              <Polyline points={spark} stroke={kind === "pay" ? "rgba(235,240,255,0.55)" : theme.good} strokeWidth={1.8} fill="none" />
             </Svg>
           )}
           <Pressable

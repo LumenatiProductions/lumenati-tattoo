@@ -138,7 +138,8 @@ export default function ArtistMoney({
       </View>
 
       <View style={styles.grid}>
-        <Stat label="You earned" value={money(e.total)} countTo={e.total} sub={`${money(e.tips)} tips`} accent />
+        {/* THE number — full-width hero, ticks up, glass not pink. */}
+        <Stat label="You earned" value={money(e.total)} countTo={e.total} sub={`${money(e.tips)} tips`} hero />
         <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
         <Stat label="Tickets" value={String(e.tickets)} />
         <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(goals.tax_setaside_pct * 100)}% set-aside`} warn />
@@ -199,7 +200,7 @@ export default function ArtistMoney({
               <Text style={styles.goalNow}>{money(e.total)}</Text>
               <Text style={styles.goalTarget}>of {money(goalCents)}</Text>
             </View>
-            <ProgressBar pct={goalPct} tone={goalPct >= 1 ? theme.good : theme.brand} />
+            <ProgressBar pct={goalPct} tone={theme.good} />
             <Text style={styles.goalNote}>
               {goalPct >= 1 ? "Goal hit — nice." : `${Math.round(goalPct * 100)}% there`}
               {streak >= 2 ? `  ·  ${streak} weeks straight over goal` : ""}
@@ -285,7 +286,7 @@ function WeekBars({ bars, maxBar }: { bars: { label: string; cents: number }[]; 
                 styles.bar,
                 {
                   height: `${(b.cents / maxBar) * 100}%`,
-                  backgroundColor: b.cents ? theme.brand : "rgba(255,255,255,0.08)",
+                  backgroundColor: b.cents ? theme.good : "rgba(255,255,255,0.08)",
                   opacity: sel === i || !b.cents ? 1 : 0.55,
                 },
               ]}
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
   },
   toggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
-  tabOn: { backgroundColor: theme.brand, borderColor: theme.brand },
+  tabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   tabText: { color: theme.textDim, fontSize: 13, fontWeight: "600" },
   tabTextOn: { color: "#fff" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
   coachTitle: { color: theme.text, fontSize: 15.5, fontWeight: "700", marginBottom: 6 },
   coachBody: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
   editLink: { paddingHorizontal: 2 },
-  editLinkText: { color: theme.brand, fontSize: 13, fontWeight: "700" },
+  editLinkText: { color: theme.text, fontSize: 13, fontWeight: "700" },
   bars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 110 },
   barCol: { flex: 1, alignItems: "center" },
   barTrack: { height: 90, width: 14, justifyContent: "flex-end", borderRadius: 7, overflow: "hidden" },
@@ -376,5 +377,5 @@ const styles = StyleSheet.create({
   taxNote: { color: theme.textFaint, fontSize: 12, marginTop: 10, lineHeight: 17 },
   linkBtn: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   linkBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },
-  editGoals: { color: theme.brand, fontSize: 14, fontWeight: "600", textAlign: "center" },
+  editGoals: { color: theme.text, fontSize: 14, fontWeight: "600", textAlign: "center" },
 });

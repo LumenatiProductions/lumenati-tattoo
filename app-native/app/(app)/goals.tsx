@@ -152,7 +152,7 @@ export default function Goals() {
 
 function Summary({ label, value, on }: { label: string; value: string; on: boolean }) {
   return (
-    <View style={[styles.sumCell, on && { borderColor: theme.brandBorder, backgroundColor: theme.brandSoft }]}>
+    <View style={[styles.sumCell, on && { borderColor: theme.borderStrong, backgroundColor: theme.surfaceRaised }]}>
       <Text style={styles.sumLabel}>{label}</Text>
       <Text style={styles.sumValue}>{value}</Text>
     </View>
