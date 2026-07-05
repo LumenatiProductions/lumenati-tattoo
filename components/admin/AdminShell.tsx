@@ -19,30 +19,54 @@ import { createClient } from "@/lib/supabase/browser";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import type { Role } from "@/lib/admin/types";
 
-const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
-  { href: "/admin", label: "Overview", roles: ["owner", "bookkeeper", "artist", "frontdesk"] },
-  { href: "/admin/room", label: "My Room", roles: ["owner", "artist"] },
-  // Front of house
-  { href: "/admin/bookings", label: "Bookings", roles: ["owner", "frontdesk", "artist"] },
-  { href: "/admin/clients", label: "Clients", roles: ["owner", "frontdesk"] },
-  { href: "/admin/intake", label: "Intake", roles: ["owner", "frontdesk"] },
-  { href: "/admin/followups", label: "Follow-ups", roles: ["owner", "frontdesk"] },
-  { href: "/admin/social", label: "Social", roles: ["owner", "frontdesk"] },
-  // Money
-  { href: "/admin/artists", label: "Artists & Pay", roles: ["owner", "bookkeeper"] },
-  { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
-  { href: "/admin/rent", label: "Booth Rent", roles: ["owner", "bookkeeper"] },
-  { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
-  { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"] },
-  { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner", "bookkeeper"] },
-  { href: "/admin/expenses", label: "Expenses", roles: ["owner", "bookkeeper"] },
-  // Shop
-  { href: "/admin/inventory", label: "Inventory", roles: ["owner", "frontdesk"] },
-  { href: "/admin/compliance", label: "Compliance", roles: ["owner"] },
-  // Admin
-  { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner", "bookkeeper"] },
-  { href: "/admin/staff", label: "Staff", roles: ["owner"] },
-  { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
+type NavItem = { href: string; label: string; roles: Role[]; soon?: boolean };
+// Sections render as small headers in the sidebar; a header only appears when
+// the current role can see at least one page inside it.
+const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
+  {
+    title: null,
+    items: [
+      { href: "/admin", label: "Overview", roles: ["owner", "bookkeeper", "artist", "frontdesk"] },
+      { href: "/admin/room", label: "My Room", roles: ["owner", "artist"] },
+    ],
+  },
+  {
+    title: "Front of house",
+    items: [
+      { href: "/admin/bookings", label: "Bookings", roles: ["owner", "frontdesk", "artist"] },
+      { href: "/admin/clients", label: "Clients", roles: ["owner", "frontdesk"] },
+      { href: "/admin/intake", label: "Intake", roles: ["owner", "frontdesk"] },
+      { href: "/admin/followups", label: "Follow-ups", roles: ["owner", "frontdesk"] },
+      { href: "/admin/social", label: "Social", roles: ["owner", "frontdesk"] },
+    ],
+  },
+  {
+    title: "Finances",
+    items: [
+      { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner", "bookkeeper"] },
+      { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"] },
+      { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
+      { href: "/admin/rent", label: "Booth Rent", roles: ["owner", "bookkeeper"] },
+      { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
+      { href: "/admin/expenses", label: "Expenses", roles: ["owner", "bookkeeper"] },
+      { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner", "bookkeeper"] },
+    ],
+  },
+  {
+    title: "Shop",
+    items: [
+      { href: "/admin/artists", label: "Artists & Pay", roles: ["owner", "bookkeeper"] },
+      { href: "/admin/inventory", label: "Inventory", roles: ["owner", "frontdesk"] },
+      { href: "/admin/compliance", label: "Compliance", roles: ["owner"] },
+    ],
+  },
+  {
+    title: "Admin",
+    items: [
+      { href: "/admin/staff", label: "Staff", roles: ["owner"] },
+      { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
+    ],
+  },
 ];
 
 function Sidebar() {
@@ -50,7 +74,10 @@ function Sidebar() {
   const { artists } = useArtists();
   const pathname = usePathname();
   const router = useRouter();
-  const items = NAV.filter((n) => n.roles.includes(role));
+  const sections = NAV_SECTIONS.map((s) => ({
+    ...s,
+    items: s.items.filter((n) => n.roles.includes(role)),
+  })).filter((s) => s.items.length > 0);
 
   const logout = async () => {
     await createClient().auth.signOut();
@@ -67,33 +94,44 @@ function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 px-3">
-        {items.map((n) => {
-          const active = pathname === n.href;
-          return (
-            <Link
-              key={n.href}
-              href={n.soon ? "#" : n.href}
-              aria-disabled={n.soon}
-              onClick={n.soon ? (e) => e.preventDefault() : undefined}
-              tabIndex={n.soon ? -1 : undefined}
-              className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                active
-                  ? "bg-brand-soft font-semibold text-brand"
-                  : n.soon
-                    ? "cursor-default text-black/30"
-                    : "text-black/65 hover:bg-black/4"
-              }`}
-            >
-              {n.label}
-              {n.soon && (
-                <span className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium text-black/35">
-                  soon
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex flex-1 flex-col overflow-y-auto px-3 pb-2">
+        {sections.map((s, i) => (
+          <div key={s.title ?? "top"} className={i === 0 ? "" : "mt-3"}>
+            {s.title && (
+              <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-black/35">
+                {s.title}
+              </div>
+            )}
+            <div className="flex flex-col gap-0.5">
+              {s.items.map((n) => {
+                const active = pathname === n.href;
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.soon ? "#" : n.href}
+                    aria-disabled={n.soon}
+                    onClick={n.soon ? (e) => e.preventDefault() : undefined}
+                    tabIndex={n.soon ? -1 : undefined}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
+                      active
+                        ? "bg-brand-soft font-semibold text-brand"
+                        : n.soon
+                          ? "cursor-default text-black/30"
+                          : "text-black/65 hover:bg-black/4"
+                    }`}
+                  >
+                    {n.label}
+                    {n.soon && (
+                      <span className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium text-black/35">
+                        soon
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {canPreview && (

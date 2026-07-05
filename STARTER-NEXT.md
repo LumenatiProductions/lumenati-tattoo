@@ -69,17 +69,20 @@ QuickBooks replacement built and verified to the penny in Chrome:
 - **Reports year picker** now reaches 2021.
 - DB migration: `supabase/2026-07-04-money-out.sql` (applied to live DB; also
   adds 'tax'/'draw' ledger kinds).
+- **Categorized nav** (Scott's ask): web sidebar grouped into Front of house /
+  Finances / Shop / Admin; the app's home "Go to" tiles grouped the same way
+  (+ "My business" for artists). Headers hide when a role sees nothing inside.
 
 ## NEXT SESSION — the actual focus
-1. **Get the full artist roster in (BLOCKED ON SCOTT).** Platform has 6 artists
-   (elaine, jd, kalypso, moonie, sam, shorty). Recon of Square (2026 sales by
-   team member) says at minimum:
+1. **Get the full artist roster in (Scott will supply the list — he didn't
+   have it handy on 2026-07-04; ask again).** Platform has 6 artists
+   (elaine, jd, kalypso, moonie, sam, shorty). Square recon findings:
    - **Grey Barrix** (square team id TMS5h7Kja6CfFrFH): 16 sales in 2026, all
      small ($20-150, product/touch-up sized), last 2026-06-28. Current, missing.
-   - **Stephanie Moore** (TMhfO2Rp53Z_b7eg): the old starter called her a
-     former resident, but she has 181 sales / $181k for 2023-2026 INCLUDING A
-     SALE TODAY (steady $1,000-1,200 tickets, 32 in 2026 = most of the year's
-     "unattributed" income on the P&L). Ask Scott: is she current?
+   - **Stephanie Moore is the BOOKKEEPER** (Scott confirmed 2026-07-04). Her
+     181 Square "sales"/$181k under TMhfO2Rp53Z_b7eg are transactions she rang
+     up at the desk, NOT her own work. Leave as shop revenue; do NOT add her
+     as an artist. (She should eventually get a bookkeeper login instead.)
    - Everyone else unmapped is genuinely gone (Anstey 2024, Hagerty/Chavez 2023).
    Need per artist: name, pay type (rent/split/hybrid + % / rent $), contact.
    Then set square_team_members.artist_id for their team ids -> history

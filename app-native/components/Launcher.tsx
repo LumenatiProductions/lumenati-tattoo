@@ -7,53 +7,92 @@ import type { Role } from "@/lib/auth";
 
 // Role-aware nav into the back-office screens ported to the app (POS 6e). The
 // app reads/writes Supabase under RLS, so each role only sees what it can touch.
+// Grouped into the same categories as the web Command Center sidebar; a section
+// header only shows when the role can see at least one screen inside it.
 type Item = { href: string; label: string; icon: keyof typeof Ionicons.glyphMap; roles: Role[] };
-const ITEMS: Item[] = [
-  { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
-  { href: "/room", label: "Rooms", icon: "color-palette-outline", roles: ["owner", "artist"] },
-  { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
-  { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
-  { href: "/inventory", label: "Inventory", icon: "cube-outline", roles: ["owner", "frontdesk"] },
-  { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner", "frontdesk"] },
-  { href: "/social", label: "Social", icon: "image-outline", roles: ["owner", "frontdesk"] },
-  { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
-  { href: "/cash", label: "Cash log", icon: "cash-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
-  { href: "/rent", label: "Booth rent", icon: "key-outline", roles: ["owner", "bookkeeper"] },
-  { href: "/payouts", label: "Payouts", icon: "swap-horizontal-outline", roles: ["owner", "bookkeeper", "artist"] },
-  { href: "/reports", label: "Reports", icon: "stats-chart-outline", roles: ["owner", "bookkeeper"] },
-  { href: "/reconcile", label: "Reconcile", icon: "git-compare-outline", roles: ["owner", "bookkeeper"] },
-  { href: "/compliance", label: "Compliance", icon: "shield-checkmark-outline", roles: ["owner"] },
-  { href: "/staff", label: "Staff", icon: "person-add-outline", roles: ["owner"] },
-  { href: "/integrations", label: "Integrations", icon: "link-outline", roles: ["owner"] },
-  { href: "/expenses", label: "Deductions", icon: "receipt-outline", roles: ["artist"] },
-  { href: "/goals", label: "Goals", icon: "flag-outline", roles: ["artist"] },
+const SECTIONS: { title: string; items: Item[] }[] = [
+  {
+    title: "Go to",
+    items: [
+      { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
+    ],
+  },
+  {
+    title: "Front of house",
+    items: [
+      { href: "/room", label: "Rooms", icon: "color-palette-outline", roles: ["owner", "artist"] },
+      { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
+      { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
+      { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
+      { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner", "frontdesk"] },
+      { href: "/social", label: "Social", icon: "image-outline", roles: ["owner", "frontdesk"] },
+    ],
+  },
+  {
+    title: "Finances",
+    items: [
+      { href: "/payouts", label: "Payouts", icon: "swap-horizontal-outline", roles: ["owner", "bookkeeper", "artist"] },
+      { href: "/reports", label: "Reports", icon: "stats-chart-outline", roles: ["owner", "bookkeeper"] },
+      { href: "/rent", label: "Booth rent", icon: "key-outline", roles: ["owner", "bookkeeper"] },
+      { href: "/cash", label: "Cash log", icon: "cash-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
+      { href: "/reconcile", label: "Reconcile", icon: "git-compare-outline", roles: ["owner", "bookkeeper"] },
+    ],
+  },
+  {
+    title: "My business",
+    items: [
+      { href: "/expenses", label: "Deductions", icon: "receipt-outline", roles: ["artist"] },
+      { href: "/goals", label: "Goals", icon: "flag-outline", roles: ["artist"] },
+    ],
+  },
+  {
+    title: "Shop",
+    items: [
+      { href: "/inventory", label: "Inventory", icon: "cube-outline", roles: ["owner", "frontdesk"] },
+      { href: "/compliance", label: "Compliance", icon: "shield-checkmark-outline", roles: ["owner"] },
+    ],
+  },
+  {
+    title: "Admin",
+    items: [
+      { href: "/staff", label: "Staff", icon: "person-add-outline", roles: ["owner"] },
+      { href: "/integrations", label: "Integrations", icon: "link-outline", roles: ["owner"] },
+    ],
+  },
 ];
 
 export default function Launcher({ role }: { role: Role | null }) {
   const router = useRouter();
-  const items = ITEMS.filter((i) => role && i.roles.includes(role));
-  if (!items.length) return null;
+  const sections = SECTIONS.map((s) => ({
+    ...s,
+    items: s.items.filter((i) => role && i.roles.includes(role)),
+  })).filter((s) => s.items.length > 0);
+  if (!sections.length) return null;
   return (
     <View style={{ marginTop: 26 }}>
-      <Text style={styles.section}>Go to</Text>
-      <View style={styles.grid}>
-        {items.map((it) => (
-          <Pressable
-            key={it.href}
-            onPress={() => {
-              tap();
-              router.push(it.href as never);
-            }}
-            style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
-          >
-            <View style={styles.iconWrap}>
-              <Ionicons name={it.icon} size={18} color={theme.brand} />
-            </View>
-            <Text style={styles.tileText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{it.label}</Text>
-            <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
-          </Pressable>
-        ))}
-      </View>
+      {sections.map((s, idx) => (
+        <View key={s.title} style={idx === 0 ? undefined : { marginTop: 22 }}>
+          <Text style={styles.section}>{s.title}</Text>
+          <View style={styles.grid}>
+            {s.items.map((it) => (
+              <Pressable
+                key={it.href}
+                onPress={() => {
+                  tap();
+                  router.push(it.href as never);
+                }}
+                style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+              >
+                <View style={styles.iconWrap}>
+                  <Ionicons name={it.icon} size={18} color={theme.brand} />
+                </View>
+                <Text style={styles.tileText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{it.label}</Text>
+                <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
