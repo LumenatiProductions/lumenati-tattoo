@@ -90,8 +90,14 @@ QuickBooks replacement built and verified to the penny in Chrome:
   tooltips, biggest up/down months direct-labeled. Handles 64 months of
   all-time data cleanly. (components/admin/ProfitChart.tsx.)
 - NOTE: the sim build was stale (crashed on launch with
-  ExpoCalendar.MissingCalendarPListValueException — binary predated the
-  calendar plist keys). Fix is just `npx expo run:ios` to rebuild native.
+  ExpoCalendar.MissingCalendarPListValueException). `expo run:ios` alone did
+  NOT fix it — the untracked `ios/` dir itself was stale (CNG repo; predates
+  the expo-calendar plugin). Fix: `npx expo prebuild -p ios --clean` then
+  `npx expo run:ios`. Boots clean now.
+- VERIFY ON DEVICE: owner home confirmed in sim; the ARTIST home (scrub chart,
+  Your day card, week bars) compiles + app boots, but sim blocks synthetic
+  taps and this Mac lacks Accessibility grants, so preview-as-artist wasn't
+  reachable. Scott: TestFlight build or preview-as on your phone.
 
 ## NEXT SESSION — the actual focus
 1. **Get the full artist roster in (Scott will supply the list — he didn't
