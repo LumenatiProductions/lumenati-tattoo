@@ -103,7 +103,7 @@ export default function ClientsPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             One record per person who comes in — contact, history, and who they sit with.
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function ClientsPage() {
             <button
               onClick={runSync}
               disabled={syncing}
-              className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+              className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
             >
               {syncing ? "Syncing…" : "Sync from Square"}
             </button>
@@ -148,16 +148,16 @@ export default function ClientsPage() {
               key={key}
               onClick={() => setRetView((v) => (v === key ? null : key))}
               className={`rounded-xl border px-4 py-3 text-left transition ${
-                retView === key ? "border-brand bg-brand/5" : "border-black/10 bg-white hover:bg-black/3"
+                retView === key ? "border-brand bg-brand/5" : "border-white/12 bg-white/6 hover:bg-white/5"
               }`}
             >
               <div className="tnum text-2xl font-bold">{count}</div>
-              <div className="text-xs text-black/50">{label}</div>
+              <div className="text-xs text-white/65">{label}</div>
             </button>
           ))}
         </div>
         {retView && (
-          <p className="mt-2 text-xs text-black/45">
+          <p className="mt-2 text-xs text-white/60">
             {retView === "birthdays"
               ? "Clients with a birthday this month."
               : retView === "due"
@@ -169,7 +169,7 @@ export default function ClientsPage() {
       </div>
 
       {syncMsg && (
-        <div className="mb-4 rounded-lg border border-black/10 bg-black/3 px-3 py-2 text-xs text-black/60">
+        <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/75">
           {syncMsg}
         </div>
       )}
@@ -195,37 +195,37 @@ export default function ClientsPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by name, phone, email, or @handle…"
-          className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm sm:max-w-md"
+          className="w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm sm:max-w-md"
         />
       </div>
 
-      <SectionTitle action={<span className="text-xs text-black/40">{filtered.length} shown</span>}>
+      <SectionTitle action={<span className="text-xs text-white/55">{filtered.length} shown</span>}>
         Roster
       </SectionTitle>
 
       {loading ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading clients…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading clients…</div>
         </Card>
       ) : error ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-amber-600">{error}</div>
+          <div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             {clients.length === 0
               ? "No clients yet. Add a walk-in above, or sync from Square."
               : "No clients match that search."}
           </div>
         </Card>
       ) : (
-        <Card className="divide-y divide-black/6 overflow-hidden">
+        <Card className="divide-y divide-white/9 overflow-hidden">
           {filtered.map((c) => (
             <button
               key={c.id}
               onClick={() => setSelectedId(c.id)}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-black/3"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/5"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -236,19 +236,19 @@ export default function ClientsPage() {
                     <Badge>Walk-in</Badge>
                   )}
                 </div>
-                <div className="mt-0.5 truncate text-xs text-black/45">
+                <div className="mt-0.5 truncate text-xs text-white/60">
                   {[c.phone, c.email, c.instagram ? `@${c.instagram}` : null].filter(Boolean).join(" · ") || "No contact on file"}
                 </div>
               </div>
               {c.preferred_artist_id && (
                 <div className="hidden items-center gap-1.5 sm:flex">
                   <Dot color={artistColor(c.preferred_artist_id)} />
-                  <span className="text-xs text-black/55">{artistName(c.preferred_artist_id)}</span>
+                  <span className="text-xs text-white/70">{artistName(c.preferred_artist_id)}</span>
                 </div>
               )}
               <div className="w-20 text-right">
                 <div className="tnum text-sm font-semibold">{money(c.lifetime_cents ?? c.total_spent_cents)}</div>
-                <div className="text-[11px] text-black/40">{fmtDate(c.last_seen)}</div>
+                <div className="text-[11px] text-white/55">{fmtDate(c.last_seen)}</div>
               </div>
             </button>
           ))}
@@ -327,7 +327,7 @@ function AddForm({
     value: f[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setF((s) => ({ ...s, [key]: e.target.value })),
-    className: "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm",
+    className: "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm",
   });
 
   return (
@@ -355,10 +355,10 @@ function AddForm({
           >
             {busy ? "Saving…" : "Add client"}
           </button>
-          <button type="button" onClick={onCancel} className="rounded-lg border border-black/10 px-4 py-2 text-sm text-black/55">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-white/12 px-4 py-2 text-sm text-white/70">
             Cancel
           </button>
-          {err && <span className="text-xs text-rose-600">{err}</span>}
+          {err && <span className="text-xs text-rose-400">{err}</span>}
         </div>
       </form>
     </Card>
@@ -422,18 +422,18 @@ function ClientDrawer({
     setF((s) => ({ ...s, [key]: e.target.value }));
     setSaved(false);
   };
-  const input = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+  const input = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-black/8 px-5 py-4">
+      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white/6 shadow-xl">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{fullName(client)}</h2>
             {client.source === "square" ? <Badge tone="brand">Square</Badge> : <Badge>Walk-in</Badge>}
           </div>
-          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-black/45 hover:bg-black/5">Close</button>
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/7">Close</button>
         </div>
 
         <div className="space-y-4 p-5">
@@ -481,8 +481,8 @@ function ClientDrawer({
             >
               {busy ? "Saving…" : "Save changes"}
             </button>
-            {saved && <span className="text-xs text-emerald-600">Saved</span>}
-            {err && <span className="text-xs text-rose-600">{err}</span>}
+            {saved && <span className="text-xs text-emerald-400">Saved</span>}
+            {err && <span className="text-xs text-rose-400">{err}</span>}
           </div>
 
           {canMerge && (
@@ -544,18 +544,18 @@ function MergeSection({
   };
 
   return (
-    <div className="border-t border-black/8 pt-4">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">
+    <div className="border-t border-white/10 pt-4">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">
         Duplicate? Merge this record
       </div>
-      <p className="mb-2 text-xs text-black/40">
+      <p className="mb-2 text-xs text-white/55">
         Everything on this record moves to the client you pick, then this one is deleted.
       </p>
       <div className="flex items-center gap-2">
         <select
           value={keepId}
           onChange={(e) => setKeepId(e.target.value)}
-          className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm"
         >
           <option value="">Merge into…</option>
           {others.map((c) => (
@@ -568,12 +568,12 @@ function MergeSection({
         <button
           onClick={merge}
           disabled={busy || !keepId}
-          className="shrink-0 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-40"
+          className="shrink-0 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm font-medium text-rose-300 hover:bg-rose-400/15 disabled:opacity-40"
         >
           {busy ? "Merging…" : "Merge"}
         </button>
       </div>
-      {err && <div className="mt-2 text-xs text-rose-600">{err}</div>}
+      {err && <div className="mt-2 text-xs text-rose-400">{err}</div>}
     </div>
   );
 }
@@ -594,7 +594,7 @@ function ClientBookings({
 
   if (mine.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-black/12 px-3 py-3 text-xs text-black/40">
+      <div className="rounded-lg border border-dashed border-white/15 px-3 py-3 text-xs text-white/55">
         No appointments on file yet.
       </div>
     );
@@ -609,10 +609,10 @@ function ClientBookings({
 
   return (
     <div>
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">
         Appointments ({mine.length})
       </div>
-      <div className="divide-y divide-black/5 rounded-lg border border-black/8">
+      <div className="divide-y divide-white/8 rounded-lg border border-white/10">
         {mine.slice(0, 8).map((b) => {
           const a = artists.find((x) => x.id === b.artist_id);
           const s = STATUS[b.status] ?? { label: b.status, tone: "neutral" as const };
@@ -620,7 +620,7 @@ function ClientBookings({
             <div key={b.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
               <div className="min-w-0">
                 <span className="font-medium">{fmtDate(b.starts_at)}</span>
-                <span className="text-black/45">
+                <span className="text-white/60">
                   {a ? ` · ${a.name}` : ""}
                   {b.service_desc ? ` · ${b.service_desc}` : ""}
                 </span>
@@ -630,7 +630,7 @@ function ClientBookings({
           );
         })}
         {mine.length > 8 && (
-          <div className="px-3 py-2 text-center text-[11px] text-black/35">
+          <div className="px-3 py-2 text-center text-[11px] text-white/50">
             + {mine.length - 8} older
           </div>
         )}
@@ -642,7 +642,7 @@ function ClientBookings({
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-black/45">{label}</span>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">{label}</span>
       {children}
     </label>
   );
@@ -650,8 +650,8 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-black/3 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-black/40">{label}</div>
+    <div className="rounded-lg bg-white/5 px-3 py-2">
+      <div className="text-[11px] uppercase tracking-wide text-white/55">{label}</div>
       <div className="tnum mt-0.5 text-sm font-semibold">{value}</div>
     </div>
   );

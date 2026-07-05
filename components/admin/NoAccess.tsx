@@ -12,15 +12,15 @@ export default function NoAccess({ email }: { email: string }) {
   };
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-4 text-ink antialiased">
-      <div className="w-full max-w-sm rounded-xl border border-black/8 bg-white p-6 text-center shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-white/6 p-6 text-center shadow-sm">
         <div className="text-base font-semibold">Not on the team yet</div>
-        <p className="mt-1 text-sm text-black/55">
+        <p className="mt-1 text-sm text-white/70">
           <span className="font-medium">{email}</span> isn&apos;t set up for the
           command center. Ask a co-owner to add you.
         </p>
         <button
           onClick={logout}
-          className="mt-4 rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium text-black/60 hover:bg-black/4"
+          className="mt-4 rounded-lg border border-white/12 px-3 py-1.5 text-sm font-medium text-white/75 hover:bg-white/6"
         >
           Log out
         </button>

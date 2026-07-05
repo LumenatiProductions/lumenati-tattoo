@@ -11,7 +11,7 @@ export function PageHead({ title, sub }: { title: string; sub: string }) {
   return (
     <div className="mb-6">
       <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-      <p className="text-sm text-black/50">{sub}</p>
+      <p className="text-sm text-white/65">{sub}</p>
     </div>
   );
 }
@@ -33,9 +33,9 @@ export function WeekTile({
       <div className={`tnum ${strong ? "text-base font-bold text-brand" : "text-sm font-semibold"}`}>
         {value}
       </div>
-      <div className="text-[11px] uppercase tracking-wide text-black/40">{label}</div>
+      <div className="text-[11px] uppercase tracking-wide text-white/55">{label}</div>
       {delta != null && (
-        <div className={`tnum text-[11px] font-medium ${delta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+        <div className={`tnum text-[11px] font-medium ${delta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
           {delta >= 0 ? "↑" : "↓"} {Math.abs(Math.round(delta * 100))}% vs last wk
         </div>
       )}
@@ -71,7 +71,7 @@ export const daysAgoLocal = (n: number) => {
 };
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="px-4 py-6 text-center text-sm text-black/40">{children}</div>;
+  return <div className="px-4 py-6 text-center text-sm text-white/55">{children}</div>;
 }
 
 // Per-artist settlement table. Shared by the owner + bookkeeper homes (both want
@@ -91,7 +91,7 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
       <Card>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/40">
+            <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/55">
               <th className="px-4 py-2.5 font-medium">Artist</th>
               <th className="px-4 py-2.5 font-medium">Arrangement</th>
               <th className="px-4 py-2.5 text-right font-medium">Service</th>
@@ -101,7 +101,7 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
           </thead>
           <tbody>
             {statements.map((st) => (
-              <tr key={st.artist.id} className="border-b border-black/5 last:border-0">
+              <tr key={st.artist.id} className="border-b border-white/8 last:border-0">
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <Dot color={st.artist.color} />
@@ -109,16 +109,16 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
                     {st.artist.guest && <Badge>guest</Badge>}
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-black/55">{payTypeLabel(st.artist)}</td>
+                <td className="px-4 py-2.5 text-white/70">{payTypeLabel(st.artist)}</td>
                 <td className="tnum px-4 py-2.5 text-right">{fmt(st.grossService)}</td>
-                <td className="tnum px-4 py-2.5 text-right text-black/55">
+                <td className="tnum px-4 py-2.5 text-right text-white/70">
                   {fmt(st.shopCut + st.rentOwed)}
                 </td>
                 <td className="tnum px-4 py-2.5 text-right font-semibold">
                   {st.net >= 0 ? (
-                    <span className="text-emerald-600">{fmt(st.net)}</span>
+                    <span className="text-emerald-400">{fmt(st.net)}</span>
                   ) : (
-                    <span className="text-rose-600">({fmt(-st.net)})</span>
+                    <span className="text-rose-400">({fmt(-st.net)})</span>
                   )}
                 </td>
               </tr>
@@ -126,9 +126,9 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
           </tbody>
         </table>
       </Card>
-      <p className="mt-2 px-1 text-xs text-black/40">
-        Net: <span className="text-emerald-600">green</span> = shop pays the artist ·{" "}
-        <span className="text-rose-600">(red)</span> = artist owes the shop (cash cut + rent).
+      <p className="mt-2 px-1 text-xs text-white/55">
+        Net: <span className="text-emerald-400">green</span> = shop pays the artist ·{" "}
+        <span className="text-rose-400">(red)</span> = artist owes the shop (cash cut + rent).
       </p>
     </>
   );
@@ -156,7 +156,7 @@ export function RentPanel({
         Booth rent
       </SectionTitle>
       <Card className="mb-4">
-        <div className="divide-y divide-black/5">
+        <div className="divide-y divide-white/8">
           {rent.length === 0 && <Empty>No rent invoices.</Empty>}
           {rent.slice(0, 8).map((r) => (
             <div key={r.id} className="flex items-center justify-between px-4 py-2.5">

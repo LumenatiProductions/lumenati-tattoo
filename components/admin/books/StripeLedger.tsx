@@ -66,7 +66,7 @@ export default function StripeLedger() {
           rows.length ? (
             <button
               onClick={exportCsv}
-              className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4"
+              className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6"
             >
               Export CSV
             </button>
@@ -77,15 +77,15 @@ export default function StripeLedger() {
       </SectionTitle>
       <Card>
         {!configured ? (
-          <div className="px-4 py-8 text-center text-sm text-black/40">
+          <div className="px-4 py-8 text-center text-sm text-white/55">
             Connect Stripe (add your keys) to pull real charges, fees, refunds, and payouts here.
           </div>
         ) : rows.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-black/40">No Stripe activity yet.</div>
+          <div className="px-4 py-8 text-center text-sm text-white/55">No Stripe activity yet.</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+              <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
                 <th className="px-4 py-2 font-medium">Date</th>
                 <th className="px-4 py-2 font-medium">Type</th>
                 <th className="px-4 py-2 font-medium">Net</th>
@@ -94,16 +94,16 @@ export default function StripeLedger() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-black/5 last:border-0">
-                  <td className="px-4 py-2.5 tnum text-black/60">{r.date}</td>
+                <tr key={r.id} className="border-b border-white/8 last:border-0">
+                  <td className="px-4 py-2.5 tnum text-white/75">{r.date}</td>
                   <td className="px-4 py-2.5">
                     <Badge tone="neutral">{r.type.replace(/_/g, " ")}</Badge>
-                    {r.description && <span className="ml-2 text-xs text-black/40">{r.description}</span>}
+                    {r.description && <span className="ml-2 text-xs text-white/55">{r.description}</span>}
                   </td>
-                  <td className={`px-4 py-2.5 tnum font-medium ${r.netCents < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                  <td className={`px-4 py-2.5 tnum font-medium ${r.netCents < 0 ? "text-rose-400" : "text-emerald-400"}`}>
                     {usd(r.netCents)}
                   </td>
-                  <td className="px-4 py-2.5 tnum text-black/45">{r.feeCents ? usd(r.feeCents) : "—"}</td>
+                  <td className="px-4 py-2.5 tnum text-white/60">{r.feeCents ? usd(r.feeCents) : "—"}</td>
                 </tr>
               ))}
             </tbody>

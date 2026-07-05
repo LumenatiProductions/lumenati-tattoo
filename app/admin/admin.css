@@ -1,16 +1,28 @@
 /* Tailwind, scoped to /admin only (imported by app/admin/layout.tsx).
-   This is the shop command center — clean, modern, financial-dashboard
-   aesthetic. Deliberately NOT the Y2K public site — this wears the Lumenati
-   parent brand: Helvetica Neue, black/white, one brand-pink accent that nods
-   to the shop site without the kitsch. */
+   This is the shop command center — Money Glow over Liquid Ink, matching the
+   phone app (2026-07-05): blue-violet ink blacks with a fixed ink-wash bleed,
+   glass panels lit from the top edge, pink spent ONLY on money actions.
+   Deliberately NOT the Y2K public site — that stays out front. */
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #0e0e11;
-  --color-paper: #f7f7f8;
+  /* ink = primary text, paper = the ground. Same names, flipped world. */
+  --color-ink: #f2f3fa;
+  --color-paper: #0a0a11;
   --color-brand: #ff1493;
-  --color-brand-soft: #ffe3f1;
+  --color-brand-soft: rgba(255, 20, 147, 0.14);
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* The Liquid Ink atmosphere: violet bleeding from the top corner, a pink haze
+   right, deep blue pooling at the bottom. Fixed — panels scroll over it. */
+.admin-wash {
+  background:
+    radial-gradient(55% 38% at 8% 0%, rgba(109, 58, 160, 0.30), transparent 65%),
+    radial-gradient(42% 32% at 100% 14%, rgba(255, 20, 147, 0.13), transparent 60%),
+    radial-gradient(70% 48% at 50% 100%, rgba(43, 74, 140, 0.26), transparent 65%),
+    var(--color-paper);
+  background-attachment: fixed;
 }
 
 /* Tabular figures everywhere money is shown. */
@@ -18,16 +30,26 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Shared form input (room editor, future forms). */
+/* Shared form input — glass, lit top edge, neutral focus (pink is money-only). */
 .inp {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid rgb(0 0 0 / 0.1);
-  background: #fff;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-top-color: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.07);
+  color: var(--color-ink);
   padding: 0.5rem 0.625rem;
   font-size: 0.875rem;
   outline: none;
 }
+.inp::placeholder {
+  color: rgb(255 255 255 / 0.4);
+}
 .inp:focus {
-  border-color: var(--color-brand);
+  border-color: rgb(235 240 255 / 0.5);
+}
+/* Native pickers pick up the dark scheme (date inputs, selects). */
+.admin-wash,
+.inp {
+  color-scheme: dark;
 }

@@ -61,7 +61,7 @@ export default function IntegrationsClient({
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Integrations</h1>
-        <p className="text-sm text-black/50">Connect Square so the dashboard runs on real sales.</p>
+        <p className="text-sm text-white/65">Connect Square so the dashboard runs on real sales.</p>
       </div>
 
       <SectionTitle>Square</SectionTitle>
@@ -71,11 +71,11 @@ export default function IntegrationsClient({
             <div className="mb-2 flex items-center gap-2">
               <Badge tone="warn">Not connected</Badge>
             </div>
-            <p className="mb-3 text-sm text-black/60">
+            <p className="mb-3 text-sm text-white/75">
               Square is read-only here (we never change anything in your Square account).
               To connect:
             </p>
-            <ol className="ml-4 list-decimal space-y-1.5 text-sm text-black/70">
+            <ol className="ml-4 list-decimal space-y-1.5 text-sm text-white/85">
               <li>
                 In your Square <span className="font-medium">Developer dashboard</span> →
                 your app → <span className="font-medium">Production</span> →{" "}
@@ -83,8 +83,8 @@ export default function IntegrationsClient({
                 <span className="font-medium">Production Access Token</span>.
               </li>
               <li>
-                Add it as <code className="rounded bg-black/5 px-1">SQUARE_ACCESS_TOKEN</code>{" "}
-                in <code className="rounded bg-black/5 px-1">.env.local</code> and in Vercel
+                Add it as <code className="rounded bg-white/7 px-1">SQUARE_ACCESS_TOKEN</code>{" "}
+                in <code className="rounded bg-white/7 px-1">.env.local</code> and in Vercel
                 (Project → Settings → Environment Variables), then redeploy.
               </li>
               <li>Refresh this page and click <span className="font-medium">Sync now</span>.</li>
@@ -116,19 +116,19 @@ export default function IntegrationsClient({
             >
               {syncing ? "Syncing…" : "Sync now"}
             </button>
-            {msg && <span className="text-sm text-black/55">{msg}</span>}
-            {!msg && lastResult && <span className="text-xs text-black/40">{lastResult}</span>}
+            {msg && <span className="text-sm text-white/70">{msg}</span>}
+            {!msg && lastResult && <span className="text-xs text-white/55">{lastResult}</span>}
           </div>
 
           <SectionTitle>Map Square team members to artists</SectionTitle>
           <Card>
             {members.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-black/45">
+              <div className="px-4 py-6 text-center text-sm text-white/60">
                 No team members yet — click <span className="font-medium">Sync now</span> to pull
                 them from Square.
               </div>
             ) : (
-              <div className="divide-y divide-black/5">
+              <div className="divide-y divide-white/8">
                 {members.map((m) => {
                   const a = artists.find((x) => x.id === map[m.square_id]);
                   return (
@@ -141,7 +141,7 @@ export default function IntegrationsClient({
                       <select
                         value={map[m.square_id] || ""}
                         onChange={(e) => setArtist(m.square_id, e.target.value)}
-                        className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+                        className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
                       >
                         <option value="">— not an artist —</option>
                         {artists.map((art) => (
@@ -156,7 +156,7 @@ export default function IntegrationsClient({
               </div>
             )}
           </Card>
-          <p className="mt-2 text-xs text-black/40">
+          <p className="mt-2 text-xs text-white/55">
             After changing mappings, click <span className="font-medium">Sync now</span> to apply
             them to past sales. Sales with no mapped member show as Unassigned.
           </p>

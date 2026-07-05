@@ -61,7 +61,7 @@ export default function InventoryPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           Needles, ink, gloves, tubes, and disposables — with a reorder point on each so you
           restock before you run out mid-session.
         </p>
@@ -81,21 +81,21 @@ export default function InventoryPage() {
 
       {/* The whole point: what needs reordering, up top, with supplier links. */}
       {lowStock.length > 0 && (
-        <Card className="mb-5 ring-1 ring-amber-300/60">
+        <Card className="mb-5 ring-1 ring-amber-400/35">
           <div className="p-4">
-            <div className="mb-2 text-sm font-semibold text-amber-800">
+            <div className="mb-2 text-sm font-semibold text-amber-300">
               {lowStock.length} item{lowStock.length === 1 ? "" : "s"} need reordering
             </div>
             <div className="flex flex-col gap-1.5">
               {lowStock.map((it) => (
                 <div key={it.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">
-                    {it.brand && <span className="text-black/45">{it.brand} </span>}
+                    {it.brand && <span className="text-white/60">{it.brand} </span>}
                     {it.name}
-                    {it.color && <span className="text-black/40"> · {it.color}</span>}
+                    {it.color && <span className="text-white/55"> · {it.color}</span>}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <span className={it.qty <= 0 ? "text-rose-600" : "text-amber-600"}>
+                    <span className={it.qty <= 0 ? "text-rose-400" : "text-amber-400"}>
                       {it.qty} {it.unit}
                       {it.qty === 1 ? "" : "s"} left
                       {it.reorder_qty > 0 && ` · reorder ${it.reorder_qty}`}
@@ -110,7 +110,7 @@ export default function InventoryPage() {
                         {it.supplier || "Order"} →
                       </a>
                     ) : (
-                      it.supplier && <span className="text-black/40">{it.supplier}</span>
+                      it.supplier && <span className="text-white/55">{it.supplier}</span>
                     )}
                   </span>
                 </div>
@@ -124,17 +124,17 @@ export default function InventoryPage() {
 
       {error && (
         <Card className="mb-5">
-          <div className="px-4 py-3 text-sm text-rose-600">{error}</div>
+          <div className="px-4 py-3 text-sm text-rose-400">{error}</div>
         </Card>
       )}
 
       {loading ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading inventory…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading inventory…</div>
         </Card>
       ) : items.length === 0 && !error ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             No supplies tracked yet. Add needles, ink, gloves, or anything you reorder above.
           </div>
         </Card>
@@ -165,7 +165,7 @@ function ItemTable({
     <Card>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+          <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
             <th className="px-4 py-2 font-medium">Item</th>
             <th className="px-4 py-2 font-medium">On hand</th>
             <th className="px-4 py-2 font-medium" title="Flags as low when qty drops to this">Reorder at</th>
@@ -178,14 +178,14 @@ function ItemTable({
           {items.map((it) => {
             const tone = stockTone(it);
             return (
-              <tr key={it.id} className="border-b border-black/5 last:border-0">
+              <tr key={it.id} className="border-b border-white/8 last:border-0">
                 <td className="px-4 py-2.5">
                   <div className="font-medium">
-                    {it.brand && <span className="text-black/45">{it.brand} </span>}
+                    {it.brand && <span className="text-white/60">{it.brand} </span>}
                     {it.name}
-                    {it.color && <span className="text-black/40"> · {it.color}</span>}
+                    {it.color && <span className="text-white/55"> · {it.color}</span>}
                   </div>
-                  <div className="text-xs text-black/40">
+                  <div className="text-xs text-white/55">
                     {it.unit}
                     {it.cost_cents > 0 && ` · ${usd(it.cost_cents)}/${it.unit}`}
                     {it.supplier && (
@@ -212,7 +212,7 @@ function ItemTable({
                     <button
                       onClick={() => onAdjust(it.id, -1, "manual −1")}
                       disabled={it.qty <= 0}
-                      className="h-6 w-6 rounded-md border border-black/10 text-black/60 hover:bg-black/5 disabled:opacity-30"
+                      className="h-6 w-6 rounded-md border border-white/12 text-white/75 hover:bg-white/7 disabled:opacity-30"
                       aria-label="Decrease"
                     >
                       −
@@ -220,14 +220,14 @@ function ItemTable({
                     <span className="tnum w-10 text-center font-medium">{it.qty}</span>
                     <button
                       onClick={() => onAdjust(it.id, 1, "manual +1")}
-                      className="h-6 w-6 rounded-md border border-black/10 text-black/60 hover:bg-black/5"
+                      className="h-6 w-6 rounded-md border border-white/12 text-white/75 hover:bg-white/7"
                       aria-label="Increase"
                     >
                       +
                     </button>
                   </div>
                 </td>
-                <td className="px-4 py-2.5 tnum text-black/60">{it.reorder_at}</td>
+                <td className="px-4 py-2.5 tnum text-white/75">{it.reorder_at}</td>
                 <td className="px-4 py-2.5">
                   <PriceCell item={it} onUpdate={onUpdate} />
                 </td>
@@ -237,7 +237,7 @@ function ItemTable({
                 <td className="px-4 py-2.5 text-right">
                   <button
                     onClick={() => window.confirm(`Stop tracking ${it.name}?`) && onRemove(it.id)}
-                    className="text-xs text-black/35 hover:text-rose-600"
+                    className="text-xs text-white/50 hover:text-rose-400"
                   >
                     Remove
                   </button>
@@ -279,7 +279,7 @@ function PriceCell({
   if (editing) {
     return (
       <span className="flex items-center gap-1">
-        <span className="text-black/40">$</span>
+        <span className="text-white/55">$</span>
         <input
           type="number"
           min="0"
@@ -293,7 +293,7 @@ function PriceCell({
           }}
           disabled={busy}
           placeholder="0.00"
-          className="w-20 rounded-md border border-black/10 px-2 py-1 text-sm"
+          className="w-20 rounded-md border border-white/12 px-2 py-1 text-sm"
           autoFocus
         />
       </span>
@@ -308,8 +308,8 @@ function PriceCell({
       }}
       className={
         item.price_cents
-          ? "tnum font-medium text-emerald-700 hover:underline"
-          : "text-xs text-black/35 hover:text-black/60 hover:underline"
+          ? "tnum font-medium text-emerald-300 hover:underline"
+          : "text-xs text-white/50 hover:text-white/75 hover:underline"
       }
       title={item.price_cents ? "Change the retail price (blank takes it off sale)" : "Set a retail price to sell this at the register"}
     >
@@ -386,8 +386,8 @@ function AddItemForm({
     }
   };
 
-  const field = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
-  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
+  const field = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
+  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-white/60";
   const isInk = category === "ink";
 
   if (!open) {
@@ -523,7 +523,7 @@ function AddItemForm({
             className={field}
           />
         </label>
-        {formError && <div className="text-xs text-rose-600 sm:col-span-3">{formError}</div>}
+        {formError && <div className="text-xs text-rose-400 sm:col-span-3">{formError}</div>}
         <div className="flex gap-2 sm:col-span-3">
           <button
             type="submit"
@@ -538,7 +538,7 @@ function AddItemForm({
               reset();
               setOpen(false);
             }}
-            className="rounded-lg border border-black/10 px-4 py-2 text-sm"
+            className="rounded-lg border border-white/12 px-4 py-2 text-sm"
           >
             Cancel
           </button>

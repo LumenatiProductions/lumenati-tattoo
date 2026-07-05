@@ -55,7 +55,7 @@ export default function PayoutsPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Payouts &amp; Settlement</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           Card money the shop holds, minus the shop&apos;s cut on cash and rent. The net
           is who writes whom a check.
         </p>
@@ -84,14 +84,14 @@ export default function PayoutsPage() {
       )}
 
       {role !== "artist" && !settleConfigured && (
-        <div className="mb-4 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="mb-4 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
           <span className="font-semibold">Settlement history is off</span> — run{" "}
           <code className="font-mono">supabase/settlements-schema.sql</code> in Supabase to make
           “Mark settled” stick.
         </div>
       )}
       {msg && (
-        <div className="mb-4 rounded-lg border border-black/8 bg-white px-3 py-2 text-xs text-black/60 shadow-sm">
+        <div className="mb-4 rounded-lg border border-white/10 bg-white/6 px-3 py-2 text-xs text-white/75 shadow-sm">
           {msg}
         </div>
       )}
@@ -100,7 +100,7 @@ export default function PayoutsPage() {
         <div>
           <SectionTitle>Shop pays out</SectionTitle>
           <Card>
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-white/8">
               {pays.length === 0 && <Empty>Nobody to pay right now.</Empty>}
               {pays.map((s) => (
                 <SettleRow
@@ -117,7 +117,7 @@ export default function PayoutsPage() {
         <div>
           <SectionTitle>Shop collects</SectionTitle>
           <Card>
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-white/8">
               {collects.length === 0 && <Empty>Nothing to collect.</Empty>}
               {collects.map((s) => (
                 <SettleRow
@@ -165,7 +165,7 @@ function SettleRow({
         <Dot color={st.artist.color} />
         <div>
           <div className="text-sm font-medium">{st.artist.name}</div>
-          <div className="text-xs text-black/45">
+          <div className="text-xs text-white/60">
             {kind === "pay"
               ? `card ${fmt(st.cardService)} svc + ${fmt(st.cardTips)} tips`
               : `cash cut ${fmt(st.artistOwesShop - st.rentOwed)}${
@@ -177,7 +177,7 @@ function SettleRow({
       <div className="flex items-center gap-3">
         <span
           className={`tnum text-sm font-semibold ${
-            kind === "pay" ? "text-amber-600" : "text-emerald-600"
+            kind === "pay" ? "text-amber-400" : "text-emerald-400"
           }`}
         >
           {fmt(Math.abs(st.net))}
@@ -186,7 +186,7 @@ function SettleRow({
           <button
             onClick={click}
             disabled={busy}
-            className="rounded-lg border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+            className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/70 hover:bg-white/6 disabled:opacity-40"
             title="Record the check/cash hand-off and reset this statement"
           >
             {busy ? "Settling…" : "Mark settled"}
@@ -198,5 +198,5 @@ function SettleRow({
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="px-4 py-6 text-center text-sm text-black/40">{children}</div>;
+  return <div className="px-4 py-6 text-center text-sm text-white/55">{children}</div>;
 }

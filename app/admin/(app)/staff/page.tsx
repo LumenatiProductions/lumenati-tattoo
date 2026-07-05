@@ -47,7 +47,7 @@ export default function StaffPage() {
   }, []);
 
   if (realRole !== "owner") {
-    return <p className="text-sm text-black/50">Admins only.</p>;
+    return <p className="text-sm text-white/65">Admins only.</p>;
   }
 
   const add = async (e: React.FormEvent) => {
@@ -94,7 +94,7 @@ export default function StaffPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Team</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           Two roles: admins run the shop, artists run their chair. Add someone with their phone number
           and they sign in with a text code — no passwords, nothing to set up.
         </p>
@@ -106,7 +106,7 @@ export default function StaffPage() {
           <Card>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/40">
+                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/55">
                   <th className="px-4 py-2.5 font-medium">Who</th>
                   <th className="px-4 py-2.5 font-medium">Phone</th>
                   <th className="px-4 py-2.5 font-medium">Role</th>
@@ -116,28 +116,28 @@ export default function StaffPage() {
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-black/40">Loading…</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-white/55">Loading…</td></tr>
                 )}
                 {!loading && rows.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-black/40">No one yet.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-white/55">No one yet.</td></tr>
                 )}
                 {rows.map((p) => (
-                  <tr key={p.email} className="border-b border-black/5 last:border-0">
+                  <tr key={p.email} className="border-b border-white/8 last:border-0">
                     <td className="px-4 py-2.5">
                       <div className="font-medium">{p.full_name || p.email}</div>
-                      {p.full_name && <div className="text-xs text-black/45">{p.email}</div>}
+                      {p.full_name && <div className="text-xs text-white/60">{p.email}</div>}
                     </td>
-                    <td className="tnum px-4 py-2.5 text-black/55">
-                      {p.phone ? prettyPhone(p.phone) : <span className="text-black/30">—</span>}
+                    <td className="tnum px-4 py-2.5 text-white/70">
+                      {p.phone ? prettyPhone(p.phone) : <span className="text-white/45">—</span>}
                     </td>
                     <td className="px-4 py-2.5"><Badge tone="brand">{ROLE_LABELS[p.role]}</Badge></td>
-                    <td className="px-4 py-2.5 text-black/55">
+                    <td className="px-4 py-2.5 text-white/70">
                       {p.artist_id ? artists.find((a) => a.id === p.artist_id)?.name ?? p.artist_id : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button
                         onClick={() => remove(p.email)}
-                        className="rounded-lg border border-black/10 px-2 py-1 text-xs text-black/50 hover:bg-black/4"
+                        className="rounded-lg border border-white/12 px-2 py-1 text-xs text-white/65 hover:bg-white/6"
                       >
                         Remove
                       </button>
@@ -184,7 +184,7 @@ export default function StaffPage() {
               >
                 {busy ? "Adding…" : "Add to team"}
               </button>
-              {msg && <p className="text-xs text-black/55">{msg}</p>}
+              {msg && <p className="text-xs text-white/70">{msg}</p>}
             </form>
           </Card>
         </div>

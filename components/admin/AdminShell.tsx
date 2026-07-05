@@ -86,10 +86,10 @@ function Sidebar() {
   };
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-black/8 bg-white">
+    <aside className="flex w-60 shrink-0 flex-col border-r border-white/10 bg-white/6">
       <div className="px-5 py-4">
-        <LumenatiLogo bg="light" className="w-16" />
-        <div className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-black/40">
+        <LumenatiLogo bg="dark" className="w-16" />
+        <div className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-white/55">
           Command Center
         </div>
       </div>
@@ -98,7 +98,7 @@ function Sidebar() {
         {sections.map((s, i) => (
           <div key={s.title ?? "top"} className={i === 0 ? "" : "mt-3"}>
             {s.title && (
-              <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-black/35">
+              <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/50">
                 {s.title}
               </div>
             )}
@@ -114,15 +114,15 @@ function Sidebar() {
                     tabIndex={n.soon ? -1 : undefined}
                     className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
                       active
-                        ? "bg-brand-soft font-semibold text-brand"
+                        ? "bg-white/12 font-semibold text-white"
                         : n.soon
-                          ? "cursor-default text-black/30"
-                          : "text-black/65 hover:bg-black/4"
+                          ? "cursor-default text-white/45"
+                          : "text-white/80 hover:bg-white/6"
                     }`}
                   >
                     {n.label}
                     {n.soon && (
-                      <span className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium text-black/35">
+                      <span className="rounded bg-white/7 px-1.5 py-0.5 text-[10px] font-medium text-white/50">
                         soon
                       </span>
                     )}
@@ -135,14 +135,14 @@ function Sidebar() {
       </nav>
 
       {canPreview && (
-        <div className="border-t border-black/8 p-3">
-          <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-black/35">
+        <div className="border-t border-white/10 p-3">
+          <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-white/50">
             Preview as
           </div>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as Role)}
-            className="w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+            className="w-full rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
           >
             {ASSIGNABLE_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -154,7 +154,7 @@ function Sidebar() {
             <select
               value={asArtistId}
               onChange={(e) => setAsArtistId(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+              className="mt-2 w-full rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
             >
               {artists.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -166,14 +166,14 @@ function Sidebar() {
         </div>
       )}
 
-      <div className="border-t border-black/8 p-3">
-        <div className="truncate px-1 text-[11px] text-black/45" title={email}>
+      <div className="border-t border-white/10 p-3">
+        <div className="truncate px-1 text-[11px] text-white/60" title={email}>
           {email}
         </div>
         <div className="mt-1.5 flex items-center justify-between">
           <button
             onClick={logout}
-            className="rounded-lg border border-black/10 px-2.5 py-1 text-xs font-medium text-black/60 hover:bg-black/4"
+            className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6"
           >
             Log out
           </button>
@@ -181,7 +181,7 @@ function Sidebar() {
             href="/"
             target="_blank"
             rel="noreferrer"
-            className="px-1 text-xs text-black/40 hover:text-black/70"
+            className="px-1 text-xs text-white/55 hover:text-white/85"
           >
             View site ↗
           </a>
@@ -218,7 +218,7 @@ export default function AdminShell({
                  <InventoryProvider>
                   <FollowupsProvider>
                    <CashProvider>
-                    <div className="flex min-h-screen bg-paper text-ink antialiased">
+                    <div className="admin-wash flex min-h-screen text-ink antialiased">
                       <Sidebar />
                       <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
                     </div>

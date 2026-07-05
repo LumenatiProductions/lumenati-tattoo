@@ -37,7 +37,7 @@ export default function RoomEditorPage() {
       <div className="mb-5 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Room</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             Edit what shows in your room. Changes go live right away.
           </p>
         </div>
@@ -46,10 +46,10 @@ export default function RoomEditorPage() {
             <span
               className={`text-xs font-medium ${
                 saveState === "error"
-                  ? "text-rose-600"
+                  ? "text-rose-400"
                   : saveState === "saved"
-                    ? "text-emerald-600"
-                    : "text-black/40"
+                    ? "text-emerald-400"
+                    : "text-white/55"
               }`}
             >
               {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Couldn't save — retry your last edit"}
@@ -59,7 +59,7 @@ export default function RoomEditorPage() {
             <select
               value={ownerPick}
               onChange={(e) => setOwnerPick(e.target.value)}
-              className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm"
+              className="rounded-lg border border-white/12 bg-white/6 px-3 py-1.5 text-sm"
             >
               {artists.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -72,7 +72,7 @@ export default function RoomEditorPage() {
             href={`/${artist.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            className="rounded-lg bg-white/14 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
           >
             View live room ↗
           </a>
@@ -95,8 +95,8 @@ export default function RoomEditorPage() {
                   />
                 </Field>
                 <Field label="Instagram handle">
-                  <div className="flex items-center rounded-lg border border-black/10 bg-white">
-                    <span className="pl-3 text-black/40">@</span>
+                  <div className="flex items-center rounded-lg border border-white/12 bg-white/6">
+                    <span className="pl-3 text-white/55">@</span>
                     <input
                       className="w-full bg-transparent px-2 py-2 text-sm outline-none"
                       value={room.igHandle}
@@ -140,20 +140,20 @@ export default function RoomEditorPage() {
                         onClick={() => set("accentColor", c)}
                         className={`h-7 w-7 rounded-full ring-offset-2 ${
                           room.accentColor.toLowerCase() === c.toLowerCase()
-                            ? "ring-2 ring-black/40"
-                            : "ring-1 ring-black/10"
+                            ? "ring-2 ring-white/30"
+                            : "ring-1 ring-white/15"
                         }`}
                         style={{ backgroundColor: c }}
                         title={c}
                       />
                     ))}
-                    <label className="ml-1 flex items-center gap-1.5 text-xs text-black/50">
+                    <label className="ml-1 flex items-center gap-1.5 text-xs text-white/65">
                       custom
                       <input
                         type="color"
                         value={room.accentColor}
                         onChange={(e) => set("accentColor", e.target.value)}
-                        className="h-7 w-9 cursor-pointer rounded border border-black/10 bg-white p-0.5"
+                        className="h-7 w-9 cursor-pointer rounded border border-white/12 bg-white/6 p-0.5"
                       />
                     </label>
                   </div>
@@ -169,7 +169,7 @@ export default function RoomEditorPage() {
                 <img
                   src={room.profilePhoto}
                   alt=""
-                  className="h-20 w-20 rounded-lg object-cover ring-1 ring-black/10"
+                  className="h-20 w-20 rounded-lg object-cover ring-1 ring-white/15"
                 />
                 <UploadButton artistId={artistId} onPick={(src) => set("profilePhoto", src)}>
                   Replace photo
@@ -257,7 +257,7 @@ export default function RoomEditorPage() {
                       <img
                         src={p.src}
                         alt={p.alt}
-                        className="aspect-square w-full rounded-lg object-cover ring-1 ring-black/10"
+                        className="aspect-square w-full rounded-lg object-cover ring-1 ring-white/15"
                       />
                       <button
                         onClick={() =>
@@ -275,7 +275,7 @@ export default function RoomEditorPage() {
             </Card>
           </section>
 
-          <p className="text-xs text-black/40">
+          <p className="text-xs text-white/55">
             Photo uploads preview locally for now; real hosting + saving to your
             account lands with Supabase Storage.
           </p>
@@ -294,7 +294,7 @@ export default function RoomEditorPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-black/50">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-white/65">{label}</span>
       {children}
     </label>
   );
@@ -311,11 +311,11 @@ function Row({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <img src={src} alt="" className="h-12 w-12 rounded object-cover ring-1 ring-black/10" />
+      <img src={src} alt="" className="h-12 w-12 rounded object-cover ring-1 ring-white/15" />
       <div className="flex-1">{children}</div>
       <button
         onClick={onRemove}
-        className="rounded-lg border border-black/10 px-2 py-1 text-xs text-black/50 hover:bg-black/4"
+        className="rounded-lg border border-white/12 px-2 py-1 text-xs text-white/65 hover:bg-white/6"
       >
         Remove
       </button>
@@ -324,7 +324,7 @@ function Row({
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="py-3 text-center text-sm text-black/40">{children}</div>;
+  return <div className="py-3 text-center text-sm text-white/55">{children}</div>;
 }
 
 function UploadButton({
@@ -361,7 +361,7 @@ function UploadButton({
       } ${
         small
           ? "bg-brand px-2.5 py-1 text-xs text-white hover:opacity-90"
-          : "border border-black/10 px-3 py-1.5 text-sm text-black/70 hover:bg-black/4"
+          : "border border-white/12 px-3 py-1.5 text-sm text-white/85 hover:bg-white/6"
       }`}
     >
       {busy ? "Uploading…" : children}
@@ -375,7 +375,7 @@ function RoomPreview({ room, name }: { room: RoomContent; name: string }) {
   const c = room.accentColor;
   return (
     <div
-      className="overflow-hidden rounded-xl ring-1 ring-black/10"
+      className="overflow-hidden rounded-xl ring-1 ring-white/15"
       style={{ background: `linear-gradient(135deg, ${c} 0%, #1a1320 85%)` }}
     >
       <div className="p-4">
@@ -394,7 +394,7 @@ function RoomPreview({ room, name }: { room: RoomContent; name: string }) {
         </div>
 
         {/* buddy info window */}
-        <div className="rounded border border-black/30 bg-[#c8c8c8] shadow">
+        <div className="rounded border border-white/35 bg-[#c8c8c8] shadow">
           <div
             className="flex items-center justify-between px-2 py-1 text-[11px] font-bold text-white"
             style={{ backgroundColor: "#1a4ea8" }}
@@ -402,8 +402,8 @@ function RoomPreview({ room, name }: { room: RoomContent; name: string }) {
             <span>{room.igHandle} — Buddy Info</span>
             <span className="opacity-80">_ □ ×</span>
           </div>
-          <div className="px-3 py-2 font-mono text-[11px] leading-snug text-black/80">
-            {room.bio || <span className="text-black/40">no bio yet…</span>}
+          <div className="px-3 py-2 font-mono text-[11px] leading-snug text-white/90">
+            {room.bio || <span className="text-white/55">no bio yet…</span>}
           </div>
         </div>
 
@@ -411,9 +411,9 @@ function RoomPreview({ room, name }: { room: RoomContent; name: string }) {
         {room.polaroids.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {room.polaroids.map((p: Polaroid) => (
-              <div key={p.id} className="rotate-[-2deg] bg-white p-1 pb-3 shadow">
+              <div key={p.id} className="rotate-[-2deg] bg-white/6 p-1 pb-3 shadow">
                 <img src={p.src} alt="" className="h-14 w-14 object-cover" />
-                <div className="mt-0.5 text-center font-mono text-[9px] text-black/70">
+                <div className="mt-0.5 text-center font-mono text-[9px] text-white/85">
                   {p.caption}
                 </div>
               </div>
@@ -422,13 +422,13 @@ function RoomPreview({ room, name }: { room: RoomContent; name: string }) {
         )}
 
         {/* portfolio window */}
-        <div className="mt-3 rounded border border-black/30 bg-[#c8c8c8] shadow">
+        <div className="mt-3 rounded border border-white/35 bg-[#c8c8c8] shadow">
           <div className="px-2 py-1 text-[11px] font-bold text-white" style={{ backgroundColor: "#1a4ea8" }}>
             C:\{name.split(" ")[0]}\My Pictures
           </div>
           <div className="grid grid-cols-4 gap-1 p-2">
             {room.portfolio.length === 0 && (
-              <div className="col-span-4 py-2 text-center font-mono text-[10px] text-black/40">
+              <div className="col-span-4 py-2 text-center font-mono text-[10px] text-white/55">
                 add photos to fill the wall
               </div>
             )}

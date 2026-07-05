@@ -152,7 +152,7 @@ export default function BookingsPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             The calendar where the day runs — and where deposits get applied or forfeited.
           </p>
         </div>
@@ -166,7 +166,7 @@ export default function BookingsPage() {
             </button>
             <button
               onClick={() => setAdHocPayLink(true)}
-              className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-black/60 hover:bg-black/4"
+              className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
             >
               Pay link
             </button>
@@ -174,7 +174,7 @@ export default function BookingsPage() {
               <button
                 onClick={runSync}
                 disabled={syncing}
-                className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+                className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
               >
                 {syncing ? "Syncing…" : "Sync from Square"}
               </button>
@@ -191,7 +191,7 @@ export default function BookingsPage() {
       </div>
 
       {syncMsg && (
-        <div className="mb-4 rounded-lg border border-black/10 bg-black/3 px-3 py-2 text-xs text-black/60">
+        <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/75">
           {syncMsg}
         </div>
       )}
@@ -223,20 +223,20 @@ export default function BookingsPage() {
               onClick={() => setFilter(f.key)}
               disabled={view === "week"}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
-                filter === f.key && view === "list" ? "bg-brand text-white" : "border border-black/10 text-black/55 hover:bg-black/4"
+                filter === f.key && view === "list" ? "bg-white/14 text-white" : "border border-white/12 text-white/70 hover:bg-white/6"
               }`}
             >
               {f.label}
             </button>
           ))}
         </div>
-        <div className="flex overflow-hidden rounded-lg border border-black/10">
+        <div className="flex overflow-hidden rounded-lg border border-white/12">
           {(["list", "week"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
               className={`px-3 py-1.5 text-sm font-medium ${
-                view === v ? "bg-ink text-white" : "bg-white text-black/55 hover:bg-black/4"
+                view === v ? "bg-white/14 text-white" : "bg-white/6 text-white/70 hover:bg-white/6"
               }`}
             >
               {v === "list" ? "Agenda" : "Week"}
@@ -246,7 +246,7 @@ export default function BookingsPage() {
       </div>
 
       <SectionTitle
-        action={view === "list" ? <span className="text-xs text-black/40">{filtered.length} shown</span> : undefined}
+        action={view === "list" ? <span className="text-xs text-white/55">{filtered.length} shown</span> : undefined}
       >
         {view === "list" ? "Agenda" : "Week"}
       </SectionTitle>
@@ -259,15 +259,15 @@ export default function BookingsPage() {
         />
       ) : loading ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading bookings…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading bookings…</div>
         </Card>
       ) : error ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-amber-600">{error}</div>
+          <div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             {bookings.length === 0
               ? "No bookings yet. Add one above, or sync from Square."
               : "Nothing in this view."}
@@ -282,9 +282,9 @@ export default function BookingsPage() {
                 {dayKey(items[0].starts_at) === dayKey(new Date().toISOString()) && (
                   <span className="text-xs font-medium text-brand">Today</span>
                 )}
-                <span className="text-xs text-black/35">{items.length}</span>
+                <span className="text-xs text-white/50">{items.length}</span>
               </div>
-              <Card className="divide-y divide-black/6 overflow-hidden">
+              <Card className="divide-y divide-white/9 overflow-hidden">
                 {items.map((b) => (
                   <BookingRow
                     key={b.id}
@@ -345,11 +345,11 @@ function BookingRow({
   const status = STATUS_BADGE[b.status];
   const deposit = DEPOSIT_BADGE[b.deposit_status];
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-black/3">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-white/5">
       <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <div className="w-16 shrink-0">
           <div className="tnum text-sm font-semibold">{fmtTime(b.starts_at)}</div>
-          {b.ends_at && <div className="text-[11px] text-black/35">to {fmtTime(b.ends_at)}</div>}
+          {b.ends_at && <div className="text-[11px] text-white/50">to {fmtTime(b.ends_at)}</div>}
         </div>
         <Dot color={artistColor} />
         <div className="min-w-0 flex-1">
@@ -360,7 +360,7 @@ function BookingRow({
             {b.status === "scheduled" && b.confirmed_at && <Badge tone="good">Confirmed ✓</Badge>}
             {b.checked_in_at && <Badge tone="brand">Here</Badge>}
           </div>
-          <div className="mt-0.5 truncate text-xs text-black/45">
+          <div className="mt-0.5 truncate text-xs text-white/60">
             {[artistName, b.service_desc, b.est_price_cents ? money(b.est_price_cents) : null]
               .filter(Boolean)
               .join(" · ")}
@@ -371,13 +371,13 @@ function BookingRow({
         <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
           <button
             onClick={onComplete}
-            className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+            className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15"
           >
             Complete
           </button>
           <button
             onClick={onNoShow}
-            className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
+            className="rounded-md border border-rose-400/30 bg-rose-400/10 px-2.5 py-1 text-xs font-medium text-rose-300 hover:bg-rose-400/15"
           >
             No-show
           </button>
@@ -454,7 +454,7 @@ function AddForm({
 
   const set = (key: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setF((s) => ({ ...s, [key]: e.target.value }));
-  const input = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+  const input = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
 
   return (
     <Card className="mb-5">
@@ -489,10 +489,10 @@ function AddForm({
           <button type="submit" disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
             {busy ? "Saving…" : "Create booking"}
           </button>
-          <button type="button" onClick={onCancel} className="rounded-lg border border-black/10 px-4 py-2 text-sm text-black/55">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-white/12 px-4 py-2 text-sm text-white/70">
             Cancel
           </button>
-          {err && <span className="text-xs text-rose-600">{err}</span>}
+          {err && <span className="text-xs text-rose-400">{err}</span>}
         </div>
       </form>
     </Card>
@@ -643,28 +643,28 @@ function BookingDrawer({
     setF((s) => ({ ...s, [key]: e.target.value }));
     setSaved(false);
   };
-  const input = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+  const input = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-black/8 px-5 py-4">
+      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white/6 shadow-xl">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{clientName}</h2>
             <Badge tone={status.tone}>{status.label}</Badge>
             {booking.source === "square" && <Badge tone="brand">Square</Badge>}
             {booking.source === "web_request" && <Badge>Web request</Badge>}
           </div>
-          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-black/45 hover:bg-black/5">Close</button>
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/7">Close</button>
         </div>
 
         <div className="space-y-4 p-5">
           {/* Deposit summary + lifecycle */}
-          <div className="rounded-lg border border-black/8 bg-black/2 p-3">
+          <div className="rounded-lg border border-white/10 bg-white/4 p-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-black/40">Deposit</div>
+                <div className="text-[11px] uppercase tracking-wide text-white/55">Deposit</div>
                 <div className="tnum mt-0.5 text-sm font-semibold">
                   {booking.deposit_cents ? money(booking.deposit_cents) : "None taken"}
                 </div>
@@ -673,9 +673,9 @@ function BookingDrawer({
             </div>
             {canWrite && booking.deposit_status === "held" && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <button onClick={() => run({ depositStatus: "applied" })} disabled={busy} className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 disabled:opacity-40">Apply to ticket</button>
-                <button onClick={() => run({ depositStatus: "forfeited" })} disabled={busy} className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 disabled:opacity-40">Forfeit</button>
-                <button onClick={refundDeposit} disabled={busy} className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 disabled:opacity-40">Refund</button>
+                <button onClick={() => run({ depositStatus: "applied" })} disabled={busy} className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300 disabled:opacity-40">Apply to ticket</button>
+                <button onClick={() => run({ depositStatus: "forfeited" })} disabled={busy} className="rounded-md border border-rose-400/30 bg-rose-400/10 px-2.5 py-1 text-xs font-medium text-rose-300 disabled:opacity-40">Forfeit</button>
+                <button onClick={refundDeposit} disabled={busy} className="rounded-md border border-white/12 px-2.5 py-1 text-xs font-medium text-white/70 disabled:opacity-40">Refund</button>
               </div>
             )}
             {canWrite && (
@@ -697,7 +697,7 @@ function BookingDrawer({
                   onClick={() => run({ status: s })}
                   disabled={busy || booking.status === s}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-                    booking.status === s ? "bg-brand text-white" : "border border-black/10 text-black/55 hover:bg-black/4"
+                    booking.status === s ? "bg-white/14 text-white" : "border border-white/12 text-white/70 hover:bg-white/6"
                   } disabled:opacity-50`}
                 >
                   {STATUS_BADGE[s].label}
@@ -708,7 +708,7 @@ function BookingDrawer({
 
           {/* Confirmation — manual confirm + a reminder/confirm nudge. */}
           {canWrite && booking.status === "scheduled" && (
-            <div className="rounded-lg border border-black/8 bg-black/2 p-3">
+            <div className="rounded-lg border border-white/10 bg-white/4 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 {booking.confirmed_at ? (
                   <>
@@ -716,7 +716,7 @@ function BookingDrawer({
                     <button
                       onClick={() => run({ confirmedAt: null })}
                       disabled={busy}
-                      className="text-xs font-medium text-black/45 underline hover:text-black/70 disabled:opacity-40"
+                      className="text-xs font-medium text-white/60 underline hover:text-white/85 disabled:opacity-40"
                     >
                       Undo
                     </button>
@@ -725,7 +725,7 @@ function BookingDrawer({
                   <button
                     onClick={() => run({ confirmedAt: new Date().toISOString() })}
                     disabled={busy}
-                    className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
+                    className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15 disabled:opacity-40"
                   >
                     Mark confirmed
                   </button>
@@ -733,12 +733,12 @@ function BookingDrawer({
                 <button
                   onClick={sendReminder}
                   disabled={busy}
-                  className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+                  className="rounded-md border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
                 >
                   Send reminder now
                 </button>
               </div>
-              {remindMsg && <div className="mt-2 text-xs text-emerald-600">{remindMsg}</div>}
+              {remindMsg && <div className="mt-2 text-xs text-emerald-400">{remindMsg}</div>}
             </div>
           )}
 
@@ -777,7 +777,7 @@ function BookingDrawer({
           {canWrite && (
             <div className="space-y-2 pt-1">
               {booking.client_id && (
-                <label className="flex items-center gap-2 text-xs text-black/55">
+                <label className="flex items-center gap-2 text-xs text-white/70">
                   <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
                   Text/email the client if I change the time
                 </label>
@@ -786,8 +786,8 @@ function BookingDrawer({
                 <button onClick={saveChanges} disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
                   {busy ? "Saving…" : "Save changes"}
                 </button>
-                {saved && <span className="text-xs text-emerald-600">Saved</span>}
-                {err && <span className="text-xs text-rose-600">{err}</span>}
+                {saved && <span className="text-xs text-emerald-400">Saved</span>}
+                {err && <span className="text-xs text-rose-400">{err}</span>}
               </div>
             </div>
           )}
@@ -816,7 +816,7 @@ function BookingDrawer({
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-black/45">{label}</span>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">{label}</span>
       {children}
     </label>
   );

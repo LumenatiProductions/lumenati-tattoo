@@ -97,7 +97,7 @@ export default function IntakePage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Intake &amp; Consent</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             Digital waivers, age/ID verification, and aftercare sign-off — on file before the needle touches skin.
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function IntakePage() {
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === f.key ? "bg-brand text-white" : "border border-black/10 text-black/55 hover:bg-black/4"
+              filter === f.key ? "bg-white/14 text-white" : "border border-white/12 text-white/70 hover:bg-white/6"
             }`}
           >
             {f.label}
@@ -160,24 +160,24 @@ export default function IntakePage() {
         ))}
       </div>
 
-      <SectionTitle action={<span className="text-xs text-black/40">{filtered.length} shown</span>}>
+      <SectionTitle action={<span className="text-xs text-white/55">{filtered.length} shown</span>}>
         Consent forms
       </SectionTitle>
 
       {loading ? (
-        <Card><div className="px-4 py-10 text-center text-sm text-black/40">Loading forms…</div></Card>
+        <Card><div className="px-4 py-10 text-center text-sm text-white/55">Loading forms…</div></Card>
       ) : error ? (
-        <Card><div className="px-4 py-10 text-center text-sm text-amber-600">{error}</div></Card>
+        <Card><div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div></Card>
       ) : filtered.length === 0 ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             {forms.length === 0
               ? "No consent forms yet. Start one above — fill it on the shop tablet or text the client a link."
               : "Nothing in this view."}
           </div>
         </Card>
       ) : (
-        <Card className="divide-y divide-black/6 overflow-hidden">
+        <Card className="divide-y divide-white/9 overflow-hidden">
           {filtered.map((f) => (
             <FormRow
               key={f.id}
@@ -222,14 +222,14 @@ function FormRow({
   const s = stateOf(f);
   const badge = STATE_BADGE[s];
   return (
-    <button onClick={onOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-black/3">
+    <button onClick={onOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/5">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-medium">{clientName}</span>
           <Badge tone={badge.tone}>{badge.label}</Badge>
           {f.id_checked && f.id_type && <Badge tone="neutral">ID: {idTypeLabel(f.id_type)}</Badge>}
         </div>
-        <div className="mt-0.5 truncate text-xs text-black/45">
+        <div className="mt-0.5 truncate text-xs text-white/60">
           {[
             artistName,
             f.placement || null,
@@ -239,7 +239,7 @@ function FormRow({
             .join(" · ")}
         </div>
       </div>
-      <span className="shrink-0 text-xs text-black/30">View</span>
+      <span className="shrink-0 text-xs text-white/45">View</span>
     </button>
   );
 }
@@ -264,7 +264,7 @@ function NewFormPanel({
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const input = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+  const input = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
 
   // Picking a booking pre-fills client + artist.
   const pickBooking = (id: string) => {
@@ -296,7 +296,7 @@ function NewFormPanel({
       {freshLink ? (
         <div className="p-4">
           <div className="text-sm font-semibold">Form ready — share the signing link</div>
-          <p className="mt-1 text-xs text-black/50">
+          <p className="mt-1 text-xs text-white/65">
             Open it on the shop tablet for the client to sign now, or text/email it so they can fill it before they arrive.
           </p>
           <div className="mt-3 flex items-center gap-2">
@@ -307,7 +307,7 @@ function NewFormPanel({
                 navigator.clipboard?.writeText(freshLink);
                 setCopied(true);
               }}
-              className="shrink-0 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-black/60 hover:bg-black/4"
+              className="shrink-0 rounded-lg border border-white/12 px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -320,7 +320,7 @@ function NewFormPanel({
               Open
             </a>
           </div>
-          <button type="button" onClick={onCancel} className="mt-4 text-xs font-medium text-black/45 hover:text-black/70">
+          <button type="button" onClick={onCancel} className="mt-4 text-xs font-medium text-white/60 hover:text-white/85">
             Done
           </button>
         </div>
@@ -353,8 +353,8 @@ function NewFormPanel({
             <button type="submit" disabled={busy} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
               {busy ? "Starting…" : "Start form"}
             </button>
-            <button type="button" onClick={onCancel} className="rounded-lg border border-black/10 px-4 py-2 text-sm text-black/55">Cancel</button>
-            {err && <span className="text-xs text-rose-600">{err}</span>}
+            <button type="button" onClick={onCancel} className="rounded-lg border border-white/12 px-4 py-2 text-sm text-white/70">Cancel</button>
+            {err && <span className="text-xs text-rose-400">{err}</span>}
           </div>
         </form>
       )}
@@ -432,23 +432,23 @@ function FormDrawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-black/8 px-5 py-4">
+      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white/6 shadow-xl">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold">{clientName}</h2>
             <Badge tone={badge.tone}>{badge.label}</Badge>
           </div>
-          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-black/45 hover:bg-black/5">Close</button>
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/7">Close</button>
         </div>
 
         <div className="space-y-5 p-5">
           {f.age_ok === false && !f.guardian_name && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            <div className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
               Date of birth is below the minimum age. Do not proceed without front-desk review / guardian consent.
             </div>
           )}
           {f.guardian_name && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
               <span className="font-semibold">Minor with guardian co-sign:</span> {f.guardian_name}
               {f.guardian_relationship ? ` (${f.guardian_relationship})` : ""}. Verify BOTH IDs in person.
             </div>
@@ -465,8 +465,8 @@ function FormDrawer({
           {/* Signature */}
           {f.signature_svg && (
             <div>
-              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">Signature</div>
-              <div className="rounded-lg border border-black/10 bg-black/2 p-2">
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">Signature</div>
+              <div className="rounded-lg border border-white/12 bg-white/4 p-2">
                 <svg viewBox={`0 0 ${SIGNATURE_VIEWBOX.w} ${SIGNATURE_VIEWBOX.h}`} className="h-24 w-full" role="img" aria-label="Signature">
                   <path d={f.signature_svg} fill="none" stroke="#0e0e11" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -477,10 +477,10 @@ function FormDrawer({
           {/* Guardian co-signature */}
           {f.guardian_signature_svg && (
             <div>
-              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">
                 Guardian signature{f.guardian_name ? ` · ${f.guardian_name}` : ""}
               </div>
-              <div className="rounded-lg border border-black/10 bg-black/2 p-2">
+              <div className="rounded-lg border border-white/12 bg-white/4 p-2">
                 <svg viewBox={`0 0 ${SIGNATURE_VIEWBOX.w} ${SIGNATURE_VIEWBOX.h}`} className="h-24 w-full" role="img" aria-label="Guardian signature">
                   <path d={f.guardian_signature_svg} fill="none" stroke="#0e0e11" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -490,32 +490,32 @@ function FormDrawer({
 
           {/* Medical flags */}
           <div>
-            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">Medical flags</div>
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">Medical flags</div>
             {f.medical_flags ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{f.medical_flags}</div>
+              <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">{f.medical_flags}</div>
             ) : f.signed_at ? (
-              <div className="text-xs text-black/45">None reported.</div>
+              <div className="text-xs text-white/60">None reported.</div>
             ) : (
-              <div className="text-xs text-black/35">Not yet completed.</div>
+              <div className="text-xs text-white/50">Not yet completed.</div>
             )}
           </div>
 
           {/* Full questionnaire snapshot */}
           {f.signed_at && (
-            <details className="rounded-lg border border-black/8">
-              <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-black/55">Full questionnaire</summary>
+            <details className="rounded-lg border border-white/10">
+              <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-white/70">Full questionnaire</summary>
               <div className="space-y-1.5 px-3 pb-3 pt-1">
                 {MEDICAL_QUESTIONS.map((q) => (
                   <div key={q.key} className="flex items-start justify-between gap-3 text-xs">
-                    <span className="text-black/55">{q.label.replace(/^PLACEHOLDER —\s*/, "")}</span>
-                    <span className={`shrink-0 font-medium ${String(answers[q.key]).toLowerCase() === "yes" ? "text-amber-700" : "text-black/45"}`}>
+                    <span className="text-white/70">{q.label.replace(/^PLACEHOLDER —\s*/, "")}</span>
+                    <span className={`shrink-0 font-medium ${String(answers[q.key]).toLowerCase() === "yes" ? "text-amber-300" : "text-white/60"}`}>
                       {String(answers[q.key] ?? "—")}
                     </span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between gap-3 pt-1 text-xs">
-                  <span className="text-black/55">Aftercare acknowledged</span>
-                  <span className="font-medium text-emerald-700">{f.aftercare_ack ? "Yes" : "No"}</span>
+                  <span className="text-white/70">Aftercare acknowledged</span>
+                  <span className="font-medium text-emerald-300">{f.aftercare_ack ? "Yes" : "No"}</span>
                 </div>
               </div>
             </details>
@@ -523,18 +523,18 @@ function FormDrawer({
 
           {/* Actions */}
           {canWrite && !f.voided && (
-            <div className="space-y-4 border-t border-black/8 pt-4">
+            <div className="space-y-4 border-t border-white/10 pt-4">
               {/* Not yet signed: share the link */}
               {!f.signed_at && signUrl && (
                 <div>
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">Signing link</div>
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">Signing link</div>
                   <div className="flex items-center gap-2">
-                    <input readOnly value={signUrl} onFocus={(e) => e.currentTarget.select()} className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 font-mono text-xs" />
+                    <input readOnly value={signUrl} onFocus={(e) => e.currentTarget.select()} className="w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 font-mono text-xs" />
                     <a href={signUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white">Open</a>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="email or mobile number" className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm" />
-                    <button onClick={send} disabled={busy} className="shrink-0 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-black/60 hover:bg-black/4 disabled:opacity-40">Send link</button>
+                    <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="email or mobile number" className="w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm" />
+                    <button onClick={send} disabled={busy} className="shrink-0 rounded-lg border border-white/12 px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40">Send link</button>
                   </div>
                 </div>
               )}
@@ -542,12 +542,12 @@ function FormDrawer({
               {/* Signed: confirm the in-person ID check */}
               {f.signed_at && (
                 <div>
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-black/45">ID verification</div>
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">ID verification</div>
                   {f.id_checked ? (
-                    <div className="text-xs text-emerald-700">Confirmed{f.id_type ? ` · ${idTypeLabel(f.id_type)}` : ""}.</div>
+                    <div className="text-xs text-emerald-300">Confirmed{f.id_type ? ` · ${idTypeLabel(f.id_type)}` : ""}.</div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <select value={idType} onChange={(e) => setIdType(e.target.value as IdType)} className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm">
+                      <select value={idType} onChange={(e) => setIdType(e.target.value as IdType)} className="rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm">
                         <option value="">ID type…</option>
                         {ID_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
                       </select>
@@ -557,20 +557,20 @@ function FormDrawer({
                 </div>
               )}
 
-              <button onClick={doVoid} disabled={busy} className="text-xs font-medium text-rose-600 hover:text-rose-700 disabled:opacity-40">
+              <button onClick={doVoid} disabled={busy} className="text-xs font-medium text-rose-400 hover:text-rose-300 disabled:opacity-40">
                 Void this form
               </button>
             </div>
           )}
 
           {f.voided && (
-            <div className="rounded-lg border border-black/8 bg-black/2 px-3 py-2 text-xs text-black/55">
+            <div className="rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-xs text-white/70">
               Voided{f.void_reason ? ` — ${f.void_reason}` : ""}. Kept on file for the record.
             </div>
           )}
 
           {msg && (
-            <div className={`text-xs ${msg.err ? "text-rose-600" : "text-black/55"}`}>{msg.text}</div>
+            <div className={`text-xs ${msg.err ? "text-rose-400" : "text-white/70"}`}>{msg.text}</div>
           )}
         </div>
       </div>
@@ -581,8 +581,8 @@ function FormDrawer({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-xs font-medium uppercase tracking-wide text-black/45">{label}</span>
-      <span className="text-sm text-black/80">{value}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-white/60">{label}</span>
+      <span className="text-sm text-white/90">{value}</span>
     </div>
   );
 }
@@ -590,7 +590,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-black/45">{label}</span>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">{label}</span>
       {children}
     </label>
   );

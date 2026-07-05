@@ -90,7 +90,7 @@ export default function PnlPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Profit &amp; Loss</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             Money in minus money out — the shop&apos;s actual profit. Owner &amp; bookkeeper only.
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function PnlPage() {
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value)}
-            className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+            className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
           >
             {YEARS.map((y) => (
               <option key={y} value={y}>
@@ -112,7 +112,7 @@ export default function PnlPage() {
               key={g}
               onClick={() => setGroup(g)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                group === g ? "bg-brand text-white" : "border border-black/10 text-black/60 hover:bg-black/4"
+                group === g ? "bg-white/14 text-white" : "border border-white/12 text-white/75 hover:bg-white/6"
               }`}
             >
               {g === "month" ? "Monthly" : g === "quarter" ? "Quarterly" : "Yearly"}
@@ -123,7 +123,7 @@ export default function PnlPage() {
 
       {error && (
         <Card className="mb-5">
-          <div className="px-4 py-3 text-sm text-rose-600">{error}</div>
+          <div className="px-4 py-3 text-sm text-rose-400">{error}</div>
         </Card>
       )}
 
@@ -163,13 +163,13 @@ export default function PnlPage() {
           <div className="flex gap-2">
             <a
               href={`/api/pnl?from=${range.from}&to=${range.to}&group=${group}&format=csv`}
-              className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4"
+              className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6"
             >
               P&amp;L CSV
             </a>
             <a
               href={`/api/ledger/export?from=${range.from}&to=${range.to}`}
-              className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4"
+              className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6"
             >
               General ledger CSV
             </a>
@@ -180,13 +180,13 @@ export default function PnlPage() {
       </SectionTitle>
       <Card className="mb-6 overflow-x-auto">
         {loading ? (
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading…</div>
         ) : !data || data.periods.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-black/40">No money activity in this range.</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">No money activity in this range.</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+              <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
                 <th className="px-4 py-2 font-medium">Period</th>
                 <th className="px-4 py-2 text-right font-medium">Gross collected</th>
                 <th className="px-4 py-2 text-right font-medium">Artist share</th>
@@ -197,15 +197,15 @@ export default function PnlPage() {
             </thead>
             <tbody>
               {data.periods.map((p) => (
-                <tr key={p.key} className="border-b border-black/5 last:border-0">
+                <tr key={p.key} className="border-b border-white/8 last:border-0">
                   <td className="px-4 py-2.5 font-medium">{periodLabel(p.key)}</td>
-                  <td className="tnum px-4 py-2.5 text-right text-black/60">{usd(p.grossCollected)}</td>
-                  <td className="tnum px-4 py-2.5 text-right text-black/60">{usd(p.artistShare)}</td>
+                  <td className="tnum px-4 py-2.5 text-right text-white/75">{usd(p.grossCollected)}</td>
+                  <td className="tnum px-4 py-2.5 text-right text-white/75">{usd(p.artistShare)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(p.income)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(p.expensesTotal)}</td>
                   <td
                     className={`tnum px-4 py-2.5 text-right font-semibold ${
-                      p.profit < 0 ? "text-rose-600" : "text-emerald-700"
+                      p.profit < 0 ? "text-rose-400" : "text-emerald-300"
                     }`}
                   >
                     {usdSigned(p.profit)}
@@ -213,13 +213,13 @@ export default function PnlPage() {
                 </tr>
               ))}
               {t && (
-                <tr className="border-t-2 border-black/10 bg-black/2 font-semibold">
+                <tr className="border-t-2 border-white/12 bg-white/4 font-semibold">
                   <td className="px-4 py-2.5">Total</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.grossCollected)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.artistShare)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.income)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.expensesTotal)}</td>
-                  <td className={`tnum px-4 py-2.5 text-right ${t.profit < 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                  <td className={`tnum px-4 py-2.5 text-right ${t.profit < 0 ? "text-rose-400" : "text-emerald-300"}`}>
                     {usdSigned(t.profit)}
                   </td>
                 </tr>
@@ -234,7 +234,7 @@ export default function PnlPage() {
           <div>
             <SectionTitle>Where the income comes from</SectionTitle>
             <Card>
-              <div className="divide-y divide-black/5 text-sm">
+              <div className="divide-y divide-white/8 text-sm">
                 <Line label={"Shop's cut of artist sales (splits)"} value={t.splitIncome} />
                 <Line label="Shop sales (no artist attached — walk-ins, guests, products)" value={t.unattributedIncome} />
                 <Line label="Booth rent collected" value={t.rentIncome} />
@@ -246,9 +246,9 @@ export default function PnlPage() {
           <div>
             <SectionTitle>Where the money goes</SectionTitle>
             <Card>
-              <div className="divide-y divide-black/5 text-sm">
+              <div className="divide-y divide-white/8 text-sm">
                 {catList.length === 0 && (
-                  <div className="px-4 py-6 text-center text-xs text-black/40">
+                  <div className="px-4 py-6 text-center text-xs text-white/55">
                     No expenses logged in this range yet. Log bills on the Expenses page and they land here.
                   </div>
                 )}
@@ -301,7 +301,7 @@ function TaxRateInline() {
 
   if (bps === null) return null;
   return (
-    <div className="flex items-center gap-2 text-xs text-black/55">
+    <div className="flex items-center gap-2 text-xs text-white/70">
       {editing ? (
         <>
           <span>Tax rate</span>
@@ -312,17 +312,17 @@ function TaxRateInline() {
             step="0.01"
             value={pct}
             onChange={(e) => setPct(e.target.value)}
-            className="w-20 rounded-lg border border-black/10 bg-white px-2 py-1 text-xs"
+            className="w-20 rounded-lg border border-white/12 bg-white/6 px-2 py-1 text-xs"
             placeholder="7.25"
           />
           <span>%</span>
           <button onClick={save} className="font-semibold text-brand">
             Save
           </button>
-          <button onClick={() => setEditing(false)} className="text-black/40">
+          <button onClick={() => setEditing(false)} className="text-white/55">
             Cancel
           </button>
-          {err && <span className="text-rose-600">{err}</span>}
+          {err && <span className="text-rose-400">{err}</span>}
         </>
       ) : (
         <>
@@ -348,7 +348,7 @@ function TaxRateInline() {
 function Line({ label, value, bold = false }: { label: string; value: number; bold?: boolean }) {
   return (
     <div className={`flex items-center justify-between px-4 py-2.5 ${bold ? "font-semibold" : ""}`}>
-      <span className={bold ? "" : "text-black/60"}>{label}</span>
+      <span className={bold ? "" : "text-white/75"}>{label}</span>
       <span className="tnum">{usd(value)}</span>
     </div>
   );
@@ -406,8 +406,8 @@ function DrawsSection({ onChange }: { onChange: () => void }) {
     onChange();
   };
 
-  const field = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
-  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
+  const field = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
+  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-white/60";
 
   return (
     <div>
@@ -443,7 +443,7 @@ function DrawsSection({ onChange }: { onChange: () => void }) {
             <span className={labelCls}>Note</span>
             <input value={note} onChange={(e) => setNote(e.target.value)} className={field} />
           </label>
-          {err && <div className="text-xs text-rose-600 sm:col-span-5">{err}</div>}
+          {err && <div className="text-xs text-rose-400 sm:col-span-5">{err}</div>}
           <div className="sm:col-span-5">
             <button
               type="submit"
@@ -460,13 +460,13 @@ function DrawsSection({ onChange }: { onChange: () => void }) {
           <table className="w-full text-sm">
             <tbody>
               {draws.map((d) => (
-                <tr key={d.id} className="border-b border-black/5 last:border-0">
-                  <td className="tnum px-4 py-2.5 text-black/60">{d.date}</td>
-                  <td className="px-4 py-2.5 capitalize text-black/60">{d.method}</td>
-                  <td className="px-4 py-2.5 text-black/60">{d.note || ""}</td>
+                <tr key={d.id} className="border-b border-white/8 last:border-0">
+                  <td className="tnum px-4 py-2.5 text-white/75">{d.date}</td>
+                  <td className="px-4 py-2.5 capitalize text-white/75">{d.method}</td>
+                  <td className="px-4 py-2.5 text-white/75">{d.note || ""}</td>
                   <td className="tnum px-4 py-2.5 text-right font-medium">{usd(d.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <button onClick={() => remove(d.id)} className="text-xs text-black/35 hover:text-rose-600">
+                    <button onClick={() => remove(d.id)} className="text-xs text-white/50 hover:text-rose-400">
                       Remove
                     </button>
                   </td>

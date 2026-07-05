@@ -68,13 +68,13 @@ export default function FrontDeskHome() {
         <Link href="/admin/clients" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
           New client
         </Link>
-        <Link href="/admin/intake" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/intake" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Send intake
         </Link>
-        <Link href="/admin/bookings" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/bookings" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Bookings
         </Link>
-        <Link href="/admin/cash" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/cash" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Cash log
         </Link>
       </div>
@@ -87,13 +87,13 @@ export default function FrontDeskHome() {
             Today&apos;s schedule
           </SectionTitle>
           <Card>
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-white/8">
               {todays.length === 0 && <Empty>No appointments today.</Empty>}
               {todays.map((b) => (
                 <div key={b.id} className="flex items-center justify-between px-4 py-3">
                   <div>
                     <div className="text-sm font-medium">{clientName(b.client_id)}</div>
-                    <div className="text-xs text-black/45">
+                    <div className="text-xs text-white/60">
                       {clock(b.starts_at)}
                       {artistName(b.artist_id) ? ` · ${artistName(b.artist_id)}` : ""}
                       {b.service_desc ? ` · ${b.service_desc}` : ""}
@@ -116,12 +116,12 @@ export default function FrontDeskHome() {
             Running low
           </SectionTitle>
           <Card>
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-white/8">
               {lowStock.length === 0 && <Empty>Everything&apos;s stocked.</Empty>}
               {lowStock.slice(0, 8).map((it) => (
                 <div key={it.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                   <span className="truncate">{it.name}</span>
-                  <span className={it.qty <= 0 ? "text-rose-600" : "text-amber-600"}>
+                  <span className={it.qty <= 0 ? "text-rose-400" : "text-amber-400"}>
                     {it.qty} {it.unit}
                     {it.qty === 1 ? "" : "s"}
                   </span>

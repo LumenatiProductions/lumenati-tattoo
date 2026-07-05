@@ -63,17 +63,17 @@ export default function HealedQueue() {
   return (
     <div className="mb-6">
       <SectionTitle>
-        Healed photos <span className="font-normal text-black/35">· from clients, awaiting approval</span>
+        Healed photos <span className="font-normal text-white/50">· from clients, awaiting approval</span>
       </SectionTitle>
       {msg && (
-        <div className="mb-3 rounded-lg border border-black/8 bg-white px-3 py-2 text-xs text-black/60 shadow-sm">{msg}</div>
+        <div className="mb-3 rounded-lg border border-white/10 bg-white/6 px-3 py-2 text-xs text-white/75 shadow-sm">{msg}</div>
       )}
       <Card>
         <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-4">
           {photos.map((p) => {
             const artist = artists.find((a) => a.id === p.artist_id);
             return (
-              <div key={p.id} className="overflow-hidden rounded-lg border border-black/8">
+              <div key={p.id} className="overflow-hidden rounded-lg border border-white/10">
                 <a href={p.url} target="_blank" rel="noreferrer" title="Open full size">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.url} alt="Healed tattoo from a client" className="h-40 w-full object-cover hover:opacity-90" loading="lazy" />
@@ -92,7 +92,7 @@ export default function HealedQueue() {
                     <button
                       onClick={() => act(p.id, "dismiss")}
                       disabled={busyId === p.id}
-                      className="rounded-md border border-black/10 px-2 py-1 text-[11px] font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+                      className="rounded-md border border-white/12 px-2 py-1 text-[11px] font-medium text-white/70 hover:bg-white/6 disabled:opacity-40"
                     >
                       Dismiss
                     </button>

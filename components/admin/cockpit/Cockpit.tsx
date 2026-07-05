@@ -67,21 +67,21 @@ export default function Cockpit() {
       <SectionTitle>Needs attention</SectionTitle>
       <Card>
         {items.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-black/40">
+          <div className="px-4 py-8 text-center text-sm text-white/55">
             All clear — nothing needs a decision right now.
           </div>
         ) : (
-          <div className="divide-y divide-black/5">
+          <div className="divide-y divide-white/8">
             {items.map((it) => (
-              <Link key={it.key} href={it.href} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-black/[0.02]">
+              <Link key={it.key} href={it.href} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-white/[0.04]">
                 <div className="flex items-center gap-3">
                   <Sevdot sev={it.sev} />
                   <div>
                     <div className="text-sm font-medium">{it.label}</div>
-                    {it.detail && <div className="text-xs text-black/45">{it.detail}</div>}
+                    {it.detail && <div className="text-xs text-white/60">{it.detail}</div>}
                   </div>
                 </div>
-                <span className="text-sm text-black/30">›</span>
+                <span className="text-sm text-white/45">›</span>
               </Link>
             ))}
           </div>
@@ -95,16 +95,16 @@ function Tile({ label, value, sub, href, warn }: { label: string; value: string;
   return (
     <Link
       href={href}
-      className={`rounded-xl border bg-white px-4 py-3 transition hover:shadow-sm ${warn ? "border-amber-300/70" : "border-black/8"}`}
+      className={`rounded-xl border bg-white/6 px-4 py-3 transition hover:shadow-sm ${warn ? "border-amber-400/40" : "border-white/10"}`}
     >
-      <div className="text-xs font-medium uppercase tracking-wide text-black/45">{label}</div>
-      <div className={`tnum mt-1 text-xl font-semibold ${warn ? "text-amber-600" : "text-ink"}`}>{value}</div>
-      {sub && <div className="text-[11px] text-black/40">{sub}</div>}
+      <div className="text-xs font-medium uppercase tracking-wide text-white/60">{label}</div>
+      <div className={`tnum mt-1 text-xl font-semibold ${warn ? "text-amber-400" : "text-ink"}`}>{value}</div>
+      {sub && <div className="text-[11px] text-white/55">{sub}</div>}
     </Link>
   );
 }
 
 function Sevdot({ sev }: { sev: Sev }) {
-  const c = sev === "high" ? "bg-rose-500" : sev === "med" ? "bg-amber-500" : "bg-black/25";
+  const c = sev === "high" ? "bg-rose-500" : sev === "med" ? "bg-amber-500" : "bg-white/25";
   return <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c}`} />;
 }

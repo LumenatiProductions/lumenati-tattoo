@@ -89,23 +89,23 @@ export default function PayLinkDialog({
 
   const chip = (active: boolean) =>
     `rounded-lg border px-3 py-2 text-left transition-colors ${
-      active ? "border-brand bg-brand text-white" : "border-black/12 bg-white text-black/70 hover:border-black/30"
+      active ? "border-brand bg-brand text-white" : "border-white/15 bg-white/6 text-white/85 hover:border-white/35"
     }`;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+      <div className="relative w-full max-w-sm rounded-2xl bg-white/6 p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">Pay link{who ? ` for ${who}` : ""}</h2>
-          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-black/45 hover:bg-black/5">
+          <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/7">
             Close
           </button>
         </div>
 
         {url ? (
           <div>
-            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+            <div className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">
               Link ready — send it to the client. They can pay anytime; it never expires.
             </div>
             <div className="mt-3 flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function PayLinkDialog({
                 readOnly
                 value={url}
                 onFocus={(e) => e.currentTarget.select()}
-                className="w-full rounded-lg border border-black/12 bg-black/2 px-3 py-2 text-xs text-black/70"
+                className="w-full rounded-lg border border-white/15 bg-white/4 px-3 py-2 text-xs text-white/85"
               />
               <button
                 onClick={copy}
@@ -126,7 +126,7 @@ export default function PayLinkDialog({
               {clientPhone && (
                 <a
                   href={`sms:${clientPhone}?&body=${encodeURIComponent(smsText)}`}
-                  className="rounded-lg border border-black/12 px-3 py-2 text-xs font-medium text-black/70 hover:border-black/30"
+                  className="rounded-lg border border-white/15 px-3 py-2 text-xs font-medium text-white/85 hover:border-white/35"
                 >
                   Text it
                 </a>
@@ -134,7 +134,7 @@ export default function PayLinkDialog({
               {clientEmail && (
                 <a
                   href={`mailto:${clientEmail}?subject=${encodeURIComponent("Your Lumenati payment link")}&body=${encodeURIComponent(smsText)}`}
-                  className="rounded-lg border border-black/12 px-3 py-2 text-xs font-medium text-black/70 hover:border-black/30"
+                  className="rounded-lg border border-white/15 px-3 py-2 text-xs font-medium text-white/85 hover:border-white/35"
                 >
                   Email it
                 </a>
@@ -144,7 +144,7 @@ export default function PayLinkDialog({
                   setUrl(null);
                   setAmount("");
                 }}
-                className="rounded-lg border border-black/12 px-3 py-2 text-xs font-medium text-black/55 hover:border-black/30"
+                className="rounded-lg border border-white/15 px-3 py-2 text-xs font-medium text-white/70 hover:border-white/35"
               >
                 New link
               </button>
@@ -152,30 +152,30 @@ export default function PayLinkDialog({
           </div>
         ) : (
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-wide text-black/45">For</div>
+            <div className="text-[11px] font-medium uppercase tracking-wide text-white/60">For</div>
             <div className="mt-1.5 grid grid-cols-3 gap-2">
               {KINDS.map((k) => (
                 <button key={k.id} type="button" onClick={() => setKind(k.id)} className={chip(kind === k.id)}>
                   <div className="text-sm font-semibold">{k.label}</div>
-                  <div className={`text-[10px] ${kind === k.id ? "text-white/80" : "text-black/40"}`}>{k.hint}</div>
+                  <div className={`text-[10px] ${kind === k.id ? "text-white/80" : "text-white/55"}`}>{k.hint}</div>
                 </button>
               ))}
             </div>
 
-            <div className="mt-4 text-[11px] font-medium uppercase tracking-wide text-black/45">Amount</div>
+            <div className="mt-4 text-[11px] font-medium uppercase tracking-wide text-white/60">Amount</div>
             <div className="mt-1.5 flex items-center gap-2">
-              <span className="text-2xl font-bold text-black/40">$</span>
+              <span className="text-2xl font-bold text-white/55">$</span>
               <input
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
                 inputMode="decimal"
                 placeholder="0"
                 autoFocus
-                className="w-full rounded-lg border border-black/12 px-3 py-2 text-lg font-semibold"
+                className="w-full rounded-lg border border-white/15 px-3 py-2 text-lg font-semibold"
               />
             </div>
 
-            {err && <div className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{err}</div>}
+            {err && <div className="mt-3 rounded-lg bg-rose-400/10 px-3 py-2 text-xs text-rose-300">{err}</div>}
 
             <button
               onClick={create}

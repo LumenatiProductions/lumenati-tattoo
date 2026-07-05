@@ -53,6 +53,16 @@ Build in this order; 1 and 2 make money directly:
    above is solid: "add your shop" wizard, per-shop branding, per-shop Stripe.
 
 ## Current state (compressed — it all works, verified)
+- **Design language (2026-07-05, Scott's pick): Money Glow + Liquid Ink** on
+  BOTH surfaces. Blue-violet ink blacks, fixed ink-wash bleed (app: InkWash
+  component; web: .admin-wash in admin.css), translucent glass panels lit from
+  the top edge. Pink = money actions ONLY (charge/pay/log cash/mark paid);
+  selection states are white lifts; earnings/up = green; numbers are heroes
+  (tabular, big, count-up). Y2K stays on the public site + Y2kPaidFX. Web
+  admin fully converted from light to dark (utility sweep + token flip —
+  --color-ink/paper in admin.css now mean text/ground in the DARK world; never
+  use bg-ink as a solid). Verified in Chrome (overview/cash/pnl/bookings/
+  reports) + app home in sim. True frosted blur = expo-blur, next build.
 - **Money layer complete** (2026-07-04/05): P&L by month/quarter/year back to
   2021 (penny-verified vs ledger, $702k/2,364 sales), profit chart, recurring
   bills that post when due, owner draws, sales tax capture (rate on shop, tax

@@ -138,7 +138,7 @@ export default function FollowupsPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Follow-ups</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             Aftercare, review requests, and nudges — finished work turned into healed clients and reviews.
           </p>
         </div>
@@ -153,7 +153,7 @@ export default function FollowupsPage() {
             </button>
             <button
               onClick={() => setShowTemplates((v) => !v)}
-              className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-black/60 hover:bg-black/4"
+              className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
             >
               {showTemplates ? "Hide templates" : "Templates"}
             </button>
@@ -169,18 +169,18 @@ export default function FollowupsPage() {
       </div>
 
       {/* How sending works — keep the domain-reputation guardrail visible. */}
-      <div className="mb-5 flex items-start gap-2 rounded-lg border border-black/10 bg-black/3 px-3 py-2 text-xs text-black/55">
-        <span className="font-semibold text-black/70">Sending</span>
+      <div className="mb-5 flex items-start gap-2 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/70">
+        <span className="font-semibold text-white/85">Sending</span>
         <span>
           Use <span className="font-medium">Send now</span> to email a follow-up by hand at any time. Automated nightly
           sending stays off until the Resend sending domain is confirmed (set{" "}
-          <code className="rounded bg-black/5 px-1">FOLLOWUPS_AUTOSEND=true</code>), so the queue fills safely in the
+          <code className="rounded bg-white/7 px-1">FOLLOWUPS_AUTOSEND=true</code>), so the queue fills safely in the
           meantime.
         </span>
       </div>
 
       {msg && (
-        <div className="mb-4 rounded-lg border border-black/10 bg-black/3 px-3 py-2 text-xs text-black/60">{msg}</div>
+        <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/75">{msg}</div>
       )}
 
       {showTemplates && canWrite && <TemplateEditor templates={templates} onSave={saveTemplate} />}
@@ -192,7 +192,7 @@ export default function FollowupsPage() {
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === f.key ? "bg-brand text-white" : "border border-black/10 text-black/55 hover:bg-black/4"
+              filter === f.key ? "bg-white/14 text-white" : "border border-white/12 text-white/70 hover:bg-white/6"
             }`}
           >
             {f.label}
@@ -200,28 +200,28 @@ export default function FollowupsPage() {
         ))}
       </div>
 
-      <SectionTitle action={<span className="text-xs text-black/40">{filtered.length} shown</span>}>
+      <SectionTitle action={<span className="text-xs text-white/55">{filtered.length} shown</span>}>
         Queue
       </SectionTitle>
 
       {loading ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading follow-ups…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading follow-ups…</div>
         </Card>
       ) : error ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-amber-600">{error}</div>
+          <div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             {followups.length === 0
               ? "Nothing queued yet. Complete a booking, then run “Scan now.”"
               : "Nothing in this view."}
           </div>
         </Card>
       ) : (
-        <Card className="divide-y divide-black/6 overflow-hidden">
+        <Card className="divide-y divide-white/9 overflow-hidden">
           {filtered.map((f) => (
             <FollowupRow
               key={f.id}
@@ -264,10 +264,10 @@ function FollowupRow({
   const reachable = !!(contact?.email || contact?.phone);
   const contactLine = contact?.email || contact?.phone || "no email or mobile on file";
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-black/3">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-white/5">
       <div className="w-24 shrink-0">
         <div className="text-sm font-semibold">{fmtDate(f.scheduled_for)}</div>
-        <div className="text-[11px] text-black/35">scheduled</div>
+        <div className="text-[11px] text-white/50">scheduled</div>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -277,7 +277,7 @@ function FollowupRow({
           {f.channel === "sms" && <Badge tone="neutral">text</Badge>}
           {!reachable && <Badge tone="warn">No contact</Badge>}
         </div>
-        <div className="mt-0.5 truncate text-xs text-black/45">
+        <div className="mt-0.5 truncate text-xs text-white/60">
           {[contactLine, f.result && f.status !== "pending" ? f.result : null]
             .filter(Boolean)
             .join(" · ")}
@@ -290,7 +290,7 @@ function FollowupRow({
               onClick={onSend}
               disabled={busy || !reachable}
               title={!reachable ? "No email or mobile on file for this client" : "Send now"}
-              className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
+              className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15 disabled:opacity-40"
             >
               {busy ? "…" : "Send now"}
             </button>
@@ -299,7 +299,7 @@ function FollowupRow({
             <button
               onClick={onSkip}
               disabled={busy}
-              className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+              className="rounded-md border border-white/12 px-2.5 py-1 text-xs font-medium text-white/70 hover:bg-white/6 disabled:opacity-40"
             >
               Skip
             </button>
@@ -308,7 +308,7 @@ function FollowupRow({
             <button
               onClick={onRequeue}
               disabled={busy}
-              className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+              className="rounded-md border border-white/12 px-2.5 py-1 text-xs font-medium text-white/70 hover:bg-white/6 disabled:opacity-40"
             >
               Re-queue
             </button>
@@ -335,7 +335,7 @@ function TemplateEditor({
   if (!templates.length) {
     return (
       <Card className="mb-5">
-        <div className="px-4 py-8 text-center text-sm text-black/40">Loading templates…</div>
+        <div className="px-4 py-8 text-center text-sm text-white/55">Loading templates…</div>
       </Card>
     );
   }
@@ -375,7 +375,7 @@ function TemplateCard({
   const [err, setErr] = useState<string | null>(null);
 
   const leadLabel = LEAD_LABEL[template.kind];
-  const input = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+  const input = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
 
   const save = async () => {
     setBusy(true);
@@ -401,7 +401,7 @@ function TemplateCard({
             <h3 className="text-sm font-semibold">{KIND_LABEL[template.kind]}</h3>
             <Badge tone={enabled ? "good" : "neutral"}>{enabled ? "On" : "Off"}</Badge>
           </div>
-          <label className="flex items-center gap-2 text-xs text-black/55">
+          <label className="flex items-center gap-2 text-xs text-white/70">
             <input
               type="checkbox"
               checked={enabled}
@@ -415,7 +415,7 @@ function TemplateCard({
         </div>
 
         <label className="mb-3 block">
-          <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-black/45">Subject</span>
+          <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">Subject</span>
           <input
             className={input}
             value={subject}
@@ -427,9 +427,9 @@ function TemplateCard({
         </label>
 
         <label className="mb-3 block">
-          <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-black/45">
+          <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">
             Body
-            <span className="ml-1 normal-case text-black/35">
+            <span className="ml-1 normal-case text-white/50">
               — tokens: {"{{first_name}}"} {"{{shop_name}}"}
               {template.kind === "review_request" ? " {{review_link}}" : ""}
             </span>
@@ -447,7 +447,7 @@ function TemplateCard({
         <div className="flex flex-wrap items-end gap-3">
           {leadLabel && (
             <label className="block">
-              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-black/45">{leadLabel}</span>
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">{leadLabel}</span>
               <input
                 className={`${input} w-28`}
                 value={leadDays}
@@ -466,8 +466,8 @@ function TemplateCard({
           >
             {busy ? "Saving…" : "Save template"}
           </button>
-          {saved && <span className="text-xs text-emerald-600">Saved</span>}
-          {err && <span className="text-xs text-rose-600">{err}</span>}
+          {saved && <span className="text-xs text-emerald-400">Saved</span>}
+          {err && <span className="text-xs text-rose-400">{err}</span>}
         </div>
       </div>
     </Card>

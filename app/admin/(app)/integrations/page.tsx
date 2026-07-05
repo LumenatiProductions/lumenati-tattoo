@@ -17,7 +17,7 @@ export default async function IntegrationsPage() {
     ? await supabase.from("profiles").select("role").eq("email", user.email!).maybeSingle()
     : { data: null };
   if (profile?.role !== "owner") {
-    return <p className="text-sm text-black/50">Owners only.</p>;
+    return <p className="text-sm text-white/65">Owners only.</p>;
   }
 
   // Tolerate the schema not being applied yet (errors -> empty defaults).

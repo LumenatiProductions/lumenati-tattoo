@@ -48,10 +48,10 @@ export default function BookkeeperHome() {
         <Link href="/admin/reports" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
           Open Reports →
         </Link>
-        <Link href="/admin/payouts" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/payouts" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Payouts
         </Link>
-        <Link href="/admin/cash" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/cash" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Cash log
         </Link>
       </div>

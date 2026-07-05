@@ -55,22 +55,22 @@ export default function OwnerHome() {
         <Link href="/admin/clients" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
           New client
         </Link>
-        <Link href="/admin/bookings" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/bookings" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Bookings
         </Link>
-        <Link href="/admin/payouts" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/payouts" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Payouts
         </Link>
-        <Link href="/admin/reports" className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium">
+        <Link href="/admin/reports" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Reports
         </Link>
       </div>
 
       <SectionTitle>
-        This week <span className="font-normal text-black/35">· last 7 days, same as your Monday email</span>
+        This week <span className="font-normal text-white/50">· last 7 days, same as your Monday email</span>
       </SectionTitle>
       <Card className="mb-5">
-        <div className="grid grid-cols-3 divide-x divide-y divide-black/5 sm:grid-cols-6 sm:divide-y-0">
+        <div className="grid grid-cols-3 divide-x divide-y divide-white/8 sm:grid-cols-6 sm:divide-y-0">
           <WeekTile label="Gross" value={fmt(wkService + wkTips)} strong delta={dGross} />
           <WeekTile label="Service" value={fmt(wkService)} delta={dService} />
           <WeekTile label="Tips" value={fmt(wkTips)} delta={dTips} />

@@ -82,14 +82,14 @@ export default function CompliancePage() {
   // The API is owner-gated too — this just renders the clean message instead of
   // a wall of 403 errors if someone types the URL.
   if (realRole !== "owner") {
-    return <p className="text-sm text-black/50">Owners only.</p>;
+    return <p className="text-sm text-white/65">Owners only.</p>;
   }
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Compliance</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           Licenses, BBP certs, permits, insurance, and inspections — and a warning before anything
           lapses. Owner-only.
         </p>
@@ -112,21 +112,21 @@ export default function CompliancePage() {
 
       {/* The whole point: what's lapsing, up top. */}
       {expiringSoon.length > 0 && (
-        <Card className="mb-5 ring-1 ring-amber-300/60">
+        <Card className="mb-5 ring-1 ring-amber-400/35">
           <div className="p-4">
-            <div className="mb-2 text-sm font-semibold text-amber-800">
+            <div className="mb-2 text-sm font-semibold text-amber-300">
               {expiringSoon.length} item{expiringSoon.length === 1 ? "" : "s"} need attention
             </div>
             <div className="flex flex-col gap-1.5">
               {expiringSoon.map((it) => (
                 <div key={it.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">
-                    <span className="text-black/45">{artistName(it.artist_id)} — </span>
+                    <span className="text-white/60">{artistName(it.artist_id)} — </span>
                     {it.label?.trim() || kindLabel(it.kind)}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span
-                      className={it.status === "expired" ? "text-rose-600" : "text-amber-600"}
+                      className={it.status === "expired" ? "text-rose-400" : "text-amber-400"}
                     >
                       {expiryNote(it)}
                     </span>
@@ -143,17 +143,17 @@ export default function CompliancePage() {
 
       {error && (
         <Card className="mb-5">
-          <div className="px-4 py-3 text-sm text-rose-600">{error}</div>
+          <div className="px-4 py-3 text-sm text-rose-400">{error}</div>
         </Card>
       )}
 
       {loading ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading compliance…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading compliance…</div>
         </Card>
       ) : items.length === 0 && !error ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             Nothing tracked yet. Add a license, cert, permit, or inspection above.
           </div>
         </Card>
@@ -200,7 +200,7 @@ function ItemTable({
     <Card>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+          <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
             <th className="px-4 py-2 font-medium">Item</th>
             <th className="px-4 py-2 font-medium">Issued</th>
             <th className="px-4 py-2 font-medium">Expires</th>
@@ -210,10 +210,10 @@ function ItemTable({
         </thead>
         <tbody>
           {items.map((it) => (
-            <tr key={it.id} className="border-b border-black/5 last:border-0">
+            <tr key={it.id} className="border-b border-white/8 last:border-0">
               <td className="px-4 py-2.5">
                 <div className="font-medium">{it.label?.trim() || kindLabel(it.kind)}</div>
-                <div className="text-xs text-black/40">
+                <div className="text-xs text-white/55">
                   {kindLabel(it.kind)}
                   {it.document_url && (
                     <>
@@ -229,12 +229,12 @@ function ItemTable({
                     </>
                   )}
                 </div>
-                {it.notes && <div className="mt-0.5 text-xs text-black/40">{it.notes}</div>}
+                {it.notes && <div className="mt-0.5 text-xs text-white/55">{it.notes}</div>}
               </td>
-              <td className="px-4 py-2.5 tnum text-black/60">{it.issued_on ?? "—"}</td>
+              <td className="px-4 py-2.5 tnum text-white/75">{it.issued_on ?? "—"}</td>
               <td className="px-4 py-2.5 tnum">
                 <div>{it.expires_on ?? "—"}</div>
-                <div className="text-xs text-black/40">{expiryNote(it)}</div>
+                <div className="text-xs text-white/55">{expiryNote(it)}</div>
               </td>
               <td className="px-4 py-2.5">
                 <Badge tone={STATUS_TONE[it.status]}>{STATUS_LABEL[it.status]}</Badge>
@@ -242,7 +242,7 @@ function ItemTable({
               <td className="px-4 py-2.5 text-right">
                 <button
                   onClick={() => onRemove(it.id)}
-                  className="text-xs text-black/35 hover:text-rose-600"
+                  className="text-xs text-white/50 hover:text-rose-400"
                 >
                   Remove
                 </button>
@@ -307,9 +307,9 @@ function AddItemForm({
   };
 
   const field =
-    "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+    "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
   const labelCls =
-    "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
+    "mb-1 block text-xs font-medium uppercase tracking-wide text-white/60";
 
   if (!open) {
     return (
@@ -390,7 +390,7 @@ function AddItemForm({
           <span className={labelCls}>Notes (optional)</span>
           <input value={notes} onChange={(e) => setNotes(e.target.value)} className={field} />
         </label>
-        {formError && <div className="text-xs text-rose-600 sm:col-span-2">{formError}</div>}
+        {formError && <div className="text-xs text-rose-400 sm:col-span-2">{formError}</div>}
         <div className="flex gap-2 sm:col-span-2">
           <button
             type="submit"
@@ -405,7 +405,7 @@ function AddItemForm({
               reset();
               setOpen(false);
             }}
-            className="rounded-lg border border-black/10 px-4 py-2 text-sm"
+            className="rounded-lg border border-white/12 px-4 py-2 text-sm"
           >
             Cancel
           </button>

@@ -101,7 +101,7 @@ export default function ReconcilePage() {
   }, []);
 
   if (!["owner", "bookkeeper"].includes(realRole)) {
-    return <p className="text-sm text-black/50">Owners &amp; bookkeepers only.</p>;
+    return <p className="text-sm text-white/65">Owners &amp; bookkeepers only.</p>;
   }
 
   const monthLabel = data
@@ -119,7 +119,7 @@ export default function ReconcilePage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Reconciliation</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           Stripe&apos;s ledger against our records{monthLabel ? ` — ${monthLabel}` : ""}. When both
           sides agree, the books are square.
         </p>
@@ -127,12 +127,12 @@ export default function ReconcilePage() {
 
       {error && (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/50">{error}</div>
+          <div className="px-4 py-10 text-center text-sm text-white/65">{error}</div>
         </Card>
       )}
       {!error && !data && (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Pulling both ledgers…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Pulling both ledgers…</div>
         </Card>
       )}
 
@@ -170,27 +170,27 @@ export default function ReconcilePage() {
               <SectionTitle>Stripe</SectionTitle>
               <Card>
                 {!data.stripe.configured ? (
-                  <div className="px-4 py-8 text-center text-sm text-black/40">
+                  <div className="px-4 py-8 text-center text-sm text-white/55">
                     Stripe isn&apos;t connected yet.
                   </div>
                 ) : data.stripe.error ? (
-                  <div className="px-4 py-8 text-center text-sm text-rose-600">{data.stripe.error}</div>
+                  <div className="px-4 py-8 text-center text-sm text-rose-400">{data.stripe.error}</div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 divide-x divide-black/5 border-b border-black/5">
+                    <div className="grid grid-cols-2 divide-x divide-white/8 border-b border-white/8">
                       <Cell label="Available" value={fmtPrecise(data.stripe.availableCents ?? 0)} />
                       <Cell label="Pending" value={fmtPrecise(data.stripe.pendingCents ?? 0)} />
                     </div>
-                    <div className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-black/40">
+                    <div className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-white/55">
                       Recent payouts to the bank
                     </div>
-                    <div className="divide-y divide-black/5">
+                    <div className="divide-y divide-white/8">
                       {(data.stripe.payouts ?? []).length === 0 && (
-                        <div className="px-4 py-4 text-center text-sm text-black/40">No payouts yet.</div>
+                        <div className="px-4 py-4 text-center text-sm text-white/55">No payouts yet.</div>
                       )}
                       {(data.stripe.payouts ?? []).map((p) => (
                         <div key={p.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                          <span className="text-black/55">{p.date}</span>
+                          <span className="text-white/70">{p.date}</span>
                           <span className="flex items-center gap-2">
                             <span className="tnum font-medium">{fmtPrecise(p.amountCents)}</span>
                             <Badge tone={p.status === "paid" ? "good" : "neutral"}>{p.status}</Badge>
@@ -207,11 +207,11 @@ export default function ReconcilePage() {
             <div>
               <SectionTitle>Our records</SectionTitle>
               <Card>
-                <div className="grid grid-cols-2 divide-x divide-black/5 border-b border-black/5">
+                <div className="grid grid-cols-2 divide-x divide-white/8 border-b border-white/8">
                   <Cell label="Card sales (recorded)" value={fmtPrecise(data.square.cardCents)} />
                   <Cell label="Cash sales (Square)" value={fmtPrecise(data.square.cashCents)} />
                 </div>
-                <div className="grid grid-cols-2 divide-x divide-black/5 border-b border-black/5">
+                <div className="grid grid-cols-2 divide-x divide-white/8 border-b border-white/8">
                   <Cell label="Cash logged" value={fmtPrecise(data.cash.loggedCents)} />
                   <Cell
                     label="Cash unreconciled"
@@ -219,21 +219,21 @@ export default function ReconcilePage() {
                     warn={data.cash.unreconciledCents > 0}
                   />
                 </div>
-                <div className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-black/40">
+                <div className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-white/55">
                   Drawer closes
                 </div>
                 <div className="px-4 pb-3">
                   {data.cash.sessions.length === 0 ? (
-                    <div className="py-2 text-sm text-black/40">No closed drawers yet.</div>
+                    <div className="py-2 text-sm text-white/55">No closed drawers yet.</div>
                   ) : (
                     <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
                       {data.cash.sessions.map((s, i) => (
-                        <span key={i} className="text-black/50">
+                        <span key={i} className="text-white/65">
                           {new Date(s.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}:{" "}
                           {s.overShortCents === 0 ? (
-                            <span className="text-emerald-600">even</span>
+                            <span className="text-emerald-400">even</span>
                           ) : (
-                            <span className={(s.overShortCents ?? 0) > 0 ? "text-emerald-600" : "text-rose-600"}>
+                            <span className={(s.overShortCents ?? 0) > 0 ? "text-emerald-400" : "text-rose-400"}>
                               {(s.overShortCents ?? 0) > 0 ? "+" : "−"}
                               {fmtPrecise(Math.abs(s.overShortCents ?? 0))}
                             </span>
@@ -250,22 +250,22 @@ export default function ReconcilePage() {
                 <SectionTitle>Card payments this month</SectionTitle>
                 <Card>
                   {(data.recent ?? []).length === 0 ? (
-                    <div className="px-4 py-6 text-center text-sm text-black/40">
+                    <div className="px-4 py-6 text-center text-sm text-white/55">
                       No card payments yet this month.
                     </div>
                   ) : (
-                    <div className="divide-y divide-black/5">
+                    <div className="divide-y divide-white/8">
                       {(data.recent ?? []).map((p) => (
                         <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                           <div className="min-w-0">
                             <div className="truncate font-medium text-ink">
                               {p.client || p.artist || KIND_LABEL[p.kind] || "Payment"}
-                              <span className="ml-2 text-xs font-normal text-black/40">
+                              <span className="ml-2 text-xs font-normal text-white/55">
                                 {KIND_LABEL[p.kind] ?? p.kind}
                                 {p.artist && p.client ? ` · ${p.artist}` : ""}
                               </span>
                             </div>
-                            <div className="text-xs text-black/45">
+                            <div className="text-xs text-white/60">
                               {new Date(p.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                               {" · "}
                               {new Date(p.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -279,7 +279,7 @@ export default function ReconcilePage() {
                               <button
                                 onClick={() => refund(p)}
                                 disabled={refunding === p.id}
-                                className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:border-black/25 hover:text-ink disabled:opacity-40"
+                                className="rounded-md border border-white/12 px-2.5 py-1 text-xs font-medium text-white/70 hover:border-white/30 hover:text-ink disabled:opacity-40"
                               >
                                 {refunding === p.id ? "Refunding…" : "Refund"}
                               </button>
@@ -293,14 +293,14 @@ export default function ReconcilePage() {
                   )}
                 </Card>
                 {refundErr && (
-                  <div className="mt-3 rounded-lg border border-rose-300/60 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                  <div className="mt-3 rounded-lg border border-rose-400/40 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
                     {refundErr}
                   </div>
                 )}
               </div>
 
               {data.recorded.pendingCount > 0 && (
-                <div className="mt-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <div className="mt-3 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
                   {data.recorded.pendingCount} payment link{data.recorded.pendingCount === 1 ? "" : "s"} still
                   pending — unpaid links are normal, but stale ones are worth voiding.
                 </div>
@@ -316,8 +316,8 @@ export default function ReconcilePage() {
 function Cell({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div className="px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-black/45">{label}</div>
-      <div className={`tnum mt-1 text-xl font-semibold ${warn ? "text-amber-600" : "text-ink"}`}>{value}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-white/60">{label}</div>
+      <div className={`tnum mt-1 text-xl font-semibold ${warn ? "text-amber-400" : "text-ink"}`}>{value}</div>
     </div>
   );
 }

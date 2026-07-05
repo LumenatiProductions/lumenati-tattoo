@@ -43,7 +43,7 @@ export default function Insights() {
   return (
     <div className="mt-6">
       <SectionTitle>
-        Insights <span className="font-normal text-black/35">· last {data.windowDays} days</span>
+        Insights <span className="font-normal text-white/50">· last {data.windowDays} days</span>
       </SectionTitle>
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -74,7 +74,7 @@ export default function Insights() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Busiest hours */}
         <Card>
-          <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-black/45">Busiest hours</div>
+          <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-white/60">Busiest hours</div>
           <div className="flex items-end gap-1 px-4 pb-4 pt-3" style={{ height: 120 }}>
             {span.map(({ h, n }) => (
               <div key={h} className="flex flex-1 flex-col items-center gap-1" title={`${hourLabel(h)} · ${n} booking${n === 1 ? "" : "s"}`}>
@@ -82,7 +82,7 @@ export default function Insights() {
                   className="w-full rounded-t bg-brand/70"
                   style={{ height: `${Math.round((n / maxHour) * 80)}px`, minHeight: n ? 3 : 1, opacity: n ? 1 : 0.15 }}
                 />
-                <span className="text-[9px] text-black/35">{h % 2 === 0 ? hourLabel(h) : ""}</span>
+                <span className="text-[9px] text-white/50">{h % 2 === 0 ? hourLabel(h) : ""}</span>
               </div>
             ))}
           </div>
@@ -90,19 +90,19 @@ export default function Insights() {
 
         {/* No-show by artist */}
         <Card>
-          <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-black/45">No-show rate by artist</div>
-          <div className="divide-y divide-black/5 pb-1">
+          <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-white/60">No-show rate by artist</div>
+          <div className="divide-y divide-white/8 pb-1">
             {data.noShowByArtist.length === 0 && (
-              <div className="px-4 py-5 text-center text-sm text-black/40">Not enough settled bookings yet.</div>
+              <div className="px-4 py-5 text-center text-sm text-white/55">Not enough settled bookings yet.</div>
             )}
             {data.noShowByArtist.map((r) => (
               <div key={r.artistId} className="flex items-center justify-between px-4 py-2 text-sm">
                 <span className="flex items-center gap-2">
                   <Dot color={artistColor(r.artistId)} />
                   {artistName(r.artistId)}
-                  <span className="text-[11px] text-black/35">({r.settled} settled)</span>
+                  <span className="text-[11px] text-white/50">({r.settled} settled)</span>
                 </span>
-                <span className={`tnum font-semibold ${r.noShowPct >= 15 ? "text-amber-600" : "text-emerald-600"}`}>
+                <span className={`tnum font-semibold ${r.noShowPct >= 15 ? "text-amber-400" : "text-emerald-400"}`}>
                   {r.noShowPct}%
                 </span>
               </div>
@@ -112,10 +112,10 @@ export default function Insights() {
 
         {/* Top clients */}
         <Card>
-          <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-black/45">Top clients · lifetime</div>
-          <div className="divide-y divide-black/5 pb-1">
+          <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-white/60">Top clients · lifetime</div>
+          <div className="divide-y divide-white/8 pb-1">
             {data.topClients.length === 0 && (
-              <div className="px-4 py-5 text-center text-sm text-black/40">No spend recorded yet.</div>
+              <div className="px-4 py-5 text-center text-sm text-white/55">No spend recorded yet.</div>
             )}
             {data.topClients.map((c) => (
               <div key={c.id} className="flex items-center justify-between px-4 py-2 text-sm">

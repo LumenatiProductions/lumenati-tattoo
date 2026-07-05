@@ -101,7 +101,7 @@ export default function ProfitChart({ points }: { points: Point[] }) {
           return (
             <div
               key={c.key}
-              className="pointer-events-none absolute -translate-x-1/2 text-[11px] font-semibold tnum text-black/70"
+              className="pointer-events-none absolute -translate-x-1/2 text-[11px] font-semibold tnum text-white/85"
               style={{
                 left: `${((c.i + 0.5) / points.length) * 100}%`,
                 top: up ? `${(Math.min(c.y, zeroY) / H) * 100}%` : undefined,
@@ -117,18 +117,18 @@ export default function ProfitChart({ points }: { points: Point[] }) {
       {/* hover tooltip */}
       {hover !== null && (
         <div
-          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-xs shadow-sm"
+          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-xs shadow-sm"
           style={{ left: `${((hover + 0.5) / points.length) * 100}%` }}
         >
           <span className="font-medium">{points[hover].label}</span>{" "}
-          <span className={`tnum font-semibold ${points[hover].profit < 0 ? "text-rose-600" : "text-emerald-700"}`}>
+          <span className={`tnum font-semibold ${points[hover].profit < 0 ? "text-rose-400" : "text-emerald-300"}`}>
             {usd(points[hover].profit)}
           </span>
         </div>
       )}
 
       {/* x labels: first, last, and a few in between */}
-      <div className="mt-1 flex justify-between text-[11px] text-black/40">
+      <div className="mt-1 flex justify-between text-[11px] text-white/55">
         <span>{points[0].label}</span>
         {points.length > 4 && <span>{points[Math.floor(points.length / 2)].label}</span>}
         <span>{points[points.length - 1].label}</span>

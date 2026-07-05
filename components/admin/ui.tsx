@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-black/8 bg-white shadow-sm ${className}`}
+      className={`rounded-xl border border-white/10 border-t-white/20 bg-white/6 shadow-sm ${className}`}
     >
       {children}
     </div>
@@ -31,20 +31,20 @@ export function StatCard({
 }) {
   const toneText =
     tone === "good"
-      ? "text-emerald-600"
+      ? "text-emerald-400"
       : tone === "warn"
-        ? "text-amber-600"
+        ? "text-amber-400"
         : "text-ink";
   return (
     <Card className={accent ? "ring-1 ring-brand/30" : ""}>
       <div className="p-4">
-        <div className="text-xs font-medium uppercase tracking-wide text-black/45">
+        <div className="text-xs font-medium uppercase tracking-wide text-white/60">
           {label}
         </div>
         <div className={`tnum mt-1 text-2xl font-semibold ${toneText}`}>
           {value}
         </div>
-        {sub && <div className="mt-0.5 text-xs text-black/45">{sub}</div>}
+        {sub && <div className="mt-0.5 text-xs text-white/60">{sub}</div>}
       </div>
     </Card>
   );
@@ -59,7 +59,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-black/55">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/70">
         {children}
       </h2>
       {action}
@@ -75,10 +75,10 @@ export function Badge({
   tone?: "neutral" | "good" | "warn" | "bad" | "brand";
 }) {
   const map: Record<string, string> = {
-    neutral: "bg-black/6 text-black/60",
-    good: "bg-emerald-100 text-emerald-700",
-    warn: "bg-amber-100 text-amber-700",
-    bad: "bg-rose-100 text-rose-700",
+    neutral: "bg-white/8 text-white/75",
+    good: "bg-emerald-400/15 text-emerald-300",
+    warn: "bg-amber-400/15 text-amber-300",
+    bad: "bg-rose-400/15 text-rose-300",
     brand: "bg-brand-soft text-brand",
   };
   return (
@@ -102,9 +102,9 @@ export function Dot({ color }: { color: string }) {
 /** A "this is mock data" notice while integrations aren't connected. */
 export function MockBanner({ source }: { source: string }) {
   return (
-    <div className="mb-5 flex items-center gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+    <div className="mb-5 flex items-center gap-2 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
       <span className="font-semibold">Preview data</span>
-      <span className="text-amber-700/80">
+      <span className="text-amber-300/80">
         — {source} not connected yet. These figures are placeholders.
       </span>
     </div>

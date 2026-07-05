@@ -60,14 +60,14 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
             Coming up
           </SectionTitle>
           <Card>
-            <div className="divide-y divide-black/5">
+            <div className="divide-y divide-white/8">
               {upcoming.length === 0 && <Empty>No upcoming appointments.</Empty>}
               {upcoming.map((b) => (
                 <div key={b.id} className="px-4 py-3">
                   <div className="text-sm font-medium">
                     {b.starts_at.slice(5, 10)} · {clock(b.starts_at)}
                   </div>
-                  <div className="text-xs text-black/45">
+                  <div className="text-xs text-white/60">
                     {b.service_desc || "Session"}
                     {b.deposit_status === "held" ? " · deposit held" : ""}
                   </div>
@@ -86,7 +86,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
           <Card>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/40">
+                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/55">
                   <th className="px-4 py-2.5 font-medium">Date</th>
                   <th className="px-4 py-2.5 font-medium">Service</th>
                   <th className="px-4 py-2.5 font-medium">Pay</th>
@@ -103,20 +103,20 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
                   </tr>
                 )}
                 {mine.slice(0, 10).map((s) => (
-                  <tr key={s.id} className="border-b border-black/5 last:border-0">
-                    <td className="px-4 py-2.5 text-black/55">{s.date}</td>
+                  <tr key={s.id} className="border-b border-white/8 last:border-0">
+                    <td className="px-4 py-2.5 text-white/70">{s.date}</td>
                     <td className="px-4 py-2.5">{s.description}</td>
                     <td className="px-4 py-2.5">
                       <Badge tone={s.method === "cash" ? "warn" : "neutral"}>{s.method}</Badge>
                     </td>
                     <td className="tnum px-4 py-2.5 text-right">{fmt(s.serviceCents)}</td>
-                    <td className="tnum px-4 py-2.5 text-right text-black/55">{fmt(s.tipCents)}</td>
+                    <td className="tnum px-4 py-2.5 text-right text-white/70">{fmt(s.tipCents)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {mine.length > 10 && (
-              <div className="border-t border-black/5 px-4 py-2 text-center text-xs text-black/40">
+              <div className="border-t border-white/8 px-4 py-2 text-center text-xs text-white/55">
                 Last 10 of {mine.length} tickets
               </div>
             )}

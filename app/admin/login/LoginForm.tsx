@@ -96,19 +96,19 @@ export default function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-paper px-4 text-ink antialiased">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center">
-          <LumenatiLogo bg="light" className="w-32" />
-          <div className="mt-2 text-[11px] font-medium uppercase tracking-widest text-black/40">
+          <LumenatiLogo bg="dark" className="w-32" />
+          <div className="mt-2 text-[11px] font-medium uppercase tracking-widest text-white/55">
             Command Center
           </div>
         </div>
 
-        <div className="rounded-xl border border-black/8 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-white/10 bg-white/6 p-6 shadow-sm">
           {sent ? (
             <form onSubmit={verify}>
               <div className="mb-1 text-base font-semibold">
                 {mode === "phone" ? "Check your texts" : "Check your email"}
               </div>
-              <p className="mb-4 text-sm text-black/55">
+              <p className="mb-4 text-sm text-white/70">
                 We sent a 6-digit code to{" "}
                 <span className="font-medium">{mode === "phone" ? phone : email}</span>. Enter it below.
               </p>
@@ -131,18 +131,18 @@ export default function LoginForm() {
               >
                 {busy ? "Verifying…" : "Verify & sign in"}
               </button>
-              {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
+              {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
               <button
                 type="button"
                 onClick={reset}
-                className="mt-4 block w-full text-center text-xs text-black/40 hover:text-black/70"
+                className="mt-4 block w-full text-center text-xs text-white/55 hover:text-white/85"
               >
                 {mode === "phone" ? "Use a different number" : "Use a different email"}
               </button>
             </form>
           ) : (
             <form onSubmit={submit}>
-              <label className="mb-1 block text-xs font-medium text-black/50">
+              <label className="mb-1 block text-xs font-medium text-white/65">
                 Team sign-in
               </label>
               {mode === "phone" ? (
@@ -174,18 +174,18 @@ export default function LoginForm() {
               >
                 {busy ? "Sending…" : mode === "phone" ? "Text me a code" : "Email me a code"}
               </button>
-              {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
+              {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
               <button
                 type="button"
                 onClick={() => {
                   setMode((m) => (m === "phone" ? "email" : "phone"));
                   setError(null);
                 }}
-                className="mt-4 block w-full text-center text-xs text-black/40 hover:text-black/70"
+                className="mt-4 block w-full text-center text-xs text-white/55 hover:text-white/85"
               >
                 {mode === "phone" ? "Use email instead" : "Use phone instead"}
               </button>
-              <p className="mt-3 text-center text-xs text-black/40">
+              <p className="mt-3 text-center text-xs text-white/55">
                 No password needed. Team members only.
               </p>
             </form>
@@ -194,7 +194,7 @@ export default function LoginForm() {
 
         <a
           href="/"
-          className="mt-4 block text-center text-xs text-black/40 hover:text-black/70"
+          className="mt-4 block text-center text-xs text-white/55 hover:text-white/85"
         >
           ← back to the site
         </a>

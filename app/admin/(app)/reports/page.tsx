@@ -95,7 +95,7 @@ function ReportsInner() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-          <p className="text-sm text-black/50">
+          <p className="text-sm text-white/65">
             Shop-wide financials, per-artist roll-ups, and 1099 prep. Owner &amp; bookkeeper only.
           </p>
         </div>
@@ -106,8 +106,8 @@ function ReportsInner() {
               onClick={() => setPreset(p.key)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
                 preset === p.key
-                  ? "bg-brand text-white"
-                  : "border border-black/10 text-black/60 hover:bg-black/4"
+                  ? "bg-white/14 text-white"
+                  : "border border-white/12 text-white/75 hover:bg-white/6"
               }`}
             >
               {p.label}
@@ -117,7 +117,7 @@ function ReportsInner() {
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+              className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
             >
               {years.map((y) => (
                 <option key={y} value={y}>
@@ -130,7 +130,7 @@ function ReportsInner() {
       </div>
 
       {data && (
-        <div className="mb-5 text-xs text-black/40">
+        <div className="mb-5 text-xs text-white/55">
           {data.range.from} → {data.range.to}
           {!data.real && " · no completed tickets in this range yet"}
         </div>
@@ -138,11 +138,11 @@ function ReportsInner() {
 
       {error ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/50">{error}</div>
+          <div className="px-4 py-10 text-center text-sm text-white/65">{error}</div>
         </Card>
       ) : loading && !data ? (
         <Card>
-          <div className="px-4 py-10 text-center text-sm text-black/40">Crunching the numbers…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Crunching the numbers…</div>
         </Card>
       ) : data ? (
         <>
@@ -183,7 +183,7 @@ function ReportsInner() {
                 onClick={exportArtists}
                 disabled={!data.artists.length}
                 title={data.artists.length ? "Download the per-artist roll-up" : "No tickets in this range"}
-                className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+                className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
               >
                 Export CSV
               </button>
@@ -193,13 +193,13 @@ function ReportsInner() {
           </SectionTitle>
           <Card className="mb-6">
             {data.artists.length === 0 ? (
-              <div className="px-4 py-10 text-center text-sm text-black/40">
+              <div className="px-4 py-10 text-center text-sm text-white/55">
                 No tickets in this range.
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+                  <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
                     <th className="px-4 py-2 font-medium">Artist</th>
                     <th className="px-4 py-2 font-medium">Tickets</th>
                     <th className="px-4 py-2 font-medium">Gross service</th>
@@ -210,7 +210,7 @@ function ReportsInner() {
                 </thead>
                 <tbody>
                   {data.artists.map((a) => (
-                    <tr key={a.id} className="border-b border-black/5 last:border-0">
+                    <tr key={a.id} className="border-b border-white/8 last:border-0">
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <Dot color={a.color} />
@@ -218,10 +218,10 @@ function ReportsInner() {
                           <Badge tone="neutral">{payLabel(a)}</Badge>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 tnum text-black/60">{a.saleCount}</td>
+                      <td className="px-4 py-2.5 tnum text-white/75">{a.saleCount}</td>
                       <td className="px-4 py-2.5 tnum">{fmt(a.grossService)}</td>
-                      <td className="px-4 py-2.5 tnum text-black/60">{fmt(a.grossTips)}</td>
-                      <td className="px-4 py-2.5 tnum text-emerald-600">{fmt(a.shopCut)}</td>
+                      <td className="px-4 py-2.5 tnum text-white/75">{fmt(a.grossTips)}</td>
+                      <td className="px-4 py-2.5 tnum text-emerald-400">{fmt(a.shopCut)}</td>
                       <td className="px-4 py-2.5 tnum font-medium">{fmt(a.artistEarnings)}</td>
                     </tr>
                   ))}
@@ -237,7 +237,7 @@ function ReportsInner() {
                 onClick={export1099}
                 disabled={!data.artists.length}
                 title={data.artists.length ? "Download contractor totals for 1099 prep" : "No contractors in this range"}
-                className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+                className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
               >
                 Export 1099 CSV
               </button>
@@ -246,14 +246,14 @@ function ReportsInner() {
             1099 prep {preset === "year" ? `· ${year}` : "· select a full year"}
           </SectionTitle>
           <Card className="mb-6 ring-1 ring-brand/20">
-            <div className="px-4 py-3 text-xs text-black/50">
+            <div className="px-4 py-3 text-xs text-white/65">
               Your artists are independent contractors (booth rent / split / hybrid). Gross earned =
               service kept + all tips for the selected period. Confirm with your accountant exactly
               which figure belongs on the 1099-NEC before filing.
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-y border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+                <tr className="border-y border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
                   <th className="px-4 py-2 font-medium">Contractor</th>
                   <th className="px-4 py-2 font-medium">Arrangement</th>
                   <th className="px-4 py-2 font-medium">Tickets</th>
@@ -262,16 +262,16 @@ function ReportsInner() {
               </thead>
               <tbody>
                 {data.artists.map((a) => (
-                  <tr key={a.id} className="border-b border-black/5 last:border-0">
+                  <tr key={a.id} className="border-b border-white/8 last:border-0">
                     <td className="px-4 py-2.5 font-medium">{a.name}</td>
-                    <td className="px-4 py-2.5 text-black/55">{payLabel(a)}</td>
-                    <td className="px-4 py-2.5 tnum text-black/60">{a.saleCount}</td>
+                    <td className="px-4 py-2.5 text-white/70">{payLabel(a)}</td>
+                    <td className="px-4 py-2.5 tnum text-white/75">{a.saleCount}</td>
                     <td className="px-4 py-2.5 tnum font-medium">{fmtPrecise(a.artistEarnings)}</td>
                   </tr>
                 ))}
                 {data.artists.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-black/40">
+                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-white/55">
                       Nothing to report for this period.
                     </td>
                   </tr>
@@ -285,12 +285,12 @@ function ReportsInner() {
             <div>
               <SectionTitle>Deposits</SectionTitle>
               <Card>
-                <div className="grid grid-cols-3 divide-x divide-black/5">
+                <div className="grid grid-cols-3 divide-x divide-white/8">
                   <DepCell label="Held" value={fmt(data.deposits.held)} />
                   <DepCell label="Applied" value={fmt(data.deposits.applied)} />
                   <DepCell label="Forfeited" value={fmt(data.deposits.forfeited)} tone="good" />
                 </div>
-                <div className="border-t border-black/5 px-4 py-2.5 text-xs text-black/40">
+                <div className="border-t border-white/8 px-4 py-2.5 text-xs text-white/55">
                   {data.deposits.count} booking{data.deposits.count === 1 ? "" : "s"} with a deposit ·
                   forfeited no-show deposits count as shop revenue
                 </div>
@@ -299,11 +299,11 @@ function ReportsInner() {
             <div>
               <SectionTitle>Supplies</SectionTitle>
               <Card>
-                <div className="grid grid-cols-2 divide-x divide-black/5">
+                <div className="grid grid-cols-2 divide-x divide-white/8">
                   <DepCell label="Stock on hand" value={fmt(data.expenses.supplyValueCents)} />
                   <DepCell label="Items tracked" value={String(data.expenses.supplyItems)} />
                 </div>
-                <div className="border-t border-black/5 px-4 py-2.5 text-xs text-black/40">
+                <div className="border-t border-white/8 px-4 py-2.5 text-xs text-white/55">
                   Current inventory value (qty × unit cost). Supplies expenses with a restock
                   attached land here too.
                 </div>
@@ -329,9 +329,9 @@ function DepCell({
 }) {
   return (
     <div className="px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-black/45">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-white/60">{label}</div>
       <div
-        className={`tnum mt-1 text-xl font-semibold ${tone === "good" ? "text-emerald-600" : "text-ink"}`}
+        className={`tnum mt-1 text-xl font-semibold ${tone === "good" ? "text-emerald-400" : "text-ink"}`}
       >
         {value}
       </div>

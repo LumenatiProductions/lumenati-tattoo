@@ -27,21 +27,21 @@ export default function CashPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Cash Log</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           The shop runs a lot of cash. Log it at the desk, reconcile against the
           drawer, and it flows into the books.
         </p>
       </div>
 
       {!configured && !loading && (
-        <div className="mb-5 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="mb-5 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
           <span className="font-semibold">Not set up yet</span> — run{" "}
           <code className="font-mono">supabase/cash-schema.sql</code> in the Supabase SQL editor to
           turn the cash log on.
         </div>
       )}
       {error && (
-        <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+        <div className="mb-5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
           {error}
         </div>
       )}
@@ -83,7 +83,7 @@ export default function CashPage() {
       <Card>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/40">
+            <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/55">
               <th className="px-4 py-2.5 font-medium">Date</th>
               <th className="px-4 py-2.5 font-medium">Who</th>
               <th className="px-4 py-2.5 font-medium">Note</th>
@@ -95,14 +95,14 @@ export default function CashPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-black/40">
+                <td colSpan={6} className="px-4 py-8 text-center text-white/55">
                   Loading…
                 </td>
               </tr>
             )}
             {!loading && entries.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-black/40">
+                <td colSpan={6} className="px-4 py-8 text-center text-white/55">
                   {configured
                     ? "No cash logged yet. Tap “+ Log cash” when money hits the drawer."
                     : "The cash log turns on once the schema is applied."}
@@ -112,16 +112,16 @@ export default function CashPage() {
             {entries.map((c: CashEntry) => {
               const a = artists.find((x) => x.id === c.artist_id);
               return (
-                <tr key={c.id} className="border-b border-black/5 last:border-0">
-                  <td className="px-4 py-2.5 text-black/55">{fmtDate(c.date)}</td>
+                <tr key={c.id} className="border-b border-white/8 last:border-0">
+                  <td className="px-4 py-2.5 text-white/70">{fmtDate(c.date)}</td>
                   <td className="px-4 py-2.5">
                     <span className="flex items-center gap-2">
                       {a ? <Dot color={a.color} /> : null}
                       {a?.name ?? "Shop"}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">{c.note || <span className="text-black/30">—</span>}</td>
-                  <td className="px-4 py-2.5 text-black/45">{c.entered_by ?? "—"}</td>
+                  <td className="px-4 py-2.5">{c.note || <span className="text-white/45">—</span>}</td>
+                  <td className="px-4 py-2.5 text-white/60">{c.entered_by ?? "—"}</td>
                   <td className="tnum px-4 py-2.5 text-right font-medium">{fmtPrecise(c.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <button
@@ -231,18 +231,18 @@ function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
           {open ? (
             <>
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-black/45">Opened</div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/60">Opened</div>
                 <div className="text-sm font-medium">
                   {new Date(open.opened_at).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}
-                  <span className="text-black/40"> · float {fmtPrecise(open.opening_float_cents)}</span>
+                  <span className="text-white/55"> · float {fmtPrecise(open.opening_float_cents)}</span>
                 </div>
               </div>
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-black/45">Expected in drawer</div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/60">Expected in drawer</div>
                 <div className="tnum text-sm font-semibold">{expectedSoFar !== null ? fmtPrecise(expectedSoFar) : "—"}</div>
               </div>
               <label className="block">
-                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Counted ($)</span>
+                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Counted ($)</span>
                 <input className="inp w-28" inputMode="decimal" placeholder="0.00" value={counted} onChange={(e) => setCounted(e.target.value)} />
               </label>
               <button
@@ -255,16 +255,16 @@ function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
                   act("PATCH", { countedCents: c });
                 }}
                 disabled={busy}
-                className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+                className="rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
               >
                 {busy ? "Closing…" : "Count & close"}
               </button>
             </>
           ) : (
             <>
-              <div className="text-sm text-black/55">Drawer is closed.</div>
+              <div className="text-sm text-white/70">Drawer is closed.</div>
               <label className="block">
-                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Opening float ($)</span>
+                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Opening float ($)</span>
                 <input className="inp w-28" inputMode="decimal" placeholder="200" value={float} onChange={(e) => setFloat(e.target.value)} />
               </label>
               <button
@@ -279,19 +279,19 @@ function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
               </button>
             </>
           )}
-          {msg && <span className="text-xs font-medium text-black/60">{msg}</span>}
+          {msg && <span className="text-xs font-medium text-white/75">{msg}</span>}
         </div>
 
         {recent.length > 0 && (
-          <div className="border-t border-black/5 px-4 py-2.5">
-            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-black/45">
+          <div className="border-t border-white/8 px-4 py-2.5">
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-white/60">
               {recent.map((s) => (
                 <span key={s.id}>
                   {new Date(s.opened_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}:{" "}
                   {s.over_short_cents === 0 ? (
-                    <span className="text-emerald-600">even</span>
+                    <span className="text-emerald-400">even</span>
                   ) : (
-                    <span className={s.over_short_cents! > 0 ? "text-emerald-600" : "text-rose-600"}>
+                    <span className={s.over_short_cents! > 0 ? "text-emerald-400" : "text-rose-400"}>
                       {s.over_short_cents! > 0 ? "+" : "−"}
                       {fmtPrecise(Math.abs(s.over_short_cents!))}
                     </span>
@@ -364,7 +364,7 @@ function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
   return (
     <Card className="mb-5">
       <div className="p-4">
-        <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-black/45">
+        <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-white/60">
           Merch — cash sale
         </div>
         <div className="flex flex-wrap gap-2">
@@ -379,23 +379,23 @@ function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
                 }}
                 disabled={busy}
                 className={`rounded-lg border px-3 py-2 text-sm ${
-                  n > 0 ? "border-brand bg-brand/5 font-semibold" : "border-black/10 hover:bg-black/5"
+                  n > 0 ? "border-brand bg-brand/5 font-semibold" : "border-white/12 hover:bg-white/7"
                 } disabled:opacity-40`}
               >
                 {n > 0 && <span className="mr-1.5 rounded bg-brand px-1.5 py-0.5 text-[11px] font-bold text-white">{n}</span>}
                 {p.brand ? `${p.brand} ` : ""}
                 {p.name}
-                <span className="ml-1.5 text-black/45">{fmtPrecise(p.price_cents)}</span>
+                <span className="ml-1.5 text-white/60">{fmtPrecise(p.price_cents)}</span>
               </button>
             );
           })}
         </div>
         {lines.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span className="tnum text-sm text-black/60">
+            <span className="tnum text-sm text-white/75">
               {fmtPrecise(subtotal)}
               {tax > 0 && ` + ${fmtPrecise(tax)} tax`}
-              <span className="ml-1.5 font-semibold text-black">= {fmtPrecise(total)}</span>
+              <span className="ml-1.5 font-semibold text-white">= {fmtPrecise(total)}</span>
             </span>
             <button
               onClick={sell}
@@ -407,13 +407,13 @@ function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
             <button
               onClick={() => setCart({})}
               disabled={busy}
-              className="text-xs text-black/40 hover:text-black/60"
+              className="text-xs text-white/55 hover:text-white/75"
             >
               Clear
             </button>
           </div>
         )}
-        {msg && <div className="mt-2 text-xs font-medium text-black/60">{msg}</div>}
+        {msg && <div className="mt-2 text-xs font-medium text-white/75">{msg}</div>}
       </div>
     </Card>
   );
@@ -479,11 +479,11 @@ function AddEntry({
     <Card className="mb-4">
       <form onSubmit={submit} className="flex flex-wrap items-end gap-3 p-4">
         <label className="block">
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Date</span>
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Date</span>
           <input type="date" className="inp" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Who</span>
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Who</span>
           <select className="inp" value={artistId} onChange={(e) => setArtistId(e.target.value)}>
             <option value="">Shop</option>
             {artists.map((a) => (
@@ -494,7 +494,7 @@ function AddEntry({
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Amount ($)</span>
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Amount ($)</span>
           <input
             className="inp w-28"
             inputMode="decimal"
@@ -504,7 +504,7 @@ function AddEntry({
           />
         </label>
         <label className="block grow">
-          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Note</span>
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Note</span>
           <input
             className="inp w-full"
             placeholder="walk-in flash, drawer drop…"
@@ -513,11 +513,11 @@ function AddEntry({
           />
         </label>
         {taxBps > 0 && (
-          <label className="flex items-center gap-1.5 pb-2 text-xs text-black/55">
+          <label className="flex items-center gap-1.5 pb-2 text-xs text-white/70">
             <input type="checkbox" checked={taxable} onChange={(e) => setTaxable(e.target.checked)} />
             Taxable product
             {taxable && taxCents > 0 && (
-              <span className="tnum text-black/40">(incl. ${(taxCents / 100).toFixed(2)} tax)</span>
+              <span className="tnum text-white/55">(incl. ${(taxCents / 100).toFixed(2)} tax)</span>
             )}
           </label>
         )}
@@ -528,7 +528,7 @@ function AddEntry({
         >
           {busy ? "Logging…" : "Log it"}
         </button>
-        {msg && <span className="text-xs text-rose-600">{msg}</span>}
+        {msg && <span className="text-xs text-rose-400">{msg}</span>}
       </form>
     </Card>
   );

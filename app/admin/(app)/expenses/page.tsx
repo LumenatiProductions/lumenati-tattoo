@@ -29,7 +29,7 @@ function Inner() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Expenses &amp; Books</h1>
-        <p className="text-sm text-black/50">
+        <p className="text-sm text-white/65">
           The shop&apos;s outgoing money (supplies, rent, utilities, software). With Reports + Stripe,
           this is your full books — hand the export to your accountant instead of QuickBooks.
         </p>
@@ -48,7 +48,7 @@ function Inner() {
 
       {error && (
         <Card className="mb-5">
-          <div className="px-4 py-3 text-sm text-rose-600">{error}</div>
+          <div className="px-4 py-3 text-sm text-rose-400">{error}</div>
         </Card>
       )}
 
@@ -57,7 +57,7 @@ function Inner() {
           <button
             onClick={exportCsv}
             disabled={!expenses.length}
-            className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4 disabled:opacity-40"
+            className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
           >
             Export CSV
           </button>
@@ -67,15 +67,15 @@ function Inner() {
       </SectionTitle>
       <Card className="mb-6">
         {loading ? (
-          <div className="px-4 py-10 text-center text-sm text-black/40">Loading…</div>
+          <div className="px-4 py-10 text-center text-sm text-white/55">Loading…</div>
         ) : expenses.length === 0 && !error ? (
-          <div className="px-4 py-10 text-center text-sm text-black/40">
+          <div className="px-4 py-10 text-center text-sm text-white/55">
             No expenses logged yet. Add the shop&apos;s supplies, rent, and bills above.
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+              <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
                 <th className="px-4 py-2 font-medium">Date</th>
                 <th className="px-4 py-2 font-medium">Category</th>
                 <th className="px-4 py-2 font-medium">Vendor</th>
@@ -85,20 +85,20 @@ function Inner() {
             </thead>
             <tbody>
               {expenses.map((e) => (
-                <tr key={e.id} className="border-b border-black/5 last:border-0">
-                  <td className="px-4 py-2.5 tnum text-black/60">{e.date}</td>
+                <tr key={e.id} className="border-b border-white/8 last:border-0">
+                  <td className="px-4 py-2.5 tnum text-white/75">{e.date}</td>
                   <td className="px-4 py-2.5">
                     <Badge tone="neutral">{e.category}</Badge>
                   </td>
                   <td className="px-4 py-2.5">
-                    {e.vendor || <span className="text-black/30">—</span>}
-                    {e.note && <div className="text-xs text-black/40">{e.note}</div>}
+                    {e.vendor || <span className="text-white/45">—</span>}
+                    {e.note && <div className="text-xs text-white/55">{e.note}</div>}
                   </td>
                   <td className="px-4 py-2.5 tnum font-medium">{usd(e.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <button
                       onClick={() => removeExpense(e.id)}
-                      className="text-xs text-black/35 hover:text-rose-600"
+                      className="text-xs text-white/50 hover:text-rose-400"
                     >
                       Remove
                     </button>
@@ -200,7 +200,7 @@ function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
             )}
             <button
               onClick={() => setShowAdd((s) => !s)}
-              className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4"
+              className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6"
             >
               {showAdd ? "Close" : "Add bill"}
             </button>
@@ -212,19 +212,19 @@ function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
 
       {showAdd && <AddBillForm onAdded={async () => (setShowAdd(false), await load())} />}
       {(msg || err) && (
-        <div className={`mb-3 text-xs ${err ? "text-rose-600" : "text-emerald-700"}`}>{err || msg}</div>
+        <div className={`mb-3 text-xs ${err ? "text-rose-400" : "text-emerald-300"}`}>{err || msg}</div>
       )}
 
       <Card>
         {bills.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-black/40">
+          <div className="px-4 py-8 text-center text-sm text-white/55">
             No recurring bills yet. Add the shop lease, utilities, and software here — they post to
             expenses automatically when due, so the P&amp;L stays real.
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+              <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
                 <th className="px-4 py-2 font-medium">Bill</th>
                 <th className="px-4 py-2 font-medium">Category</th>
                 <th className="px-4 py-2 font-medium">Every</th>
@@ -237,17 +237,17 @@ function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
               {bills.map((b) => {
                 const isDue = b.active && b.next_due <= today;
                 return (
-                  <tr key={b.id} className={`border-b border-black/5 last:border-0 ${b.active ? "" : "opacity-45"}`}>
+                  <tr key={b.id} className={`border-b border-white/8 last:border-0 ${b.active ? "" : "opacity-45"}`}>
                     <td className="px-4 py-2.5 font-medium">
                       {b.name}
-                      {b.vendor && <div className="text-xs font-normal text-black/40">{b.vendor}</div>}
+                      {b.vendor && <div className="text-xs font-normal text-white/55">{b.vendor}</div>}
                     </td>
                     <td className="px-4 py-2.5">
                       <Badge tone="neutral">{b.category}</Badge>
                     </td>
-                    <td className="px-4 py-2.5 capitalize text-black/60">{b.cadence.replace("ly", "")}</td>
+                    <td className="px-4 py-2.5 capitalize text-white/75">{b.cadence.replace("ly", "")}</td>
                     <td className="tnum px-4 py-2.5">
-                      {isDue ? <Badge tone="warn">due {b.next_due}</Badge> : <span className="text-black/60">{b.next_due}</span>}
+                      {isDue ? <Badge tone="warn">due {b.next_due}</Badge> : <span className="text-white/75">{b.next_due}</span>}
                     </td>
                     <td className="tnum px-4 py-2.5 text-right font-medium">{usd(b.amount_cents)}</td>
                     <td className="px-4 py-2.5 text-right text-xs">
@@ -256,10 +256,10 @@ function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
                           Post
                         </button>
                       )}
-                      <button onClick={() => toggle(b)} className="mr-3 text-black/45 hover:text-black/70">
+                      <button onClick={() => toggle(b)} className="mr-3 text-white/60 hover:text-white/85">
                         {b.active ? "Pause" : "Resume"}
                       </button>
-                      <button onClick={() => remove(b.id)} className="text-black/35 hover:text-rose-600">
+                      <button onClick={() => remove(b.id)} className="text-white/50 hover:text-rose-400">
                         Remove
                       </button>
                     </td>
@@ -284,8 +284,8 @@ function AddBillForm({ onAdded }: { onAdded: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const field = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
-  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
+  const field = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
+  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-white/60";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,7 +356,7 @@ function AddBillForm({ onAdded }: { onAdded: () => Promise<void> }) {
           <span className={labelCls}>Next due</span>
           <input type="date" value={nextDue} onChange={(e) => setNextDue(e.target.value)} className={field} />
         </label>
-        {err && <div className="text-xs text-rose-600 sm:col-span-6">{err}</div>}
+        {err && <div className="text-xs text-rose-400 sm:col-span-6">{err}</div>}
         <div className="sm:col-span-6">
           <button
             type="submit"
@@ -383,8 +383,8 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const field = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
-  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
+  const field = "w-full rounded-lg border border-white/12 bg-white/6 px-3 py-2 text-sm";
+  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-white/60";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -460,7 +460,7 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
 
         {/* Supplies purchases can land in inventory too — one entry, both books. */}
         {category === "supplies" && items.length > 0 && (
-          <div className="flex flex-wrap items-end gap-3 rounded-lg border border-black/8 bg-black/2 p-3 sm:col-span-5">
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border border-white/10 bg-white/4 p-3 sm:col-span-5">
             <label>
               <span className={labelCls}>Also restock (optional)</span>
               <select value={restockItemId} onChange={(e) => setRestockItemId(e.target.value)} className={field}>
@@ -488,7 +488,7 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
           </div>
         )}
 
-        {err && <div className="text-xs text-rose-600 sm:col-span-5">{err}</div>}
+        {err && <div className="text-xs text-rose-400 sm:col-span-5">{err}</div>}
         <div className="sm:col-span-5">
           <button
             type="submit"

@@ -89,13 +89,13 @@ export default function PayoutsConnect() {
     <div className="mb-6">
       <SectionTitle>Artist payouts · Stripe Connect</SectionTitle>
       <Card>
-        <div className="border-b border-black/5 px-4 py-3 text-xs text-black/50">
+        <div className="border-b border-white/8 px-4 py-3 text-xs text-white/65">
           {configured
             ? "Onboarded artists are paid automatically: each card ticket splits the shop's cut off as a fee and sends the rest to the artist's bank. Stripe files their 1099."
             : "Add Stripe keys to enable automatic artist payouts. Until then, settle manually below."}
         </div>
-        {error && <div className="px-4 py-2 text-sm text-rose-600">{error}</div>}
-        <div className="divide-y divide-black/5">
+        {error && <div className="px-4 py-2 text-sm text-rose-400">{error}</div>}
+        <div className="divide-y divide-white/8">
           {artists.map((a) => (
             <div key={a.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-2.5">
@@ -113,7 +113,7 @@ export default function PayoutsConnect() {
                   <button
                     onClick={() => refresh(a.id)}
                     disabled={busyId === a.id}
-                    className="text-xs text-black/40 hover:text-black/70 disabled:opacity-40"
+                    className="text-xs text-white/55 hover:text-white/85 disabled:opacity-40"
                   >
                     Refresh
                   </button>
@@ -123,7 +123,7 @@ export default function PayoutsConnect() {
                       <button
                         onClick={() => refresh(a.id)}
                         disabled={busyId === a.id}
-                        className="text-xs text-black/40 hover:text-black/70 disabled:opacity-40"
+                        className="text-xs text-white/55 hover:text-white/85 disabled:opacity-40"
                       >
                         Check
                       </button>
@@ -141,7 +141,7 @@ export default function PayoutsConnect() {
             </div>
           ))}
           {artists.length === 0 && (
-            <div className="px-4 py-5 text-center text-sm text-black/40">No active artists.</div>
+            <div className="px-4 py-5 text-center text-sm text-white/55">No active artists.</div>
           )}
         </div>
       </Card>

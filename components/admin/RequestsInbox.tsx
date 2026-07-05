@@ -85,21 +85,21 @@ export default function RequestsInbox() {
   return (
     <div className="mb-6">
       <SectionTitle>
-        Requests <span className="font-normal text-black/35">· from the website</span>
+        Requests <span className="font-normal text-white/50">· from the website</span>
       </SectionTitle>
       {msg && (
         <div
           className={`mb-3 rounded-lg border px-3 py-2 text-xs ${
             /could not|couldn't/i.test(msg)
-              ? "border-rose-200 bg-rose-50 text-rose-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+              ? "border-rose-400/30 bg-rose-400/10 text-rose-300"
+              : "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
           }`}
         >
           {msg}
         </div>
       )}
       {requests.length === 0 ? null : (
-      <Card className="divide-y divide-black/5">
+      <Card className="divide-y divide-white/8">
         {requests.map((q) => {
           const artist = artists.find((a) => a.id === q.artist_id);
           return (
@@ -109,10 +109,10 @@ export default function RequestsInbox() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">{q.name}</span>
                     <Badge tone="brand">{artist?.name ?? "Any artist"}</Badge>
-                    <span className="text-[11px] text-black/35">{ago(q.created_at)}</span>
+                    <span className="text-[11px] text-white/50">{ago(q.created_at)}</span>
                   </div>
-                  <div className="mt-1 text-sm text-black/70">{q.idea}</div>
-                  <div className="mt-0.5 text-xs text-black/45">
+                  <div className="mt-1 text-sm text-white/85">{q.idea}</div>
+                  <div className="mt-0.5 text-xs text-white/60">
                     {[q.placement && `Placement: ${q.placement}`, q.size && `Size: ${q.size}`, q.availability && `Avail: ${q.availability}`, q.email, q.phone]
                       .filter(Boolean)
                       .join(" · ")}
@@ -125,7 +125,7 @@ export default function RequestsInbox() {
                           <img
                             src={u}
                             alt={`Reference ${i + 1} from ${q.name}`}
-                            className="h-16 w-16 rounded-lg border border-black/10 object-cover hover:opacity-80"
+                            className="h-16 w-16 rounded-lg border border-white/12 object-cover hover:opacity-80"
                             loading="lazy"
                           />
                         </a>
@@ -142,7 +142,7 @@ export default function RequestsInbox() {
                   </button>
                   <button
                     onClick={() => window.confirm(`Decline ${q.name}'s request?`) && act(q.id, { action: "decline" })}
-                    className="rounded-md border border-black/10 px-2.5 py-1 text-xs font-medium text-black/55 hover:bg-black/4"
+                    className="rounded-md border border-white/12 px-2.5 py-1 text-xs font-medium text-white/70 hover:bg-white/6"
                   >
                     Decline
                   </button>
@@ -191,17 +191,17 @@ function AcceptForm({
   };
 
   return (
-    <div className="mt-3 flex flex-wrap items-end gap-3 rounded-lg border border-black/8 bg-black/2 p-3">
+    <div className="mt-3 flex flex-wrap items-end gap-3 rounded-lg border border-white/10 bg-white/4 p-3">
       <label className="block">
-        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Date</span>
+        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Date</span>
         <input type="date" className="inp" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
       <label className="block">
-        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Start</span>
+        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Start</span>
         <input type="time" className="inp" value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
       <label className="block">
-        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Artist</span>
+        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Artist</span>
         <select className="inp" value={artistId} onChange={(e) => setArtistId(e.target.value)}>
           <option value="">Unassigned</option>
           {artists.map((a) => (
@@ -212,7 +212,7 @@ function AcceptForm({
         </select>
       </label>
       <label className="block">
-        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-black/45">Deposit ($)</span>
+        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Deposit ($)</span>
         <input className="inp w-24" inputMode="decimal" placeholder="0" value={deposit} onChange={(e) => setDeposit(e.target.value)} />
       </label>
       <button
@@ -222,7 +222,7 @@ function AcceptForm({
       >
         {busy ? "Booking…" : "Create booking"}
       </button>
-      {err && <span className="text-xs text-rose-600">{err}</span>}
+      {err && <span className="text-xs text-rose-400">{err}</span>}
     </div>
   );
 }
