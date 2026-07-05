@@ -4,218 +4,91 @@ Read this first in a fresh context. Scott is NOT a coder: explain in plain
 English, no jargon/file paths in chat. Never use emojis or em dashes.
 
 ## What this is
-A tattoo-shop management product Lumenati owns end to end, replacing Square (POS)
-and QuickBooks (books). Two surfaces, ROLE-BASED (not full parity):
-- **Web Command Center** (`/admin`, Next.js, dev on :3002) = whoever runs the
-  shop (owner/front desk/bookkeeper). Heavy admin.
-- **Phone app** (`app-native`, Expo) = ARTISTS (phone-only) + owner on the go.
+A tattoo-shop management product Lumenati owns end to end, replacing Square
+(POS) and QuickBooks (books) — and eventually a SaaS for every tattoo shop.
+Two surfaces, ROLE-BASED (Admin + Artist, nothing else):
+- **Web Command Center** (`/admin`, Next.js, dev on :3002) = admins. Heavy admin.
+- **Phone app** (`app-native`, Expo) = artists (phone-only) + admin on the go.
 Public site is the Y2K marketing/booking layer. Owner login: lumenati@icloud.com.
+Money model: cash + Stripe only, everything through the append-only **ledger**.
+Logins are phone-first (text a code), email fallback; Team page manages both.
 
-## Money model
-Cash + Stripe only. Square is being REMOVED (Stripe Tap-to-Pay replaces its
-terminals). Everything runs through the canonical **ledger** (see below).
+## NEXT SESSION — the roadmap Scott aimed us at (2026-07-05)
+"Make this app make tons of sense and be awesome for all tattoo shops."
+Build in this order; 1 and 2 make money directly:
 
-## Shipped this session (2026-07-04)
-- **Security**: closed 4 live holes (public write to room pages/storage, artists'
-  private terms readable by anon, admin door checked login not staff, anon
-  enumeration of client-photo buckets). Verified with live probes.
-- **Multi-shop seam**: `shops` table + `shop_id` (default Lumenati) on all 26
-  tenant tables + `current_shop_id()`. One-shop-now, SaaS-later without a rewrite.
-- **Money ledger** (the big one): append-only, source-stamped, idempotent
-  `public.ledger`; dual-write from Stripe (settlePayment) + cash; backfilled;
-  reconciled to the penny; Reports/Payouts/dashboards read it via the
-  `ledger_sales` view. Refunds/deletes net out; new Square sales imported via
-  `sync_sales_to_ledger()`.
-- **Retention + texting**: follow-up engine already existed; wired Twilio
-  (Auth Token added, verified) so texts work; env-driven email sender;
-  autosend fires on SMS OR email. Trial Twilio (needs upgrade for real numbers).
-- **Clients**: ledger-based lifetime value + a "Bring them back" retention panel
-  (birthdays / due-to-rebook / lapsed).
-- **Calendar**: phone-native (expo-calendar) sync of bookings + conflict reader.
-  Phase 1 (toggle + sync) AND Phase 2 shipped: book/move now soft-warns when the
-  slot overlaps the artist's OWN phone calendar (gated to booking yourself via
-  profiles.artist_id; never blocks). Polish: pick which calendar to sync into
-  (events move over), reinstall dupe guard (events matched by booking id).
-  Needs a real-device check (sim blocks taps). Sync-on-push still open.
-- **Artist rewards**: `lib/rewards.ts` + RewardsStrip badges on the money home.
-- **/book** redirects to /request. Bug sweep run + fixed before a TestFlight build.
+1. **Merch + product sales at the POS.**
+   - Inventory items need a retail price (`price_cents` — does not exist yet;
+     cost_cents does). Web Inventory page gets a price field.
+   - POS (app Tap-to-Pay + web/cash) gets quick-tap product buttons: pick the
+     aftercare kit / shirt, sales tax applies automatically (rate + ledger
+     'tax' rows already built), stock decrements on sale.
+   - Ledger stays the source of truth; product sales are 100% shop revenue
+     (no artist split) unless artist merch splits come later.
+2. **Fill the empty chair (waitlist + no-show defense).**
+   - Waitlist: a cancellations table/flow — when a booking cancels, text the
+     waitlist (Twilio wired) with a claim link; first-come fills the slot.
+   - No-show defense: deposit auto-applies/forfeits when a client no-shows;
+     surface a no-show risk hint on bookings (history-based).
+3. **Per-artist booking QR cards.** Every artist already has a public page
+   (/slug). Generate a QR (print-ready card + save-to-photos in the app) that
+   deep-links to their booking page. An afternoon of work, outsized charm.
+4. **Client aftercare timeline.** A tokenized client link: their tattoo, care
+   instructions day by day, healed-photo ask at day 14, rebook nudge. The
+   follow-up engine already schedules these; this is the pretty surface.
+5. **Review velocity.** GOOGLE_REVIEW_URL powers the review follow-up (Scott
+   sets it). Add "reviews requested / sent this month" to Reports.
+6. **Instagram Graph API auto-posting** — real auto-post needs Meta app
+   review (external, weeks). The share-sheet flow shipped 2026-07-05 covers
+   most of the value; only start this when Scott says go.
+7. **The SaaS onboarding** — shops seam exists on all tenant tables. When the
+   above is solid: "add your shop" wizard, per-shop branding, per-shop Stripe.
 
-## Shipped 2026-07-04 (third pass) — the MONEY LAYER is complete
-QuickBooks replacement built and verified to the penny in Chrome:
-- **Profit & Loss** (`/admin/pnl`, in the nav): shop income (splits +
-  unattributed/shop sales + booth rent from ledger + forfeited deposits) minus
-  expenses = profit, by month/quarter/year, any year back to 2021 or all time.
-  All-time totals verified against the DB to the cent ($702,352 gross, 2,364
-  sales; API paginates past the PostgREST 1000-row cap). Income lines are
-  transparent (splits vs no-artist sales split out).
-- **Recurring bills** on Expenses: `recurring_expenses` table; add/pause/remove
-  bills (lease, utilities, software) with cadence + next-due; "Post due" turns
-  them into real expense rows, idempotent per period (unique recurring_id+period),
-  due date auto-advances. Verified end to end.
-- **Owner draws**: `owner_draws` table + section on the P&L page. Distributions,
-  not expenses — below the profit line.
-- **Sales tax**: rate lives on shops.sales_tax_bps (editor on the P&L page);
-  when set, the Cash Log shows a "Taxable product" checkbox that backs tax out
-  of the amount; ledger books sale net of tax + a kind='tax' row; delete
-  reverses BOTH rows (verified). Remittance figure on P&L. Rate currently 0 —
-  SCOTT MUST SET the real rate (services usually untaxed, aftercare products
-  usually taxed — confirm state rules).
-- **Accountant exports**: P&L CSV + full general-ledger CSV buttons on the P&L
-  page (server-side, paginated, penny-exact).
-- **Mark rent paid (cash/check)** buttons on in-house rent invoices — marks
-  paid + books a ledger rent row idempotently. Built, NOT live-tested (didn't
-  want to fabricate a real rent payment); same upsert pattern as the verified
-  flows. Test with the first real cash rent.
-- **Reports year picker** now reaches 2021.
-- DB migration: `supabase/2026-07-04-money-out.sql` (applied to live DB; also
-  adds 'tax'/'draw' ledger kinds).
-- **Categorized nav** (Scott's ask): web sidebar grouped into Front of house /
-  Finances / Shop / Admin; the app's home "Go to" tiles grouped the same way
-  (+ "My business" for artists). Headers hide when a role sees nothing inside.
+## Current state (compressed — it all works, verified)
+- **Money layer complete** (2026-07-04/05): P&L by month/quarter/year back to
+  2021 (penny-verified vs ledger, $702k/2,364 sales), profit chart, recurring
+  bills that post when due, owner draws, sales tax capture (rate on shop, tax
+  ledger rows, remittance figure), P&L + general-ledger CSV exports, rent
+  mark-paid (cash/check — not yet live-tested), ticket-refund UI, categorized
+  nav (Front of house / Finances / Shop / Admin) on web + app.
+- **Roles + logins** (2026-07-05): Admin + Artist only (stored admin value is
+  'owner' internally — policies untouched). Phone-first sign-in on web + app;
+  /api/staff pre-creates logins with email AND phone confirmed so either code
+  works; Team page manages it. E2E verified.
+- **Artist app** (2026-07-05): Robinhood home — Take payment + New booking up
+  top (booking form opens in one tap), "Your day" next-client card, scrubbable
+  earnings chart (haptic detents), tappable week bars, rewards, coach, taxes.
+  **Healed shots** screen: client healed photos → one tap → share sheet with
+  auto-caption on clipboard (IG on real phones). All verified in sim.
+- **Roster is self-serve**: Artists & Pay adds artists; "Square history not
+  linked to anyone" panel moves an old Square login's entire history onto an
+  artist in one click (Grey Barrix is sitting there; Stephanie Moore is the
+  BOOKKEEPER — leave her unlinked). Ledger append-only for money; only
+  attribution (artist_id) is correctable.
+- **Historicals staged** (not cut over): 2,378 Square sales back to 2021 in
+  sales + ledger; JD's ~668 attributed; guests left as shop revenue. Client
+  de-dupe deferred (~9 pairs, merge API exists).
+- A TestFlight build with EVERYTHING (phone sign-in, artist home, healed
+  shots — includes new native modules) was submitted 2026-07-05.
 
-## Shipped 2026-07-05 — the "bigger swings" (Robinhood artist home + charts)
-- **Chart scrubbing (the Robinhood move)**: drag a finger across the artist
-  earnings chart and a hairline + dot ride the line, the readout shows that
-  day's date + running total, and each day crossed gives a detent haptic tick.
-  (components/MoneyChart.tsx — bespoke SVG kept, no gifted-charts needed.)
-- **"Your day" card** on the artist home: next client hero'd (who, when,
-  "in 45 min" countdown), rest of today in quiet rows, live minute refresh,
-  empty/day-done states. RLS-scoped; client names fall back to "Client" where
-  the role can't read clients. (components/TodayCard.tsx, loadToday in
-  lib/personal.ts.)
-- **Tappable 7-day bars**: biggest day labeled by default, tap any bar to move
-  the value to it.
-- **Web P&L profit chart**: diverging columns around a zero baseline (green up,
-  rose down — pair validated for contrast + colorblind separation), hover
-  tooltips, biggest up/down months direct-labeled. Handles 64 months of
-  all-time data cleanly. (components/admin/ProfitChart.tsx.)
-- NOTE: the sim build was stale (crashed on launch with
-  ExpoCalendar.MissingCalendarPListValueException). `expo run:ios` alone did
-  NOT fix it — the untracked `ios/` dir itself was stale (CNG repo; predates
-  the expo-calendar plugin). Fix: `npx expo prebuild -p ios --clean` then
-  `npx expo run:ios`. Boots clean now.
-- VERIFIED IN SIM (Scott stepped away and said "click away"): artist home via
-  preview-as-JD — Your day card (empty state), scrub (hairline + dot + "$100
-  through Jul 2" readout mid-drag, snaps back on release), $100 direct label
-  on the week bars, categorized launcher on both owner and artist homes.
-  Exited preview after. TestFlight build also submitted (processing at Apple).
-- SIM DRIVING TRUTH (replaces "sim blocks taps"): the sim takes synthetic
-  CGEvent taps/drags fine — but they move Scott's REAL cursor, so they only
-  work when he's away and says so. Scroll-wheel events do nothing; use drags.
-  Tool lives at scratchpad tap.swift pattern (tap/drag/wheel), coords =
-  AXGroup origin + framebuffer × (ax_size / fb_size).
-
-## Shipped 2026-07-05 (second pass) — THE NEW PROCESS (Scott's reframe)
-Scott: stop obsessing over old-data migration; this is a NEW system. Two calls:
-- **Two roles: Admin + Artist.** Everywhere a human sees a role it's now one
-  of those two. Internals: the stored admin value stays 'owner' (every RLS
-  policy + API gate speaks that dialect, zero churn); legacy
-  bookkeeper/frontdesk rows migrated to 'owner' and their labels read
-  "Admin". ASSIGNABLE_ROLES in role-context is the picker source.
-- **Phone-number logins.** Supabase phone auth enabled with the shop Twilio
-  (config via Management API). /api/staff (admin-only, service-role)
-  pre-creates team logins with BOTH email and phone CONFIRMED — so a text
-  code and an email code land on the same account, and all 34 email-keyed
-  profile gates work untouched. shouldCreateUser:false blocks strangers.
-  Team page (renamed from Staff): name/phone/email/Admin-or-Artist. Sign-in
-  on web + app is phone-first ("Text me a code"), email fallback. E2E
-  verified: member created confirmed (auth+profile), removed cleanly.
-- CAVEAT: Twilio is still a TRIAL account — SMS only reaches verified
-  numbers until Scott upgrades (already on docs/owner-setup-checklist.md).
-- App sign-in changes ride the next build/OTA.
-
-## Shipped 2026-07-05 (third pass) — artist app content engine
-- **New booking** button beside Take payment on the artist home;
-  /bookings?new=1 opens the create form directly. Verified in sim.
-- **Healed shots** screen (My business tile): artist's healed photos with
-  in-portfolio/pending badges; tap = download + auto-caption to clipboard +
-  share sheet (IG on real devices). expo-sharing/file-system/clipboard added
-  (NATIVE modules — required prebuild; a TestFlight build with everything
-  was kicked at session end). Verified in sim with seeded rows (cleaned up).
-- Vision backlog Scott greenlit exploring: merch/product sales at POS
-  (inventory needs retail price_cents), waitlist gap-fill, no-show defense,
-  review velocity, per-artist booking QR cards, client-side aftercare
-  timeline, real IG Graph API auto-posting (needs Meta app review), and the
-  multi-shop SaaS onboarding (shops seam exists). GOOGLE_REVIEW_URL env
-  powers the review follow-up link — Scott sets it (owner checklist).
-
-## NEXT SESSION — the actual focus
-1. **Artist roster is now FULLY SELF-SERVE (2026-07-05).** Artists & Pay has
-   "+ Add artist" (always did), and now a "Square history not linked to
-   anyone" panel: pick an artist next to an old Square login, one click moves
-   their entire history (team map + sales + ledger rows via
-   `link_square_history()`, owner-only, fail-closed). Ledger stays
-   append-only for money; only artist_id is correctable (trigger exception).
-   Scott adds Grey himself and links him. Roster context if he asks:
-   - **Grey Barrix** (square team id TMS5h7Kja6CfFrFH): 16 sales in 2026, all
-     small ($20-150, product/touch-up sized), last 2026-06-28. Current, missing.
-   - **Stephanie Moore is the BOOKKEEPER** (Scott confirmed 2026-07-04). Her
-     181 Square "sales"/$181k under TMhfO2Rp53Z_b7eg are transactions she rang
-     up at the desk, NOT her own work. Leave as shop revenue; do NOT add her
-     as an artist. (She should eventually get a bookkeeper login instead.)
-   - Everyone else unmapped is genuinely gone (Anstey 2024, Hagerty/Chavez 2023).
-   Need per artist: name, pay type (rent/split/hybrid + % / rent $), contact.
-   Then set square_team_members.artist_id for their team ids -> history
-   re-attributes on next sync (it re-resolves artist_id every run).
-2. **Money layer follow-ups**: Scott sets the sales-tax rate + confirms what's
-   taxable; enter real recurring bills (lease, utilities, software) on Expenses;
-   W-2 **Gusto payroll** only if any real employees; Stripe Tap-to-Pay tax
-   capture when POS work resumes.
-
-## Historical data — STAGED, not cut over (2026-07-04)
-- Square has 2,467 payments back to 2021; only 39 had ever imported (the sync
-  looked back just 31 days on first run). Ran a ONE-TIME full backfill:
-  `scripts/square-full-backfill.mjs --commit` -> **2,378 completed sales
-  ($701,852 gross) now in `sales` + the ledger**. Idempotent; safe to re-run.
-- **Attribution:** J.D. Pruitt is the only continuing artist who used Square
-  (~668 sales attributed to `jd`). The other big Square names (Stephanie Moore,
-  Gavin Anstey, Connor Hagerty, Louis Chavez) were FLASH-DAY guests / former
-  residents — left as shop revenue on purpose, NOT force-mapped to current
-  artists. Grey pending (see roster item above).
-- Audit tool: `scripts/historical-audit.mjs` (read-only). Clients: 895 (894 from
-  Square), ~133 are ghosts (no name + no contact), ~9 duplicate pairs (2 email-
-  exact, 7 name). Client de-dupe deferred as low-stakes; `app/api/clients/merge`
-  exists when we want it.
-- NOT cutting over from Square yet — this just stages the history so the switch
-  is painless later.
-
-## What's left
-- **External setup (Scott's, gating launch)** — see `docs/owner-setup-checklist.md`:
-  Twilio trial upgrade, move email domain + set RESEND_FROM, live Stripe keys +
-  webhook secret, legal review of consent copy (then LEGAL_COPY_REVIEWED=true),
-  FOLLOWUPS_AUTOSEND=true when ready.
-- **Buildable (secondary to the finance + roster focus above)**: calendar
-  sync-on-push (needs booking-change push); web Command Center charts; deeper
-  security (encrypt consent medical/ID fields); backfill historical held deposits.
-
-## Also shipped 2026-07-04 (second pass)
-- **Ticket-refund UI**: Reconciliation page now lists each card payment this
-  month with a Refund button (owner/bookkeeper). Uses the existing refund engine
-  (reverses split transfers, fixes books + ledger, idempotent). Deposit refunds
-  already had their own button on Bookings; unchanged.
-- **RLS break-in test**: `node scripts/rls-breakin-test.mjs` acts as an anonymous
-  visitor and confirms 21 money/PII/medical tables leak no rows and refuse writes.
-  PASSES. It has a control gate: aborts if the anon key is invalid so a bad key
-  can't fake a pass.
-- **Fixed corrupt local env values**: `.env.local` had four values wrapped in
-  quotes with a trailing `\n` (same bug that broke mobile login): the Supabase
-  anon key, the Supabase URL, `SQUARE_ACCESS_TOKEN`, and `SQUARE_ENV`. The bad
-  anon key made the REST API reject every browser-side read (fell back to mock in
-  local dev); the bad Square token (newline in an HTTP header) made every Square
-  call throw, so Booth Rent / weekly digest silently failed. Cleaned all four,
-  restarted dev; Clients + Booth Rent now show real data. Prod (Vercel env) was
-  NOT affected. Swept the whole file + mobile `.env` — no trailing `\n` left.
-- **NOTE**: a broad `pkill -f next-server` I ran likely also stopped another
-  Next.js dev server that was on port 3000/3001. Lumenati is back on :3002 and
-  3000/3001 are free again; restart your other project if it was one of those.
+## Scott's external checklist (gates launch — docs/owner-setup-checklist.md)
+- Twilio TRIAL upgrade (texts only reach verified numbers until then — this
+  also gates phone-login codes for the team).
+- Set the sales-tax rate on the P&L page + confirm what's taxable in-state.
+- Enter real recurring bills (lease, utilities, software) on Expenses.
+- GOOGLE_REVIEW_URL, move email domain + RESEND_FROM, live Stripe keys +
+  webhook secret, legal review of consent copy, FOLLOWUPS_AUTOSEND=true.
 
 ## How to work
-- Web dev: `cd ~/lumenati-tattoo && npm run dev` (lands on :3002; 3000/3001 taken).
-- Mobile: EAS builds to TestFlight (already set up, `eas build -p ios --profile
-  production --auto-submit`); local sim via `expo run:ios`. Sim BLOCKS synthetic
-  taps (keystrokes work, clicks don't) — verify artist views on a real device.
-- DB: run SQL via Supabase Management API, project ref humjddiwzzanvvqztypy (see
+- Web dev: `cd ~/lumenati-tattoo && npm run dev` (:3002). Deploy = push main
+  (Vercel). Verify money to the penny; verify UI in Chrome (localhost:3002).
+- Mobile: EAS `eas build -p ios --profile production --auto-submit` works
+  non-interactively. Local sim: `npx expo prebuild -p ios --clean` then
+  `npx expo run:ios` (the untracked ios/ dir goes stale when plugins change —
+  prebuild fixes the ExpoCalendar plist crash). Reuse the running Metro.
+- Sim driving: synthetic CGEvent taps/drags DO work but move Scott's real
+  cursor — only when he's away and says "click away". Wheel events do nothing;
+  scroll with drags. Coords = AXGroup origin + framebuffer × (ax/fb) scale.
+- DB: SQL via Supabase Management API, project ref humjddiwzzanvvqztypy (see
   memory `reference_lumenati_supabase_db`; PAT expires 2026-07-31). ALWAYS
   `notify pgrst, 'reload schema'` after DDL or reads fall back to mock.
-- Deploy: pushing to main auto-deploys web to Vercel.
-- Verify money changes to the penny; verify UI in Chrome (localhost:3002).
