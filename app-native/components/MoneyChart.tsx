@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Text, View } from "react-native";
+import { Animated, Easing, PanResponder, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Stop, Line, Circle } from "react-native-svg";
 import { theme, money } from "@/lib/theme";
+import { detent } from "@/lib/haptics";
 
 // The dopamine chart: cumulative earnings climbing across the range, with the
 // goal pace as a dashed line to race. The stroke draws itself in on mount,
-// Robinhood-style. Green when ahead of pace, brand pink otherwise.
+// Robinhood-style — and scrubs like Robinhood too: drag a finger across it and
+// a hairline + dot ride the line, the readout shows that day's date and running
+// total, and each day crossed gives a tiny detent tick.
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -19,6 +22,8 @@ type Props = {
   /** First + last x-axis labels (e.g. "Jun 1" / "today"). */
   startLabel: string;
   endLabel: string;
+  /** ISO date of the first point — lets the scrub readout name the day. */
+  startISO?: string;
   /** Range goal — draws the pace line. Omit when no goal is set. */
   goalCents?: number;
   /** 3+ week streak turns the pace line gold. */
@@ -44,10 +49,12 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export default function MoneyChart({ series, startLabel, endLabel, goalCents, streak = 0, width }: Props) {
+export default function MoneyChart({ series, startLabel, endLabel, startISO, goalCents, streak = 0, width }: Props) {
   const onFire = streak >= 3;
   const draw = useRef(new Animated.Value(0)).current;
   const [drawn, setDrawn] = useState(false);
+  const [scrubIdx, setScrubIdx] = useState<number | null>(null);
+  const scrubRef = useRef<number | null>(null);
 
   useEffect(() => {
     draw.setValue(0);
@@ -60,7 +67,7 @@ export default function MoneyChart({ series, startLabel, endLabel, goalCents, st
     }).start(() => setDrawn(true));
   }, [series, draw]);
 
-  const { linePath, areaPath, paceLine, lastPt, ahead, deltaCents, maxY } = useMemo(() => {
+  const { linePath, areaPath, paceLine, pts, lastPt, ahead, deltaCents } = useMemo(() => {
     const n = Math.max(2, series.length);
     const vals = series.length ? series : [0, 0];
     const today = vals[vals.length - 1] ?? 0;
@@ -72,20 +79,64 @@ export default function MoneyChart({ series, startLabel, endLabel, goalCents, st
     const x = (i: number) => (i / (n - 1)) * width;
     const y = (v: number) => PAD_TOP + (1 - v / top) * (H - PAD_TOP - PAD_BOTTOM);
 
-    const pts = vals.map((v, i) => ({ x: x(i), y: y(v) }));
-    const line = smoothPath(pts);
-    const area = `${line} L ${pts[pts.length - 1].x} ${H - PAD_BOTTOM} L ${pts[0].x} ${H - PAD_BOTTOM} Z`;
+    const points = vals.map((v, i) => ({ x: x(i), y: y(v) }));
+    const line = smoothPath(points);
+    const area = `${line} L ${points[points.length - 1].x} ${H - PAD_BOTTOM} L ${points[0].x} ${H - PAD_BOTTOM} Z`;
 
     return {
       linePath: line,
       areaPath: area,
       paceLine: goalCents ? { x1: 0, y1: y(0), x2: width, y2: y(goalCents) } : null,
-      lastPt: pts[pts.length - 1],
+      pts: points,
+      lastPt: points[points.length - 1],
       ahead: goalCents ? today >= paceToday : true,
       deltaCents: goalCents ? today - paceToday : 0,
-      maxY: top,
     };
   }, [series, goalCents, width]);
+
+  // Scrub: finger x → nearest day index. A detent tick per day crossed.
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (e) => {
+          const n = pts.length;
+          const idx = Math.min(n - 1, Math.max(0, Math.round((e.nativeEvent.locationX / width) * (n - 1))));
+          scrubRef.current = idx;
+          setScrubIdx(idx);
+          detent();
+        },
+        onPanResponderMove: (e) => {
+          const n = pts.length;
+          const idx = Math.min(n - 1, Math.max(0, Math.round((e.nativeEvent.locationX / width) * (n - 1))));
+          if (idx !== scrubRef.current) {
+            scrubRef.current = idx;
+            setScrubIdx(idx);
+            detent();
+          }
+        },
+        onPanResponderRelease: () => {
+          scrubRef.current = null;
+          setScrubIdx(null);
+        },
+        onPanResponderTerminate: () => {
+          scrubRef.current = null;
+          setScrubIdx(null);
+        },
+      }),
+    [pts, width],
+  );
+
+  // The scrubbed day's date label ("Jun 14"), derived from the range start.
+  const scrubDate =
+    scrubIdx != null && startISO
+      ? new Date(new Date(`${startISO}T00:00:00`).getTime() + scrubIdx * 86400000).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      : null;
+  const scrubPt = scrubIdx != null ? pts[scrubIdx] : null;
 
   // Rough path length for the draw-in animation (overshoot is harmless).
   const approxLen = width * 1.8;
@@ -95,49 +146,78 @@ export default function MoneyChart({ series, startLabel, endLabel, goalCents, st
 
   return (
     <View>
-      {goalCents ? (
+      {/* Readout: scrubbing shows that day's date + running total; at rest,
+          the pace delta (when there's a goal to race). */}
+      {scrubIdx != null ? (
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: "800" }}>
+            {money(series[scrubIdx] ?? 0)}
+          </Text>
+          <Text style={{ color: theme.textFaint, fontSize: 12.5 }}>
+            {scrubDate ? `through ${scrubDate}` : "so far"}
+          </Text>
+        </View>
+      ) : goalCents ? (
         <Text style={{ color: ahead ? theme.good : theme.bad, fontSize: 14, fontWeight: "700", marginBottom: 8 }}>
           {ahead ? "▲" : "▼"} {money(Math.abs(deltaCents))} {ahead ? "ahead of" : "behind"} pace
         </Text>
       ) : null}
-      <Svg width={width} height={H}>
-        <Defs>
-          <LinearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={lineColor} stopOpacity="0.28" />
-            <Stop offset="1" stopColor={lineColor} stopOpacity="0.02" />
-          </LinearGradient>
-        </Defs>
+      <View {...pan.panHandlers}>
+        <Svg width={width} height={H}>
+          <Defs>
+            <LinearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={lineColor} stopOpacity="0.28" />
+              <Stop offset="1" stopColor={lineColor} stopOpacity="0.02" />
+            </LinearGradient>
+          </Defs>
 
-        {/* goal pace line — the thing to race */}
-        {paceLine && (
-          <Line
-            {...paceLine}
-            stroke={onFire ? "#FFD700" : "rgba(255,255,255,0.35)"}
-            strokeWidth={onFire ? 2 : 1.5}
-            strokeDasharray="6 6"
+          {/* goal pace line — the thing to race */}
+          {paceLine && (
+            <Line
+              {...paceLine}
+              stroke={onFire ? "#FFD700" : "rgba(255,255,255,0.35)"}
+              strokeWidth={onFire ? 2 : 1.5}
+              strokeDasharray="6 6"
+            />
+          )}
+
+          {/* earnings area + line, drawing itself in */}
+          {drawn && <Path d={areaPath} fill="url(#fill)" />}
+          <AnimatedPath
+            d={linePath}
+            stroke={lineColor}
+            strokeWidth={3}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${approxLen} ${approxLen}`}
+            strokeDashoffset={dashOffset}
           />
-        )}
 
-        {/* earnings area + line, drawing itself in */}
-        {drawn && <Path d={areaPath} fill="url(#fill)" />}
-        <AnimatedPath
-          d={linePath}
-          stroke={lineColor}
-          strokeWidth={3}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${approxLen} ${approxLen}`}
-          strokeDashoffset={dashOffset}
-        />
+          {/* scrub hairline + dot riding the line */}
+          {scrubPt && (
+            <>
+              <Line
+                x1={scrubPt.x}
+                y1={PAD_TOP}
+                x2={scrubPt.x}
+                y2={H - PAD_BOTTOM}
+                stroke="rgba(255,255,255,0.25)"
+                strokeWidth={1}
+              />
+              <Circle cx={scrubPt.x} cy={scrubPt.y} r={7} fill={theme.surface} />
+              <Circle cx={scrubPt.x} cy={scrubPt.y} r={5} fill={lineColor} />
+            </>
+          )}
 
-        {/* today */}
-        {drawn && lastPt && (
-          <>
-            <Circle cx={lastPt.x} cy={lastPt.y} r={9} fill={lineColor} opacity={0.25} />
-            <Circle cx={lastPt.x} cy={lastPt.y} r={4.5} fill={lineColor} />
-          </>
-        )}
-      </Svg>
+          {/* today */}
+          {drawn && !scrubPt && lastPt && (
+            <>
+              <Circle cx={lastPt.x} cy={lastPt.y} r={9} fill={lineColor} opacity={0.25} />
+              <Circle cx={lastPt.x} cy={lastPt.y} r={4.5} fill={lineColor} />
+            </>
+          )}
+        </Svg>
+      </View>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={{ color: theme.textFaint, fontSize: 11 }}>{startLabel}</Text>
         {goalCents ? (

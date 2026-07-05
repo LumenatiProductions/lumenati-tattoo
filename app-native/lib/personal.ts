@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 
 export type Range = "week" | "month" | "year";
 
-const startOf = (range: Range): string => {
+export const startOf = (range: Range): string => {
   const d = new Date();
   if (range === "year") return `${d.getFullYear()}-01-01`;
   if (range === "month") return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
@@ -136,6 +136,52 @@ export function last7Days(sales: SaleRow[]): { label: string; cents: number }[] 
     days.push({ label: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()], cents });
   }
   return days;
+}
+
+// ── Today's book (the "your day" card) ──
+export type TodayBooking = {
+  id: string;
+  starts_at: string;
+  ends_at: string | null;
+  status: string;
+  service_desc: string | null;
+  clientName: string; // resolved best-effort; RLS may hide clients from artists
+};
+
+// Today's bookings, oldest first. RLS scopes an artist to their own book; an
+// owner previewing passes artistId explicitly. Client names resolve when the
+// role can read clients; otherwise the card says "Client".
+export async function loadToday(artistId?: string): Promise<TodayBooking[]> {
+  const now = new Date();
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayEnd = new Date(dayStart.getTime() + 86400000);
+  let q = supabase
+    .from("bookings")
+    .select("id, starts_at, ends_at, status, service_desc, client_id")
+    .gte("starts_at", dayStart.toISOString())
+    .lt("starts_at", dayEnd.toISOString())
+    .neq("status", "cancelled")
+    .order("starts_at", { ascending: true });
+  if (artistId) q = q.eq("artist_id", artistId);
+  const { data } = await q;
+  const rows = (data ?? []) as (Omit<TodayBooking, "clientName"> & { client_id: string | null })[];
+
+  const cIds = [...new Set(rows.map((b) => b.client_id).filter(Boolean) as string[])];
+  const names = new Map<string, string>();
+  if (cIds.length) {
+    const { data: cs } = await supabase.from("clients").select("id, first_name, last_name").in("id", cIds);
+    for (const c of (cs ?? []) as { id: string; first_name: string; last_name: string }[]) {
+      names.set(c.id, `${c.first_name} ${c.last_name}`.trim());
+    }
+  }
+  return rows.map((b) => ({
+    id: b.id,
+    starts_at: b.starts_at,
+    ends_at: b.ends_at,
+    status: b.status,
+    service_desc: b.service_desc,
+    clientName: b.client_id ? names.get(b.client_id) || "Client" : "Walk-in",
+  }));
 }
 
 // ── Booth rent (artists on rent or hybrid terms) ──
