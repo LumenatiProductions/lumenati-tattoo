@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { RoleProvider, useRole, ROLE_LABELS } from "@/lib/admin/role-context";
+import { RoleProvider, useRole, ROLE_LABELS, ASSIGNABLE_ROLES } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
 import { SalesProvider } from "@/lib/admin/sales-context";
 import { RentProvider } from "@/lib/admin/rent-context";
@@ -144,7 +144,7 @@ function Sidebar() {
             onChange={(e) => setRole(e.target.value as Role)}
             className="w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
           >
-            {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+            {ASSIGNABLE_ROLES.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABELS[r]}
               </option>

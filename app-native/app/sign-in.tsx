@@ -5,12 +5,24 @@ import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
 
-// Email one-time-code sign-in: no passwords, no deep links, works on iOS,
-// Android, and web. Existing staff only (shouldCreateUser: false). The Supabase
-// email template must include {{ .Token }} for the 6-digit code.
+// Phone-first one-time-code sign-in: type your number, get a text. Email code
+// is the fallback. No passwords, no deep links. Existing team only
+// (shouldCreateUser: false — an unknown number gets a friendly nudge).
+
+// "(209) 555-0144" -> "+12095550144"; null if it doesn't look like a number.
+function e164(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
+
 export default function SignIn() {
   const router = useRouter();
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"id" | "code">("id");
+  const [mode, setMode] = useState<"phone" | "email">("phone");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,26 +36,46 @@ export default function SignIn() {
   };
 
   const sendCode = async () => {
-    if (!email.trim()) return;
-    setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { shouldCreateUser: false },
-    });
-    setBusy(false);
-    if (error) setError(error.message);
-    else setStep("code");
+    if (mode === "phone") {
+      const p = e164(phone);
+      if (!p) {
+        setError("That number doesn't look right — use 10 digits.");
+        return;
+      }
+      setBusy(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: p,
+        options: { shouldCreateUser: false },
+      });
+      setBusy(false);
+      if (error) {
+        setError(
+          /signups not allowed|not found/i.test(error.message)
+            ? "That number isn't on the team yet — ask an admin to add you."
+            : error.message,
+        );
+      } else setStep("code");
+    } else {
+      if (!email.trim()) return;
+      setBusy(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: false },
+      });
+      setBusy(false);
+      if (error) setError(error.message);
+      else setStep("code");
+    }
   };
 
   const verify = async () => {
     setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: code.trim(),
-      type: "email",
-    });
+    const { error } =
+      mode === "phone"
+        ? await supabase.auth.verifyOtp({ phone: e164(phone)!, token: code.trim(), type: "sms" })
+        : await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
     setBusy(false);
     if (error) setError(error.message);
     else router.replace("/home");
@@ -62,28 +94,48 @@ export default function SignIn() {
           <LumenatiLogo width={120} />
         </View>
         <Text style={[styles.sub, { textAlign: "center" }]}>
-          {step === "email" ? "Sign in to your shop" : `Enter the code sent to ${email}`}
+          {step === "id"
+            ? "Sign in to your shop"
+            : `Enter the code we ${mode === "phone" ? "texted to" : "emailed to"} ${mode === "phone" ? phone : email}`}
         </Text>
 
         {!supabaseConfigured && (
           <Text style={styles.error}>Set EXPO_PUBLIC_SUPABASE_URL / _ANON_KEY in .env.</Text>
         )}
 
-        {step === "email" ? (
+        {step === "id" ? (
           <>
-            <TextInput
-              style={styles.input}
-              placeholder="you@shop.com"
-              placeholderTextColor={theme.textFaint}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoFocus
-              returnKeyType="go"
-              onSubmitEditing={sendCode}
-              value={email}
-              onChangeText={setEmail}
-            />
-            <Button label={busy ? "Sending…" : "Send code"} onPress={sendCode} disabled={busy} />
+            {mode === "phone" ? (
+              <TextInput
+                style={styles.input}
+                placeholder="(555) 555-5555"
+                placeholderTextColor={theme.textFaint}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoFocus
+                returnKeyType="go"
+                onSubmitEditing={sendCode}
+                value={phone}
+                onChangeText={setPhone}
+              />
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="you@shop.com"
+                placeholderTextColor={theme.textFaint}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoFocus
+                returnKeyType="go"
+                onSubmitEditing={sendCode}
+                value={email}
+                onChangeText={setEmail}
+              />
+            )}
+            <Button label={busy ? "Sending…" : mode === "phone" ? "Text me a code" : "Email me a code"} onPress={sendCode} disabled={busy} />
+            <Pressable onPress={() => { setMode((m) => (m === "phone" ? "email" : "phone")); setError(null); }}>
+              <Text style={styles.link}>{mode === "phone" ? "Use email instead" : "Use phone instead"}</Text>
+            </Pressable>
           </>
         ) : (
           <>
@@ -101,11 +153,11 @@ export default function SignIn() {
             <Button label={busy ? "Verifying…" : "Verify"} onPress={verify} disabled={busy} />
             <Pressable onPress={resend} disabled={busy || resent}>
               <Text style={[styles.link, resent && { opacity: 0.4 }]}>
-                {resent ? "Code sent — check your email" : "Send a new code"}
+                {resent ? `Code sent — check your ${mode === "phone" ? "texts" : "email"}` : "Send a new code"}
               </Text>
             </Pressable>
-            <Pressable onPress={() => { setCode(""); setStep("email"); }}>
-              <Text style={styles.link}>Use a different email</Text>
+            <Pressable onPress={() => { setCode(""); setStep("id"); }}>
+              <Text style={styles.link}>{mode === "phone" ? "Use a different number" : "Use a different email"}</Text>
             </Pressable>
           </>
         )}

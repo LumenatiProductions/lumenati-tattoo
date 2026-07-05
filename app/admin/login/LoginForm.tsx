@@ -5,9 +5,23 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 
+// Phone-first sign-in: type your number, get a text code. Email code is the
+// fallback (and the account anchor). No passwords anywhere.
+
+// "(209) 555-0144" -> "+12095550144"; returns null if it doesn't look like one.
+function e164(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
+
 export default function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/admin";
+  const [mode, setMode] = useState<"phone" | "email">("phone");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
@@ -18,39 +32,64 @@ export default function LoginForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    setBusy(false);
-    if (error) setError(error.message);
-    else setSent(true);
+    if (mode === "phone") {
+      const p = e164(phone);
+      if (!p) {
+        setError("That number doesn't look right — use 10 digits.");
+        return;
+      }
+      setBusy(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: p,
+        options: { shouldCreateUser: false },
+      });
+      setBusy(false);
+      if (error) {
+        setError(
+          /signups not allowed|not found/i.test(error.message)
+            ? "That number isn't on the team yet — ask an admin to add you."
+            : error.message,
+        );
+      } else setSent(true);
+    } else {
+      setBusy(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        },
+      });
+      setBusy(false);
+      if (error) setError(error.message);
+      else setSent(true);
+    }
   };
 
-  // The Supabase email includes a 6-digit code ({{ .Token }}), so let staff
-  // type it here instead of relying on the magic link. On success the browser
-  // client writes the session cookie; a full navigation lets the server see it.
+  // On success the browser client writes the session cookie; a full navigation
+  // lets the server see it.
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: code.trim(),
-      type: "email",
-    });
+    const { error } =
+      mode === "phone"
+        ? await supabase.auth.verifyOtp({ phone: e164(phone)!, token: code.trim(), type: "sms" })
+        : await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
     if (error) {
       setBusy(false);
       setError(error.message);
       return;
     }
     window.location.href = next;
+  };
+
+  const reset = () => {
+    setCode("");
+    setSent(false);
+    setError(null);
   };
 
   return (
@@ -66,10 +105,12 @@ export default function LoginForm() {
         <div className="rounded-xl border border-black/8 bg-white p-6 shadow-sm">
           {sent ? (
             <form onSubmit={verify}>
-              <div className="mb-1 text-base font-semibold">Check your email</div>
+              <div className="mb-1 text-base font-semibold">
+                {mode === "phone" ? "Check your texts" : "Check your email"}
+              </div>
               <p className="mb-4 text-sm text-black/55">
-                We sent a 6-digit code to <span className="font-medium">{email}</span>.
-                Enter it below.
+                We sent a 6-digit code to{" "}
+                <span className="font-medium">{mode === "phone" ? phone : email}</span>. Enter it below.
               </p>
               <input
                 type="text"
@@ -93,36 +134,59 @@ export default function LoginForm() {
               {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
               <button
                 type="button"
-                onClick={() => { setCode(""); setSent(false); setError(null); }}
+                onClick={reset}
                 className="mt-4 block w-full text-center text-xs text-black/40 hover:text-black/70"
               >
-                Use a different email
+                {mode === "phone" ? "Use a different number" : "Use a different email"}
               </button>
             </form>
           ) : (
             <form onSubmit={submit}>
               <label className="mb-1 block text-xs font-medium text-black/50">
-                Staff &amp; artist sign-in
+                Team sign-in
               </label>
-              <input
-                type="email"
-                required
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                className="inp mb-3"
-              />
+              {mode === "phone" ? (
+                <input
+                  type="tel"
+                  required
+                  autoFocus
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 555-5555"
+                  className="inp mb-3"
+                />
+              ) : (
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  className="inp mb-3"
+                />
+              )}
               <button
                 type="submit"
                 disabled={busy}
                 className="w-full rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
-                {busy ? "Sending…" : "Email me a sign-in link"}
+                {busy ? "Sending…" : mode === "phone" ? "Text me a code" : "Email me a code"}
               </button>
               {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
-              <p className="mt-4 text-center text-xs text-black/40">
-                No password needed. Only approved emails can sign in.
+              <button
+                type="button"
+                onClick={() => {
+                  setMode((m) => (m === "phone" ? "email" : "phone"));
+                  setError(null);
+                }}
+                className="mt-4 block w-full text-center text-xs text-black/40 hover:text-black/70"
+              >
+                {mode === "phone" ? "Use email instead" : "Use phone instead"}
+              </button>
+              <p className="mt-3 text-center text-xs text-black/40">
+                No password needed. Team members only.
               </p>
             </form>
           )}

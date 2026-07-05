@@ -57,9 +57,15 @@ export function useRole(): RoleCtx {
   return c;
 }
 
+// The new process: two roles. Admin runs the shop, Artist runs their chair.
+// (bookkeeper/frontdesk are legacy values that now read as Admin; the stored
+// admin value stays 'owner' so policies and gates never had to change.)
 export const ROLE_LABELS: Record<Role, string> = {
-  owner: "Co-owner",
-  bookkeeper: "Bookkeeper",
+  owner: "Admin",
+  bookkeeper: "Admin",
   artist: "Artist",
-  frontdesk: "Front desk",
+  frontdesk: "Admin",
 };
+
+/** The two roles anyone can actually be assigned or previewed as. */
+export const ASSIGNABLE_ROLES: Role[] = ["owner", "artist"];

@@ -26,11 +26,13 @@ const daysAgoLocal = (n: number) => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 
+// Two roles now: Admin runs the shop, Artist runs their chair (legacy
+// bookkeeper/frontdesk values read as Admin).
 const ROLE_LABEL: Record<string, string> = {
-  owner: "Co-owner",
-  bookkeeper: "Bookkeeper",
+  owner: "Admin",
+  bookkeeper: "Admin",
   artist: "Artist",
-  frontdesk: "Front desk",
+  frontdesk: "Admin",
 };
 
 // Role-routed home: artists get the money + coaching dashboard (6b), staff get
