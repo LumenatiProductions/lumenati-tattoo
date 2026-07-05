@@ -56,8 +56,12 @@ function ReportsInner() {
   const { data, loading, error, preset, year, setPreset, setYear } = useReports();
 
   const years = useMemo(() => {
+    // Back to 2021 — the full Square backfill put five years of history in the
+    // ledger, so every year of it should be reachable here.
     const now = new Date().getUTCFullYear();
-    return [now, now - 1, now - 2, now - 3];
+    const list: number[] = [];
+    for (let y = now; y >= 2021; y--) list.push(y);
+    return list;
   }, []);
 
   const exportArtists = () => {

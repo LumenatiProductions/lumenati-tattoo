@@ -10,6 +10,8 @@ export const dynamic = "force-dynamic";
 //   GET   — owner/bookkeeper: recent invoices with their pay-link URLs
 //   POST  — { action: "generate" } make this month's invoices exist
 //           { action: "email", id } email the artist their pay link
+//           { action: "mark_paid", id, method } artist paid in cash/check —
+//             marks the invoice paid and books the rent in the ledger
 
 const BOOKS = ["owner", "bookkeeper"] as const;
 
@@ -72,7 +74,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
 
-  const b = (await req.json().catch(() => ({}))) as { action?: string; id?: string };
+  const b = (await req.json().catch(() => ({}))) as { action?: string; id?: string; method?: string };
 
   if (b.action === "generate") {
     try {
@@ -123,6 +125,49 @@ export async function POST(req: Request) {
     });
     if (!res.ok) return NextResponse.json({ error: `Send failed (${res.status})` }, { status: 502 });
     return NextResponse.json({ ok: true, sentTo: profile.email });
+  }
+
+  if (b.action === "mark_paid") {
+    if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const method = b.method === "check" ? "check" : "cash";
+
+    const { data: inv } = await supabase.from("rent_invoices").select("*").eq("id", b.id).maybeSingle();
+    if (!inv) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    if (inv.status === "paid") return NextResponse.json({ ok: true, already: true });
+    if (inv.status === "void") return NextResponse.json({ error: "That invoice is voided." }, { status: 409 });
+
+    // status filter = idempotency: two devices marking at once, one wins.
+    const { data: updated, error: upErr } = await supabase
+      .from("rent_invoices")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", b.id)
+      .eq("status", "pending")
+      .select()
+      .maybeSingle();
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+    if (!updated) return NextResponse.json({ ok: true, already: true });
+
+    // Book the rent in the canonical ledger. Hand-collected money is
+    // source='cash' (staff RLS allows exactly that); the unique external_id
+    // means this invoice can only ever land once, even on a double-click.
+    const { error: ledErr } = await supabase.from("ledger").upsert(
+      {
+        source: "cash",
+        kind: "rent",
+        direction: "in",
+        amount_cents: inv.amount_cents,
+        artist_id: inv.artist_id,
+        external_id: `rentinv_${inv.id}`,
+        created_by: user.email ?? null,
+        note: `Booth rent ${inv.period} paid by ${method}`,
+      },
+      { onConflict: "source,external_id", ignoreDuplicates: true },
+    );
+    if (ledErr) {
+      // The invoice IS paid; surface the ledger drift instead of hiding it.
+      return NextResponse.json({ ok: true, warning: `Marked paid, but the ledger write failed: ${ledErr.message}` });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

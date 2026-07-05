@@ -33,7 +33,7 @@ export default function RentPage() {
         {loading ? (
           <div className="px-4 py-6 text-center text-sm text-black/40">Loading from Square…</div>
         ) : unpaid.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm text-black/40">All rent is paid. 🎉</div>
+          <div className="px-4 py-6 text-center text-sm text-black/40">All rent is paid.</div>
         ) : (
           <div className="divide-y divide-black/5">
             {unpaid.map((i) => (
@@ -211,6 +211,29 @@ function InHouseRent() {
                         className="rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-40"
                       >
                         Email it
+                      </button>
+                      {/* Artist handed over cash/check — book it without Stripe. */}
+                      <button
+                        onClick={() =>
+                          act({ action: "mark_paid", id: i.id, method: "cash" }, (d) =>
+                            d.warning ? String(d.warning) : `${artistName(i.artist_id)} marked paid (cash).`,
+                          )
+                        }
+                        disabled={busy}
+                        className="rounded-md border border-black/10 px-2 py-1 text-[11px] font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+                      >
+                        Paid cash
+                      </button>
+                      <button
+                        onClick={() =>
+                          act({ action: "mark_paid", id: i.id, method: "check" }, (d) =>
+                            d.warning ? String(d.warning) : `${artistName(i.artist_id)} marked paid (check).`,
+                          )
+                        }
+                        disabled={busy}
+                        className="rounded-md border border-black/10 px-2 py-1 text-[11px] font-medium text-black/55 hover:bg-black/4 disabled:opacity-40"
+                      >
+                        Paid check
                       </button>
                     </>
                   )}

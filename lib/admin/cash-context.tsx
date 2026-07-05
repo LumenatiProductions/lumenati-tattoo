@@ -19,6 +19,8 @@ export type NewCashEntry = {
   date?: string;
   artistId?: string | null;
   amountCents: number;
+  /** Sales tax included in the amount (taxable product sales). */
+  taxCents?: number;
   note?: string;
 };
 

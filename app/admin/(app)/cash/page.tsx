@@ -314,6 +314,7 @@ function AddEntry({
     date?: string;
     artistId?: string | null;
     amountCents: number;
+    taxCents?: number;
     note?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   onAdded: () => void;
@@ -322,19 +323,35 @@ function AddEntry({
   const [artistId, setArtistId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [taxable, setTaxable] = useState(false);
+  const [taxBps, setTaxBps] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // The shop's tax rate, for splitting tax out of taxable product sales.
+  useEffect(() => {
+    fetch("/api/tax-rate")
+      .then((r) => r.json())
+      .then((d) => setTaxBps(Number(d.bps) || 0))
+      .catch(() => {});
+  }, []);
+
+  // Tax is INSIDE the amount the client handed over: back it out of the total.
+  const amountCents = Math.round(Number(amount) * 100);
+  const taxCents =
+    taxable && taxBps > 0 && Number.isFinite(amountCents) && amountCents > 0
+      ? Math.round(amountCents - amountCents / (1 + taxBps / 10000))
+      : 0;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    const amountCents = Math.round(Number(amount) * 100);
     if (!Number.isFinite(amountCents) || amountCents === 0) {
       setMsg("Enter the cash amount.");
       return;
     }
     setBusy(true);
-    const res = await addEntry({ date, artistId: artistId || null, amountCents, note });
+    const res = await addEntry({ date, artistId: artistId || null, amountCents, taxCents, note });
     setBusy(false);
     if (!res.ok) {
       setMsg(res.error || "Could not log that.");
@@ -380,6 +397,15 @@ function AddEntry({
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
+        {taxBps > 0 && (
+          <label className="flex items-center gap-1.5 pb-2 text-xs text-black/55">
+            <input type="checkbox" checked={taxable} onChange={(e) => setTaxable(e.target.checked)} />
+            Taxable product
+            {taxable && taxCents > 0 && (
+              <span className="tnum text-black/40">(incl. ${(taxCents / 100).toFixed(2)} tax)</span>
+            )}
+          </label>
+        )}
         <button
           type="submit"
           disabled={busy}

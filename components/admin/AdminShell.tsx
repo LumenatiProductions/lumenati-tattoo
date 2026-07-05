@@ -34,6 +34,7 @@ const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/admin/rent", label: "Booth Rent", roles: ["owner", "bookkeeper"] },
   { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
   { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"] },
+  { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner", "bookkeeper"] },
   { href: "/admin/expenses", label: "Expenses", roles: ["owner", "bookkeeper"] },
   // Shop
   { href: "/admin/inventory", label: "Inventory", roles: ["owner", "frontdesk"] },

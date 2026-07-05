@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ExpensesProvider, useExpenses, type ExpenseInput } from "@/lib/admin/expenses-context";
 import { useInventory } from "@/lib/admin/inventory-context";
 import { expensesCsv, downloadCsv } from "@/lib/books/export";
@@ -20,7 +20,7 @@ export default function ExpensesPage() {
 }
 
 function Inner() {
-  const { expenses, loading, error, totalCents, byCategory, addExpense, removeExpense } = useExpenses();
+  const { expenses, loading, error, totalCents, byCategory, addExpense, removeExpense, refresh } = useExpenses();
 
   const exportCsv = () =>
     downloadCsv(`lumenati-expenses-${new Date().toISOString().slice(0, 10)}.csv`, expensesCsv(expenses));
@@ -43,6 +43,8 @@ function Inner() {
       </div>
 
       <AddForm onAdd={addExpense} />
+
+      <RecurringBills onPosted={refresh} />
 
       {error && (
         <Card className="mb-5">
@@ -111,6 +113,261 @@ function Inner() {
       {/* Phase 2: the real money in/out from Stripe */}
       <StripeLedger />
     </div>
+  );
+}
+
+// Recurring bills — the shop lease, utilities, software. A bill is a template:
+// when its due date arrives, "Post" turns it into a real expense row (stamped
+// so a period can never double-post) and the due date advances one step.
+type Bill = {
+  id: string;
+  name: string;
+  category: string;
+  vendor: string | null;
+  amount_cents: number;
+  cadence: string;
+  next_due: string;
+  active: boolean;
+  note: string;
+};
+
+function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch("/api/expenses/recurring");
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) setBills(d.bills || []);
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const due = bills.filter((b) => b.active && b.next_due <= today);
+
+  const postDue = async (id?: string) => {
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    const r = await fetch("/api/expenses/recurring/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(id ? { id } : {}),
+    });
+    const d = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) {
+      setErr(d.error || "Could not post.");
+      return;
+    }
+    const n = (d.posted || []).length;
+    setMsg(n ? `Posted ${n} bill${n === 1 ? "" : "s"} to expenses.` : "Nothing was due.");
+    await Promise.all([load(), onPosted()]);
+  };
+
+  const toggle = async (b: Bill) => {
+    await fetch("/api/expenses/recurring", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: b.id, active: !b.active }),
+    });
+    await load();
+  };
+
+  const remove = async (id: string) => {
+    await fetch(`/api/expenses/recurring?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    await load();
+  };
+
+  return (
+    <div className="mb-6">
+      <SectionTitle
+        action={
+          <div className="flex items-center gap-2">
+            {due.length > 0 && (
+              <button
+                onClick={() => postDue()}
+                disabled={busy}
+                className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+              >
+                {busy ? "Posting…" : `Post ${due.length} due`}
+              </button>
+            )}
+            <button
+              onClick={() => setShowAdd((s) => !s)}
+              className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium text-black/60 hover:bg-black/4"
+            >
+              {showAdd ? "Close" : "Add bill"}
+            </button>
+          </div>
+        }
+      >
+        Recurring bills
+      </SectionTitle>
+
+      {showAdd && <AddBillForm onAdded={async () => (setShowAdd(false), await load())} />}
+      {(msg || err) && (
+        <div className={`mb-3 text-xs ${err ? "text-rose-600" : "text-emerald-700"}`}>{err || msg}</div>
+      )}
+
+      <Card>
+        {bills.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-black/40">
+            No recurring bills yet. Add the shop lease, utilities, and software here — they post to
+            expenses automatically when due, so the P&amp;L stays real.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-black/8 text-left text-xs uppercase tracking-wide text-black/45">
+                <th className="px-4 py-2 font-medium">Bill</th>
+                <th className="px-4 py-2 font-medium">Category</th>
+                <th className="px-4 py-2 font-medium">Every</th>
+                <th className="px-4 py-2 font-medium">Next due</th>
+                <th className="px-4 py-2 text-right font-medium">Amount</th>
+                <th className="px-4 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {bills.map((b) => {
+                const isDue = b.active && b.next_due <= today;
+                return (
+                  <tr key={b.id} className={`border-b border-black/5 last:border-0 ${b.active ? "" : "opacity-45"}`}>
+                    <td className="px-4 py-2.5 font-medium">
+                      {b.name}
+                      {b.vendor && <div className="text-xs font-normal text-black/40">{b.vendor}</div>}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Badge tone="neutral">{b.category}</Badge>
+                    </td>
+                    <td className="px-4 py-2.5 capitalize text-black/60">{b.cadence.replace("ly", "")}</td>
+                    <td className="tnum px-4 py-2.5">
+                      {isDue ? <Badge tone="warn">due {b.next_due}</Badge> : <span className="text-black/60">{b.next_due}</span>}
+                    </td>
+                    <td className="tnum px-4 py-2.5 text-right font-medium">{usd(b.amount_cents)}</td>
+                    <td className="px-4 py-2.5 text-right text-xs">
+                      {isDue && (
+                        <button onClick={() => postDue(b.id)} disabled={busy} className="mr-3 font-semibold text-brand">
+                          Post
+                        </button>
+                      )}
+                      <button onClick={() => toggle(b)} className="mr-3 text-black/45 hover:text-black/70">
+                        {b.active ? "Pause" : "Resume"}
+                      </button>
+                      <button onClick={() => remove(b.id)} className="text-black/35 hover:text-rose-600">
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function AddBillForm({ onAdded }: { onAdded: () => Promise<void> }) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("rent");
+  const [vendor, setVendor] = useState("");
+  const [amount, setAmount] = useState("");
+  const [cadence, setCadence] = useState("monthly");
+  const [nextDue, setNextDue] = useState(new Date().toISOString().slice(0, 10));
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const field = "w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm";
+  const labelCls = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cents = Math.round((Number(amount) || 0) * 100);
+    if (!name.trim() || cents < 1) {
+      setErr("Give the bill a name and an amount.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const r = await fetch("/api/expenses/recurring", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, category, vendor, amountCents: cents, cadence, nextDue }),
+    });
+    const d = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) {
+      setErr(d.error || "Could not add that bill.");
+      return;
+    }
+    await onAdded();
+  };
+
+  return (
+    <Card className="mb-3">
+      <form onSubmit={submit} className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-6">
+        <label>
+          <span className={labelCls}>Bill name</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Shop lease" className={field} />
+        </label>
+        <label>
+          <span className={labelCls}>Category</span>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={field}>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className={labelCls}>Vendor</span>
+          <input value={vendor} onChange={(e) => setVendor(e.target.value)} className={field} />
+        </label>
+        <label>
+          <span className={labelCls}>Amount ($)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+            className={field}
+          />
+        </label>
+        <label>
+          <span className={labelCls}>Repeats</span>
+          <select value={cadence} onChange={(e) => setCadence(e.target.value)} className={field}>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </label>
+        <label>
+          <span className={labelCls}>Next due</span>
+          <input type="date" value={nextDue} onChange={(e) => setNextDue(e.target.value)} className={field} />
+        </label>
+        {err && <div className="text-xs text-rose-600 sm:col-span-6">{err}</div>}
+        <div className="sm:col-span-6">
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            {busy ? "Adding…" : "Add recurring bill"}
+          </button>
+        </div>
+      </form>
+    </Card>
   );
 }
 

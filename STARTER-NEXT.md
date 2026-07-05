@@ -40,33 +40,54 @@ terminals). Everything runs through the canonical **ledger** (see below).
 - **Artist rewards**: `lib/rewards.ts` + RewardsStrip badges on the money home.
 - **/book** redirects to /request. Bug sweep run + fixed before a TestFlight build.
 
-## NEXT SESSION — the actual focus (Scott, 2026-07-04)
-The theme is GET ORGANIZED MOVING FORWARD. Scott is changing systems + moving
-locations and using that to stand this product up as the real system of record.
-Two priorities, roughly in order:
+## Shipped 2026-07-04 (third pass) — the MONEY LAYER is complete
+QuickBooks replacement built and verified to the penny in Chrome:
+- **Profit & Loss** (`/admin/pnl`, in the nav): shop income (splits +
+  unattributed/shop sales + booth rent from ledger + forfeited deposits) minus
+  expenses = profit, by month/quarter/year, any year back to 2021 or all time.
+  All-time totals verified against the DB to the cent ($702,352 gross, 2,364
+  sales; API paginates past the PostgREST 1000-row cap). Income lines are
+  transparent (splits vs no-artist sales split out).
+- **Recurring bills** on Expenses: `recurring_expenses` table; add/pause/remove
+  bills (lease, utilities, software) with cadence + next-due; "Post due" turns
+  them into real expense rows, idempotent per period (unique recurring_id+period),
+  due date auto-advances. Verified end to end.
+- **Owner draws**: `owner_draws` table + section on the P&L page. Distributions,
+  not expenses — below the profit line.
+- **Sales tax**: rate lives on shops.sales_tax_bps (editor on the P&L page);
+  when set, the Cash Log shows a "Taxable product" checkbox that backs tax out
+  of the amount; ledger books sale net of tax + a kind='tax' row; delete
+  reverses BOTH rows (verified). Remittance figure on P&L. Rate currently 0 —
+  SCOTT MUST SET the real rate (services usually untaxed, aftercare products
+  usually taxed — confirm state rules).
+- **Accountant exports**: P&L CSV + full general-ledger CSV buttons on the P&L
+  page (server-side, paginated, penny-exact).
+- **Mark rent paid (cash/check)** buttons on in-house rent invoices — marks
+  paid + books a ledger rent row idempotently. Built, NOT live-tested (didn't
+  want to fabricate a real rent payment); same upsert pattern as the verified
+  flows. Test with the first real cash rent.
+- **Reports year picker** now reaches 2021.
+- DB migration: `supabase/2026-07-04-money-out.sql` (applied to live DB; also
+  adds 'tax'/'draw' ledger kinds).
 
-1. **Get the full artist roster in.** The platform only has 6 artists
-   (elaine, jd, kalypso, moonie, sam, shorty) and NOT ALL CURRENT ARTISTS ARE IN
-   YET. "Grey" is at least one missing artist (has 16 Square sales, $1k, 2026).
-   Ask Scott for the complete current roster (names, pay type rent/split/hybrid +
-   %, contact) and add them. Then map Grey's Square team id -> the new artist so
-   his history attributes (the sync re-resolves artist_id on every run).
-2. **Complete the money layer so ALL finances live here** (replace QuickBooks).
-   In priority order (see the assessment we did):
-   - **Profit & Loss view** — one screen: money in (ledger) minus money out
-     (expenses + payouts + rent-the-shop-pays) = actual profit, per month/quarter/
-     year. Highest value; the ledger already has the income side.
-   - **All money OUT, not just supplies** — a simple bills/expenses area with
-     recurring items (shop lease, utilities, software) + due dates, so P&L is real.
-   - **Sales tax** — nothing tracks tax collected/owed today. Needed if aftercare
-     products (or services, per state) are taxable. Add tax capture + a remittance
-     figure.
-   - **Owner pay / draws** — record money Scott takes out, separate from expenses.
-   - **Accountant export** — a full P&L / general-ledger CSV for tax time (1099
-     CSV already exists).
-   - Smaller: **mark rent paid** (cash/check) on in-house rent invoices;
-     Reports **date range picker** back to 2021 (history is in the ledger now but
-     the presets only reach Jan 2026); W-2 **Gusto payroll** if any employees.
+## NEXT SESSION — the actual focus
+1. **Get the full artist roster in (BLOCKED ON SCOTT).** Platform has 6 artists
+   (elaine, jd, kalypso, moonie, sam, shorty). Recon of Square (2026 sales by
+   team member) says at minimum:
+   - **Grey Barrix** (square team id TMS5h7Kja6CfFrFH): 16 sales in 2026, all
+     small ($20-150, product/touch-up sized), last 2026-06-28. Current, missing.
+   - **Stephanie Moore** (TMhfO2Rp53Z_b7eg): the old starter called her a
+     former resident, but she has 181 sales / $181k for 2023-2026 INCLUDING A
+     SALE TODAY (steady $1,000-1,200 tickets, 32 in 2026 = most of the year's
+     "unattributed" income on the P&L). Ask Scott: is she current?
+   - Everyone else unmapped is genuinely gone (Anstey 2024, Hagerty/Chavez 2023).
+   Need per artist: name, pay type (rent/split/hybrid + % / rent $), contact.
+   Then set square_team_members.artist_id for their team ids -> history
+   re-attributes on next sync (it re-resolves artist_id every run).
+2. **Money layer follow-ups**: Scott sets the sales-tax rate + confirms what's
+   taxable; enter real recurring bills (lease, utilities, software) on Expenses;
+   W-2 **Gusto payroll** only if any real employees; Stripe Tap-to-Pay tax
+   capture when POS work resumes.
 
 ## Historical data — STAGED, not cut over (2026-07-04)
 - Square has 2,467 payments back to 2021; only 39 had ever imported (the sync
