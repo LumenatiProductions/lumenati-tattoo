@@ -113,8 +113,10 @@ export default function ArtistMoney({
     <View>
       <Text style={styles.greeting}>{previewName ?? `Hey ${firstName}`}</Text>
 
-      {/* THE action — taking money is why the phone comes out of the pocket. */}
+      {/* THE actions — money in, next client on the books. */}
       <Button label="Take payment" big onPress={() => router.push("/pos")} />
+      <View style={{ height: 10 }} />
+      <Button label="New booking" tone="ghost" onPress={() => router.push("/bookings?new=1")} />
       <Pressable onPress={() => { tap(); router.push("/cashout"); }} style={({ pressed }) => pressed && { opacity: 0.7 }}>
         <Text style={styles.cashoutLink}>Cash out early →</Text>
       </Pressable>

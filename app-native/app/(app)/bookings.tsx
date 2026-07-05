@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
@@ -129,7 +129,9 @@ export default function Bookings() {
   const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
   const [recentClients, setRecentClients] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
+  // /bookings?new=1 (the artist home's New booking button) opens the form.
+  const params = useLocalSearchParams<{ new?: string }>();
+  const [adding, setAdding] = useState(params.new === "1");
   const [editId, setEditId] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(false);
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
