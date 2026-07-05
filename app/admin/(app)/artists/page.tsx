@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useSales } from "@/lib/admin/sales-context";
 import { useRole } from "@/lib/admin/role-context";
@@ -220,6 +220,100 @@ export default function ArtistsPage() {
           );
         })}
       </div>
+
+      {isOwner && <SquareHistoryPanel artists={artists} />}
+    </div>
+  );
+}
+
+// Old Square logins not yet tied to anyone on the roster. Linking one moves
+// that person's ENTIRE sales history (sales + ledger + all reports) onto the
+// chosen artist, and future syncs keep attributing to them. One dropdown, one
+// click — no database work. Owner only.
+function SquareHistoryPanel({ artists }: { artists: Artist[] }) {
+  type Member = { square_id: string; name: string };
+  const sb = createClient();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [picks, setPicks] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const { data } = await sb
+      .from("square_team_members")
+      .select("square_id, name")
+      .is("artist_id", null)
+      .order("name");
+    setMembers((data ?? []) as Member[]);
+  }, [sb]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (members.length === 0) return null;
+
+  const link = async (m: Member) => {
+    const artistId = picks[m.square_id];
+    if (!artistId) return;
+    setBusy(m.square_id);
+    setNote(null);
+    const { data, error } = await sb.rpc("link_square_history", {
+      p_square_id: m.square_id,
+      p_artist_id: artistId,
+    });
+    setBusy(null);
+    if (error) {
+      setNote(error.message);
+      return;
+    }
+    const artistName = artists.find((a) => a.id === artistId)?.name ?? artistId;
+    setNote(`Linked ${m.name} to ${artistName} — ${data ?? 0} historical sales moved onto their name.`);
+    await load();
+  };
+
+  return (
+    <div className="mt-8">
+      <SectionTitle>Square history not linked to anyone</SectionTitle>
+      <p className="-mt-1 mb-3 text-xs text-black/45">
+        Old Square logins with sales that currently count as shop revenue. If one of these people is on
+        (or joins) the roster, pick their name and their whole history follows them — tickets, reports,
+        payout math, everything. Leave former guests unlinked on purpose.
+      </p>
+      {note && (
+        <div className="mb-3 rounded-lg border border-black/8 bg-white px-3 py-2 text-xs text-black/60 shadow-sm">
+          {note}
+        </div>
+      )}
+      <Card>
+        <div className="divide-y divide-black/5">
+          {members.map((m) => (
+            <div key={m.square_id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+              <span className="text-sm font-medium">{m.name}</span>
+              <div className="flex items-center gap-2">
+                <select
+                  value={picks[m.square_id] ?? ""}
+                  onChange={(e) => setPicks((p) => ({ ...p, [m.square_id]: e.target.value }))}
+                  className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm"
+                >
+                  <option value="">Not on the roster</option>
+                  {artists.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => link(m)}
+                  disabled={!picks[m.square_id] || busy === m.square_id}
+                  className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                >
+                  {busy === m.square_id ? "Linking…" : "Link history"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
