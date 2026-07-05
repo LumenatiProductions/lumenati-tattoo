@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
 import { tapToPayAvailable } from "@/lib/terminal";
+import { useMerch } from "@/lib/merch";
+import MerchShelf from "@/components/MerchShelf";
 
 // Take an in-person payment with Tap to Pay (POS 6c). On real iOS builds the
 // native flow renders (components/TapToPayPos); Expo Go / web / Android get an
@@ -36,6 +38,37 @@ export default function Pos() {
 function Fallback() {
   const [amount, setAmount] = useState("");
   const cents = Math.round((Number(amount) || 0) * 100);
+  // Cash merch works everywhere — it's a books write, no card reader involved.
+  const merch = useMerch();
+  const [busy, setBusy] = useState(false);
+  const [soldCents, setSoldCents] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const takeCash = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await merch.recordCash();
+    setBusy(false);
+    if (!r.ok) {
+      setError(r.error ?? "Could not record the sale.");
+      return;
+    }
+    setSoldCents(r.totalCents ?? merch.totals?.totalCents ?? 0);
+    merch.clear();
+  };
+
+  if (soldCents !== null) {
+    return (
+      <Card>
+        <Text style={styles.doneCheck}>✓</Text>
+        <Text style={styles.doneTitle}>Paid {money(soldCents)}</Text>
+        <Text style={styles.doneSub}>Cash sale — the books and the stock count are updated.</Text>
+        <View style={{ height: 14 }} />
+        <Button label="New sale" tone="ghost" onPress={() => setSoldCents(null)} />
+      </Card>
+    );
+  }
+
   return (
     <>
       <Text style={styles.label}>Amount</Text>
@@ -60,8 +93,26 @@ function Fallback() {
               : "Tap to Pay is in Apple\u2019s final review (flow videos) — it lights up here the day they approve. Until then, send a pay link from the web admin."}
         </Text>
       </Card>
+      <MerchShelf
+        products={merch.products}
+        cart={merch.cart}
+        add={merch.add}
+        remove={merch.remove}
+        totals={merch.totals}
+        taxBps={merch.taxBps}
+        disabled={busy}
+      />
+      {error && <Text style={styles.error}>{error}</Text>}
       <View style={{ height: 18 }} />
-      <Button label={`Charge ${money(cents)}`} onPress={() => {}} disabled />
+      {merch.totals ? (
+        <Button
+          label={busy ? "Recording…" : `Paid cash · ${money(merch.totals.totalCents)}`}
+          onPress={takeCash}
+          disabled={busy}
+        />
+      ) : (
+        <Button label={`Charge ${money(cents)}`} onPress={() => {}} disabled />
+      )}
     </>
   );
 }
@@ -72,4 +123,8 @@ const styles = StyleSheet.create({
   dollar: { color: theme.textDim, fontSize: 40, fontWeight: "700" },
   amountInput: { flex: 1, color: theme.text, fontSize: 56, fontWeight: "800", paddingVertical: 4 },
   heads: { color: theme.textDim, fontSize: 14, lineHeight: 20 },
+  error: { color: theme.bad, marginTop: 14, fontSize: 14 },
+  doneCheck: { color: theme.good, fontSize: 40, textAlign: "center" },
+  doneTitle: { color: theme.text, fontSize: 24, fontWeight: "800", textAlign: "center", marginTop: 8 },
+  doneSub: { color: theme.textDim, fontSize: 14, textAlign: "center", marginTop: 6 },
 });

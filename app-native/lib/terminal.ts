@@ -33,9 +33,17 @@ export async function getLocationId(): Promise<string> {
 // Server mints the destination-charge PaymentIntent (split handled there).
 // amountCents is the SERVICE amount; tipCents (optional) is added on top and
 // rides to the artist in full — the server clamps it and charges service + tip.
+// A merch cart (shop sales) sends items instead: the server re-prices every
+// line from inventory and adds sales tax on top, ignoring amountCents.
 export async function createTapToPayIntent(
   amountCents: number,
-  opts: { artistId?: string; bookingId?: string; shop?: boolean; tipCents?: number } = {},
+  opts: {
+    artistId?: string;
+    bookingId?: string;
+    shop?: boolean;
+    tipCents?: number;
+    items?: { id: string; qty: number }[];
+  } = {},
 ): Promise<{ clientSecret: string }> {
   const r = await apiPost<{ clientSecret: string; paymentIntentId: string }>(
     "/api/terminal/payment-intent",

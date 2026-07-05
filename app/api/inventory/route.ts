@@ -38,6 +38,7 @@ type Body = {
   reorderAt?: number | string;
   reorderQty?: number | string;
   costCents?: number | string;
+  priceCents?: number | string | null;
   supplier?: string | null;
   supplierUrl?: string | null;
   // quick-adjust only:
@@ -96,6 +97,8 @@ export async function POST(req: Request) {
     reorder_at: num(b.reorderAt),
     reorder_qty: num(b.reorderQty),
     cost_cents: Math.round(num(b.costCents)),
+    // Retail price: > 0 makes the item sellable at the POS; 0/empty stays null.
+    price_cents: Math.round(num(b.priceCents)) > 0 ? Math.round(num(b.priceCents)) : null,
     supplier: orNull(b.supplier),
     supplier_url: orNull(b.supplierUrl),
     updated_at: new Date().toISOString(),
@@ -170,6 +173,9 @@ export async function PATCH(req: Request) {
   if (b.reorderAt !== undefined) patch.reorder_at = num(b.reorderAt);
   if (b.reorderQty !== undefined) patch.reorder_qty = num(b.reorderQty);
   if (b.costCents !== undefined) patch.cost_cents = Math.round(num(b.costCents));
+  if (b.priceCents !== undefined) {
+    patch.price_cents = Math.round(num(b.priceCents)) > 0 ? Math.round(num(b.priceCents)) : null;
+  }
   if (b.supplier !== undefined) patch.supplier = orNull(b.supplier);
   if (b.supplierUrl !== undefined) patch.supplier_url = orNull(b.supplierUrl);
 

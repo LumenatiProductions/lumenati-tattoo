@@ -17,7 +17,7 @@ const fmtDate = (iso: string) =>
 
 export default function CashPage() {
   const { artists } = useArtists();
-  const { entries, loading, error, configured, totalCents, outstandingCents, addEntry, toggleReconciled } =
+  const { entries, loading, error, configured, totalCents, outstandingCents, addEntry, toggleReconciled, refresh } =
     useCash();
   const [adding, setAdding] = useState(false);
 
@@ -58,6 +58,8 @@ export default function CashPage() {
         <StatCard label="Entries" value={String(entries.length)} />
         <StatCard label="Reconciled" value={`${doneCount}/${entries.length}`} tone="good" />
       </div>
+
+      {configured && <MerchQuickSale onSold={refresh} />}
 
       <SectionTitle
         action={
@@ -301,6 +303,119 @@ function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
         )}
       </Card>
     </div>
+  );
+}
+
+// Quick-tap merch: every inventory item with a retail price becomes a button.
+// Tap what sold, hit log — the server prices it, splits the tax out, books the
+// ledger rows, and takes the stock down. Renders nothing until a product has a
+// price (set on the Inventory page). Cash only here; card merch rings up on
+// the phone's Tap to Pay screen.
+function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
+  const [products, setProducts] = useState<
+    { id: string; name: string; brand: string | null; qty: number; price_cents: number }[]
+  >([]);
+  const [taxBps, setTaxBps] = useState(0);
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/pos/products")
+      .then((r) => r.json())
+      .then((d) => {
+        setProducts(d.items ?? []);
+        setTaxBps(Number(d.taxBps) || 0);
+      })
+      .catch(() => {});
+  }, []);
+
+  const lines = Object.entries(cart)
+    .map(([id, qty]) => {
+      const p = products.find((x) => x.id === id);
+      return p ? { id, name: p.name, qty, price_cents: p.price_cents } : null;
+    })
+    .filter((l): l is NonNullable<typeof l> => !!l);
+  const subtotal = lines.reduce((s, l) => s + l.price_cents * l.qty, 0);
+  const tax = Math.round((subtotal * taxBps) / 10000);
+  const total = subtotal + tax;
+
+  const sell = async () => {
+    setBusy(true);
+    setMsg(null);
+    const r = await fetch("/api/pos/merch-sale", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: Object.entries(cart).map(([id, qty]) => ({ id, qty })) }),
+    });
+    const d = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) {
+      setMsg(d.error || "Could not record the sale.");
+      return;
+    }
+    setCart({});
+    setMsg(`Sold — ${fmtPrecise(d.totalCents)} logged, stock updated.`);
+    await onSold();
+  };
+
+  if (products.length === 0) return null;
+
+  return (
+    <Card className="mb-5">
+      <div className="p-4">
+        <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-black/45">
+          Merch — cash sale
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {products.map((p) => {
+            const n = cart[p.id] ?? 0;
+            return (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setMsg(null);
+                  setCart((c) => ({ ...c, [p.id]: (c[p.id] ?? 0) + 1 }));
+                }}
+                disabled={busy}
+                className={`rounded-lg border px-3 py-2 text-sm ${
+                  n > 0 ? "border-brand bg-brand/5 font-semibold" : "border-black/10 hover:bg-black/5"
+                } disabled:opacity-40`}
+              >
+                {n > 0 && <span className="mr-1.5 rounded bg-brand px-1.5 py-0.5 text-[11px] font-bold text-white">{n}</span>}
+                {p.brand ? `${p.brand} ` : ""}
+                {p.name}
+                <span className="ml-1.5 text-black/45">{fmtPrecise(p.price_cents)}</span>
+              </button>
+            );
+          })}
+        </div>
+        {lines.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="tnum text-sm text-black/60">
+              {fmtPrecise(subtotal)}
+              {tax > 0 && ` + ${fmtPrecise(tax)} tax`}
+              <span className="ml-1.5 font-semibold text-black">= {fmtPrecise(total)}</span>
+            </span>
+            <button
+              onClick={sell}
+              disabled={busy}
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+            >
+              {busy ? "Logging…" : "Log cash sale"}
+            </button>
+            <button
+              onClick={() => setCart({})}
+              disabled={busy}
+              className="text-xs text-black/40 hover:text-black/60"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+        {msg && <div className="mt-2 text-xs font-medium text-black/60">{msg}</div>}
+      </div>
+    </Card>
   );
 }
 

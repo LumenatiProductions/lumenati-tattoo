@@ -15,6 +15,9 @@ export type InventoryItem = {
   reorder_at: number;
   reorder_qty: number;
   cost_cents: number;
+  // Retail price. Set = this item sells at the POS (quick-tap button); null =
+  // plain supplies. See supabase/2026-07-05-merch-pos.sql.
+  price_cents: number | null;
   supplier: string | null;
   supplier_url: string | null;
   updated_at: string;
@@ -31,6 +34,7 @@ export type InventoryInput = {
   reorderAt?: number;
   reorderQty?: number;
   costCents?: number;
+  priceCents?: number | null;
   supplier?: string | null;
   supplierUrl?: string | null;
 };

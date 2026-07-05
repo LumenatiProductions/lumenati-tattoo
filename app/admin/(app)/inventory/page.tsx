@@ -10,6 +10,9 @@ const UNIT_OPTIONS = ["each", "box", "bottle"];
 
 const usd = (cents: number) =>
   (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+// Retail prices keep their cents ($25.00 and $4.50 both read right).
+const usd2 = (cents: number) =>
+  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 // Display order for the category groups (supplies-first, unknowns fall last).
 const CATEGORY_ORDER = ["needle", "ink", "tube", "glove", "disposable", "aftercare", "other"];
@@ -32,7 +35,7 @@ const TONE_LABEL: Record<StockTone, string> = {
 };
 
 export default function InventoryPage() {
-  const { items, loading, error, lowStock, stockValueCents, addItem, adjustQty, removeItem } =
+  const { items, loading, error, lowStock, stockValueCents, addItem, updateItem, adjustQty, removeItem } =
     useInventory();
 
   const stats = useMemo(() => {
@@ -139,7 +142,7 @@ export default function InventoryPage() {
         groups.map(([cat, list]) => (
           <div key={cat} className="mb-5">
             <SectionTitle>{categoryLabel(cat)}</SectionTitle>
-            <ItemTable items={list} onAdjust={adjustQty} onRemove={removeItem} />
+            <ItemTable items={list} onAdjust={adjustQty} onUpdate={updateItem} onRemove={removeItem} />
           </div>
         ))
       )}
@@ -150,10 +153,12 @@ export default function InventoryPage() {
 function ItemTable({
   items,
   onAdjust,
+  onUpdate,
   onRemove,
 }: {
   items: InventoryItem[];
   onAdjust: ReturnType<typeof useInventory>["adjustQty"];
+  onUpdate: ReturnType<typeof useInventory>["updateItem"];
   onRemove: (id: string) => void;
 }) {
   return (
@@ -164,6 +169,7 @@ function ItemTable({
             <th className="px-4 py-2 font-medium">Item</th>
             <th className="px-4 py-2 font-medium">On hand</th>
             <th className="px-4 py-2 font-medium" title="Flags as low when qty drops to this">Reorder at</th>
+            <th className="px-4 py-2 font-medium" title="Set a price to sell this at the register">Sells for</th>
             <th className="px-4 py-2 font-medium">Status</th>
             <th className="px-4 py-2" />
           </tr>
@@ -223,6 +229,9 @@ function ItemTable({
                 </td>
                 <td className="px-4 py-2.5 tnum text-black/60">{it.reorder_at}</td>
                 <td className="px-4 py-2.5">
+                  <PriceCell item={it} onUpdate={onUpdate} />
+                </td>
+                <td className="px-4 py-2.5">
                   <Badge tone={TONE_BADGE[tone]}>{TONE_LABEL[tone]}</Badge>
                 </td>
                 <td className="px-4 py-2.5 text-right">
@@ -242,6 +251,73 @@ function ItemTable({
   );
 }
 
+// The retail price, editable in place. A set price is what makes an item show
+// up as a quick-tap product at the register (phone POS + cash page); clearing
+// it takes the item off sale. Tax is added at the register, so this is the
+// shelf price.
+function PriceCell({
+  item,
+  onUpdate,
+}: {
+  item: InventoryItem;
+  onUpdate: ReturnType<typeof useInventory>["updateItem"];
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    const dollars = Number(value);
+    await onUpdate(item.id, {
+      priceCents: Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : null,
+    });
+    setBusy(false);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <span className="flex items-center gap-1">
+        <span className="text-black/40">$</span>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          disabled={busy}
+          placeholder="0.00"
+          className="w-20 rounded-md border border-black/10 px-2 py-1 text-sm"
+          autoFocus
+        />
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => {
+        setValue(item.price_cents ? (item.price_cents / 100).toFixed(2) : "");
+        setEditing(true);
+      }}
+      className={
+        item.price_cents
+          ? "tnum font-medium text-emerald-700 hover:underline"
+          : "text-xs text-black/35 hover:text-black/60 hover:underline"
+      }
+      title={item.price_cents ? "Change the retail price (blank takes it off sale)" : "Set a retail price to sell this at the register"}
+    >
+      {item.price_cents ? usd2(item.price_cents) : "Set price"}
+    </button>
+  );
+}
+
 function AddItemForm({
   onAdd,
 }: {
@@ -257,6 +333,7 @@ function AddItemForm({
   const [reorderAt, setReorderAt] = useState("");
   const [reorderQty, setReorderQty] = useState("");
   const [cost, setCost] = useState(""); // dollars in the input; converted to cents on submit
+  const [price, setPrice] = useState(""); // retail price — set = sellable at the register
   const [supplier, setSupplier] = useState("");
   const [supplierUrl, setSupplierUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -270,6 +347,7 @@ function AddItemForm({
     setReorderAt("");
     setReorderQty("");
     setCost("");
+    setPrice("");
     setSupplier("");
     setSupplierUrl("");
     setFormError(null);
@@ -284,6 +362,7 @@ function AddItemForm({
     setBusy(true);
     setFormError(null);
     const dollars = Number(cost);
+    const priceDollars = Number(price);
     const res = await onAdd({
       name: name.trim(),
       category,
@@ -294,6 +373,7 @@ function AddItemForm({
       reorderAt: Number(reorderAt) || 0,
       reorderQty: Number(reorderQty) || 0,
       costCents: Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : 0,
+      priceCents: Number.isFinite(priceDollars) && priceDollars > 0 ? Math.round(priceDollars * 100) : null,
       supplier: supplier || null,
       supplierUrl: supplierUrl || null,
     });
@@ -414,6 +494,19 @@ function AddItemForm({
             value={cost}
             onChange={(e) => setCost(e.target.value)}
             placeholder="0.00"
+            className={field}
+          />
+        </label>
+        <label>
+          <span className={labelCls}>Sells for ($, optional)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="Retail price"
+            title="Set a price and this item becomes a quick-tap product at the register"
             className={field}
           />
         </label>

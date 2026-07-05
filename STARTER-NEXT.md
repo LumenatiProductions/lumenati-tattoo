@@ -17,14 +17,22 @@ Logins are phone-first (text a code), email fallback; Team page manages both.
 "Make this app make tons of sense and be awesome for all tattoo shops."
 Build in this order; 1 and 2 make money directly:
 
-1. **Merch + product sales at the POS.**
-   - Inventory items need a retail price (`price_cents` — does not exist yet;
-     cost_cents does). Web Inventory page gets a price field.
-   - POS (app Tap-to-Pay + web/cash) gets quick-tap product buttons: pick the
-     aftercare kit / shirt, sales tax applies automatically (rate + ledger
-     'tax' rows already built), stock decrements on sale.
-   - Ledger stays the source of truth; product sales are 100% shop revenue
-     (no artist split) unless artist merch splits come later.
+1. **Merch + product sales at the POS — SHIPPED 2026-07-05.**
+   - `price_cents` on inventory (2026-07-05-merch-pos.sql, applied). Inventory
+     page: "Sells for" column, click-to-edit + add-form field. A priced item
+     IS a product; clearing the price takes it off sale.
+   - Quick-tap product buttons live on BOTH registers: web Cash Log
+     ("Merch — cash sale" card) and the app's Take payment screen (For=Shop
+     shows the shelf; cart replaces keypad; card via Tap to Pay or a
+     "Paid cash" button; fallback builds get cash-only). Server prices every
+     cart from the DB (client only sends ids+qty), tax ADDS on top of shelf
+     price, ledger gets sale (net) + tax rows, stock decrements w/ log row.
+     Card path: payments.tax_cents + items ride the row; webhook settles tax
+     row + stock. E2E verified on web to the penny (2x $25 @7.25% = $53.63,
+     ledger 5000+363, stock 10→8, delete-reversal nets 0; test data cleaned,
+     tax rate left at 0 for Scott). App: typechecked; card tap + app UI still
+     need a real-phone pass, and the app changes ride the NEXT build/OTA.
+   - Product sales are 100% shop revenue (artist_id null, no split).
 2. **Fill the empty chair (waitlist + no-show defense).**
    - Waitlist: a cancellations table/flow — when a booking cancels, text the
      waitlist (Twilio wired) with a claim link; first-come fills the slot.

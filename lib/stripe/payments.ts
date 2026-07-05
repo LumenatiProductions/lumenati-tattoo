@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { stripe, siteUrl } from "./client";
 import { connectChargeParams } from "./connect";
 import { pushEvent } from "@/lib/push/send";
+import { decrementStock, type CartLine } from "@/lib/pos/merch";
 
 // Shared payment helpers. SERVER ONLY. Used by /api/payments (mint a pay link),
 // /pay/[token]/checkout (start the Stripe session), and /api/stripe/webhook
@@ -32,6 +33,10 @@ export type PaymentRow = {
   amount_cents: number;
   /** Client-chosen tip (tips-schema.sql); 0 until the payer picks one. Goes to the artist in full. */
   tip_cents?: number | null;
+  /** Merch sale extras (2026-07-05-merch-pos.sql): sales tax charged on top of
+   *  amount_cents (which stays net), and the cart that sold, for stock. */
+  tax_cents?: number | null;
+  items?: CartLine[] | null;
   currency: string;
   status: string;
   stripe_session_id: string | null;
@@ -186,6 +191,7 @@ export async function settlePayment(
   // Errors ignored — a settled payment must never bounce on a books write.
   {
     const tipCents = Math.max(0, Math.round(row.tip_cents ?? 0));
+    const taxCents = Math.max(0, Math.round(row.tax_cents ?? 0));
     const base = {
       source: "stripe",
       direction: "in",
@@ -204,6 +210,11 @@ export async function settlePayment(
     } else {
       ledgerRows.push({ ...base, kind: "sale", amount_cents: row.amount_cents, external_id: `pay_${row.id}_svc` });
       if (tipCents > 0) ledgerRows.push({ ...base, kind: "tip", amount_cents: tipCents, external_id: `pay_${row.id}_tip` });
+      // Card merch: the sale row above is already NET (products only) — the
+      // sales tax charged on top books as its own row, same as the cash path.
+      if (taxCents > 0) {
+        ledgerRows.push({ ...base, kind: "tax", amount_cents: taxCents, external_id: `pay_${row.id}_tax`, note: "sales tax collected" });
+      }
     }
     await admin.from("ledger").upsert(ledgerRows, { onConflict: "source,external_id", ignoreDuplicates: true });
   }
@@ -250,8 +261,16 @@ export async function settlePayment(
     );
   }
 
+  // A settled merch cart takes its stock down (idempotent via the paid-status
+  // guard above — a webhook retry never reaches here twice). Best-effort, like
+  // every books write: the charge already happened.
+  if (Array.isArray(row.items) && row.items.length > 0) {
+    await decrementStock(admin, row.items, "stripe");
+  }
+
   // Phone ping for money landing — owner always, plus the artist it belongs to.
-  const total = row.amount_cents + Math.max(0, Math.round(row.tip_cents ?? 0));
+  const total =
+    row.amount_cents + Math.max(0, Math.round(row.tip_cents ?? 0)) + Math.max(0, Math.round(row.tax_cents ?? 0));
   const usd = (total / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
   await pushEvent(
     admin,

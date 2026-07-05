@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { userFromBearer } from "@/lib/api-auth";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { connectChargeParams } from "@/lib/stripe/connect";
+import { priceCart } from "@/lib/pos/merch";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,9 @@ export async function POST(req: Request) {
     tipCents?: number;
     bookingId?: string;
     shop?: boolean;
+    // Merch cart (shop sales only): [{id, qty}]. Priced server-side from
+    // inventory — the client's amountCents is IGNORED when items are present.
+    items?: { id?: string; qty?: number }[];
   };
 
   // Who the ticket is for. `shop: true` is an explicit shop sale (merch — no
@@ -31,7 +35,22 @@ export async function POST(req: Request) {
   // artist can ONLY take payments as themselves (their own split terms apply);
   // whatever artistId they send is ignored. Desk roles may name any artist.
   const artistId = b.shop === true ? null : me.role === "artist" ? me.artistId : b.artistId || null;
-  const amountCents = Math.round(Number(b.amountCents));
+
+  const admin0 = createAdminClient();
+  if (!admin0) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
+
+  // A merch cart re-prices on the server and adds sales tax ON TOP of the
+  // shelf prices. amount_cents stays the NET (products) figure — the ledger
+  // sale row is net of tax, the tax gets its own row on settle (same shape as
+  // the cash path), and the card is charged net + tax.
+  let cart: Awaited<ReturnType<typeof priceCart>> | null = null;
+  if (b.shop === true && Array.isArray(b.items) && b.items.length > 0) {
+    cart = await priceCart(admin0, b.items);
+    if (!cart.ok) return NextResponse.json({ error: cart.error }, { status: 400 });
+  }
+  const taxCents = cart?.ok ? cart.cart.taxCents : 0;
+
+  const amountCents = cart?.ok ? cart.cart.subtotalCents : Math.round(Number(b.amountCents));
   if (!Number.isFinite(amountCents) || amountCents < 50) {
     return NextResponse.json({ error: "Amount must be at least $0.50." }, { status: 400 });
   }
@@ -44,10 +63,9 @@ export async function POST(req: Request) {
   // checkout route, so it can only ever ADD to the pre-set service amount.
   const tipRaw = Math.round(Number(b.tipCents ?? 0));
   const tipCents = Number.isFinite(tipRaw) ? Math.min(Math.max(0, tipRaw), amountCents * 2) : 0;
-  const totalCents = amountCents + tipCents;
+  const totalCents = amountCents + tipCents + taxCents;
 
-  const admin = createAdminClient();
-  if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
+  const admin = admin0;
 
   // Record the pending payment first so the webhook always has a row to settle.
   // amount_cents is the SERVICE amount; the tip is stored separately and rides
@@ -61,6 +79,14 @@ export async function POST(req: Request) {
   if (!link.ok) return NextResponse.json({ error: link.error }, { status: 502 });
   if (tipCents > 0) {
     await admin.from("payments").update({ tip_cents: tipCents }).eq("id", link.paymentId);
+  }
+  if (cart?.ok) {
+    // Tax + what sold ride the payment row so the webhook can settle the books
+    // (tax ledger row) and take the stock down without trusting the client.
+    await admin
+      .from("payments")
+      .update({ tax_cents: taxCents, items: cart.cart.lines })
+      .eq("id", link.paymentId);
   }
 
   // Fee on SERVICE only — the tip transfers to the artist in full (same math as

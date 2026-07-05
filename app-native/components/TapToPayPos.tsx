@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { createTapToPayIntent, getLocationId } from "@/lib/terminal";
+import { useMerch } from "@/lib/merch";
+import MerchShelf from "@/components/MerchShelf";
 import Y2kPaidFX from "@/components/Y2kPaidFX";
 
 // The real Tap to Pay flow (iOS, real builds only — pos.tsx gates rendering).
@@ -40,6 +42,11 @@ export default function TapToPayPos() {
   // until the live keys land. Never shown in TestFlight/production builds.
   const [simulated, setSimulated] = useState(false);
   const readerRef = useRef<Reader.Type | null>(null);
+  // Merch shelf: quick-tap products on shop sales. The cart drives the amount
+  // (keypad steps aside); tax rides on top of shelf prices.
+  const merch = useMerch();
+  const [cashBusy, setCashBusy] = useState(false);
+  const [doneSub, setDoneSub] = useState("Your split is on its way — cash out anytime.");
 
   const {
     initialize,
@@ -79,7 +86,11 @@ export default function TapToPayPos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const cents = Math.round((Number(amount) || 0) * 100);
+  // With a merch cart, the cart IS the amount: net (products) drives the
+  // service figure, tax rides on top — the server recomputes both from the DB.
+  const merchTotals = who === "shop" ? merch.totals : null;
+  const keypadCents = Math.round((Number(amount) || 0) * 100);
+  const cents = merchTotals ? merchTotals.subtotalCents : keypadCents;
   const tippable = who !== "shop";
   const whoName = artists.find((a) => a.id === who)?.name ?? "";
   const tipCents = !tippable
@@ -89,7 +100,7 @@ export default function TapToPayPos() {
       : tipPct
         ? Math.round((cents * tipPct) / 100)
         : 0;
-  const totalCents = cents + tipCents;
+  const totalCents = merchTotals ? merchTotals.totalCents : cents + tipCents;
 
   const ensureConnected = useCallback(async () => {
     if (connectedReader) return;
@@ -122,7 +133,9 @@ export default function TapToPayPos() {
       setPhase("collecting");
       const { clientSecret } = await createTapToPayIntent(
         cents,
-        who === "shop" ? { shop: true } : { artistId: who, tipCents },
+        who === "shop"
+          ? { shop: true, ...(merchTotals ? { items: merch.cartItems } : {}) }
+          : { artistId: who, tipCents },
       );
       const ret = await retrievePaymentIntent(clientSecret);
       if (ret.error || !ret.paymentIntent) throw new Error(ret.error?.message || "Could not load the payment");
@@ -131,11 +144,19 @@ export default function TapToPayPos() {
       if (col.error || !col.paymentIntent) throw new Error(col.error?.message || "Card not collected");
       const conf = await confirmPaymentIntent({ paymentIntent: col.paymentIntent });
       if (conf.error) throw new Error(conf.error.message);
-      setPaidCents(totalCents); // service + tip — what the card was actually charged
+      setPaidCents(totalCents); // what the card was actually charged (incl. tip or tax)
+      setDoneSub(
+        merchTotals
+          ? "Shop sale — the books and the stock count are updated."
+          : who === "shop"
+            ? "Booked to the shop."
+            : "Your split is on its way — cash out anytime.",
+      );
       setPhase("done");
       setAmount("");
       setTipPct(null);
       setTipCustom("");
+      if (merchTotals) merch.clear();
       // Let the system payment sheet fully dismiss before the blast starts,
       // so nothing sits on top of it.
       setTimeout(() => setFx(true), 650);
@@ -144,7 +165,28 @@ export default function TapToPayPos() {
       setError(e instanceof Error ? e.message : "Payment failed.");
       setPhase("idle");
     }
-  }, [cents, who, tipCents, totalCents, ensureConnected, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent]);
+  }, [cents, who, tipCents, totalCents, merchTotals, merch, ensureConnected, retrievePaymentIntent, collectPaymentMethod, confirmPaymentIntent]);
+
+  // The cash leg of a merch sale — no reader involved. The server prices the
+  // cart, books it (cash entry + ledger sale/tax rows), and takes stock down.
+  const takeCash = useCallback(async () => {
+    if (!merchTotals) return;
+    setError(null);
+    setCashBusy(true);
+    const r = await merch.recordCash();
+    setCashBusy(false);
+    if (!r.ok) {
+      trouble();
+      setError(r.error ?? "Could not record the sale.");
+      return;
+    }
+    armed();
+    setPaidCents(r.totalCents ?? merchTotals.totalCents);
+    setDoneSub("Cash sale — the books and the stock count are updated.");
+    setPhase("done");
+    merch.clear();
+    setTimeout(() => setFx(true), 650);
+  }, [merch, merchTotals]);
 
   if (phase === "done") {
     return (
@@ -152,7 +194,7 @@ export default function TapToPayPos() {
       <Card>
         <Text style={styles.doneCheck}>✓</Text>
         <Text style={styles.doneTitle}>Paid {money(paidCents)}</Text>
-        <Text style={styles.doneSub}>Your split is on its way — cash out anytime.</Text>
+        <Text style={styles.doneSub}>{doneSub}</Text>
         <View style={{ height: 14 }} />
         <Button label="New payment" tone="ghost" onPress={() => setPhase("idle")} />
       </Card>
@@ -162,7 +204,7 @@ export default function TapToPayPos() {
     );
   }
 
-  const busy = phase !== "idle";
+  const busy = phase !== "idle" || cashBusy;
   const hasAmount = cents >= 50;
 
   // Keypad editing: amount stays a plain string ("84", "84.5", "84.50").
@@ -185,8 +227,13 @@ export default function TapToPayPos() {
       <View style={styles.display}>
         <Text style={styles.displayLabel}>CHARGE</Text>
         <Text style={[styles.displayAmount, hasAmount && styles.displayAmountLive]}>
-          {amount ? `$${amount}` : "$0"}
+          {merchTotals ? money(totalCents) : amount ? `$${amount}` : "$0"}
         </Text>
+        {merchTotals && merchTotals.taxCents > 0 && (
+          <Text style={styles.displayTax}>
+            {money(merchTotals.subtotalCents)} + {money(merchTotals.taxCents)} tax
+          </Text>
+        )}
         <View style={styles.readerRow}>
           <View style={[styles.readerDot, { backgroundColor: connectedReader ? theme.good : theme.textFaint }]} />
           <Text style={styles.readerText}>
@@ -205,6 +252,19 @@ export default function TapToPayPos() {
         />
       )}
 
+      {/* Shop sales get the merch shelf — tap products instead of typing. */}
+      {who === "shop" && (
+        <MerchShelf
+          products={merch.products}
+          cart={merch.cart}
+          add={merch.add}
+          remove={merch.remove}
+          totals={merch.totals}
+          taxBps={merch.taxBps}
+          disabled={busy}
+        />
+      )}
+
       {__DEV__ && !connectedReader && (
         <Chips
           label="Reader (dev only — test mode declines real cards)"
@@ -215,7 +275,9 @@ export default function TapToPayPos() {
         />
       )}
 
-      {/* Keypad — the phone IS the register, no system keyboard. */}
+      {/* Keypad — the phone IS the register, no system keyboard. Steps aside
+          while a merch cart is ringing (the cart is the amount). */}
+      {!merchTotals && (
       <View style={styles.pad}>
         {[["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], [".", "0", "del"]].map((row) => (
           <View key={row[0]} style={styles.padRow}>
@@ -233,6 +295,7 @@ export default function TapToPayPos() {
           </View>
         ))}
       </View>
+      )}
 
       {/* Tip — turn the phone to the client. Off the service amount; goes to the
           artist in full. Hidden for shop/merch sales (no artist to tip). */}
@@ -309,6 +372,13 @@ export default function TapToPayPos() {
         onPress={take}
         disabled={busy || !hasAmount}
       />
+      {/* A merch sale can be cash — same books, no reader. */}
+      {merchTotals && !busy && (
+        <>
+          <View style={{ height: 10 }} />
+          <Button label={`Paid cash · ${money(totalCents)}`} tone="ghost" onPress={takeCash} />
+        </>
+      )}
       {busy && <ActivityIndicator color={theme.brand} style={{ marginTop: 16 }} />}
       <Text style={styles.note}>
         Card collected on this phone — nothing is typed. The shop&apos;s cut comes off
@@ -347,6 +417,7 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(255,20,147,0.55)",
     textShadowRadius: 18,
   },
+  displayTax: { color: theme.textDim, fontSize: 13, marginTop: 2, fontVariant: ["tabular-nums"] },
   readerRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
   readerDot: { width: 7, height: 7, borderRadius: 4 },
   readerText: { color: theme.textFaint, fontSize: 12 },
