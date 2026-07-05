@@ -73,6 +73,26 @@ QuickBooks replacement built and verified to the penny in Chrome:
   Finances / Shop / Admin; the app's home "Go to" tiles grouped the same way
   (+ "My business" for artists). Headers hide when a role sees nothing inside.
 
+## Shipped 2026-07-05 — the "bigger swings" (Robinhood artist home + charts)
+- **Chart scrubbing (the Robinhood move)**: drag a finger across the artist
+  earnings chart and a hairline + dot ride the line, the readout shows that
+  day's date + running total, and each day crossed gives a detent haptic tick.
+  (components/MoneyChart.tsx — bespoke SVG kept, no gifted-charts needed.)
+- **"Your day" card** on the artist home: next client hero'd (who, when,
+  "in 45 min" countdown), rest of today in quiet rows, live minute refresh,
+  empty/day-done states. RLS-scoped; client names fall back to "Client" where
+  the role can't read clients. (components/TodayCard.tsx, loadToday in
+  lib/personal.ts.)
+- **Tappable 7-day bars**: biggest day labeled by default, tap any bar to move
+  the value to it.
+- **Web P&L profit chart**: diverging columns around a zero baseline (green up,
+  rose down — pair validated for contrast + colorblind separation), hover
+  tooltips, biggest up/down months direct-labeled. Handles 64 months of
+  all-time data cleanly. (components/admin/ProfitChart.tsx.)
+- NOTE: the sim build was stale (crashed on launch with
+  ExpoCalendar.MissingCalendarPListValueException — binary predated the
+  calendar plist keys). Fix is just `npx expo run:ios` to rebuild native.
+
 ## NEXT SESSION — the actual focus
 1. **Get the full artist roster in (Scott will supply the list — he didn't
    have it handy on 2026-07-04; ask again).** Platform has 6 artists

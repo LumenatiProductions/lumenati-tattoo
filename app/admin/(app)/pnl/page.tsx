@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, SectionTitle, StatCard } from "@/components/admin/ui";
+import ProfitChart from "@/components/admin/ProfitChart";
 
 // Profit & Loss — the one screen that answers "did the shop make money".
 // Money in (ledger) minus money out (expenses) = profit, by month/quarter/year.
@@ -148,6 +149,14 @@ export default function PnlPage() {
           <TaxRateInline />
         </div>
       </Card>
+
+      {data && data.periods.length > 1 && (
+        <Card className="mb-6 px-4 pb-3 pt-4">
+          <ProfitChart
+            points={data.periods.map((p) => ({ key: p.key, label: periodLabel(p.key), profit: p.profit }))}
+          />
+        </Card>
+      )}
 
       <SectionTitle
         action={
