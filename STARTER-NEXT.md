@@ -106,9 +106,13 @@ QuickBooks replacement built and verified to the penny in Chrome:
   AXGroup origin + framebuffer × (ax_size / fb_size).
 
 ## NEXT SESSION — the actual focus
-1. **Get the full artist roster in (Scott will supply the list — he didn't
-   have it handy on 2026-07-04; ask again).** Platform has 6 artists
-   (elaine, jd, kalypso, moonie, sam, shorty). Square recon findings:
+1. **Artist roster is now FULLY SELF-SERVE (2026-07-05).** Artists & Pay has
+   "+ Add artist" (always did), and now a "Square history not linked to
+   anyone" panel: pick an artist next to an old Square login, one click moves
+   their entire history (team map + sales + ledger rows via
+   `link_square_history()`, owner-only, fail-closed). Ledger stays
+   append-only for money; only artist_id is correctable (trigger exception).
+   Scott adds Grey himself and links him. Roster context if he asks:
    - **Grey Barrix** (square team id TMS5h7Kja6CfFrFH): 16 sales in 2026, all
      small ($20-150, product/touch-up sized), last 2026-06-28. Current, missing.
    - **Stephanie Moore is the BOOKKEEPER** (Scott confirmed 2026-07-04). Her
