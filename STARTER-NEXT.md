@@ -124,6 +124,21 @@ Scott: stop obsessing over old-data migration; this is a NEW system. Two calls:
   numbers until Scott upgrades (already on docs/owner-setup-checklist.md).
 - App sign-in changes ride the next build/OTA.
 
+## Shipped 2026-07-05 (third pass) — artist app content engine
+- **New booking** button beside Take payment on the artist home;
+  /bookings?new=1 opens the create form directly. Verified in sim.
+- **Healed shots** screen (My business tile): artist's healed photos with
+  in-portfolio/pending badges; tap = download + auto-caption to clipboard +
+  share sheet (IG on real devices). expo-sharing/file-system/clipboard added
+  (NATIVE modules — required prebuild; a TestFlight build with everything
+  was kicked at session end). Verified in sim with seeded rows (cleaned up).
+- Vision backlog Scott greenlit exploring: merch/product sales at POS
+  (inventory needs retail price_cents), waitlist gap-fill, no-show defense,
+  review velocity, per-artist booking QR cards, client-side aftercare
+  timeline, real IG Graph API auto-posting (needs Meta app review), and the
+  multi-shop SaaS onboarding (shops seam exists). GOOGLE_REVIEW_URL env
+  powers the review follow-up link — Scott sets it (owner checklist).
+
 ## NEXT SESSION — the actual focus
 1. **Artist roster is now FULLY SELF-SERVE (2026-07-05).** Artists & Pay has
    "+ Add artist" (always did), and now a "Square history not linked to
