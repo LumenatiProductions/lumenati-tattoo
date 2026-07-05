@@ -105,6 +105,25 @@ QuickBooks replacement built and verified to the penny in Chrome:
   Tool lives at scratchpad tap.swift pattern (tap/drag/wheel), coords =
   AXGroup origin + framebuffer × (ax_size / fb_size).
 
+## Shipped 2026-07-05 (second pass) — THE NEW PROCESS (Scott's reframe)
+Scott: stop obsessing over old-data migration; this is a NEW system. Two calls:
+- **Two roles: Admin + Artist.** Everywhere a human sees a role it's now one
+  of those two. Internals: the stored admin value stays 'owner' (every RLS
+  policy + API gate speaks that dialect, zero churn); legacy
+  bookkeeper/frontdesk rows migrated to 'owner' and their labels read
+  "Admin". ASSIGNABLE_ROLES in role-context is the picker source.
+- **Phone-number logins.** Supabase phone auth enabled with the shop Twilio
+  (config via Management API). /api/staff (admin-only, service-role)
+  pre-creates team logins with BOTH email and phone CONFIRMED — so a text
+  code and an email code land on the same account, and all 34 email-keyed
+  profile gates work untouched. shouldCreateUser:false blocks strangers.
+  Team page (renamed from Staff): name/phone/email/Admin-or-Artist. Sign-in
+  on web + app is phone-first ("Text me a code"), email fallback. E2E
+  verified: member created confirmed (auth+profile), removed cleanly.
+- CAVEAT: Twilio is still a TRIAL account — SMS only reaches verified
+  numbers until Scott upgrades (already on docs/owner-setup-checklist.md).
+- App sign-in changes ride the next build/OTA.
+
 ## NEXT SESSION — the actual focus
 1. **Artist roster is now FULLY SELF-SERVE (2026-07-05).** Artists & Pay has
    "+ Add artist" (always did), and now a "Square history not linked to
