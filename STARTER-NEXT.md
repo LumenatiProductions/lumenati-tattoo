@@ -94,10 +94,16 @@ QuickBooks replacement built and verified to the penny in Chrome:
   NOT fix it — the untracked `ios/` dir itself was stale (CNG repo; predates
   the expo-calendar plugin). Fix: `npx expo prebuild -p ios --clean` then
   `npx expo run:ios`. Boots clean now.
-- VERIFY ON DEVICE: owner home confirmed in sim; the ARTIST home (scrub chart,
-  Your day card, week bars) compiles + app boots, but sim blocks synthetic
-  taps and this Mac lacks Accessibility grants, so preview-as-artist wasn't
-  reachable. Scott: TestFlight build or preview-as on your phone.
+- VERIFIED IN SIM (Scott stepped away and said "click away"): artist home via
+  preview-as-JD — Your day card (empty state), scrub (hairline + dot + "$100
+  through Jul 2" readout mid-drag, snaps back on release), $100 direct label
+  on the week bars, categorized launcher on both owner and artist homes.
+  Exited preview after. TestFlight build also submitted (processing at Apple).
+- SIM DRIVING TRUTH (replaces "sim blocks taps"): the sim takes synthetic
+  CGEvent taps/drags fine — but they move Scott's REAL cursor, so they only
+  work when he's away and says so. Scroll-wheel events do nothing; use drags.
+  Tool lives at scratchpad tap.swift pattern (tap/drag/wheel), coords =
+  AXGroup origin + framebuffer × (ax_size / fb_size).
 
 ## NEXT SESSION — the actual focus
 1. **Get the full artist roster in (Scott will supply the list — he didn't
