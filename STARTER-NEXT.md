@@ -13,46 +13,48 @@ Public site is the Y2K marketing/booking layer. Owner login: lumenati@icloud.com
 Money model: cash + Stripe only, everything through the append-only **ledger**.
 Logins are phone-first (text a code), email fallback; Team page manages both.
 
-## NEXT SESSION — the roadmap Scott aimed us at (2026-07-05)
-"Make this app make tons of sense and be awesome for all tattoo shops."
-Build in this order; 1 and 2 make money directly:
+## NEXT SESSION — "make it an artist's FAVORITE app" (Scott greenlit all 5,
+2026-07-06). The pattern: it makes me money, makes me look good, remembers
+what I forget. Build in this order:
 
-1. **Merch + product sales at the POS — SHIPPED 2026-07-05.**
-   - `price_cents` on inventory (2026-07-05-merch-pos.sql, applied). Inventory
-     page: "Sells for" column, click-to-edit + add-form field. A priced item
-     IS a product; clearing the price takes it off sale.
-   - Quick-tap product buttons live on BOTH registers: web Cash Log
-     ("Merch — cash sale" card) and the app's Take payment screen (For=Shop
-     shows the shelf; cart replaces keypad; card via Tap to Pay or a
-     "Paid cash" button; fallback builds get cash-only). Server prices every
-     cart from the DB (client only sends ids+qty), tax ADDS on top of shelf
-     price, ledger gets sale (net) + tax rows, stock decrements w/ log row.
-     Card path: payments.tax_cents + items ride the row; webhook settles tax
-     row + stock. E2E verified on web to the penny (2x $25 @7.25% = $53.63,
-     ledger 5000+363, stock 10→8, delete-reversal nets 0; test data cleaned,
-     tax rate left at 0 for Scott). App: typechecked; card tap + app UI still
-     need a real-phone pass, and the app changes ride the NEXT build/OTA.
-   - Product sales are 100% shop revenue (artist_id null, no split).
-2. **Fill the empty chair (waitlist + no-show defense).**
-   - Waitlist: a cancellations table/flow — when a booking cancels, text the
-     waitlist (Twilio wired) with a claim link; first-come fills the slot.
-   - No-show defense: deposit auto-applies/forfeits when a client no-shows;
-     surface a no-show risk hint on bookings (history-based).
-3. **Per-artist booking QR cards.** Every artist already has a public page
-   (/slug). Generate a QR (print-ready card + save-to-photos in the app) that
-   deep-links to their booking page. An afternoon of work, outsized charm.
-4. **Client aftercare timeline.** A tokenized client link: their tattoo, care
-   instructions day by day, healed-photo ask at day 14, rebook nudge. The
-   follow-up engine already schedules these; this is the pretty surface.
-5. **Review velocity.** GOOGLE_REVIEW_URL powers the review follow-up (Scott
-   sets it). Add "reviews requested / sent this month" to Reports.
-6. **Instagram Graph API auto-posting** — real auto-post needs Meta app
-   review (external, weeks). The share-sheet flow shipped 2026-07-05 covers
-   most of the value; only start this when Scott says go.
-7. **The SaaS onboarding** — shops seam exists on all tenant tables. When the
-   above is solid: "add your shop" wizard, per-shop branding, per-shop Stripe.
+1. **Rebook prompt at the paid moment.** On the app's paid/done screen (after
+   the blast), one button: "Book their next session" — client pre-filled, date
+   picker up. The client is standing there glowing; that's when the ask lands.
+   Wire: TapToPayPos done state needs the client (payments row has client_id
+   when charged from a booking; for walk-ins offer client pick/create). The
+   coach's rebooking read (lib/coach.ts practiceInsights) becomes the nag; this
+   is the mechanic. Biggest earnings lever in the product.
+2. **Per-artist booking QR cards.** Every artist has a public page (/slug).
+   QR that deep-links to it: print-ready card (web) + save-to-photos (app).
+   An afternoon, outsized charm.
+3. **Client memory.** The artist's people: work done on them (healed shots
+   exist), placement/style notes, "6 months since Sarah's half-sleeve" nudges.
+   App screen + notes column; keep it their own clients only (RLS).
+4. **Week-in-review push.** Sunday evening: "Your week: $X, N clients, M
+   rebooked, best day Friday." All computed already (lib/personal.ts /
+   coach.ts); needs a scheduled job (follow-up engine pattern) + push
+   (lib/push/send.ts exists, pushEvent).
+5. **Portfolio autopilot = client aftercare timeline.** Tokenized client link:
+   their tattoo, day-by-day care, healed-photo ask at day 14 (auto-collects
+   into Healed shots), rebook nudge. Follow-up engine already schedules these;
+   this is the pretty surface that feeds their IG.
+
+Then (old roadmap, still greenlit): waitlist + no-show defense; review
+velocity on Reports; Instagram Graph API (only when Scott says go); SaaS
+"add your shop" wizard.
 
 ## Current state (compressed — it all works, verified)
+- **Merch at the POS — SHIPPED 2026-07-05, penny-verified.** Priced inventory
+  items are quick-tap products on both registers (app Take payment "Shop" +
+  web Cash Log). Server prices carts from the DB, tax adds on top, ledger gets
+  sale (net) + tax rows, stock decrements with a log line. Card path rides
+  payments.tax_cents + items; webhook settles. 100% shop revenue, no split.
+  Still needed: real products + prices (Inventory page), tax rate (still 0),
+  live Stripe keys, one real card tap on a phone.
+- **Coach v2 (2026-07-06):** practice reads lead — rebooking rate, open days
+  priced at their daily average, best-week chase, strongest weekday, tip rate
+  (lib/coach.ts practiceInsights, deterministic, volume-gated so they only
+  fire when honest); tax truths follow. Sheets/forms got vertical air.
 - **Design language (2026-07-05, Scott's pick): Money Glow + Liquid Ink** on
   BOTH surfaces. Blue-violet ink blacks, fixed ink-wash bleed (app: InkWash
   component; web: .admin-wash in admin.css), translucent glass panels lit from
@@ -101,7 +103,10 @@ Build in this order; 1 and 2 make money directly:
 - Web dev: `cd ~/lumenati-tattoo && npm run dev` (:3002). Deploy = push main
   (Vercel). Verify money to the penny; verify UI in Chrome (localhost:3002).
 - Mobile: EAS `eas build -p ios --profile production --auto-submit` works
-  non-interactively. Local sim: `npx expo prebuild -p ios --clean` then
+  non-interactively — but NEVER start a build without Scott's explicit go
+  (free-plan build credits). The merch + design + coach app changes are NOT
+  on TestFlight yet; they ship with the next approved build (add expo-blur
+  for real frosted glass when that happens). Local sim: `npx expo prebuild -p ios --clean` then
   `npx expo run:ios` (the untracked ios/ dir goes stale when plugins change —
   prebuild fixes the ExpoCalendar plist crash). Reuse the running Metro.
 - Sim driving: synthetic CGEvent taps/drags DO work but move Scott's real
