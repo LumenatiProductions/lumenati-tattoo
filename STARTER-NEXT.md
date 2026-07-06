@@ -56,6 +56,20 @@ what I forget. Build in this order:
    into Healed shots), rebook nudge. Follow-up engine already schedules these;
    this is the pretty surface that feeds their IG.
 
+SHIPPED OFF-LIST (Scott asked 2026-07-06): **artist-run promos.** App
+"Promos" screen (My business): artist writes the deal ("Flash Friday: 20%
+off flash all weekend"), picks % + how long (weekend/1w/2w/1m/open), goes
+live instantly as a pink-bordered banner on their public /slug page (the
+page the QR cards open); Copy caption for stories/DMs; End it kills the
+banner. artist_campaigns table + RLS (public reads ACTIVE only; artist
+writes own; staff everything) applied live + in repo SQL. Verified: RLS
+allow/deny via artist JWT, banner appears/disappears server-rendered.
+NOT yet verified: the /promos screen clicked in a browser (Chrome MCP
+dropped mid-session — one pass through create/copy/end in UI is owed).
+Deliberately NOT built: text blasts to clients — Twilio trial + consent
+copy gate outbound marketing; wire it through the follow-up engine once
+Scott upgrades Twilio.
+
 Then (old roadmap, still greenlit): waitlist + no-show defense; review
 velocity on Reports; Instagram Graph API (only when Scott says go); SaaS
 "add your shop" wizard.
