@@ -33,9 +33,17 @@ what I forget. Build in this order:
    builds for web: @opentelemetry/api dep + a web stub for the Stripe Terminal
    SDK in metro.config.js). Not yet seen on-device: the TTP done screen itself
    (needs a real build; same component as the cash one).
-2. **Per-artist booking QR cards.** Every artist has a public page (/slug).
-   QR that deep-links to it: print-ready card (web) + save-to-photos (app).
-   An afternoon, outsized charm.
+2. **Per-artist booking QR cards — SHIPPED 2026-07-06, QR decode-verified.**
+   Web: print-ready 4x6 card at /admin/card/<slug> (no shell, @page-pinned;
+   "QR card" link on each Artists & Pay card) — eye logo, BOOK WITH name,
+   accent handle, white QR tile, URL fallback. App: "Booking card" screen in
+   My business (artist role + owner preview) — same card, Save or share
+   (share sheet exports a 1080px PNG with baked quiet zone; Save Image lands
+   it in Photos) + Copy link. Pure-JS QR (react-native-qrcode-svg on the
+   already-shipped react-native-svg), so it works on the CURRENT TestFlight
+   build via OTA — no new native modules. Both QRs decode to the artist's
+   /slug (checked with macOS Vision). Not yet done on real paper: one test
+   print of the 4x6.
 3. **Client memory.** The artist's people: work done on them (healed shots
    exist), placement/style notes, "6 months since Sarah's half-sleeve" nudges.
    App screen + notes column; keep it their own clients only (RLS).

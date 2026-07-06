@@ -41,6 +41,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "My business",
     items: [
+      { href: "/qr-card", label: "Booking card", icon: "qr-code-outline", roles: ["artist"] },
       { href: "/healed-shots", label: "Healed shots", icon: "sparkles-outline", roles: ["artist"] },
       { href: "/expenses", label: "Deductions", icon: "receipt-outline", roles: ["artist"] },
       { href: "/goals", label: "Goals", icon: "flag-outline", roles: ["artist"] },

@@ -211,6 +211,7 @@ export default function ArtistsPage() {
                     <div className="flex items-center gap-2 border-t border-white/9 px-4 py-2.5">
                       <button onClick={() => startEdit(a)} className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">Edit pay</button>
                       <a href={`/${a.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">View room ↗</a>
+                      <a href={`/admin/card/${a.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">QR card ↗</a>
                       <button onClick={() => remove(a)} className="ml-auto rounded-lg border border-rose-400/30 px-2.5 py-1 text-xs font-medium text-rose-400 hover:bg-rose-400/10">Remove</button>
                     </div>
                   )}
