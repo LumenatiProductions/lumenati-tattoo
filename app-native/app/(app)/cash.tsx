@@ -8,6 +8,7 @@ import { snapCash } from "@/lib/vision";
 import { theme, money } from "@/lib/theme";
 import { Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
+import RebookCard from "@/components/RebookCard";
 
 // Cash log (parity with /admin/cash): quick drawer entries from the counter.
 // Negative amounts are payouts/drops; reconciliation stays on the web.
@@ -35,6 +36,9 @@ export default function Cash() {
   const [counting, setCounting] = useState(false);
   const [countNote, setCountNote] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // A positive artist entry is a client paying — the paid moment. Holds that
+  // artist's id so the rebook ask appears right after the save.
+  const [rebookFor, setRebookFor] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [{ data }, { data: a }] = await Promise.all([
@@ -74,6 +78,7 @@ export default function Cash() {
     setAmount("");
     setNote("");
     setAdding(false);
+    setRebookFor(cents > 0 && who !== "shop" ? who : null);
     load();
   };
 
@@ -95,8 +100,17 @@ export default function Cash() {
             <Stat label="Cash today" value={money(todayTotal)} hero />
 
             <View style={{ marginTop: 14 }}>
-              <Button label={adding ? "Cancel" : "Log cash"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+              <Button
+                label={adding ? "Cancel" : "Log cash"}
+                tone={adding ? "ghost" : "brand"}
+                onPress={() => {
+                  setRebookFor(null);
+                  setAdding((v) => !v);
+                }}
+              />
             </View>
+
+            {rebookFor && !adding && <RebookCard artistId={rebookFor} />}
 
             {adding && (
               <Card style={{ marginTop: 14 }}>

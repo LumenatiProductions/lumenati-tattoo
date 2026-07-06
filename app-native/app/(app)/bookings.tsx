@@ -22,6 +22,7 @@ import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
 import { uid } from "@/lib/ids";
 import { apiPost } from "@/lib/appApi";
+import { findClash } from "@/lib/clash";
 
 type Booking = {
   id: string;
@@ -38,34 +39,6 @@ type Booking = {
 };
 
 const HOUR_MS = 3_600_000;
-
-// Same double-booking guard the web API runs, client-side (the app writes
-// bookings directly under RLS). Returns the clashing start time, or null.
-async function findClash(
-  artistId: string,
-  startsAt: string,
-  endsAt: string | null,
-  excludeId?: string,
-): Promise<string | null> {
-  const start = new Date(startsAt).getTime();
-  if (Number.isNaN(start)) return null;
-  const end = endsAt ? new Date(endsAt).getTime() : start + HOUR_MS;
-  const windowMs = 12 * HOUR_MS;
-  const { data } = await supabase
-    .from("bookings")
-    .select("id, starts_at, ends_at")
-    .eq("artist_id", artistId)
-    .eq("status", "scheduled")
-    .gte("starts_at", new Date(start - windowMs).toISOString())
-    .lte("starts_at", new Date(end + windowMs).toISOString());
-  for (const r of (data ?? []) as { id: string; starts_at: string; ends_at: string | null }[]) {
-    if (excludeId && r.id === excludeId) continue;
-    const s2 = new Date(r.starts_at).getTime();
-    const e2 = r.ends_at ? new Date(r.ends_at).getTime() : s2 + HOUR_MS;
-    if (start < e2 && s2 < end) return r.starts_at;
-  }
-  return null;
-}
 
 // Calendar sync Phase 2: before booking/moving a slot, peek at this phone's
 // calendars for outside commitments (gym, dentist, school run) over the window.
@@ -217,22 +190,21 @@ export default function Bookings() {
       a: new Map(((aRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name])),
     });
 
-    // Pickers for the create form (staff only; artists can't read clients).
-    if (isStaff) {
-      const [allArtists, recent] = await Promise.all([
-        supabase.from("artists").select("id, name").eq("active", true).order("sort"),
-        supabase.from("clients").select("id, first_name, last_name").order("last_seen", { ascending: false, nullsFirst: false }).limit(12),
-      ]);
-      setArtists((allArtists.data ?? []) as { id: string; name: string }[]);
-      setRecentClients(
-        ((recent.data ?? []) as { id: string; first_name: string; last_name: string }[]).map((c) => ({
-          id: c.id,
-          name: `${c.first_name} ${c.last_name}`.trim() || "Client",
-        })),
-      );
-    }
+    // Pickers for the create form. RLS scopes the client list — staff see
+    // everyone, an artist sees only the clients they've had a booking with.
+    const [allArtists, recent] = await Promise.all([
+      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("clients").select("id, first_name, last_name").order("last_seen", { ascending: false, nullsFirst: false }).limit(12),
+    ]);
+    setArtists((allArtists.data ?? []) as { id: string; name: string }[]);
+    setRecentClients(
+      ((recent.data ?? []) as { id: string; first_name: string; last_name: string }[]).map((c) => ({
+        id: c.id,
+        name: `${c.first_name} ${c.last_name}`.trim() || "Client",
+      })),
+    );
     setLoading(false);
-  }, [isStaff, preview]);
+  }, [preview]);
 
   useEffect(() => {
     load();
@@ -347,14 +319,14 @@ export default function Bookings() {
               ))}
           </View>
         )}
-        {isStaff && (
-          <View style={{ marginBottom: 12 }}>
-            <Button label={adding ? "Cancel" : "New booking"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
-          </View>
-        )}
+        <View style={{ marginBottom: 12 }}>
+          <Button label={adding ? "Cancel" : "New booking"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+        </View>
         {adding && (
           <NewBooking
-            artists={artists}
+            // An artist books themselves only — the RLS insert policy enforces
+            // it, the picker just doesn't offer anyone else.
+            artists={isStaff ? artists : artists.filter((a) => a.id === myArtistId)}
             clients={recentClients}
             myArtistId={myArtistId}
             onSaved={() => {
@@ -433,8 +405,11 @@ function EditBooking({
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const startDate = booking.starts_at.slice(0, 10);
-  const startTime = booking.starts_at.slice(11, 16);
+  // Local wall-clock prefill (slicing the raw timestamptz would show UTC).
+  const s = new Date(booking.starts_at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const startDate = `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`;
+  const startTime = `${pad(s.getHours())}:${pad(s.getMinutes())}`;
   const [date, setDate] = useState(startDate);
   const [time, setTime] = useState(startTime);
   const [confirmed, setConfirmed] = useState(!!booking.confirmed_at);
@@ -457,7 +432,8 @@ function EditBooking({
       setErr("Date YYYY-MM-DD and time HH:MM.");
       return;
     }
-    const startsAt = `${date}T${time}:00`;
+    // A real instant, matching the web admin's writes.
+    const startsAt = new Date(`${date}T${time}:00`).toISOString();
     // Keep the same duration if an end time was set.
     let endsAt: string | null = null;
     if (booking.ends_at) {
@@ -576,6 +552,12 @@ function NewBooking({
 }) {
   const [artistId, setArtistId] = useState(artists[0]?.id ?? "");
   const [clientId, setClientId] = useState(""); // "" = walk-in
+  // The roster loads async — when the form opened first (?new=1 deep link),
+  // default to the first artist once it lands instead of staying blank.
+  useEffect(() => {
+    if (!artistId && artists[0]) setArtistId(artists[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artists]);
   const [date, setDate] = useState(todayKey());
   const [time, setTime] = useState("12:00");
   const [service, setService] = useState("");
@@ -594,7 +576,9 @@ function NewBooking({
     }
     setBusy(true);
     setErr(null);
-    const startsAt = `${date}T${time}:00`;
+    // A real instant (the web admin writes the same) — a bare local string
+    // would be read as UTC by Postgres and land hours off.
+    const startsAt = new Date(`${date}T${time}:00`).toISOString();
     // Same double-booking guard as the desk.
     const clash = await findClash(artistId, startsAt, null);
     if (clash) {

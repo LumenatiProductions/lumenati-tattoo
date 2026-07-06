@@ -11,6 +11,7 @@ import { usePreview } from "@/lib/preview";
 import { createTapToPayIntent, getLocationId } from "@/lib/terminal";
 import { useMerch } from "@/lib/merch";
 import MerchShelf from "@/components/MerchShelf";
+import RebookCard from "@/components/RebookCard";
 import Y2kPaidFX from "@/components/Y2kPaidFX";
 
 // The real Tap to Pay flow (iOS, real builds only — pos.tsx gates rendering).
@@ -198,6 +199,9 @@ export default function TapToPayPos() {
         <View style={{ height: 14 }} />
         <Button label="New payment" tone="ghost" onPress={() => setPhase("idle")} />
       </Card>
+      {/* The rebook ask, right at the paid moment — artist tickets only (a
+          merch sale has nobody to rebook). */}
+      {who !== "shop" && <RebookCard artistId={who} />}
       {/* Rendered after the Card so the blast owns the whole screen. */}
       {fx && <Y2kPaidFX cents={paidCents} onDone={() => setFx(false)} />}
       </>

@@ -17,13 +17,22 @@ Logins are phone-first (text a code), email fallback; Team page manages both.
 2026-07-06). The pattern: it makes me money, makes me look good, remembers
 what I forget. Build in this order:
 
-1. **Rebook prompt at the paid moment.** On the app's paid/done screen (after
-   the blast), one button: "Book their next session" — client pre-filled, date
-   picker up. The client is standing there glowing; that's when the ask lands.
-   Wire: TapToPayPos done state needs the client (payments row has client_id
-   when charged from a booking; for walk-ins offer client pick/create). The
-   coach's rebooking read (lib/coach.ts practiceInsights) becomes the nag; this
-   is the mechanic. Biggest earnings lever in the product.
+1. **Rebook prompt at the paid moment — SHIPPED 2026-07-06, e2e verified.**
+   "Book their next session" now sits on BOTH paid moments: the Tap to Pay done
+   screen (artist tickets) and the Cash log right after a positive artist
+   entry. Client pre-fills from the artist's booking today (checked-in wins),
+   recent-client chips otherwise, "Someone new" quick-creates name+phone; date
+   defaults four weeks out; the double-booking guard blocks a taken slot. Two
+   new RLS policies let artists insert their own bookings + their own walk-in
+   clients (supabase/2026-07-06-artist-rebook-write.sql, applied live) — this
+   also un-broke the artist home's New booking form, which had no insert
+   permission and an empty roster before. Found + fixed on the way: the app
+   wrote booking times as bare local strings that Postgres read as UTC (hours
+   off, clash guard blind) — all app booking writes now store real instants
+   like the web admin. Verified in Chrome via the app's web bundle (Metro now
+   builds for web: @opentelemetry/api dep + a web stub for the Stripe Terminal
+   SDK in metro.config.js). Not yet seen on-device: the TTP done screen itself
+   (needs a real build; same component as the cash one).
 2. **Per-artist booking QR cards.** Every artist has a public page (/slug).
    QR that deep-links to it: print-ready card (web) + save-to-photos (app).
    An afternoon, outsized charm.
