@@ -11,6 +11,10 @@
     {
       "path": "/api/ops/daily",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/ops/weekly",
+      "schedule": "0 1 * * 1"
     }
   ]
 }

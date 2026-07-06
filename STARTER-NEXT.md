@@ -58,10 +58,19 @@ what I forget. Build in this order:
    session — one visual click-through of BOTH /promos and /my-clients
    (create promo, copy caption, end it; open client sheet, save note,
    rebook from sheet).
-4. **Week-in-review push.** Sunday evening: "Your week: $X, N clients, M
-   rebooked, best day Friday." All computed already (lib/personal.ts /
-   coach.ts); needs a scheduled job (follow-up engine pattern) + push
-   (lib/push/send.ts exists, pushEvent).
+4. **Week-in-review push — SHIPPED 2026-07-06, penny-verified vs ledger.**
+   New cron /api/ops/weekly (Mon 01:00 UTC = Sunday evening Denver;
+   CRON_SECRET-gated, same fan-out shape as ops/daily — next weekly job just
+   joins the list). lib/automation/week-review.ts composes per active
+   artist: "Your week: $340 · 2 tickets · best day Sunday" ($ from sales,
+   clients from the week's bookings with tickets fallback, rebooked =
+   future bookings CREATED this week, best day named in Denver time).
+   Quiet weeks send NOTHING (no $0 Sunday-night push). QA levers on the
+   route: ?at=<ISO> replays any instant, ?dry=1 composes without sending —
+   replay caught + fixed a missing upper time bound. JD's real last-week
+   line reproduced exactly (2 tickets, $340.00, best day Sunday, verified
+   by SQL). Delivery unobserved until an ARTIST login registers a push
+   token (device_tokens holds only owner devices today).
 5. **Portfolio autopilot = client aftercare timeline.** Tokenized client link:
    their tattoo, day-by-day care, healed-photo ask at day 14 (auto-collects
    into Healed shots), rebook nudge. Follow-up engine already schedules these;
