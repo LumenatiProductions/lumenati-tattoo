@@ -44,9 +44,20 @@ what I forget. Build in this order:
    build via OTA — no new native modules. Both QRs decode to the artist's
    /slug (checked with macOS Vision). Not yet done on real paper: one test
    print of the 4x6.
-3. **Client memory.** The artist's people: work done on them (healed shots
-   exist), placement/style notes, "6 months since Sarah's half-sleeve" nudges.
-   App screen + notes column; keep it their own clients only (RLS).
+3. **Client memory — SHIPPED 2026-07-06, data path verified.** App "My
+   clients" screen (My business): the artist's people from their bookings
+   (RLS-scoped), "Been a while" rail up top (no upcoming booking + 90 days
+   quiet → "7 months since the half-sleeve"), each row shows sessions/last
+   date/healed-shot count/upcoming badge. Tap → sheet: contact line, PRIVATE
+   per-artist notes (new artist_client_notes table, (artist,client) PK, so
+   two artists sharing a client never collide and desk CRM notes stay
+   separate; staff can read), session history, and the RebookCard pinned to
+   that client with their last service pre-filled (new clientId/serviceHint
+   props). Verified via artist JWT: scoped reads, note round-trip, cross-
+   artist note write denied, anon read empty. OWED: Chrome MCP died mid-
+   session — one visual click-through of BOTH /promos and /my-clients
+   (create promo, copy caption, end it; open client sheet, save note,
+   rebook from sheet).
 4. **Week-in-review push.** Sunday evening: "Your week: $X, N clients, M
    rebooked, best day Friday." All computed already (lib/personal.ts /
    coach.ts); needs a scheduled job (follow-up engine pattern) + push

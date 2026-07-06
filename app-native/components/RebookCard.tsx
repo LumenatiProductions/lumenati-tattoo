@@ -28,7 +28,17 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour:
 // to move it.
 const fourWeeksOut = () => localDate(new Date(Date.now() + 28 * 86_400_000));
 
-export default function RebookCard({ artistId }: { artistId: string }) {
+export default function RebookCard({
+  artistId,
+  clientId: pinnedClientId,
+  serviceHint,
+}: {
+  artistId: string;
+  /** Pre-pick this client (e.g. from My clients) instead of guessing from today's book. */
+  clientId?: string;
+  /** Seed the session field (e.g. their last session's description). */
+  serviceHint?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [clients, setClients] = useState<ClientChip[]>([]);
   const [clientId, setClientId] = useState("new"); // a client id, or "new"
@@ -41,11 +51,30 @@ export default function RebookCard({ artistId }: { artistId: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
 
-  // Who was in the chair? Today's booking for this artist pre-fills the client
-  // (checked-in beats merely scheduled) and carries the project name forward.
-  // Recent clients fill the rest of the picker; walk-ins land on "Someone new".
+  // Who was in the chair? A pinned client (passed in) wins; otherwise today's
+  // booking for this artist pre-fills (checked-in beats merely scheduled) and
+  // carries the project name forward. Recent clients fill the rest of the
+  // picker; walk-ins land on "Someone new".
   useEffect(() => {
     (async () => {
+      if (serviceHint) setService(serviceHint);
+      if (pinnedClientId) {
+        const [{ data: c }, { data: recent }] = await Promise.all([
+          supabase.from("clients").select("id, first_name, last_name").eq("id", pinnedClientId).maybeSingle(),
+          supabase
+            .from("clients")
+            .select("id, first_name, last_name")
+            .order("last_seen", { ascending: false, nullsFirst: false })
+            .limit(6),
+        ]);
+        const chips = ((recent ?? []) as { id: string; first_name: string; last_name: string }[])
+          .filter((r) => r.id !== pinnedClientId)
+          .map((r) => ({ id: r.id, name: `${r.first_name} ${r.last_name}`.trim() || "Client" }));
+        if (c) chips.unshift({ id: c.id, name: `${c.first_name} ${c.last_name}`.trim() || "Client" });
+        setClients(chips);
+        setClientId(pinnedClientId);
+        return;
+      }
       const today = localDate(new Date());
       const [{ data: todays }, { data: recent }] = await Promise.all([
         supabase
@@ -88,7 +117,7 @@ export default function RebookCard({ artistId }: { artistId: string }) {
       }
       setClients(chips);
     })();
-  }, [artistId]);
+  }, [artistId, pinnedClientId, serviceHint]);
 
   const book = async () => {
     setErr(null);
