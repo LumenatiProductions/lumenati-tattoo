@@ -20,7 +20,7 @@ export function LabeledInput({
   autoCapitalize?: "none" | "words" | "sentences";
 }) {
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 16 }}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
@@ -50,7 +50,7 @@ export function Chips<T extends string>({
   display?: (v: T) => string;
 }) {
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 16 }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.chips}>
         {options.map((o) => (
@@ -71,7 +71,7 @@ export function Chips<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  label: { color: theme.textDim, fontSize: 11, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
+  label: { color: theme.textDim, fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
   input: {
     backgroundColor: theme.bg,
     borderColor: theme.borderStrong,

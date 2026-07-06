@@ -220,11 +220,12 @@ export default function ArtistMoney({
         <WeekBars bars={bars} maxBar={maxBar} />
       </Card>
 
-      {/* The coach — plain-English money truths from their own numbers. The
-          first one is always the same: NOBODY withholds for you. */}
+      {/* The coach — practice reads first (rebooking, open days, best-week
+          chase), then the standing money truths. All from their own numbers. */}
       <SectionTitle>Coach</SectionTitle>
       {coachTips({
         sales: snap.sales,
+        bookings: snap.bookings,
         expenses,
         weeklyGoalCents: goals.weekly_cents,
         taxPct: goals.tax_setaside_pct,

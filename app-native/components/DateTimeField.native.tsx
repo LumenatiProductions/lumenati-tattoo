@@ -20,7 +20,7 @@ export default function DateTimeField({ date, time, onDate, onTime }: DateTimePr
   const value = combine(date, time);
 
   return (
-    <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+    <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
       <View style={{ flex: 1.4 }}>
         <Text style={styles.label}>Date</Text>
         <Pressable style={styles.box} onPress={() => setShow("date")}>

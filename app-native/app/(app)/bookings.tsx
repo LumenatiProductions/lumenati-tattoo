@@ -556,7 +556,7 @@ function EditBooking({
         </Pressable>
 
         {err && <Text style={styles.err}>{err}</Text>}
-        <View style={{ height: 8 }} />
+        <View style={{ height: 16 }} />
         <Button label="Done" tone="ghost" onPress={onClose} />
       </View>
     </Modal>
@@ -675,8 +675,8 @@ const styles = StyleSheet.create({
   },
   sheetHandle: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: theme.border, marginBottom: 14 },
   sheetTitle: { color: theme.text, fontSize: 20, fontWeight: "800" },
-  sheetSub: { color: theme.textDim, fontSize: 13, marginTop: 2, marginBottom: 6 },
-  sheetLabel: { color: theme.textDim, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "700", marginTop: 18, marginBottom: 8 },
+  sheetSub: { color: theme.textDim, fontSize: 13, marginTop: 2, marginBottom: 10 },
+  sheetLabel: { color: theme.textDim, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "700", marginTop: 26, marginBottom: 10 },
   toggleRow: { borderColor: theme.border, borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 13, paddingHorizontal: 14, alignItems: "center" },
   toggleOn: { borderColor: "rgba(52,211,153,0.5)", backgroundColor: theme.goodSoft },
   toggleText: { color: theme.text, fontSize: 14.5, fontWeight: "600" },

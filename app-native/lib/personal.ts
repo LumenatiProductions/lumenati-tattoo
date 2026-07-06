@@ -17,7 +17,7 @@ export const startOf = (range: Range): string => {
 };
 
 export type SaleRow = { created_at: string; service_cents: number; tip_cents: number };
-export type BookingRow = { starts_at: string; ends_at: string | null; status: string };
+export type BookingRow = { starts_at: string; ends_at: string | null; status: string; client_id: string | null };
 
 export type MoneySnapshot = {
   sales: SaleRow[];
@@ -30,11 +30,13 @@ export type MoneySnapshot = {
 export async function loadMoney(artistId?: string): Promise<MoneySnapshot> {
   const yearStart = `${new Date().getFullYear()}-01-01`;
   let s = supabase.from("sales").select("created_at, service_cents, tip_cents").gte("created_at", yearStart);
+  // All non-cancelled bookings this year INCLUDING future ones — the coach
+  // reads rebooking and open-days from them; hourly filters to completed itself.
   let b = supabase
     .from("bookings")
-    .select("starts_at, ends_at, status")
+    .select("starts_at, ends_at, status, client_id")
     .gte("starts_at", yearStart)
-    .eq("status", "completed");
+    .neq("status", "cancelled");
   if (artistId) {
     s = s.eq("artist_id", artistId);
     b = b.eq("artist_id", artistId);
@@ -60,6 +62,7 @@ export function hourlyInRange(sales: SaleRow[], bookings: BookingRow[], range: R
     .reduce((a, x) => a + (x.service_cents ?? 0), 0);
   let hours = 0;
   for (const b of bookings) {
+    if (b.status !== "completed") continue; // loadMoney now returns future/scheduled too
     if ((b.starts_at || "").slice(0, 10) < from || !b.ends_at) continue;
     const ms = new Date(b.ends_at).getTime() - new Date(b.starts_at).getTime();
     if (ms > 0) hours += ms / 3_600_000;
