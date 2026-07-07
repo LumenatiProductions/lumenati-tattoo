@@ -22,6 +22,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/room", label: "Rooms", icon: "color-palette-outline", roles: ["owner", "artist"] },
       { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
+      { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
       { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
       { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
       { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner", "frontdesk"] },

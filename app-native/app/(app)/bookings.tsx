@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
@@ -93,6 +93,7 @@ const todayKey = () => {
 // staff can mark complete / no-show by writing under RLS — no API needed.
 export default function Bookings() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { role, email } = useAuth();
   const { preview } = usePreview();
   const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
@@ -226,10 +227,25 @@ export default function Bookings() {
     if (events.length) syncAll(events);
   }, [calOn, rows, names, calId]);
 
+  // The no-show defense moment: a cancelled/no-showed booking frees a slot,
+  // so immediately ask "who's waiting?" and offer the one-tap fill.
+  const [freed, setFreed] = useState<{ startsAt: string; artistId: string | null; waiting: number } | null>(null);
+  const checkWaitlist = async (b: Booking) => {
+    let q = supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("active", true);
+    if (b.artist_id) q = q.or(`artist_id.eq.${b.artist_id},artist_id.is.null`);
+    const { count } = await q;
+    if (count) setFreed({ startsAt: b.starts_at, artistId: b.artist_id, waiting: count });
+  };
+
   const setStatus = async (id: string, status: string) => {
-    setRows((p) => p.map((b) => (b.id === id ? { ...b, status } : b)));
+    const b = rows.find((x) => x.id === id);
+    setRows((p) => p.map((x) => (x.id === id ? { ...x, status } : x)));
     const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
-    if (error) load(); // roll back to server truth
+    if (error) {
+      load(); // roll back to server truth
+      return;
+    }
+    if (b && (status === "cancelled" || status === "no_show")) checkWaitlist(b);
   };
 
   const groups = useMemo(() => {
@@ -313,8 +329,31 @@ export default function Bookings() {
               ))}
           </View>
         )}
+        {freed && (
+          <Card style={styles.freedCard}>
+            <Text style={styles.freedTitle}>
+              {dayLabel(freed.startsAt)} at {clock(freed.startsAt)} just opened up
+            </Text>
+            <Text style={styles.freedSub}>
+              {freed.waiting} {freed.waiting === 1 ? "person is" : "people are"} on the waitlist — fill it before it goes cold.
+            </Text>
+            <View style={{ height: 10 }} />
+            <Button
+              label="Fill it from the waitlist"
+              onPress={() => {
+                setFreed(null);
+                router.push(
+                  `/waitlist?slot=${encodeURIComponent(freed.startsAt)}${freed.artistId ? `&artist=${freed.artistId}` : ""}`,
+                );
+              }}
+            />
+            <View style={{ marginTop: 8, flexDirection: "row" }}>
+              <ActionPill label="Let it go" onPress={() => setFreed(null)} />
+            </View>
+          </Card>
+        )}
         <View style={{ marginBottom: 12 }}>
-          <Button label={adding ? "Cancel" : "New booking"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
+          <Button label={adding ? "Cancel" : "New booking"} tone={adding || freed ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
         </View>
         {adding && (
           <NewBooking
@@ -375,6 +414,7 @@ export default function Bookings() {
               clientName={clientName(b.client_id)}
               myArtistId={myArtistId}
               onClose={() => setEditId(null)}
+              onCancelled={() => checkWaitlist(b)}
               onChanged={() => {
                 setEditId(null);
                 load();
@@ -391,12 +431,15 @@ function EditBooking({
   clientName,
   myArtistId,
   onClose,
+  onCancelled,
   onChanged,
 }: {
   booking: Booking;
   clientName: string;
   myArtistId: string | null;
   onClose: () => void;
+  /** Fires after a successful cancel so the parent can offer the freed slot. */
+  onCancelled: () => void;
   onChanged: () => void;
 }) {
   // Local wall-clock prefill (slicing the raw timestamptz would show UTC).
@@ -518,7 +561,12 @@ function EditBooking({
 
         <Text style={styles.sheetLabel}>Status</Text>
         <Pressable
-          onPress={() => patch({ status: "cancelled" }, onChanged)}
+          onPress={() =>
+            patch({ status: "cancelled" }, () => {
+              onCancelled();
+              onChanged();
+            })
+          }
           disabled={busy}
           style={styles.cancelBtn}
         >
@@ -625,6 +673,9 @@ function NewBooking({
 
 const styles = StyleSheet.create({
   err: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  freedCard: { marginBottom: 12, borderColor: "rgba(52,211,153,0.4)" },
+  freedTitle: { color: theme.good, fontSize: 16, fontWeight: "700" },
+  freedSub: { color: theme.textDim, fontSize: 13, marginTop: 3 },
   section: { color: theme.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: "600", marginTop: 18, marginBottom: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", padding: 14, gap: 10 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },

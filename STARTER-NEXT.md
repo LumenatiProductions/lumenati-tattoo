@@ -98,9 +98,25 @@ Deliberately NOT built: text blasts to clients — Twilio trial + consent
 copy gate outbound marketing; wire it through the follow-up engine once
 Scott upgrades Twilio.
 
-Then (old roadmap, still greenlit): waitlist + no-show defense; review
-velocity on Reports; Instagram Graph API (only when Scott says go); SaaS
-"add your shop" wizard.
+**Waitlist + no-show defense — SHIPPED 2026-07-07, clicked e2e in Chrome.**
+New `waitlist` table (RLS: staff all; artist = own lane + the "anyone"
+pool; anon nothing — allow/deny proven via artist JWT). App /waitlist
+screen (Launcher, all roles): add name/phone/want/lane, per-row pills
+Book them / Text them / Remove. Text them opens the PHONE's own composer
+(sms: link, slot-aware message) — works today, no Twilio. The defense
+moment: cancel or no-show a booking on /bookings (row pills or the edit
+sheet) → green card "Tue, Jul 7 at 5:00 PM just opened up — 2 people are
+on the waitlist" → Fill it → /waitlist?slot=… banner, Book them pre-loads
+the freed date/time, creates the client if new, clash-guards, books, and
+retires the entry with booked_id linking to the booking. Verified in DB:
+entry inactive + linked, booking at the exact freed instant. NOTE: status
+changes stay desk-only (artists have no bookings UPDATE policy — same as
+before), so the cancel-moment card is a staff surface; artists still run
+their own waitlist lane.
+
+Then (old roadmap, still greenlit): review velocity on Reports; Instagram
+Graph API (only when Scott says go); texting promos/waitlist through
+Twilio once upgraded; SaaS "add your shop" wizard.
 
 ## Current state (compressed — it all works, verified)
 - **Merch at the POS — SHIPPED 2026-07-05, penny-verified.** Priced inventory
