@@ -26,10 +26,12 @@ export async function POST(req: Request) {
   if (!bookingId) return NextResponse.json({ error: "Missing bookingId" }, { status: 400 });
   const reschedule = kind === "reschedule";
 
+  // Bearer callers get the service-role client, so scope to the caller's shop.
   const { data: booking } = await me.db
     .from("bookings")
     .select("id, starts_at, client_id, artist_id, status")
     .eq("id", bookingId)
+    .eq("shop_id", me.shopId)
     .maybeSingle();
   if (!booking) return NextResponse.json({ error: "Booking not found." }, { status: 404 });
   if (!booking.client_id) {
@@ -37,9 +39,14 @@ export async function POST(req: Request) {
   }
 
   const [{ data: client }, { data: artist }] = await Promise.all([
-    me.db.from("clients").select("first_name, phone, email").eq("id", booking.client_id).maybeSingle(),
+    me.db
+      .from("clients")
+      .select("first_name, phone, email")
+      .eq("id", booking.client_id)
+      .eq("shop_id", me.shopId)
+      .maybeSingle(),
     booking.artist_id
-      ? me.db.from("artists").select("name").eq("id", booking.artist_id).maybeSingle()
+      ? me.db.from("artists").select("name").eq("id", booking.artist_id).eq("shop_id", me.shopId).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
   if (!client) return NextResponse.json({ error: "Client record missing." }, { status: 404 });

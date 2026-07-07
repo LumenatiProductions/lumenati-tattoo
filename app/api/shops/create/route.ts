@@ -24,6 +24,24 @@ const slugify = (s: string) =>
 
 const PALETTE = ["#ff1493", "#22d3ee", "#34d399", "#f59e0b", "#a78bfa", "#f43f5e"];
 
+// Slugs that collide with top-level routes (every public directory under app/)
+// or are otherwise confusing to hand out as a shop address.
+const RESERVED_SLUGS = [
+  "start",
+  "s",
+  "admin",
+  "api",
+  "auth",
+  "care",
+  "claim",
+  "healed",
+  "intake",
+  "kiosk",
+  "login",
+  "pay",
+  "request",
+];
+
 export async function POST(req: Request) {
   const gate = process.env.SHOP_WIZARD_CODE;
   const b = (await req.json().catch(() => ({}))) as {
@@ -53,7 +71,7 @@ export async function POST(req: Request) {
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
   const slug = slugify(shopName);
-  if (!slug || slug === "start") return NextResponse.json({ error: "That name doesn't make a usable web address." }, { status: 400 });
+  if (!slug || RESERVED_SLUGS.includes(slug)) return NextResponse.json({ error: "That name doesn't make a usable web address." }, { status: 400 });
   const { data: taken } = await admin.from("shops").select("id").eq("slug", slug).maybeSingle();
   if (taken) return NextResponse.json({ error: `"${slug}" is taken — tweak the shop name.` }, { status: 409 });
   const { data: profTaken } = await admin.from("profiles").select("email").eq("email", ownerEmail).maybeSingle();

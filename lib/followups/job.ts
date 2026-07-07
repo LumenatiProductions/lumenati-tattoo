@@ -33,10 +33,12 @@ const reviewLink = () => process.env.GOOGLE_REVIEW_URL || "";
 type TemplateMap = Record<FollowupKind, Template>;
 
 // Resolve every kind's template (DB edits over code defaults) in one read.
-async function loadTemplates(client: SupabaseClient): Promise<TemplateMap> {
-  const { data } = await client
-    .from("followup_templates")
-    .select("kind, subject, body, lead_days, enabled");
+// `shopId` scopes the read on the service-role (cron) path; the cookie-client
+// path omits it and lets RLS scope instead.
+async function loadTemplates(client: SupabaseClient, shopId?: string): Promise<TemplateMap> {
+  let q = client.from("followup_templates").select("kind, subject, body, lead_days, enabled");
+  if (shopId) q = q.eq("shop_id", shopId);
+  const { data } = await q;
   const byKind = new Map((data || []).map((r: { kind: string }) => [r.kind, r]));
   return Object.fromEntries(
     FOLLOWUP_KINDS.map((k) => [k, resolveTemplate(k, byKind.get(k) as Partial<Template>)]),
@@ -50,7 +52,13 @@ type EnqueueRow = {
   channel: string;
   scheduled_for: string;
   status: string;
+  shop_id?: string;
 };
+
+// Cron inserts must carry the source row's shop_id explicitly (service role
+// bypasses RLS and the column default is Lumenati's).
+const stamp = (rows: EnqueueRow[], shopId?: string) =>
+  shopId ? rows.map((r) => ({ ...r, shop_id: shopId })) : rows;
 
 /**
  * Enqueue follow-ups that are now due to exist. Idempotent:
@@ -61,7 +69,7 @@ type EnqueueRow = {
  * Only enqueues kinds whose template is enabled. Safe to run with either the
  * service-role client (cron) or an owner session (the "Scan now" button).
  */
-export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap) {
+export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap, shopId?: string) {
   const t = today();
   const rows: EnqueueRow[] = [];
 
@@ -71,12 +79,14 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
     // booking completed before the photo was due still gets one.
     const lookback = Math.max(ENQUEUE_LOOKBACK_DAYS, tpl.healed_photo.lead_days + 7);
     const cutoff = addDays(t, -lookback);
-    const { data: bookings } = await client
+    let bq = client
       .from("bookings")
       .select("id, client_id, starts_at")
       .eq("status", "completed")
       .gte("starts_at", cutoff)
       .not("client_id", "is", null);
+    if (shopId) bq = bq.eq("shop_id", shopId);
+    const { data: bookings } = await bq;
 
     for (const b of (bookings || []) as { id: string; client_id: string | null; starts_at: string }[]) {
       if (!b.client_id) continue;
@@ -120,13 +130,15 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
   // send time based on what the client actually has on file).
   if (tpl.reminder_48h.enabled || tpl.reminder_24h.enabled) {
     const horizon = addDays(t, 4); // covers both reminder windows
-    const { data: upcoming } = await client
+    let uq = client
       .from("bookings")
       .select("id, client_id, starts_at")
       .eq("status", "scheduled")
       .gte("starts_at", t)
       .lte("starts_at", `${horizon}T23:59:59.999`)
       .not("client_id", "is", null);
+    if (shopId) uq = uq.eq("shop_id", shopId);
+    const { data: upcoming } = await uq;
 
     for (const b of (upcoming || []) as { id: string; client_id: string | null; starts_at: string }[]) {
       if (!b.client_id) continue;
@@ -154,7 +166,7 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
     // untouched; only brand-new (booking, kind) pairs are inserted.
     const { data, error } = await client
       .from("followups")
-      .upsert(rows, { onConflict: "booking_id,kind", ignoreDuplicates: true })
+      .upsert(stamp(rows, shopId), { onConflict: "booking_id,kind", ignoreDuplicates: true })
       .select("id");
     if (error) throw new Error(error.message);
     enqueuedBooking = data?.length ?? 0;
@@ -163,13 +175,13 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
   // 2) rebook nudges for lapsed clients.
   let enqueuedRebook = 0;
   if (tpl.rebook_nudge.enabled) {
-    enqueuedRebook = await enqueueRebookNudges(client, tpl.rebook_nudge.lead_days);
+    enqueuedRebook = await enqueueRebookNudges(client, tpl.rebook_nudge.lead_days, shopId);
   }
 
   // 3) birthday outreach.
   let enqueuedBirthday = 0;
   if (tpl.birthday.enabled) {
-    enqueuedBirthday = await enqueueBirthdays(client);
+    enqueuedBirthday = await enqueueBirthdays(client, shopId);
   }
 
   return {
@@ -183,25 +195,29 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap)
 // Lapsed = no visit in `lapseDays`. De-dupe: skip a client who already has a
 // rebook_nudge created within the same lapse window (so we nudge at most once
 // per window, not every night).
-async function enqueueRebookNudges(client: SupabaseClient, lapseDays: number) {
+async function enqueueRebookNudges(client: SupabaseClient, lapseDays: number, shopId?: string) {
   const t = today();
   const lapsedBefore = addDays(t, -lapseDays);
-  const { data: clients } = await client
+  let cq = client
     .from("clients")
     .select("id, last_seen, email")
     .not("email", "is", null)
     .lt("last_seen", lapsedBefore);
+  if (shopId) cq = cq.eq("shop_id", shopId);
+  const { data: clients } = await cq;
 
   const candidates = (clients || []).filter(
     (c: { email: string | null }) => !!c.email,
   ) as { id: string }[];
   if (!candidates.length) return 0;
 
-  const { data: recent } = await client
+  let rq = client
     .from("followups")
     .select("client_id")
     .eq("kind", "rebook_nudge")
     .gte("created_at", `${lapsedBefore}T00:00:00Z`);
+  if (shopId) rq = rq.eq("shop_id", shopId);
+  const { data: recent } = await rq;
   const nudged = new Set((recent || []).map((r: { client_id: string | null }) => r.client_id));
 
   const rows: EnqueueRow[] = candidates
@@ -216,14 +232,14 @@ async function enqueueRebookNudges(client: SupabaseClient, lapseDays: number) {
     }));
   if (!rows.length) return 0;
 
-  const { error } = await client.from("followups").insert(rows);
+  const { error } = await client.from("followups").insert(stamp(rows, shopId));
   if (error) throw new Error(error.message);
   return rows.length;
 }
 
 // Birthday today or within the next BIRTHDAY_WINDOW_DAYS. De-dupe: at most one
 // birthday follow-up per client per calendar year.
-async function enqueueBirthdays(client: SupabaseClient) {
+async function enqueueBirthdays(client: SupabaseClient, shopId?: string) {
   const now = new Date();
   const year = now.getUTCFullYear();
   // MM-DD strings for today..+window.
@@ -232,11 +248,13 @@ async function enqueueBirthdays(client: SupabaseClient) {
     windowMd.add(addDays(today(), i).slice(5)); // "MM-DD"
   }
 
-  const { data: clients } = await client
+  let cq = client
     .from("clients")
     .select("id, birthdate, email")
     .not("birthdate", "is", null)
     .not("email", "is", null);
+  if (shopId) cq = cq.eq("shop_id", shopId);
+  const { data: clients } = await cq;
 
   const due = (clients || []).filter(
     (c: { birthdate: string | null; email: string | null }) =>
@@ -244,11 +262,13 @@ async function enqueueBirthdays(client: SupabaseClient) {
   ) as { id: string }[];
   if (!due.length) return 0;
 
-  const { data: thisYear } = await client
+  let yq = client
     .from("followups")
     .select("client_id")
     .eq("kind", "birthday")
     .gte("created_at", `${year}-01-01T00:00:00Z`);
+  if (shopId) yq = yq.eq("shop_id", shopId);
+  const { data: thisYear } = await yq;
   const already = new Set((thisYear || []).map((r: { client_id: string | null }) => r.client_id));
 
   const rows: EnqueueRow[] = due
@@ -263,7 +283,7 @@ async function enqueueBirthdays(client: SupabaseClient) {
     }));
   if (!rows.length) return 0;
 
-  const { error } = await client.from("followups").insert(rows);
+  const { error } = await client.from("followups").insert(stamp(rows, shopId));
   if (error) throw new Error(error.message);
   return rows.length;
 }
@@ -416,12 +436,14 @@ async function finalize(
 }
 
 // Drain everything due today (pending + scheduled_for <= today, any channel).
-export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap) {
-  const { data: due } = await client
+export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap, shopId?: string) {
+  let dq = client
     .from("followups")
     .select("id, booking_id, client_id, kind, channel, scheduled_for")
     .eq("status", "pending")
     .lte("scheduled_for", today());
+  if (shopId) dq = dq.eq("shop_id", shopId);
+  const { data: due } = await dq;
 
   let sent = 0,
     skipped = 0,
@@ -444,16 +466,23 @@ export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap)
  */
 export async function runDailyJob(admin: unknown) {
   const client = admin as SupabaseClient;
-  const tpl = await loadTemplates(client);
-  const enqueued = await enqueueFollowups(client, tpl);
-
   const autosend = process.env.FOLLOWUPS_AUTOSEND === "true";
   const canSend = autosend && (isSmsConfigured || !!process.env.RESEND_API_KEY);
-  const sent = canSend
-    ? await sendDueFollowups(client, tpl)
-    : { sent: 0, skipped: 0, failed: 0, due: 0 };
 
-  return { feature: "followups", autosend: canSend, ...enqueued, sent };
+  // Service role bypasses RLS, so each shop gets its own scoped pass: its own
+  // templates, its own bookings/clients, and inserts stamped with its shop_id.
+  const { data: shops } = await client.from("shops").select("id");
+  const results: Record<string, unknown>[] = [];
+  for (const s of (shops ?? []) as { id: string }[]) {
+    const tpl = await loadTemplates(client, s.id);
+    const enqueued = await enqueueFollowups(client, tpl, s.id);
+    const sent = canSend
+      ? await sendDueFollowups(client, tpl, s.id)
+      : { sent: 0, skipped: 0, failed: 0, due: 0 };
+    results.push({ shop: s.id, ...enqueued, sent });
+  }
+
+  return { feature: "followups", autosend: canSend, shops: results };
 }
 
 // Re-exported for the API routes so they resolve templates the same way.

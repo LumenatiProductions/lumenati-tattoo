@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSquareConfigured, listCustomers, customerSpendSince } from "./square";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 // Lifetime rollup: pay one deep page of payment history so total_spent_cents is a
 // true lifetime figure, not a trailing window. A single shop's history pages fast.
@@ -44,6 +45,7 @@ export async function syncClients(client: SupabaseClient) {
     const { data } = await client
       .from("clients")
       .select("id, instagram, notes, preferred_artist_id, total_spent_cents, first_seen, last_seen")
+      .eq("shop_id", LUMENATI_SHOP_ID)
       .in("id", ids.slice(i, i + 300));
     for (const r of (data || []) as ExistingRow[]) preserved.set(r.id, r);
   }
@@ -56,6 +58,8 @@ export async function syncClients(client: SupabaseClient) {
     const last = maxDate(dateOf(s?.lastAt), prior?.last_seen ?? null);
     return {
       id: c.id,
+      // Square is physically Lumenati's; the mirror always lands there.
+      shop_id: LUMENATI_SHOP_ID,
       square_customer_id: c.id,
       first_name: c.firstName,
       last_name: c.lastName,

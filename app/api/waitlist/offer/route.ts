@@ -40,13 +40,21 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  const { data: artist } = await admin.from("artists").select("name").eq("id", artistId).maybeSingle();
+  // resolveStaff hands Bearer callers the service-role client too, but this
+  // route always uses admin — everything scopes to the caller's shop.
+  const { data: artist } = await admin
+    .from("artists")
+    .select("name")
+    .eq("id", artistId)
+    .eq("shop_id", ctx.shopId)
+    .maybeSingle();
   if (!artist) return NextResponse.json({ error: "Unknown artist." }, { status: 400 });
 
   const { data: entries } = await admin
     .from("waitlist")
     .select("id, name, phone, artist_id")
     .eq("active", true)
+    .eq("shop_id", ctx.shopId)
     .or(`artist_id.eq.${artistId},artist_id.is.null`)
     .order("created_at", { ascending: true })
     .limit(50);
@@ -60,6 +68,7 @@ export async function POST(req: Request) {
   const { data: offer, error } = await admin
     .from("slot_offers")
     .insert({
+      shop_id: ctx.shopId,
       artist_id: artistId,
       starts_at: startsAt.toISOString(),
       service_hint: (b.serviceHint ?? "").trim(),
@@ -88,7 +97,7 @@ export async function POST(req: Request) {
     if (r.ok) texted++;
     else failures.push(r.error);
   }
-  await admin.from("slot_offers").update({ offered_count: texted }).eq("id", offer.id);
+  await admin.from("slot_offers").update({ offered_count: texted }).eq("id", offer.id).eq("shop_id", ctx.shopId);
 
   return NextResponse.json({
     offerId: offer.id,

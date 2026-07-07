@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhone } from "@/lib/sms";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +62,11 @@ export async function POST(req: Request) {
   if (!admin) return twiml();
 
   // Find the client by phone (formats in the DB vary, so normalize in JS).
+  // The inbound Twilio number is physically Lumenati's, so pin its shop.
   const { data: clients } = await admin
     .from("clients")
     .select("id, first_name, phone")
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .not("phone", "is", null)
     .limit(2000);
   const client = (clients ?? []).find((c) => normalizePhone(c.phone) === from);
@@ -75,6 +78,7 @@ export async function POST(req: Request) {
   const { data: booking } = await admin
     .from("bookings")
     .select("id, starts_at, confirmed_at")
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .eq("client_id", client.id)
     .eq("status", "scheduled")
     .gte("starts_at", now)
@@ -90,7 +94,8 @@ export async function POST(req: Request) {
     const { error } = await admin
       .from("bookings")
       .update({ confirmed_at: new Date().toISOString() })
-      .eq("id", booking.id);
+      .eq("id", booking.id)
+      .eq("shop_id", LUMENATI_SHOP_ID);
     if (error && !/column .* does not exist/i.test(error.message)) {
       return twiml("Thanks! The desk will confirm you manually.");
     }

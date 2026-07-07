@@ -17,13 +17,17 @@ async function gate() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { user: null, role: null as string | null };
+  if (!user) return { user: null, role: null as string | null, shopId: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { user, role: profile?.role ?? null };
+  return {
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 
 // "(209) 555-0144" / "209.555.0144" / "+1 209 555 0144" -> "+12095550144".
@@ -48,9 +52,9 @@ async function findAuthUser(admin: NonNullable<ReturnType<typeof createAdminClie
 }
 
 export async function POST(req: Request) {
-  const { user, role } = await gate();
+  const { user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner") return NextResponse.json({ error: "Admins only" }, { status: 403 });
+  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
@@ -100,6 +104,7 @@ export async function POST(req: Request) {
       full_name: (b.name ?? "").trim() || null,
       role: newRole,
       artist_id: artistId,
+      shop_id: shopId, // service-role upsert bypasses RLS; new staff join the admin's shop
     },
     { onConflict: "email" },
   );
@@ -109,9 +114,9 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { user, role } = await gate();
+  const { user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner") return NextResponse.json({ error: "Admins only" }, { status: 403 });
+  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
@@ -121,8 +126,16 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "You can't remove yourself — have another admin do it." }, { status: 400 });
   }
 
-  const { error } = await admin.from("profiles").delete().eq("email", email);
+  // Only remove people from the admin's own shop — and only kill the login
+  // when a profile row actually went away here.
+  const { data: removed, error } = await admin
+    .from("profiles")
+    .delete()
+    .eq("email", email)
+    .eq("shop_id", shopId)
+    .select("email");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!removed?.length) return NextResponse.json({ error: "No such team member." }, { status: 404 });
 
   // Kill the login too, so access ends now, not at next gate check.
   const authUser = await findAuthUser(admin, email);

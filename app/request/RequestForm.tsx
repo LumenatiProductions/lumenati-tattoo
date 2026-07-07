@@ -35,7 +35,13 @@ async function downscale(file: File): Promise<string> {
   }
 }
 
-export default function RequestForm({ artists }: { artists: { id: string; name: string }[] }) {
+export default function RequestForm({
+  artists,
+  shopSlug,
+}: {
+  artists: { id: string; name: string }[];
+  shopSlug?: string;
+}) {
   const [f, setF] = useState({
     name: "",
     email: "",
@@ -101,7 +107,7 @@ export default function RequestForm({ artists }: { artists: { id: string; name: 
       const r = await fetch("/api/bookings/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...f, referenceUrls }),
+        body: JSON.stringify({ ...f, referenceUrls, ...(shopSlug ? { shopSlug } : {}) }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {

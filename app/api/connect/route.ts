@@ -14,20 +14,24 @@ async function owner() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { user: null, role: null as string | null };
+  if (!user) return { user: null, role: null as string | null, shopId: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { user, role: profile?.role ?? null };
+  return {
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 
 // List the roster with each artist's Connect status. Owner only.
 export async function GET() {
-  const { user, role } = await owner();
+  const { user, role, shopId } = await owner();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner") return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Owners only" }, { status: 403 });
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
@@ -35,6 +39,7 @@ export async function GET() {
   const { data, error } = await admin
     .from("artists")
     .select("id, name, stripe_account_id, stripe_onboarded")
+    .eq("shop_id", shopId)
     .eq("active", true)
     .order("sort");
   if (error) return NextResponse.json({ error: error.message, artists: [] }, { status: 500 });
@@ -54,9 +59,9 @@ export async function GET() {
 //  - onboard: create the Express account if needed, return a hosted onboarding URL
 //  - refresh: re-read the account and persist whether it can receive transfers
 export async function POST(req: Request) {
-  const { user, role } = await owner();
+  const { user, role, shopId } = await owner();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner") return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Owners only" }, { status: 403 });
   if (!isStripeConfigured) {
     return NextResponse.json({ error: "Stripe is not configured yet." }, { status: 503 });
   }
@@ -67,18 +72,21 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as { artistId?: string; action?: string };
   if (!b.artistId) return NextResponse.json({ error: "Missing artistId" }, { status: 400 });
 
+  // The artist must belong to the owner's shop before any Stripe call or update.
+  const { data: artist } = await admin
+    .from("artists")
+    .select("id, name, stripe_account_id")
+    .eq("id", b.artistId)
+    .eq("shop_id", shopId)
+    .maybeSingle();
+  if (!artist) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
+
   if (b.action === "refresh") {
     const status = await refreshOnboardStatus(admin, b.artistId);
     return NextResponse.json(status);
   }
 
   // default: onboard
-  const { data: artist } = await admin
-    .from("artists")
-    .select("id, name, stripe_account_id")
-    .eq("id", b.artistId)
-    .maybeSingle();
-  if (!artist) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
 
   try {
     const accountId = await ensureAccount(admin, artist);

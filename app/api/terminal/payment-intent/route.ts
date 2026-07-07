@@ -43,9 +43,22 @@ export async function POST(req: Request) {
   // shelf prices. amount_cents stays the NET (products) figure — the ledger
   // sale row is net of tax, the tax gets its own row on settle (same shape as
   // the cash path), and the card is charged net + tax.
+  // connectChargeParams looks the artist up by id alone, so the shop check has
+  // to happen here — otherwise a caller could route a charge to another shop's
+  // artist account.
+  if (artistId) {
+    const { data: a } = await admin0
+      .from("artists")
+      .select("id")
+      .eq("id", artistId)
+      .eq("shop_id", me.shopId)
+      .maybeSingle();
+    if (!a) return NextResponse.json({ error: "That artist isn't in your shop." }, { status: 400 });
+  }
+
   let cart: Awaited<ReturnType<typeof priceCart>> | null = null;
   if (b.shop === true && Array.isArray(b.items) && b.items.length > 0) {
-    cart = await priceCart(admin0, b.items);
+    cart = await priceCart(admin0, b.items, me.shopId);
     if (!cart.ok) return NextResponse.json({ error: cart.error }, { status: 400 });
   }
   const taxCents = cart?.ok ? cart.cart.taxCents : 0;
@@ -67,10 +80,23 @@ export async function POST(req: Request) {
 
   const admin = admin0;
 
+  // A caller-supplied booking must live in the caller's shop — the settle path
+  // mutates it (deposit status), so a foreign id can't be allowed to ride along.
+  if (b.bookingId) {
+    const { data: bk } = await admin
+      .from("bookings")
+      .select("id")
+      .eq("id", b.bookingId)
+      .eq("shop_id", me.shopId)
+      .maybeSingle();
+    if (!bk) return NextResponse.json({ error: "That booking isn't in your shop." }, { status: 400 });
+  }
+
   // Record the pending payment first so the webhook always has a row to settle.
   // amount_cents is the SERVICE amount; the tip is stored separately and rides
   // the transfer to the artist untouched (fee is on service only, below).
   const link = await createPaymentLink(admin, {
+    shopId: me.shopId,
     bookingId: b.bookingId ?? null,
     artistId: artistId ?? null,
     kind: "ticket",
@@ -78,7 +104,7 @@ export async function POST(req: Request) {
   });
   if (!link.ok) return NextResponse.json({ error: link.error }, { status: 502 });
   if (tipCents > 0) {
-    await admin.from("payments").update({ tip_cents: tipCents }).eq("id", link.paymentId);
+    await admin.from("payments").update({ tip_cents: tipCents }).eq("id", link.paymentId).eq("shop_id", me.shopId);
   }
   if (cart?.ok) {
     // Tax + what sold ride the payment row so the webhook can settle the books
@@ -86,7 +112,8 @@ export async function POST(req: Request) {
     await admin
       .from("payments")
       .update({ tax_cents: taxCents, items: cart.cart.lines })
-      .eq("id", link.paymentId);
+      .eq("id", link.paymentId)
+      .eq("shop_id", me.shopId);
   }
 
   // Fee on SERVICE only — the tip transfers to the artist in full (same math as
@@ -107,7 +134,11 @@ export async function POST(req: Request) {
       },
       { idempotencyKey: `terminal_${link.payToken}` },
     );
-    await admin.from("payments").update({ stripe_payment_intent_id: pi.id }).eq("id", link.paymentId);
+    await admin
+      .from("payments")
+      .update({ stripe_payment_intent_id: pi.id })
+      .eq("id", link.paymentId)
+      .eq("shop_id", me.shopId);
 
     return NextResponse.json({
       clientSecret: pi.client_secret,
@@ -116,7 +147,7 @@ export async function POST(req: Request) {
       split: !!split,
     });
   } catch (e) {
-    await admin.from("payments").delete().eq("id", link.paymentId);
+    await admin.from("payments").delete().eq("id", link.paymentId).eq("shop_id", me.shopId);
     return NextResponse.json({ error: e instanceof Error ? e.message : "Stripe error" }, { status: 502 });
   }
 }

@@ -34,7 +34,7 @@ export async function runWeekReview(admin: unknown, opts: { at?: Date; dry?: boo
   const { startISO } = shopWeek(now);
 
   const [{ data: artists }, { data: sales }, { data: weekBookings }, { data: madeThisWeek }] = await Promise.all([
-    client.from("artists").select("id, name").eq("active", true),
+    client.from("artists").select("id, name, shop_id").eq("active", true),
     client
       .from("sales")
       .select("artist_id, service_cents, tip_cents, created_at")
@@ -62,7 +62,9 @@ export async function runWeekReview(admin: unknown, opts: { at?: Date; dry?: boo
 
   let pushed = 0;
   const lines: Record<string, string> = {};
-  for (const a of (artists ?? []) as { id: string; name: string }[]) {
+  // Sales/booking rows are matched on artist_id below; artist ids are globally
+  // unique, so each artist's aggregation is already scoped to their own shop.
+  for (const a of (artists ?? []) as { id: string; name: string; shop_id: string }[]) {
     const mySales = ((sales ?? []) as { artist_id: string | null; service_cents: number; tip_cents: number; created_at: string }[]).filter(
       (s) => s.artist_id === a.id,
     );

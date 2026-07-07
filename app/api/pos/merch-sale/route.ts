@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
   const b = (await req.json().catch(() => ({}))) as { items?: { id?: string; qty?: number }[] };
-  const priced = await priceCart(admin, b.items ?? []);
+  const priced = await priceCart(admin, b.items ?? [], me.shopId);
   if (!priced.ok) return NextResponse.json({ error: priced.error }, { status: 400 });
   const { lines, subtotalCents, taxCents, totalCents } = priced.cart;
 
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
   const { data: entry, error } = await admin
     .from("cash_entries")
     .insert({
+      shop_id: me.shopId,
       date,
       artist_id: null, // product sales are 100% shop revenue
       amount_cents: totalCents,
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
   // Same dual-write as /api/cash: sale net of tax + its own tax row. Best-effort
   // there, best-effort here — reconcile catches drift.
   const base = {
+    shop_id: me.shopId,
     source: "cash",
     direction: "in",
     occurred_at: date,
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
   }
   await admin.from("ledger").insert(ledgerRows);
 
-  await decrementStock(admin, lines, me.email);
+  await decrementStock(admin, lines, me.email, me.shopId);
 
   return NextResponse.json({
     entry,

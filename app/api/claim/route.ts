@@ -59,11 +59,16 @@ export async function POST(req: Request) {
   if (state !== "open") return NextResponse.json({ status: state });
   if (!entry.active) return NextResponse.json({ status: "gone" });
 
+  // Everything this claim writes stays in the offer's shop — the service-role
+  // client bypasses RLS, so the shop_id is carried explicitly.
+  const offerShop = offer.shop_id as string;
+
   // The race: exactly one UPDATE wins the open row.
   const { data: won } = await admin
     .from("slot_offers")
     .update({ status: "claimed", claimed_waitlist_id: entry.id })
     .eq("id", offer.id)
+    .eq("shop_id", offerShop)
     .eq("status", "open")
     .select("id");
   if (!won || won.length === 0) {
@@ -74,7 +79,7 @@ export async function POST(req: Request) {
   // the slot back honestly rather than double-booking the chair.
   const clash = await findConflict(admin, offer.artist_id, offer.starts_at, null);
   if (clash) {
-    await admin.from("slot_offers").update({ status: "cancelled" }).eq("id", offer.id);
+    await admin.from("slot_offers").update({ status: "cancelled" }).eq("id", offer.id).eq("shop_id", offerShop);
     return NextResponse.json({ status: "gone" });
   }
 
@@ -84,6 +89,7 @@ export async function POST(req: Request) {
     const [first, ...rest] = (entry.name as string).split(/\s+/);
     const { error } = await admin.from("clients").insert({
       id: clientId,
+      shop_id: offerShop,
       first_name: first,
       last_name: rest.join(" "),
       phone: entry.phone,
@@ -92,7 +98,11 @@ export async function POST(req: Request) {
       first_seen: new Date().toISOString().slice(0, 10),
     });
     if (error) {
-      await admin.from("slot_offers").update({ status: "open", claimed_waitlist_id: null }).eq("id", offer.id);
+      await admin
+        .from("slot_offers")
+        .update({ status: "open", claimed_waitlist_id: null })
+        .eq("id", offer.id)
+        .eq("shop_id", offerShop);
       return NextResponse.json({ error: "Could not save your spot — try again." }, { status: 500 });
     }
   }
@@ -100,6 +110,7 @@ export async function POST(req: Request) {
   const bookingId = `bk-${randomUUID()}`;
   const { error: bkErr } = await admin.from("bookings").insert({
     id: bookingId,
+    shop_id: offerShop,
     artist_id: offer.artist_id,
     client_id: clientId,
     starts_at: offer.starts_at,
@@ -110,13 +121,17 @@ export async function POST(req: Request) {
     source: "manual",
   });
   if (bkErr) {
-    await admin.from("slot_offers").update({ status: "open", claimed_waitlist_id: null }).eq("id", offer.id);
+    await admin
+      .from("slot_offers")
+      .update({ status: "open", claimed_waitlist_id: null })
+      .eq("id", offer.id)
+      .eq("shop_id", offerShop);
     return NextResponse.json({ error: "Could not save your spot — try again." }, { status: 500 });
   }
 
   await Promise.all([
-    admin.from("slot_offers").update({ booking_id: bookingId }).eq("id", offer.id),
-    admin.from("waitlist").update({ active: false, booked_id: bookingId }).eq("id", entry.id),
+    admin.from("slot_offers").update({ booking_id: bookingId }).eq("id", offer.id).eq("shop_id", offerShop),
+    admin.from("waitlist").update({ active: false, booked_id: bookingId }).eq("id", entry.id).eq("shop_id", offerShop),
   ]);
 
   return NextResponse.json({ status: "yours" });

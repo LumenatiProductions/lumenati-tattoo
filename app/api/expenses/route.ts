@@ -13,13 +13,18 @@ async function gate() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
+  if (!user) return { supabase, user: null, role: null as string | null, shopId: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
+  return {
+    supabase,
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 const ok = (r: string | null) => !!r && BOOKS.includes(r as (typeof BOOKS)[number]);
 const orNull = (v: string | null | undefined) => {
@@ -42,9 +47,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { supabase, user, role } = await gate();
+  const { supabase, user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role) || !shopId) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
 
   const b = (await req.json().catch(() => ({}))) as {
     date?: string;
@@ -80,6 +85,7 @@ export async function POST(req: Request) {
       .from("inventory_items")
       .select("id, name, qty")
       .eq("id", b.restockItemId)
+      .eq("shop_id", shopId)
       .maybeSingle();
     if (!item) return NextResponse.json({ error: "That inventory item doesn't exist." }, { status: 400 });
     restock = { itemId: item.id as string, qty, name: item.name as string };
@@ -109,12 +115,15 @@ export async function POST(req: Request) {
       .from("inventory_items")
       .select("qty")
       .eq("id", restock.itemId)
+      .eq("shop_id", shopId)
       .maybeSingle();
     await admin
       .from("inventory_items")
       .update({ qty: Number(item?.qty ?? 0) + restock.qty })
-      .eq("id", restock.itemId);
+      .eq("id", restock.itemId)
+      .eq("shop_id", shopId);
     await admin.from("inventory_log").insert({
+      shop_id: shopId,
       item_id: restock.itemId,
       delta: restock.qty,
       reason: `restock · expense ${data.id}${b.vendor ? ` · ${b.vendor}` : ""}`,

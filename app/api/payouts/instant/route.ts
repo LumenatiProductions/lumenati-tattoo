@@ -17,10 +17,12 @@ async function resolveAccount(req: Request, bodyArtistId?: string) {
   const artistId = me.role === "owner" ? bodyArtistId || me.artistId : me.artistId;
   if (!artistId) return { error: "No artist linked to this account", status: 400 as const };
 
+  // Shop-pinned: an owner can only cash out artists in their own shop.
   const { data: a } = await admin
     .from("artists")
     .select("stripe_account_id, stripe_onboarded, name")
     .eq("id", artistId)
+    .eq("shop_id", me.shopId)
     .maybeSingle();
   if (!a?.stripe_account_id || !a.stripe_onboarded) {
     return { error: "Payouts aren't set up for this artist yet.", status: 409 as const };

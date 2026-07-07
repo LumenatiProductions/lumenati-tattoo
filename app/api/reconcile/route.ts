@@ -28,18 +28,30 @@ export async function GET(req: Request) {
   const fromIso = `${from}T00:00:00Z`;
 
   // ── Our records (tolerate any missing optional tables) ──
+  // On the Bearer path me.db is the service-role client, so every tenant read
+  // must pin the caller's shop explicitly.
   const [paymentsRes, salesRes, cashRes, sessionsRes] = await Promise.all([
     supabase
       .from("payments")
       .select("id, amount_cents, tip_cents, status, kind, paid_at, created_at, artist_id, client_id, stripe_payment_intent_id")
+      .eq("shop_id", me.shopId)
       .gte("created_at", fromIso)
       .order("created_at", { ascending: false })
       .limit(200),
-    supabase.from("sales").select("service_cents, tip_cents, method, created_at").gte("created_at", fromIso),
-    supabase.from("cash_entries").select("amount_cents, reconciled").gte("created_at", fromIso),
+    supabase
+      .from("sales")
+      .select("service_cents, tip_cents, method, created_at")
+      .eq("shop_id", me.shopId)
+      .gte("created_at", fromIso),
+    supabase
+      .from("cash_entries")
+      .select("amount_cents, reconciled")
+      .eq("shop_id", me.shopId)
+      .gte("created_at", fromIso),
     supabase
       .from("cash_sessions")
       .select("opened_at, over_short_cents, closed_at")
+      .eq("shop_id", me.shopId)
       .not("closed_at", "is", null)
       .order("opened_at", { ascending: false })
       .limit(10),
@@ -69,8 +81,12 @@ export async function GET(req: Request) {
   const aIds = [...new Set(payments.map((p) => p.artist_id).filter(Boolean))] as string[];
   const cIds = [...new Set(payments.map((p) => p.client_id).filter(Boolean))] as string[];
   const [aRes, cRes] = await Promise.all([
-    aIds.length ? supabase.from("artists").select("id, name").in("id", aIds) : Promise.resolve({ data: [] }),
-    cIds.length ? supabase.from("clients").select("id, first_name, last_name").in("id", cIds) : Promise.resolve({ data: [] }),
+    aIds.length
+      ? supabase.from("artists").select("id, name").eq("shop_id", me.shopId).in("id", aIds)
+      : Promise.resolve({ data: [] }),
+    cIds.length
+      ? supabase.from("clients").select("id, first_name, last_name").eq("shop_id", me.shopId).in("id", cIds)
+      : Promise.resolve({ data: [] }),
   ]);
   const artistName = new Map(((aRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]));
   const clientName = new Map(

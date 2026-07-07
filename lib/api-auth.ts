@@ -13,6 +13,7 @@ export type AppUser = {
   email: string | null;
   role: string | null;
   artistId: string | null;
+  shopId: string;
 };
 
 // Cookie-or-Bearer gate for routes the app shares with the web admin. Cookie
@@ -24,6 +25,7 @@ export type StaffCtx = {
   email: string | null;
   role: string;
   artistId: string | null;
+  shopId: string;
 };
 
 export async function resolveStaff(req: Request): Promise<StaffCtx | null> {
@@ -34,22 +36,23 @@ export async function resolveStaff(req: Request): Promise<StaffCtx | null> {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, artist_id")
+      .select("role, artist_id, shop_id")
       .eq("email", user.email!)
       .maybeSingle();
-    if (!profile?.role) return null;
+    if (!profile?.role || !profile.shop_id) return null;
     return {
       db: supabase,
       email: user.email ?? null,
       role: profile.role,
       artistId: (profile.artist_id as string | null) ?? null,
+      shopId: profile.shop_id as string,
     };
   }
   const me = await userFromBearer(req);
   if (!me?.role) return null;
   const admin = createAdminClient();
   if (!admin) return null;
-  return { db: admin, email: me.email, role: me.role, artistId: me.artistId };
+  return { db: admin, email: me.email, role: me.role, artistId: me.artistId, shopId: me.shopId };
 }
 
 export async function userFromBearer(req: Request): Promise<AppUser | null> {
@@ -65,17 +68,20 @@ export async function userFromBearer(req: Request): Promise<AppUser | null> {
 
   const email = data.user.email ?? null;
   const { data: profile } = email
-    ? await admin.from("profiles").select("role, artist_id").eq("email", email).maybeSingle()
+    ? await admin.from("profiles").select("role, artist_id, shop_id").eq("email", email).maybeSingle()
     : { data: null };
 
   // The profiles row IS the allowlist. A valid Supabase session whose email has
   // been removed from profiles (off-boarded staff) gets no API access at all.
-  if (!profile?.role) return null;
+  // shop_id rides along so every service-role query can scope to the caller's
+  // own shop — the admin client bypasses RLS, so handlers MUST use it.
+  if (!profile?.role || !profile.shop_id) return null;
 
   return {
     userId: data.user.id,
     email,
     role: profile.role,
     artistId: (profile.artist_id as string | null) ?? null,
+    shopId: profile.shop_id as string,
   };
 }

@@ -7,7 +7,6 @@ export const dynamic = "force-dynamic";
 // The shop's sales tax rate, stored in basis points (725 = 7.25%) on the shop
 // row. Used to suggest the tax split when logging taxable sales (aftercare
 // products); the remittance figure on the P&L sums what was actually captured.
-const SHOP_ID = "11111111-1111-1111-1111-111111111111";
 const BOOKS = ["owner", "bookkeeper"] as const;
 
 async function gate() {
@@ -18,26 +17,27 @@ async function gate() {
   if (!user) return null;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return profile?.role ?? null;
+  if (!profile?.role || !profile.shop_id) return null;
+  return { role: profile.role as string, shopId: profile.shop_id as string };
 }
 
 export async function GET() {
-  const role = await gate();
-  if (!role) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const me = await gate();
+  if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const db = createAdminClient();
   if (!db) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
-  const { data, error } = await db.from("shops").select("sales_tax_bps").eq("id", SHOP_ID).maybeSingle();
+  const { data, error } = await db.from("shops").select("sales_tax_bps").eq("id", me.shopId).maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ bps: data?.sales_tax_bps ?? 0 });
 }
 
 export async function POST(req: Request) {
-  const role = await gate();
-  if (!role) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!BOOKS.includes(role as (typeof BOOKS)[number])) {
+  const me = await gate();
+  if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!BOOKS.includes(me.role as (typeof BOOKS)[number])) {
     return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
   }
   const b = (await req.json().catch(() => ({}))) as { bps?: number };
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   }
   const db = createAdminClient();
   if (!db) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
-  const { error } = await db.from("shops").update({ sales_tax_bps: bps }).eq("id", SHOP_ID);
+  const { error } = await db.from("shops").update({ sales_tax_bps: bps }).eq("id", me.shopId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ bps });
 }

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSquareConfigured, listAppointments, type SquareAppointment } from "./square";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 // How far back / forward to mirror Square Appointments each run. Square caps a
 // single Bookings query window at ~31 days, so we page by ~30-day chunks.
@@ -63,7 +64,8 @@ export async function syncBookings(client: SupabaseClient) {
     // square_team_members table; appointments reference a team member).
     const { data: tm } = await client
       .from("square_team_members")
-      .select("square_id, artist_id");
+      .select("square_id, artist_id")
+      .eq("shop_id", LUMENATI_SHOP_ID);
     const artistOf = new Map<string, string | null>(
       (tm || []).map((r: { square_id: string; artist_id: string | null }) => [r.square_id, r.artist_id]),
     );
@@ -95,6 +97,8 @@ export async function syncBookings(client: SupabaseClient) {
         const prior = preserved.get(a.id);
         return {
           id: a.id,
+          // Square is physically Lumenati's; the mirror always lands there.
+          shop_id: LUMENATI_SHOP_ID,
           square_appointment_id: a.id,
           client_id: a.customerId,
           artist_id: a.teamMemberId ? artistOf.get(a.teamMemberId) ?? null : null,
@@ -125,9 +129,11 @@ export async function syncBookings(client: SupabaseClient) {
   // Auto-flag overdue appointments as no_show for review (runs regardless of
   // Square). A held deposit on a no-show is forfeited in the same write.
   const nowIso = new Date(now).toISOString();
+  // Derived from Square-synced data, so it stays pinned to Lumenati's shop.
   const { data: overdue } = await client
     .from("bookings")
     .select("id, deposit_status")
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .eq("status", "scheduled")
     .lt("starts_at", nowIso);
 
@@ -135,7 +141,11 @@ export async function syncBookings(client: SupabaseClient) {
   for (const b of (overdue || []) as { id: string; deposit_status: string | null }[]) {
     const patch: Record<string, unknown> = { status: "no_show" };
     if (b.deposit_status === "held") patch.deposit_status = "forfeited";
-    const { error } = await client.from("bookings").update(patch).eq("id", b.id);
+    const { error } = await client
+      .from("bookings")
+      .update(patch)
+      .eq("id", b.id)
+      .eq("shop_id", LUMENATI_SHOP_ID);
     if (error) throw new Error(error.message);
     flagged += 1;
   }

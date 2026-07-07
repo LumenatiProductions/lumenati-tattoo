@@ -20,10 +20,14 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  if (profile?.role !== "owner") return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  if (profile?.role !== "owner" || !profile.shop_id) {
+    return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  }
+  // Service-role writes below bypass RLS — everything scopes to the owner's shop.
+  const shopId = profile.shop_id as string;
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
@@ -33,8 +37,8 @@ export async function POST(req: Request) {
   if (b.keepId === b.mergeId) return NextResponse.json({ error: "That's the same client twice." }, { status: 400 });
 
   const [{ data: keep }, { data: dupe }] = await Promise.all([
-    admin.from("clients").select("*").eq("id", b.keepId).maybeSingle(),
-    admin.from("clients").select("*").eq("id", b.mergeId).maybeSingle(),
+    admin.from("clients").select("*").eq("id", b.keepId).eq("shop_id", shopId).maybeSingle(),
+    admin.from("clients").select("*").eq("id", b.mergeId).eq("shop_id", shopId).maybeSingle(),
   ]);
   if (!keep || !dupe) return NextResponse.json({ error: "Client not found." }, { status: 404 });
   // Never delete the Square-mirrored row in favor of a hand-typed one — the
@@ -53,6 +57,7 @@ export async function POST(req: Request) {
       .from(table)
       .update({ client_id: keep.id })
       .eq("client_id", dupe.id)
+      .eq("shop_id", shopId)
       .select("id");
     if (error) {
       return NextResponse.json({ error: `Could not re-point ${table}: ${error.message}` }, { status: 500 });
@@ -77,10 +82,11 @@ export async function POST(req: Request) {
       first_seen: minDate(keep.first_seen, dupe.first_seen),
       last_seen: maxDate(keep.last_seen, dupe.last_seen),
     })
-    .eq("id", keep.id);
+    .eq("id", keep.id)
+    .eq("shop_id", shopId);
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
 
-  const { error: delErr } = await admin.from("clients").delete().eq("id", dupe.id);
+  const { error: delErr } = await admin.from("clients").delete().eq("id", dupe.id).eq("shop_id", shopId);
   if (delErr) {
     return NextResponse.json(
       { error: `Records were re-pointed but the duplicate couldn't be removed: ${delErr.message}` },

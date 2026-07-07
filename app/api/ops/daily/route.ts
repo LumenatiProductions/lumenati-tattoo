@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runDailyJob as clientsJob } from "@/lib/clients/job";
 import { runDailyJob as bookingsJob } from "@/lib/bookings/job";
@@ -21,6 +22,18 @@ export const maxDuration = 60;
 //
 // Cross-feature automation (POS-STARTER-4) runs LAST: no-show forfeit before the
 // morning brief, so the brief reflects the just-settled state. Order matters.
+// Push reminders aggregate per-shop numbers into role-targeted pushes, so the
+// fan-out runs them once per shop with that shop's id.
+async function pushRemindersAllShops(admin: unknown) {
+  const client = admin as SupabaseClient;
+  const { data: shops } = await client.from("shops").select("id");
+  const results: unknown[] = [];
+  for (const s of (shops ?? []) as { id: string }[]) {
+    results.push({ shop: s.id, ...(await runPushReminders(admin, s.id)) });
+  }
+  return results;
+}
+
 const JOBS: [string, (admin: unknown) => Promise<unknown>][] = [
   ["clients", clientsJob],
   ["bookings", bookingsJob],
@@ -31,7 +44,7 @@ const JOBS: [string, (admin: unknown) => Promise<unknown>][] = [
   ["review_snapshot", reviewsJob],
   ["no_show", runNoShowForfeit],
   ["morning_brief", runMorningBrief],
-  ["push_reminders", runPushReminders],
+  ["push_reminders", pushRemindersAllShops],
 ];
 
 export async function GET(req: Request) {

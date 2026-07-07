@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 // How far ahead counts as "expiring soon" (and triggers the owner email).
 export const EXPIRY_WINDOW_DAYS = 30;
@@ -36,6 +37,7 @@ export function computeStatus(expiresOn: string | null): ComplianceStatus {
 
 type ItemRow = {
   id: string;
+  shop_id: string;
   scope: string;
   artist_id: string | null;
   kind: string;
@@ -58,7 +60,7 @@ export const kindLabel = (kind: string) => KIND_LABELS[kind] ?? kind;
 async function recompute(client: SupabaseClient) {
   const { data, error } = await client
     .from("compliance_items")
-    .select("id, scope, artist_id, kind, label, expires_on, status");
+    .select("id, shop_id, scope, artist_id, kind, label, expires_on, status");
   if (error) throw new Error(error.message);
   const items = (data || []) as ItemRow[];
 
@@ -123,8 +125,26 @@ function alertHtml(rows: { what: string; expires: string | null; status: string;
 </table>`;
 }
 
+// The DIGEST_RECIPIENTS env is Lumenati's inbox; every other shop's alert goes
+// to its own owners (profiles, role=owner, that shop).
+async function alertRecipients(client: SupabaseClient, shopId: string): Promise<string[]> {
+  if (shopId === LUMENATI_SHOP_ID) {
+    return (process.env.DIGEST_RECIPIENTS || "lumenati@icloud.com")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const { data } = await client
+    .from("profiles")
+    .select("email")
+    .eq("shop_id", shopId)
+    .eq("role", "owner");
+  return ((data ?? []) as { email: string | null }[]).map((p) => p.email).filter(Boolean) as string[];
+}
+
 async function emailOwner(
   client: SupabaseClient,
+  shopId: string,
   lapsing: ItemRow[],
 ): Promise<{ emailed: boolean; reason?: string }> {
   if (!lapsing.length) return { emailed: false, reason: "nothing lapsing" };
@@ -149,10 +169,8 @@ async function emailOwner(
     })
     .sort((a, b) => (a.days ?? 0) - (b.days ?? 0)); // most-overdue first
 
-  const recipients = (process.env.DIGEST_RECIPIENTS || "lumenati@icloud.com")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const recipients = await alertRecipients(client, shopId);
+  if (!recipients.length) return { emailed: false, reason: "no owner email" };
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -180,13 +198,23 @@ async function emailOwner(
 export async function runDailyJob(admin: unknown) {
   const client = admin as SupabaseClient;
   const { changed, lapsing, total } = await recompute(client);
-  const mail = await emailOwner(client, lapsing);
+
+  // One alert per shop, each holding only that shop's lapsing items.
+  const byShop = new Map<string, ItemRow[]>();
+  for (const it of lapsing) {
+    (byShop.get(it.shop_id) ?? byShop.set(it.shop_id, []).get(it.shop_id)!).push(it);
+  }
+  const emails: Record<string, unknown>[] = [];
+  for (const [shopId, items] of byShop) {
+    const mail = await emailOwner(client, shopId, items);
+    emails.push({ shop: shopId, lapsing: items.length, emailed: mail.emailed, ...(mail.reason ? { note: mail.reason } : {}) });
+  }
+
   return {
     feature: "compliance",
     total,
     changed,
     lapsing: lapsing.length,
-    emailed: mail.emailed,
-    ...(mail.reason ? { emailNote: mail.reason } : {}),
+    emails,
   };
 }

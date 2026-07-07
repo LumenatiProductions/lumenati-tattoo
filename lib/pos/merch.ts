@@ -6,8 +6,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // matching the ledger's shape: the sale row is net of tax, the tax row is the
 // state's money. See supabase/2026-07-05-merch-pos.sql.
 
-const SHOP_ID = "11111111-1111-1111-1111-111111111111";
-
 export type CartLine = {
   id: string;
   name: string;
@@ -24,10 +22,11 @@ export type PricedCart = {
 };
 
 /** Items with a retail price are the sellable catalog. */
-export async function sellableItems(admin: SupabaseClient) {
+export async function sellableItems(admin: SupabaseClient, shopId: string) {
   const { data, error } = await admin
     .from("inventory_items")
     .select("id, name, brand, category, qty, price_cents")
+    .eq("shop_id", shopId)
     .not("price_cents", "is", null)
     .gt("price_cents", 0)
     .order("category")
@@ -36,8 +35,8 @@ export async function sellableItems(admin: SupabaseClient) {
   return { ok: true as const, items: data ?? [] };
 }
 
-export async function taxBps(admin: SupabaseClient): Promise<number> {
-  const { data } = await admin.from("shops").select("sales_tax_bps").eq("id", SHOP_ID).maybeSingle();
+export async function taxBps(admin: SupabaseClient, shopId: string): Promise<number> {
+  const { data } = await admin.from("shops").select("sales_tax_bps").eq("id", shopId).maybeSingle();
   const bps = Number(data?.sales_tax_bps ?? 0);
   return Number.isFinite(bps) && bps > 0 ? Math.round(bps) : 0;
 }
@@ -49,6 +48,7 @@ export async function taxBps(admin: SupabaseClient): Promise<number> {
 export async function priceCart(
   admin: SupabaseClient,
   items: { id?: string; qty?: number }[],
+  shopId: string,
 ): Promise<{ ok: true; cart: PricedCart } | { ok: false; error: string }> {
   if (!Array.isArray(items) || items.length === 0) {
     return { ok: false, error: "Nothing in the cart." };
@@ -69,6 +69,7 @@ export async function priceCart(
   const { data, error } = await admin
     .from("inventory_items")
     .select("id, name, price_cents")
+    .eq("shop_id", shopId)
     .in("id", [...want.keys()]);
   if (error) return { ok: false, error: error.message };
 
@@ -81,7 +82,7 @@ export async function priceCart(
   }
 
   const subtotalCents = lines.reduce((s, l) => s + l.price_cents * l.qty, 0);
-  const bps = await taxBps(admin);
+  const bps = await taxBps(admin, shopId);
   const taxCents = Math.round((subtotalCents * bps) / 10000);
   return {
     ok: true,
@@ -95,16 +96,28 @@ export async function priceCart(
  * an oversell means the count was wrong, and the log still shows the sale.
  * Best-effort: a stock hiccup must never bounce a payment that already settled.
  */
-export async function decrementStock(admin: SupabaseClient, lines: CartLine[], byEmail: string | null) {
+export async function decrementStock(
+  admin: SupabaseClient,
+  lines: CartLine[],
+  byEmail: string | null,
+  shopId: string,
+) {
   for (const l of lines) {
-    const { data: cur } = await admin.from("inventory_items").select("qty").eq("id", l.id).maybeSingle();
+    const { data: cur } = await admin
+      .from("inventory_items")
+      .select("qty")
+      .eq("id", l.id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
     if (!cur) continue;
     await admin
       .from("inventory_items")
       .update({ qty: Math.max(0, Number(cur.qty) - l.qty), updated_at: new Date().toISOString() })
-      .eq("id", l.id);
+      .eq("id", l.id)
+      .eq("shop_id", shopId);
     await admin.from("inventory_log").insert({
       item_id: l.id,
+      shop_id: shopId,
       delta: -l.qty,
       reason: "sold at the register",
       by_email: byEmail,

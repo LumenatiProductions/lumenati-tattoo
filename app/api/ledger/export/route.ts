@@ -15,18 +15,19 @@ async function gate() {
   if (!user) return null;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return profile?.role ?? null;
+  if (!profile?.role || !profile.shop_id) return null;
+  return { role: profile.role as string, shopId: profile.shop_id as string };
 }
 
 const isISODate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 export async function GET(req: Request) {
-  const role = await gate();
-  if (!role) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!["owner", "bookkeeper"].includes(role)) {
+  const me = await gate();
+  if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!["owner", "bookkeeper"].includes(me.role)) {
     return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
   }
   const db = createAdminClient();
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
     ? url.searchParams.get("to")!
     : new Date().toISOString().slice(0, 10);
 
-  const { data: artists } = await db.from("artists").select("id, name");
+  const { data: artists } = await db.from("artists").select("id, name").eq("shop_id", me.shopId);
   const nameOf = new Map((artists ?? []).map((a) => [a.id as string, a.name as string]));
 
   type Row = {
@@ -59,6 +60,7 @@ export async function GET(req: Request) {
     const { data, error } = await db
       .from("ledger")
       .select("occurred_at, source, kind, direction, amount_cents, artist_id, external_id, reverses, note, created_by")
+      .eq("shop_id", me.shopId)
       .gte("occurred_at", from)
       .lte("occurred_at", `${to}T23:59:59.999`)
       .order("occurred_at", { ascending: true })

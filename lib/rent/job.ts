@@ -16,7 +16,7 @@ export async function generateRentInvoices(client: SupabaseClient) {
 
   const { data: artists, error: aErr } = await client
     .from("artists")
-    .select("id, name, pay_type, rent_cents")
+    .select("id, name, pay_type, rent_cents, shop_id")
     .eq("active", true)
     .in("pay_type", ["rent", "hybrid"])
     .gt("rent_cents", 0);
@@ -38,10 +38,12 @@ export async function generateRentInvoices(client: SupabaseClient) {
   for (const a of artists ?? []) {
     if (have.has(a.id as string)) continue;
 
-    // Pay link first so the invoice row is born payable.
+    // Pay link first so the invoice row is born payable. Everything derived
+    // from the artist carries the artist's own shop_id.
     let paymentId: string | null = null;
     if (isStripeConfigured) {
       const link = await createPaymentLink(client, {
+        shopId: a.shop_id as string,
         artistId: a.id as string,
         kind: "rent",
         amountCents: a.rent_cents as number,
@@ -51,6 +53,7 @@ export async function generateRentInvoices(client: SupabaseClient) {
 
     const { error } = await client.from("rent_invoices").insert({
       artist_id: a.id,
+      shop_id: a.shop_id,
       period,
       amount_cents: a.rent_cents,
       due_date: dueDate,

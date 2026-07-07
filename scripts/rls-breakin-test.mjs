@@ -64,6 +64,18 @@ const SENSITIVE = [
   "healed_photos",      // client body photos
   "inventory_log",      // internal ops
   "social_posts",       // draft/unpublished marketing
+  "booking_requests",   // asks with contact info + reference photos
+  "waitlist",           // names + phone numbers waiting for a slot
+  "slot_offers",        // open-slot offers (claim tokens ride these ids)
+  "review_snapshots",   // review velocity history
+  // artist_campaigns is NOT here: active promos are deliberately anon-readable
+  // (they render on the public artist pages).
+  "artist_client_notes",// artists' private client notes
+  "owner_draws",        // owner money movements
+  "recurring_expenses", // standing bills
+  "square_team_members",// staff mapping
+  "square_sync",        // sync bookkeeping
+  "followup_templates", // outreach copy
 ];
 
 const headers = { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" };

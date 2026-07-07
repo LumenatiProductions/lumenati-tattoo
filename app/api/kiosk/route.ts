@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,8 @@ export async function GET(req: Request) {
     .select(
       "id, starts_at, status, service_desc, est_price_cents, deposit_cents, deposit_status, checked_in_at, client_id, artist_id",
     )
+    // Physical iPad at Lumenati — service-role reads pin to that shop.
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .gte("starts_at", date)
     .lte("starts_at", dayEnd)
     .neq("status", "cancelled")
@@ -63,15 +66,20 @@ export async function GET(req: Request) {
 
   const [clientsRes, artistsRes, formsRes] = await Promise.all([
     clientIds.length
-      ? admin.from("clients").select("id, first_name, last_name, phone").in("id", clientIds)
+      ? admin
+          .from("clients")
+          .select("id, first_name, last_name, phone")
+          .eq("shop_id", LUMENATI_SHOP_ID)
+          .in("id", clientIds)
       : Promise.resolve({ data: [] as { id: string; first_name: string | null; last_name: string | null; phone: string | null }[] }),
     artistIds.length
-      ? admin.from("artists").select("id, name").in("id", artistIds)
+      ? admin.from("artists").select("id, name").eq("shop_id", LUMENATI_SHOP_ID).in("id", artistIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     bookingIds.length
       ? admin
           .from("consent_forms")
           .select("booking_id, sign_token, signed_at, voided")
+          .eq("shop_id", LUMENATI_SHOP_ID)
           .in("booking_id", bookingIds)
       : Promise.resolve({ data: [] as { booking_id: string | null; sign_token: string | null; signed_at: string | null; voided: boolean }[] }),
   ]);
@@ -135,6 +143,7 @@ export async function POST(req: Request) {
     .from("bookings")
     .select("id, client_id, artist_id, deposit_cents, deposit_status, starts_at, status")
     .eq("id", b.bookingId)
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .maybeSingle();
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
 
@@ -157,13 +166,14 @@ export async function POST(req: Request) {
       if (typeof b.lastName === "string") patch.last_name = b.lastName.trim();
       if (typeof b.phone === "string") patch.phone = b.phone.trim();
       if (Object.keys(patch).length) {
-        await admin.from("clients").update(patch).eq("id", booking.client_id);
+        await admin.from("clients").update(patch).eq("id", booking.client_id).eq("shop_id", LUMENATI_SHOP_ID);
       }
     }
     const { error } = await admin
       .from("bookings")
       .update({ checked_in_at: new Date().toISOString() })
-      .eq("id", booking.id);
+      .eq("id", booking.id)
+      .eq("shop_id", LUMENATI_SHOP_ID);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
@@ -180,6 +190,7 @@ export async function POST(req: Request) {
       artistId: booking.artist_id ?? null,
       kind: "deposit",
       amountCents: amount,
+      shopId: LUMENATI_SHOP_ID,
     });
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: 502 });
     return NextResponse.json({ payToken: res.payToken, url: res.url });

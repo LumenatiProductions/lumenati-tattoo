@@ -75,7 +75,7 @@ export default async function ShopArtistPage({
         </div>
         {room.bio ? <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-zinc-400">{room.bio}</p> : null}
         <a
-          href={`/request?artist=${encodeURIComponent(artist.id)}`}
+          href={`/request?artist=${encodeURIComponent(artist.id)}&shop=${encodeURIComponent(shopSlug)}`}
           className="mt-6 inline-block rounded-xl px-8 py-3.5 text-base font-bold text-white"
           style={{ background: accent }}
         >
@@ -101,7 +101,7 @@ export default async function ShopArtistPage({
         <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center">
           <div className="text-lg font-bold">Ready when you are.</div>
           <a
-            href={`/request?artist=${encodeURIComponent(artist.id)}`}
+            href={`/request?artist=${encodeURIComponent(artist.id)}&shop=${encodeURIComponent(shopSlug)}`}
             className="mt-4 inline-block rounded-xl px-8 py-3.5 text-base font-bold text-white"
             style={{ background: accent }}
           >

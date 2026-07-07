@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isLow } from "@/lib/inventory/job";
 import { findNoShowCandidates } from "./no-show";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 // Morning brief (POS-STARTER-4): a one-screen "here is today" email to the owner,
 // composed across features. Runs from the daily ops fan-out (no new cron).
@@ -25,7 +26,7 @@ type Gathered = {
   noShowCandidates: number;
 };
 
-async function gather(admin: SupabaseClient): Promise<Gathered> {
+async function gather(admin: SupabaseClient, shopId: string): Promise<Gathered> {
   const date = new Date().toISOString().slice(0, 10); // UTC day; close enough for a brief
   const dayEnd = `${date}T23:59:59.999`;
 
@@ -33,20 +34,37 @@ async function gather(admin: SupabaseClient): Promise<Gathered> {
     admin
       .from("bookings")
       .select("starts_at, client_id, artist_id, checked_in_at, status")
+      .eq("shop_id", shopId)
       .gte("starts_at", date)
       .lte("starts_at", dayEnd)
       .neq("status", "cancelled")
       .order("starts_at", { ascending: true }),
-    admin.from("bookings").select("deposit_cents").eq("deposit_status", "held"),
-    admin.from("inventory_items").select("name, qty, reorder_at, unit"),
-    admin.from("compliance_items").select("kind, label, status").in("status", ["expiring", "expired"]),
+    admin.from("bookings").select("deposit_cents").eq("shop_id", shopId).eq("deposit_status", "held"),
+    admin.from("inventory_items").select("name, qty, reorder_at, unit").eq("shop_id", shopId),
+    admin
+      .from("compliance_items")
+      .select("kind, label, status")
+      .in("status", ["expiring", "expired"])
+      .eq("shop_id", shopId),
     admin
       .from("followups")
       .select("id")
+      .eq("shop_id", shopId)
       .eq("status", "pending")
       .lte("scheduled_for", new Date().toISOString()),
     findNoShowCandidates(admin),
   ]);
+
+  // findNoShowCandidates is shop-agnostic; keep only this shop's bookings.
+  let noShowCount = 0;
+  if (noShows.length) {
+    const { data: mine } = await admin
+      .from("bookings")
+      .select("id")
+      .eq("shop_id", shopId)
+      .in("id", noShows.map((n) => n.id));
+    noShowCount = (mine ?? []).length;
+  }
 
   const bookings = bookingsRes.data ?? [];
   const clientIds = [...new Set(bookings.map((b) => b.client_id).filter(Boolean) as string[])];
@@ -76,7 +94,7 @@ async function gather(admin: SupabaseClient): Promise<Gathered> {
       .map((i) => `${i.name} (${Number(i.qty)} ${i.unit})`),
     expiring: (compRes.data ?? []).map((c) => (c.label as string)?.trim() || (c.kind as string)),
     followupsDue: (fuRes.data ?? []).length,
-    noShowCandidates: noShows.length,
+    noShowCandidates: noShowCount,
   };
 }
 
@@ -121,38 +139,63 @@ function briefHtml(g: Gathered) {
 </table>`;
 }
 
+// The DIGEST_RECIPIENTS env is Lumenati's inbox; every other shop's brief goes
+// to its own owners (profiles, role=owner, that shop).
+async function briefRecipients(client: SupabaseClient, shopId: string): Promise<string[]> {
+  if (shopId === LUMENATI_SHOP_ID) {
+    return (process.env.DIGEST_RECIPIENTS || "lumenati@icloud.com")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const { data } = await client
+    .from("profiles")
+    .select("email")
+    .eq("shop_id", shopId)
+    .eq("role", "owner");
+  return ((data ?? []) as { email: string | null }[]).map((p) => p.email).filter(Boolean) as string[];
+}
+
 export async function runMorningBrief(admin: unknown) {
   const client = admin as SupabaseClient;
-  const g = await gather(client);
-
+  const { data: shops } = await client.from("shops").select("id, name");
   const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    return { feature: "morning_brief", appts: g.appts.length, emailed: false, note: "RESEND_API_KEY not set" };
-  }
-  const recipients = (process.env.DIGEST_RECIPIENTS || "lumenati@icloud.com")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: `${SHOP_NAME} <onboarding@resend.dev>`,
-      to: recipients,
-      subject: `Lumenati — today: ${g.appts.length} appointment${g.appts.length === 1 ? "" : "s"}`,
-      html: briefHtml(g),
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    return { feature: "morning_brief", appts: g.appts.length, emailed: false, note: body?.message || `send ${res.status}` };
+  const results: Record<string, unknown>[] = [];
+  for (const shop of (shops ?? []) as { id: string; name: string }[]) {
+    const g = await gather(client, shop.id);
+    if (!key) {
+      results.push({ shop: shop.id, appts: g.appts.length, emailed: false, note: "RESEND_API_KEY not set" });
+      continue;
+    }
+    const recipients = await briefRecipients(client, shop.id);
+    if (!recipients.length) {
+      results.push({ shop: shop.id, appts: g.appts.length, emailed: false, note: "no owner email" });
+      continue;
+    }
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `${shop.name || SHOP_NAME} <onboarding@resend.dev>`,
+        to: recipients,
+        subject: `${shop.name || SHOP_NAME} — today: ${g.appts.length} appointment${g.appts.length === 1 ? "" : "s"}`,
+        html: briefHtml(g),
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      results.push({ shop: shop.id, appts: g.appts.length, emailed: false, note: body?.message || `send ${res.status}` });
+      continue;
+    }
+    results.push({
+      shop: shop.id,
+      appts: g.appts.length,
+      lowStock: g.lowStock.length,
+      expiring: g.expiring.length,
+      emailed: true,
+    });
   }
-  return {
-    feature: "morning_brief",
-    appts: g.appts.length,
-    lowStock: g.lowStock.length,
-    expiring: g.expiring.length,
-    emailed: true,
-  };
+  return { feature: "morning_brief", shops: results };
 }

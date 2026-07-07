@@ -37,7 +37,7 @@ async function loadFollowup(token: string) {
   if (!admin || !UUID_RE.test(token)) return { admin: null, followup: null };
   const { data } = await admin
     .from("followups")
-    .select("id, booking_id, client_id, kind, created_at")
+    .select("id, booking_id, client_id, kind, created_at, shop_id")
     .eq("id", token)
     .eq("kind", "healed_photo")
     .maybeSingle();
@@ -150,6 +150,7 @@ export async function POST(req: Request) {
     artistId = (bk?.artist_id as string) ?? null;
   }
   const { error } = await admin.from("healed_photos").insert({
+    shop_id: followup.shop_id, // photo inherits the followup's shop; the service-role insert skips the DB default
     followup_id: followup.id,
     booking_id: followup.booking_id,
     client_id: followup.client_id,

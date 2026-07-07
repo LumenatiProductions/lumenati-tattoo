@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 // Owner draws are distributions, not expenses: shown below the line.
 // Sales tax collected is the state's money, not income: shown as owed.
 
-async function gate(req: Request): Promise<{ role: string | null; authed: boolean }> {
+async function gate(req: Request): Promise<{ role: string | null; authed: boolean; shopId: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,13 +26,19 @@ async function gate(req: Request): Promise<{ role: string | null; authed: boolea
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, shop_id")
       .eq("email", user.email!)
       .maybeSingle();
-    return { role: profile?.role ?? null, authed: true };
+    return {
+      role: profile?.role ?? null,
+      authed: true,
+      shopId: (profile?.shop_id as string | null) ?? null,
+    };
   }
   const me = await userFromBearer(req);
-  return me ? { role: me.role, authed: true } : { role: null, authed: false };
+  return me
+    ? { role: me.role, authed: true, shopId: me.shopId }
+    : { role: null, authed: false, shopId: null };
 }
 
 const isISODate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -63,6 +69,27 @@ async function pullAll<T>(
     const { data, error } = await q;
     if (error) throw new Error(`${table}: ${error.message}`);
     out.push(...((data ?? []) as T[]));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+// Ids of ledger rows that have been reversed (shop-scoped, all time — the
+// ledger_sales view excludes these and so must we).
+async function pullAllReversals(
+  db: NonNullable<ReturnType<typeof createAdminClient>>,
+  shopId: string,
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let start = 0; ; start += 1000) {
+    const { data, error } = await db
+      .from("ledger")
+      .select("reverses")
+      .eq("shop_id", shopId)
+      .not("reverses", "is", null)
+      .range(start, start + 999);
+    if (error) throw new Error(`ledger: ${error.message}`);
+    for (const r of data ?? []) if (r.reverses) out.add(r.reverses as string);
     if (!data || data.length < 1000) break;
   }
   return out;
@@ -110,9 +137,9 @@ const blank = (key: string): PnlPeriod => ({
 });
 
 export async function GET(req: Request) {
-  const { role, authed } = await gate(req);
+  const { role, authed, shopId } = await gate(req);
   if (!authed) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!role || !["owner", "bookkeeper"].includes(role)) {
+  if (!role || !shopId || !["owner", "bookkeeper"].includes(role)) {
     return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
   }
   const db = createAdminClient();
@@ -133,28 +160,52 @@ export async function GET(req: Request) {
     // still compute with their split, or old months change under you).
     const { data: artistRows, error: artErr } = await db
       .from("artists")
-      .select("id, pay_type, split_pct");
+      .select("id, pay_type, split_pct")
+      .eq("shop_id", shopId);
     if (artErr) throw new Error(artErr.message);
     const splitOf = new Map<string, number>();
     for (const a of artistRows ?? []) {
       splitOf.set(a.id as string, a.pay_type === "rent" ? 0 : Number(a.split_pct) || 0);
     }
 
-    const [sales, ledgerExtras, expenses, draws, bookings] = await Promise.all([
-      pullAll<{ created_at: string; service_cents: number; tip_cents: number; artist_id: string | null }>(
-        db, "ledger_sales", "created_at, service_cents, tip_cents, artist_id", "created_at", from, toEnd),
+    // ledger_sales (the view) doesn't expose shop_id, so sales are read from
+    // the raw ledger with the shop filter and grouped here exactly like the
+    // view: sale+tip rows, in, unreversed, keyed on external_id sans _svc/_tip.
+    const [saleRows, reversalRows, ledgerExtras, expenses, draws, bookings] = await Promise.all([
+      pullAll<{ id: string; occurred_at: string; kind: string; amount_cents: number; artist_id: string | null; external_id: string | null; source: string }>(
+        db, "ledger", "id, occurred_at, kind, amount_cents, artist_id, external_id, source", "occurred_at", from, toEnd,
+        (q) => q.eq("shop_id", shopId).in("kind", ["sale", "tip"]).eq("direction", "in")
+          .is("reverses", null).not("external_id", "is", null)),
+      // Reversing rows can land outside the window (a refund months later), so
+      // they're pulled un-windowed to exclude their originals, like the view.
+      pullAllReversals(db, shopId),
       // Rent + tax live in the raw ledger (reversals net out via `reverses`).
       pullAll<{ occurred_at: string; kind: string; direction: string; amount_cents: number; reverses: string | null }>(
         db, "ledger", "occurred_at, kind, direction, amount_cents, reverses", "occurred_at", from, toEnd,
-        (q) => q.in("kind", ["rent", "tax"])),
+        (q) => q.eq("shop_id", shopId).in("kind", ["rent", "tax"])),
       pullAll<{ date: string; category: string; amount_cents: number }>(
-        db, "expenses", "date, category, amount_cents", "date", from, to),
+        db, "expenses", "date, category, amount_cents", "date", from, to,
+        (q) => q.eq("shop_id", shopId)),
       pullAll<{ date: string; amount_cents: number }>(
-        db, "owner_draws", "date, amount_cents", "date", from, to),
+        db, "owner_draws", "date, amount_cents", "date", from, to,
+        (q) => q.eq("shop_id", shopId)),
       pullAll<{ starts_at: string; deposit_cents: number | null; deposit_status: string | null }>(
         db, "bookings", "starts_at, deposit_cents, deposit_status", "starts_at", from, toEnd,
-        (q) => q.eq("deposit_status", "forfeited")),
+        (q) => q.eq("shop_id", shopId).eq("deposit_status", "forfeited")),
     ]);
+
+    const grouped = new Map<string, { created_at: string; service_cents: number; tip_cents: number; artist_id: string | null }>();
+    for (const r of saleRows) {
+      if (reversalRows.has(r.id)) continue;
+      const key = `${r.source}|${(r.external_id ?? "").replace(/_(svc|tip)$/, "")}`;
+      let g = grouped.get(key);
+      if (!g) grouped.set(key, (g = { created_at: r.occurred_at, service_cents: 0, tip_cents: 0, artist_id: null }));
+      if (r.occurred_at < g.created_at) g.created_at = r.occurred_at;
+      if (r.kind === "sale") g.service_cents += r.amount_cents;
+      else g.tip_cents += r.amount_cents;
+      if (r.artist_id && (!g.artist_id || r.artist_id > g.artist_id)) g.artist_id = r.artist_id;
+    }
+    const sales = [...grouped.values()];
 
     const periods = new Map<string, PnlPeriod>();
     const at = (date: string) => {

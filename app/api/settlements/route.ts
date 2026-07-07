@@ -25,7 +25,14 @@ export async function GET(req: Request) {
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!can(me.role, READ)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
 
-  let q = me.db.from("settlements").select("*").order("created_at", { ascending: false }).limit(200);
+  // Shop scoping is redundant under RLS (cookie path) but essential on the
+  // Bearer path, where me.db is the service-role client.
+  let q = me.db
+    .from("settlements")
+    .select("*")
+    .eq("shop_id", me.shopId)
+    .order("created_at", { ascending: false })
+    .limit(200);
   // Bearer callers read via the service-role client, so the artist scoping RLS
   // would normally do has to be explicit here.
   if (me.role === "artist") q = q.eq("artist_id", me.artistId ?? "-");
@@ -76,6 +83,7 @@ export async function POST(req: Request) {
   const { data, error } = await supabase
     .from("settlements")
     .insert({
+      shop_id: me.shopId,
       artist_id: b.artistId,
       amount_cents: amountCents,
       settled_through: settledThrough,
@@ -98,6 +106,7 @@ export async function POST(req: Request) {
   // Receipt: email the artist their statement so settling feels like payroll.
   // Best-effort — a missing Resend key / artist email never blocks the books.
   const receipt = await emailReceipt(supabase, {
+    shopId: me.shopId,
     artistId: b.artistId,
     amountCents,
     settledThrough: settledThrough!,
@@ -109,14 +118,14 @@ export async function POST(req: Request) {
 
 async function emailReceipt(
   supabase: SupabaseClient,
-  s: { artistId: string; amountCents: number; settledThrough: string; note: string },
+  s: { shopId: string; artistId: string; amountCents: number; settledThrough: string; note: string },
 ): Promise<{ sent: boolean; reason?: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { sent: false, reason: "Email not configured" };
 
   const [{ data: artist }, { data: profile }] = await Promise.all([
-    supabase.from("artists").select("name").eq("id", s.artistId).maybeSingle(),
-    supabase.from("profiles").select("email, full_name").eq("artist_id", s.artistId).maybeSingle(),
+    supabase.from("artists").select("name").eq("id", s.artistId).eq("shop_id", s.shopId).maybeSingle(),
+    supabase.from("profiles").select("email, full_name").eq("artist_id", s.artistId).eq("shop_id", s.shopId).maybeSingle(),
   ]);
   if (!profile?.email) return { sent: false, reason: "Artist has no login email on file" };
 

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 // cookie session and the app's Bearer token; either way we resolve the role and
 // then read with the service-role client (a privileged all-data aggregation that
 // only owner/bookkeeper reach). An artist gets a 403.
-async function gate(req: Request): Promise<{ role: string | null; authed: boolean }> {
+async function gate(req: Request): Promise<{ role: string | null; authed: boolean; shopId: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,13 +22,19 @@ async function gate(req: Request): Promise<{ role: string | null; authed: boolea
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, shop_id")
       .eq("email", user.email!)
       .maybeSingle();
-    return { role: profile?.role ?? null, authed: true };
+    return {
+      role: profile?.role ?? null,
+      authed: true,
+      shopId: (profile?.shop_id as string | null) ?? null,
+    };
   }
   const me = await userFromBearer(req);
-  return me ? { role: me.role, authed: true } : { role: null, authed: false };
+  return me
+    ? { role: me.role, authed: true, shopId: me.shopId }
+    : { role: null, authed: false, shopId: null };
 }
 
 // Same `sales` row -> Sale mapping the SalesProvider uses, so the math matches
@@ -42,6 +48,79 @@ type SaleRow = {
   method: string | null;
   artist_id: string | null;
 };
+// The ledger_sales view doesn't expose shop_id, so the window's sales come
+// straight from the ledger with the shop filter, grouped the way the view
+// groups: sale+tip rows, direction in, unreversed, keyed on external_id sans
+// _svc/_tip per source, reversed originals excluded.
+async function ledgerSalesForShop(
+  db: NonNullable<ReturnType<typeof createAdminClient>>,
+  shopId: string,
+  from: string,
+  toEnd: string,
+): Promise<SaleRow[]> {
+  type LedgerRow = {
+    id: string;
+    occurred_at: string;
+    kind: string;
+    amount_cents: number;
+    artist_id: string | null;
+    external_id: string | null;
+    source: string;
+  };
+  const rows: LedgerRow[] = [];
+  for (let start = 0; ; start += 1000) {
+    const { data } = await db
+      .from("ledger")
+      .select("id, occurred_at, kind, amount_cents, artist_id, external_id, source")
+      .eq("shop_id", shopId)
+      .in("kind", ["sale", "tip"])
+      .eq("direction", "in")
+      .is("reverses", null)
+      .not("external_id", "is", null)
+      .gte("occurred_at", from)
+      .lte("occurred_at", toEnd)
+      .order("occurred_at", { ascending: true })
+      .range(start, start + 999);
+    rows.push(...((data ?? []) as LedgerRow[]));
+    if (!data || data.length < 1000) break;
+  }
+  // Reversing rows can land outside the window (a refund months later), so
+  // they're pulled un-windowed to exclude their originals.
+  const reversed = new Set<string>();
+  for (let start = 0; ; start += 1000) {
+    const { data } = await db
+      .from("ledger")
+      .select("reverses")
+      .eq("shop_id", shopId)
+      .not("reverses", "is", null)
+      .range(start, start + 999);
+    for (const r of data ?? []) if (r.reverses) reversed.add(r.reverses as string);
+    if (!data || data.length < 1000) break;
+  }
+  const grouped = new Map<string, SaleRow>();
+  for (const r of rows) {
+    if (reversed.has(r.id)) continue;
+    const id = (r.external_id ?? "").replace(/_(svc|tip)$/, "");
+    const key = `${r.source}|${id}`;
+    let g = grouped.get(key);
+    if (!g) {
+      grouped.set(key, (g = {
+        id,
+        created_at: r.occurred_at,
+        service_cents: 0,
+        tip_cents: 0,
+        method: r.source === "cash" ? "cash" : "card",
+        artist_id: null,
+      }));
+    }
+    if (r.occurred_at < (g.created_at ?? "")) g.created_at = r.occurred_at;
+    if (r.kind === "sale") g.service_cents = (g.service_cents ?? 0) + r.amount_cents;
+    else g.tip_cents = (g.tip_cents ?? 0) + r.amount_cents;
+    if (r.artist_id && (!g.artist_id || r.artist_id > g.artist_id)) g.artist_id = r.artist_id;
+  }
+  return [...grouped.values()];
+}
+
 const rowToSale = (r: SaleRow): Sale => ({
   id: r.id,
   artistId: r.artist_id ?? "",
@@ -62,9 +141,9 @@ function defaultRange(): { from: string; to: string } {
 const isISODate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 export async function GET(req: Request) {
-  const { role, authed } = await gate(req);
+  const { role, authed, shopId } = await gate(req);
   if (!authed) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!role || !["owner", "bookkeeper"].includes(role)) {
+  if (!role || !shopId || !["owner", "bookkeeper"].includes(role)) {
     return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
   }
   const db = createAdminClient();
@@ -77,26 +156,22 @@ export async function GET(req: Request) {
   const toExclusiveEnd = `${to}T23:59:59.999`; // make `to` inclusive of its whole day
 
   // ── Pull the real rows in the window (service-role: owner/bookkeeper see all) ──
-  const [artistsRes, salesRes, bookingsRes, inventoryRes] = await Promise.all([
-    db.from("artists").select("*").eq("active", true).order("sort"),
-    db
-      // Reads the canonical ledger (as sales-shaped rows) — the money source of truth.
-      .from("ledger_sales")
-      .select("id, created_at, service_cents, tip_cents, method, artist_id")
-      .gte("created_at", from)
-      .lte("created_at", toExclusiveEnd)
-      .limit(20000),
+  const [artistsRes, salesRows, bookingsRes, inventoryRes] = await Promise.all([
+    db.from("artists").select("*").eq("shop_id", shopId).eq("active", true).order("sort"),
+    // Reads the canonical ledger (as sales-shaped rows) — the money source of truth.
+    ledgerSalesForShop(db, shopId, from, toExclusiveEnd),
     db
       .from("bookings")
       .select("deposit_cents, deposit_status, starts_at")
+      .eq("shop_id", shopId)
       .gte("starts_at", from)
       .lte("starts_at", toExclusiveEnd)
       .limit(20000),
-    db.from("inventory_items").select("qty, cost_cents"),
+    db.from("inventory_items").select("qty, cost_cents").eq("shop_id", shopId),
   ]);
 
   const artists = (artistsRes.data ?? []).map(rowToArtist);
-  const sales = (salesRes.data ?? []).map(rowToSale);
+  const sales = salesRows.map(rowToSale);
 
   // ── Shop + per-artist money math (reused from calc.ts, same as Payouts) ──
   // Rent is settled out of band (Square invoices, below), so pass [] here and

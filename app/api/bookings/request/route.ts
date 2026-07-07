@@ -7,6 +7,7 @@ import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
 import { pushEvent } from "@/lib/push/send";
 import { renderY2kEmail } from "@/lib/email/y2k";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,15 @@ async function staff() {
   if (!user) return { supabase, user: null, role: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
+  return {
+    supabase,
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 const isStaff = (r: string | null) => !!r && STAFF.includes(r as (typeof STAFF)[number]);
 const isMissingTable = (msg: string) => /relation .* does not exist|42P01/i.test(msg);
@@ -61,11 +67,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "That mobile number doesn't look right." }, { status: 400 });
   }
 
+  // Which shop is this request for? The root /request form sends no slug and
+  // means Lumenati; the standard shop template sends its slug. Service-role
+  // writes bypass RLS, so the shop_id must be explicit — never the DB default.
+  let shopId = LUMENATI_SHOP_ID;
+  const shopSlug = clip(b.shopSlug, 80);
+  if (shopSlug) {
+    const { data: shop } = await admin.from("shops").select("id").eq("slug", shopSlug).maybeSingle();
+    if (!shop) return NextResponse.json({ error: "Unknown shop." }, { status: 400 });
+    shopId = shop.id as string;
+  }
+
   // Per-contact cap: max 3 requests an hour. (DB-backed, so it works serverless.)
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   let recent = admin
     .from("booking_requests")
     .select("id", { count: "exact", head: true })
+    .eq("shop_id", shopId)
     .gte("created_at", hourAgo);
   recent = emailOk ? recent.eq("email", email) : recent.eq("phone", phone!);
   const { count, error: countErr } = await recent;
@@ -80,7 +98,13 @@ export async function POST(req: Request) {
   let artistId: string | null = null;
   const requested = clip(b.artistId, 60);
   if (requested) {
-    const { data: a } = await admin.from("artists").select("id").eq("id", requested).eq("active", true).maybeSingle();
+    const { data: a } = await admin
+      .from("artists")
+      .select("id")
+      .eq("id", requested)
+      .eq("shop_id", shopId)
+      .eq("active", true)
+      .maybeSingle();
     artistId = a?.id ?? null;
   }
 
@@ -92,6 +116,7 @@ export async function POST(req: Request) {
     .slice(0, 3);
 
   const { error } = await admin.from("booking_requests").insert({
+    shop_id: shopId,
     name,
     email: emailOk ? email : null,
     phone,
@@ -112,7 +137,7 @@ export async function POST(req: Request) {
   // Ping the desk (and the asked-for artist) — best-effort, never blocks.
   await pushEvent(
     admin,
-    { roles: ["owner", "frontdesk"], artistId },
+    { roles: ["owner", "frontdesk"], artistId, shopId },
     "New booking request",
     `${name}: ${idea.slice(0, 90)}`,
   );
@@ -138,9 +163,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const { supabase, user, role } = await staff();
+  const { supabase, user, role, shopId } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+  if (!isStaff(role) || !shopId) return NextResponse.json({ error: "Staff only" }, { status: 403 });
 
   const b = (await req.json().catch(() => ({}))) as {
     id?: string;
@@ -154,7 +179,9 @@ export async function PATCH(req: Request) {
   if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { data: reqRow } = await supabase.from("booking_requests").select("*").eq("id", b.id).maybeSingle();
-  if (!reqRow) return NextResponse.json({ error: "Request not found" }, { status: 404 });
+  if (!reqRow || reqRow.shop_id !== shopId) {
+    return NextResponse.json({ error: "Request not found" }, { status: 404 });
+  }
   if (reqRow.status !== "pending") {
     return NextResponse.json({ error: `Already ${reqRow.status}.` }, { status: 409 });
   }
@@ -255,6 +282,7 @@ export async function PATCH(req: Request) {
           artistId: booking.artist_id ?? null,
           kind: "deposit",
           amountCents: deposit,
+          shopId,
         });
         if (link.ok) {
           depositLink = { url: link.url, sent: false };

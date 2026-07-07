@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  const res = await sellableItems(admin);
+  const res = await sellableItems(admin, me.shopId);
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: 500 });
-  return NextResponse.json({ items: res.items, taxBps: await taxBps(admin) });
+  return NextResponse.json({ items: res.items, taxBps: await taxBps(admin, me.shopId) });
 }

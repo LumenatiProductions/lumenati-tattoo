@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTeamMembers, listPayments, isSquareConfigured } from "./client";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -20,11 +21,14 @@ export async function syncSquare(supabase: SupabaseClient) {
   if (members.length) {
     const { data: existing } = await supabase
       .from("square_team_members")
-      .select("square_id, artist_id");
+      .select("square_id, artist_id")
+      .eq("shop_id", LUMENATI_SHOP_ID);
     const prior = new Map((existing || []).map((r) => [r.square_id, r.artist_id]));
     await supabase.from("square_team_members").upsert(
       members.map((m) => ({
         square_id: m.id,
+        // Square is physically Lumenati's; everything it mirrors lands there.
+        shop_id: LUMENATI_SHOP_ID,
         name: m.name,
         artist_id: prior.get(m.id) ?? null,
         last_synced: new Date().toISOString(),
@@ -36,7 +40,8 @@ export async function syncSquare(supabase: SupabaseClient) {
   // Current member -> artist mapping.
   const { data: maps } = await supabase
     .from("square_team_members")
-    .select("square_id, artist_id");
+    .select("square_id, artist_id")
+    .eq("shop_id", LUMENATI_SHOP_ID);
   const memberToArtist = new Map(
     (maps || []).map((r) => [r.square_id, r.artist_id as string | null]),
   );
@@ -46,6 +51,7 @@ export async function syncSquare(supabase: SupabaseClient) {
     .from("square_sync")
     .select("last_synced_at")
     .eq("id", 1)
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .maybeSingle();
   const begin = state?.last_synced_at
     ? new Date(new Date(state.last_synced_at).getTime() - DAY)
@@ -58,6 +64,7 @@ export async function syncSquare(supabase: SupabaseClient) {
   if (payments.length) {
     const rows = payments.map((p) => ({
       id: p.id,
+      shop_id: LUMENATI_SHOP_ID,
       created_at: p.createdAt,
       service_cents: p.serviceCents,
       tip_cents: p.tipCents,
@@ -77,7 +84,11 @@ export async function syncSquare(supabase: SupabaseClient) {
   //    changes propagate to already-synced sales.
   for (const [squareId, artistId] of memberToArtist) {
     if (artistId)
-      await supabase.from("sales").update({ artist_id: artistId }).eq("team_member_id", squareId);
+      await supabase
+        .from("sales")
+        .update({ artist_id: artistId })
+        .eq("team_member_id", squareId)
+        .eq("shop_id", LUMENATI_SHOP_ID);
   }
 
   // Mirror new Square sales into the canonical ledger (idempotent; skips Stripe
@@ -90,7 +101,8 @@ export async function syncSquare(supabase: SupabaseClient) {
   await supabase
     .from("square_sync")
     .update({ last_synced_at: new Date().toISOString(), last_result: result })
-    .eq("id", 1);
+    .eq("id", 1)
+    .eq("shop_id", LUMENATI_SHOP_ID);
 
   return { payments: payments.length, members: members.length, result };
 }

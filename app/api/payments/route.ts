@@ -15,13 +15,18 @@ async function staff() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
+  if (!user) return { supabase, user: null, role: null as string | null, shopId: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
+  return {
+    supabase,
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 const isStaff = (r: string | null) => !!r && STAFF.includes(r as (typeof STAFF)[number]);
 
@@ -46,9 +51,9 @@ export async function GET() {
 // Stripe URL + the public /pay token. Staff only. Writes via the service-role
 // client so the row is consistent with what the webhook (also service-role) sees.
 export async function POST(req: Request) {
-  const { user, role } = await staff();
+  const { user, role, shopId } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+  if (!isStaff(role) || !shopId) return NextResponse.json({ error: "Staff only" }, { status: 403 });
   if (!isStripeConfigured) {
     return NextResponse.json({ error: "Stripe is not configured yet." }, { status: 503 });
   }
@@ -76,7 +81,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Service role not configured." }, { status: 500 });
   }
 
+  // The service-role client bypasses RLS, so any ids riding on the link must be
+  // rows in the caller's own shop before they land on the payment.
+  const refs = [
+    ["bookings", b.bookingId],
+    ["clients", b.clientId],
+    ["artists", b.artistId],
+  ] as const;
+  for (const [table, id] of refs) {
+    if (!id) continue;
+    const { data } = await admin.from(table).select("id").eq("id", id).eq("shop_id", shopId).maybeSingle();
+    if (!data) return NextResponse.json({ error: "That record isn't in your shop." }, { status: 400 });
+  }
+
   const res = await createPaymentLink(admin, {
+    shopId,
     bookingId: b.bookingId ?? null,
     clientId: b.clientId ?? null,
     artistId: b.artistId ?? null,

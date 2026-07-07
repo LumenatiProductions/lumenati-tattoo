@@ -25,13 +25,18 @@ export async function sendExpoPush(
 }
 
 // Tokens for everyone whose current role is in `roles` (role resolved live from
-// `profiles` by the email stored on the device row).
-export async function tokensForRoles(admin: SupabaseClient, roles: string[]): Promise<string[]> {
+// `profiles` by the email stored on the device row). shopId keeps a push about
+// one shop's money/bookings off every other shop's phones.
+export async function tokensForRoles(admin: SupabaseClient, roles: string[], shopId: string): Promise<string[]> {
   const { data: devices } = await admin.from("device_tokens").select("token, email");
   const rows = (devices ?? []) as { token: string; email: string | null }[];
   const emails = [...new Set(rows.map((d) => d.email).filter(Boolean) as string[])];
   if (!emails.length) return [];
-  const { data: profs } = await admin.from("profiles").select("email, role").in("email", emails);
+  const { data: profs } = await admin
+    .from("profiles")
+    .select("email, role")
+    .in("email", emails)
+    .eq("shop_id", shopId);
   const roleByEmail = new Map(((profs ?? []) as { email: string; role: string }[]).map((p) => [p.email, p.role]));
   return rows.filter((d) => d.email && roles.includes(roleByEmail.get(d.email) ?? "")).map((d) => d.token);
 }
@@ -48,13 +53,13 @@ export async function tokensForArtist(admin: SupabaseClient, artistId: string): 
 // Fire-and-forget event push: never throws, never blocks the caller's flow.
 export async function pushEvent(
   admin: SupabaseClient,
-  audience: { roles?: string[]; artistId?: string | null },
+  audience: { roles?: string[]; artistId?: string | null; shopId: string },
   title: string,
   body: string,
 ): Promise<void> {
   try {
     const tokens: string[] = [];
-    if (audience.roles?.length) tokens.push(...(await tokensForRoles(admin, audience.roles)));
+    if (audience.roles?.length) tokens.push(...(await tokensForRoles(admin, audience.roles, audience.shopId)));
     if (audience.artistId) tokens.push(...(await tokensForArtist(admin, audience.artistId)));
     if (tokens.length) await sendExpoPush(tokens, title, body);
   } catch {

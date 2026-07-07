@@ -26,6 +26,7 @@ export const newPayToken = () => randomBytes(18).toString("base64url");
 
 export type PaymentRow = {
   id: string;
+  shop_id: string;
   booking_id: string | null;
   client_id: string | null;
   artist_id: string | null;
@@ -47,6 +48,7 @@ export type PaymentRow = {
 };
 
 type CreateArgs = {
+  shopId: string;
   bookingId?: string | null;
   clientId?: string | null;
   artistId?: string | null;
@@ -67,6 +69,7 @@ export async function createPaymentLink(admin: SupabaseClient, args: CreateArgs)
   const { data: row, error } = await admin
     .from("payments")
     .insert({
+      shop_id: args.shopId,
       booking_id: args.bookingId ?? null,
       client_id: args.clientId ?? null,
       artist_id: args.artistId ?? null,
@@ -95,7 +98,9 @@ export async function startCheckout(
   if (!stripe) return { ok: false as const, error: "Stripe is not configured." };
   if (row.status === "paid") return { ok: false as const, error: "Already paid." };
 
-  const name = `Lumenati Tattoo · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
+  const { data: shop } = await admin.from("shops").select("name").eq("id", row.shop_id).maybeSingle();
+  const shopName = (shop?.name as string | undefined)?.trim() || "Lumenati Tattoo";
+  const name = `${shopName} · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
   const tip = Math.max(0, Math.round(row.tip_cents ?? 0));
 
   // Connect (POS-STARTER-5): a ticket for an onboarded artist becomes a
@@ -193,6 +198,7 @@ export async function settlePayment(
     const tipCents = Math.max(0, Math.round(row.tip_cents ?? 0));
     const taxCents = Math.max(0, Math.round(row.tax_cents ?? 0));
     const base = {
+      shop_id: row.shop_id,
       source: "stripe",
       direction: "in",
       currency: row.currency || "usd",
@@ -249,6 +255,7 @@ export async function settlePayment(
     await admin.from("sales").upsert(
       {
         id: `lum_${row.id}`,
+        shop_id: row.shop_id,
         created_at: paidAt,
         service_cents: row.amount_cents,
         tip_cents: Math.max(0, Math.round(row.tip_cents ?? 0)),
@@ -265,7 +272,7 @@ export async function settlePayment(
   // guard above — a webhook retry never reaches here twice). Best-effort, like
   // every books write: the charge already happened.
   if (Array.isArray(row.items) && row.items.length > 0) {
-    await decrementStock(admin, row.items, "stripe");
+    await decrementStock(admin, row.items, "stripe", row.shop_id);
   }
 
   // Phone ping for money landing — owner always, plus the artist it belongs to.
@@ -274,7 +281,7 @@ export async function settlePayment(
   const usd = (total / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
   await pushEvent(
     admin,
-    { roles: ["owner"], artistId: row.artist_id },
+    { roles: ["owner"], artistId: row.artist_id, shopId: row.shop_id },
     "Payment received",
     `${usd} ${KIND_LABEL[row.kind] ?? row.kind}${row.tip_cents ? " (incl. tip)" : ""}`,
   );
