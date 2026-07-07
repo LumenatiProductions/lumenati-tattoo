@@ -18,9 +18,9 @@ export const metadata = {
 export default async function RequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ shop?: string }>;
+  searchParams: Promise<{ shop?: string; artist?: string }>;
 }) {
-  const { shop: shopSlug } = await searchParams;
+  const { shop: shopSlug, artist: artistParam } = await searchParams;
   const admin = createAdminClient();
   let artists: { id: string; name: string }[] = [];
   let shopName = "Lumenati Tattoo";
@@ -48,6 +48,10 @@ export default async function RequestPage({
       .order("sort");
     artists = (data ?? []).map((a) => ({ id: a.id as string, name: a.name as string }));
   }
+  // A "Book with <artist>" link arrives with ?artist=<id>; preselect them only
+  // if they're really in this shop's roster (a stale/foreign id falls back to
+  // "no preference").
+  const preselectArtistId = artists.some((a) => a.id === artistParam) ? artistParam : undefined;
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900">
@@ -62,7 +66,7 @@ export default async function RequestPage({
         </div>
       </header>
       <main className="mx-auto max-w-xl px-5 py-6">
-        <RequestForm artists={artists} shopSlug={resolvedSlug} />
+        <RequestForm artists={artists} shopSlug={resolvedSlug} preselectArtistId={preselectArtistId} />
       </main>
     </div>
   );

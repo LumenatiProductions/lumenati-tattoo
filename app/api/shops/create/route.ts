@@ -13,11 +13,10 @@ export const dynamic = "force-dynamic";
 // unique), and the owner: auth invite email + profiles row pinned to the new
 // shop_id.
 //
-// GATED by SHOP_WIZARD_CODE on purpose: shop_id tags every table but RLS is
-// not yet shop-scoped, so a second shop's ADMIN would still see Lumenati data.
-// The public pages are safe (they read by shop); the admin isolation work is
-// the launch blocker, tracked in STARTER-NEXT. Until it lands, Scott hands
-// the code only to shops he's co-building with.
+// GATED by SHOP_WIZARD_CODE on purpose. Shop isolation is now enforced
+// (shop-scoped RLS + service-role route scoping, 2026-07-07), so a second
+// shop's admin sees only their own data. The code stays invite-only while
+// Scott co-builds with the first outside shops.
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");

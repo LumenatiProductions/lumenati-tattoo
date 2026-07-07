@@ -38,15 +38,17 @@ async function downscale(file: File): Promise<string> {
 export default function RequestForm({
   artists,
   shopSlug,
+  preselectArtistId,
 }: {
   artists: { id: string; name: string }[];
   shopSlug?: string;
+  preselectArtistId?: string;
 }) {
   const [f, setF] = useState({
     name: "",
     email: "",
     phone: "",
-    artistId: "",
+    artistId: preselectArtistId ?? "",
     idea: "",
     placement: "",
     size: "",
