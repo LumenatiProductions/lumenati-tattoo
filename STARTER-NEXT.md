@@ -43,15 +43,25 @@ Money: cash + Stripe only, everything through the append-only ledger.
   columns (sales_tax_bps is server-only).
 
 ## Open decisions / owed items
-- **Artists still have no bookings UPDATE policy** (can't cancel their own
-  booking from the app; staff routes do it). Deliberately left — Scott
-  should decide if artists may cancel/reschedule their own.
+- **Artist cancel SHIPPED 2026-07-07** (Scott greenlit): RLS policy + guard
+  trigger let an artist cancel their own scheduled booking (status-only,
+  deposit auto-refunds); Cancel button on their app rows. Reschedule by an
+  artist is still staff-only — open if Scott wants that too.
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens before it lapses.
-- Cosmetic multi-shop leftovers (NOT data leaks): owner push title says
-  "Lumenati — today" for every shop; brief email body has the LUMENATI
-  wordmark; Stripe Terminal location is hardcoded Lumenati's address.
-  Worth a small branding pass before shop #2 onboards.
+- **SECOND-SHOP DRY RUN PASSED 2026-07-07** (disposable "Dry Run Ink Co",
+  torn down clean): wizard provisions shop+artists+owner; standard template
+  renders the shop's own data + accent; a public booking request lands on the
+  new shop not Lumenati; a second-shop artist logs into the app and sees only
+  their empty world (0 of Lumenati's 895 clients). Fixed on the way: the
+  "Book with <artist>" deep-link now preselects that artist in /request.
+- **Branding pass = the clear next job (exact gaps found in the dry run):**
+  (1) app is hardwired to the LUMENATI logo/wordmark for every shop's artists;
+  (2) /request form header shows the shop name but the submit button + accents
+  stay Lumenati pink instead of the shop's accent; (3) owner push title
+  "Lumenati - today" for every shop; (4) brief email body has the LUMENATI
+  wordmark; (5) Stripe Terminal location hardcoded to Lumenati's address.
+  All cosmetic, no data leaks — but they'd confuse a real second shop.
 - Owed small items: one real 4x6 print of a QR card; Tap to Pay done screen
   on a real phone; artist push tokens (week-review push unobserved until an
   artist logs into the app on a real phone).
