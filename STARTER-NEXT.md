@@ -145,6 +145,33 @@ w-3 came out empty even after a dev-server restart) — the chart bars use
 inline styles on purpose; check computed styles before trusting new
 classes in new files.
 
+**Shop wizard + standard template — SHIPPED 2026-07-07, e2e in Chrome.**
+THE TEMPLATE DECISION (Scott's question): Y2K + rooms are LUMENATI'S SKIN,
+not the product. shops.template picks the skin per shop — Lumenati stays
+'y2k' (root URLs, legacy renderer untouched), every new shop gets
+'standard': clean dark template at /s/<shop> (+ /s/<shop>/<artist>)
+rendering the SAME room_content data (tagline/bio/photos/promos/book CTA).
+Finishing the room EDITOR once now upgrades every skin. shops grew
+template/accent/tagline (anon column-granted; sales_tax_bps stays hidden —
+verified). /start wizard (gated by SHOP_WIZARD_CODE env; unset in prod =
+closed; local dev code in .env.local): shop name/tagline/accent swatches/
+artist list/owner email → provisions shop + namespaced artists
+("<shop>--<artist>", slugs are globally unique) + room stubs + owner
+profile; invite email is BEST-EFFORT (a bounce can't strand a half-made
+shop — owner signs in via emailed code). Verified: gate 403s, Iron Anchor
+demo provisioned + rendered + deleted, Y2K untouched, /s/lumenati
+redirects home.
+
+LAUNCH BLOCKERS before a real outside shop gets a code (the honest list):
+1. RLS is NOT shop-scoped — a second shop's ADMIN/app still sees Lumenati
+   data everywhere (public pages are safe; they query by shop). This is
+   the big one: sweep every policy to add shop_id = current_shop_id().
+2. Hardcoded Lumenati-isms: shop name in emails/SMS/receipts, Denver
+   timezone (week review, care dates), base URL, GOOGLE_REVIEW_URL,
+   Stripe account (one account today — needs per-shop Connect or keys).
+3. Per-shop Twilio/Resend senders, room editor completion (photos etc.),
+   billing for the SaaS itself.
+
 Then (old roadmap, still greenlit): Instagram
 Graph API (only when Scott says go); texting promos/waitlist through
 Twilio once upgraded; SaaS "add your shop" wizard.

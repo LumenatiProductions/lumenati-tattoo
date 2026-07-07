@@ -1,0 +1,8 @@
+/* Tailwind for the standard shop template — scoped to /s, same pattern as
+   care.css / healed.css so it never leaks onto the Y2K pages. */
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0e0e11;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
