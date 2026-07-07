@@ -114,6 +114,20 @@ changes stay desk-only (artists have no bookings UPDATE policy — same as
 before), so the cancel-moment card is a staff surface; artists still run
 their own waitlist lane.
 
+**Slot offers: first tap takes it — SHIPPED 2026-07-07 (Scott's call).**
+On top of the manual waitlist fill: the freed-slot card's primary is now
+"Text the list — first tap gets it" (POST /api/waitlist/offer; staff any
+artist, artist self only). Every waiting person with a phone gets a text
+with a personal claim link (/claim/<offer-uuid>/<entry>); the public page
+shows Grab this spot -> "It's yours, Wanda" and books for REAL (client
+created if new, clash-guarded, entry retired with booked_id); everyone
+slower gets "Ooh — you just missed it" and STAYS listed. The race is one
+atomic UPDATE WHERE status='open' — fired two simultaneous claims, exactly
+one winner, DB verified. slot_offers table + RLS in repo + live. Twilio
+TRIAL means real texts only reach verified numbers until Scott upgrades —
+the API says so honestly (texted 0 + Twilio's own message surfaced in the
+app note) and manual Fill it stays one pill away.
+
 Then (old roadmap, still greenlit): review velocity on Reports; Instagram
 Graph API (only when Scott says go); texting promos/waitlist through
 Twilio once upgraded; SaaS "add your shop" wizard.

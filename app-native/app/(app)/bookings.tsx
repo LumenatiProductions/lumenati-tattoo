@@ -230,11 +230,39 @@ export default function Bookings() {
   // The no-show defense moment: a cancelled/no-showed booking frees a slot,
   // so immediately ask "who's waiting?" and offer the one-tap fill.
   const [freed, setFreed] = useState<{ startsAt: string; artistId: string | null; waiting: number } | null>(null);
+  const [offering, setOffering] = useState(false);
+  const [offerNote, setOfferNote] = useState<string | null>(null);
   const checkWaitlist = async (b: Booking) => {
+    setOfferNote(null);
     let q = supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("active", true);
     if (b.artist_id) q = q.or(`artist_id.eq.${b.artist_id},artist_id.is.null`);
     const { count } = await q;
     if (count) setFreed({ startsAt: b.starts_at, artistId: b.artist_id, waiting: count });
+  };
+
+  // First-come-first-served: text everyone waiting a claim link; the first
+  // tap books itself, the rest see "you just missed it". Server does the
+  // texting + the race (see /api/waitlist/offer and /api/claim).
+  const offerSlot = async () => {
+    if (!freed?.artistId || offering) return;
+    setOffering(true);
+    const r = await apiPost<{ texted: number; waiting: number; smsReady: boolean; note?: string }>(
+      "/api/waitlist/offer",
+      { artistId: freed.artistId, startsAt: freed.startsAt },
+    );
+    setOffering(false);
+    if (!r.ok) {
+      setOfferNote(r.error ?? "Could not send the offer.");
+      return;
+    }
+    const d = r.data!;
+    if (!d.smsReady) {
+      setOfferNote("Texting isn't switched on yet (Twilio) — fill it by hand for now.");
+    } else if (d.texted === 0) {
+      setOfferNote(d.note ?? "No texts went out — fill it by hand for now.");
+    } else {
+      setOfferNote(`Texted ${d.texted} ${d.texted === 1 ? "person" : "people"} — first tap gets it. You'll see it land on the books.`);
+    }
   };
 
   const setStatus = async (id: string, status: string) => {
@@ -338,16 +366,32 @@ export default function Bookings() {
               {freed.waiting} {freed.waiting === 1 ? "person is" : "people are"} on the waitlist — fill it before it goes cold.
             </Text>
             <View style={{ height: 10 }} />
-            <Button
-              label="Fill it from the waitlist"
-              onPress={() => {
-                setFreed(null);
-                router.push(
-                  `/waitlist?slot=${encodeURIComponent(freed.startsAt)}${freed.artistId ? `&artist=${freed.artistId}` : ""}`,
-                );
-              }}
-            />
-            <View style={{ marginTop: 8, flexDirection: "row" }}>
+            {freed.artistId ? (
+              <Button
+                label={offering ? "Texting the list…" : "Text the list — first tap gets it"}
+                onPress={offerSlot}
+                disabled={offering}
+              />
+            ) : (
+              <Button
+                label="Fill it from the waitlist"
+                onPress={() => {
+                  setFreed(null);
+                  router.push(`/waitlist?slot=${encodeURIComponent(freed.startsAt)}`);
+                }}
+              />
+            )}
+            {offerNote && <Text style={styles.freedNote}>{offerNote}</Text>}
+            <View style={{ marginTop: 10, flexDirection: "row", gap: 8 }}>
+              {freed.artistId ? (
+                <ActionPill
+                  label="Fill it myself"
+                  onPress={() => {
+                    setFreed(null);
+                    router.push(`/waitlist?slot=${encodeURIComponent(freed.startsAt)}&artist=${freed.artistId}`);
+                  }}
+                />
+              ) : null}
               <ActionPill label="Let it go" onPress={() => setFreed(null)} />
             </View>
           </Card>
@@ -676,6 +720,7 @@ const styles = StyleSheet.create({
   freedCard: { marginBottom: 12, borderColor: "rgba(52,211,153,0.4)" },
   freedTitle: { color: theme.good, fontSize: 16, fontWeight: "700" },
   freedSub: { color: theme.textDim, fontSize: 13, marginTop: 3 },
+  freedNote: { color: theme.textDim, fontSize: 13, marginTop: 10, lineHeight: 18 },
   section: { color: theme.textDim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: "600", marginTop: 18, marginBottom: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", padding: 14, gap: 10 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
