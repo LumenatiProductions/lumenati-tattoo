@@ -303,6 +303,25 @@ export default function Bookings() {
             <ActionPill label="Edit" onPress={() => setEditId(b.id)} />
           </View>
         )}
+        {!isStaff && b.status === "scheduled" && b.artist_id === myArtistId && (
+          <View style={styles.actions}>
+            <ActionPill
+              label="Cancel"
+              onPress={() =>
+                Alert.alert(
+                  "Cancel this booking?",
+                  b.deposit_status === "held"
+                    ? "Their deposit goes back to them, and if anyone's waiting you can offer the freed slot."
+                    : "If anyone's waiting you can offer the freed slot.",
+                  [
+                    { text: "Keep it", style: "cancel" },
+                    { text: "Cancel booking", style: "destructive", onPress: () => setStatus(b.id, "cancelled") },
+                  ],
+                )
+              }
+            />
+          </View>
+        )}
       </View>
       <View style={{ alignItems: "flex-end", gap: 5 }}>
         {b.checked_in_at ? <Badge label="Here" tone="good" /> : null}

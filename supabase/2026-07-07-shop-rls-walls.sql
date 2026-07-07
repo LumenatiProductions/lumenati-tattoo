@@ -211,3 +211,44 @@ notify pgrst, 'reload schema';
 revoke select on public.shops from authenticated;
 grant select (id, slug, name, template, accent, tagline) on public.shops to authenticated;
 notify pgrst, 'reload schema';
+-- Artists can cancel their own scheduled bookings (Scott greenlit 2026-07-07).
+-- The policy opens exactly one door: own booking, own shop, scheduled -> cancelled.
+create policy bookings_artist_cancel on public.bookings
+  for update
+  using (
+    (my_role() = 'artist'::text)
+    and (artist_id = my_artist())
+    and (status = 'scheduled'::text)
+    and (shop_id = (select public.current_shop_id()))
+  )
+  with check (
+    (my_role() = 'artist'::text)
+    and (artist_id = my_artist())
+    and (status = 'cancelled'::text)
+    and (shop_id = (select public.current_shop_id()))
+  );
+
+-- Belt for the door above: an artist-role UPDATE may change nothing except
+-- status (scheduled -> cancelled). Any other column silently keeps its old
+-- value, and a held deposit refunds -- the same cascade the desk's cancel runs.
+create or replace function public.bookings_artist_cancel_guard() returns trigger
+language plpgsql security definer set search_path to 'public' as $$
+begin
+  if public.my_role() = 'artist' then
+    if old.status <> 'scheduled' or new.status is distinct from 'cancelled' then
+      raise exception 'Artists can only cancel their own scheduled bookings';
+    end if;
+    new := old;
+    new.status := 'cancelled';
+    if old.deposit_status = 'held' then
+      new.deposit_status := 'refunded';
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists bookings_artist_cancel_guard on public.bookings;
+create trigger bookings_artist_cancel_guard before update on public.bookings
+  for each row execute function public.bookings_artist_cancel_guard();
+
+notify pgrst, 'reload schema';
