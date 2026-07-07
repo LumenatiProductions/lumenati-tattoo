@@ -71,10 +71,18 @@ what I forget. Build in this order:
    line reproduced exactly (2 tickets, $340.00, best day Sunday, verified
    by SQL). Delivery unobserved until an ARTIST login registers a push
    token (device_tokens holds only owner devices today).
-5. **Portfolio autopilot = client aftercare timeline.** Tokenized client link:
-   their tattoo, day-by-day care, healed-photo ask at day 14 (auto-collects
-   into Healed shots), rebook nudge. Follow-up engine already schedules these;
-   this is the pretty surface that feeds their IG.
+5. **Aftercare timeline — SHIPPED 2026-07-06, verified in Chrome.** Public
+   /care/<aftercare-followup-uuid> (same capability pattern as /healed;
+   /api/care validates, 60-day window): clean parent-brand shell, "Marco,
+   your new tattoo · script forearm · by <artist> · June 22", Day-N status
+   pill, six-stage day-by-day timeline (Fresh / Settling in / The itch /
+   Peeling / Show it off / Healed) with past ✓, TODAY highlighted in the
+   artist's accent, the day-14 stage carrying the client's REAL healed-photo
+   upload button (sibling followup token; locked till ~day 12), and "Book
+   with <artist>" closing to their /slug. Aftercare email now carries the
+   link ({{care_link}} token + gel button; SMS line included) — templates
+   have no DB overrides so the new default is live. All five artist-favorite
+   items are DONE, plus promos.
 
 SHIPPED OFF-LIST (Scott asked 2026-07-06): **artist-run promos.** App
 "Promos" screen (My business): artist writes the deal ("Flash Friday: 20%

@@ -100,9 +100,11 @@ export default function Cash() {
             <Stat label="Cash today" value={money(todayTotal)} hero />
 
             <View style={{ marginTop: 14 }}>
+              {/* One pink bar at a time: while the rebook ask is up, THAT is
+                  the screen's next action and Log cash steps back to ghost. */}
               <Button
                 label={adding ? "Cancel" : "Log cash"}
-                tone={adding ? "ghost" : "brand"}
+                tone={adding || rebookFor ? "ghost" : "brand"}
                 onPress={() => {
                   setRebookFor(null);
                   setAdding((v) => !v);

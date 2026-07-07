@@ -354,6 +354,12 @@ export async function sendFollowupRow(
     const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app";
     tokens.healed_link = `${base}/healed/${row.id}`;
   }
+  if (row.kind === "aftercare") {
+    // Same capability pattern: this row's uuid opens the client's day-by-day
+    // care timeline (/care/<id> — see /api/care).
+    const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app";
+    tokens.care_link = `${base}/care/${row.id}`;
+  }
   if (REMINDER_KINDS.includes(row.kind)) {
     if (!row.booking_id) return finalize(client, row.id, "skipped", "Reminder has no booking");
     const { data: bk } = await client

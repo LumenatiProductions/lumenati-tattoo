@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
-import { Badge, Button, Card, Empty, SectionTitle } from "@/components/ui";
+import { ActionPill, Badge, Button, Card, Empty, SectionTitle } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 import InkWash from "@/components/InkWash";
 import { uid } from "@/lib/ids";
@@ -224,12 +224,8 @@ export default function Promos() {
                         </Text>
                         {live(c) && (
                           <View style={styles.actions}>
-                            <Pressable onPress={() => share(c)} style={styles.act}>
-                              <Text style={styles.actText}>Copy caption</Text>
-                            </Pressable>
-                            <Pressable onPress={() => endIt(c)} style={styles.act}>
-                              <Text style={styles.actText}>End it</Text>
-                            </Pressable>
+                            <ActionPill label="Copy caption" onPress={() => share(c)} />
+                            <ActionPill label="End it" danger onPress={() => endIt(c)} />
                           </View>
                         )}
                       </View>
@@ -256,7 +252,5 @@ const styles = StyleSheet.create({
   rowSub: { color: theme.textDim, fontSize: 13.5, marginTop: 2 },
   rowMeta: { color: theme.textFaint, fontSize: 12, marginTop: 4 },
   actions: { flexDirection: "row", gap: 8, marginTop: 10 },
-  act: { borderColor: theme.border, borderWidth: 1, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 12 },
-  actText: { color: theme.text, fontSize: 13, fontWeight: "600" },
   emptyText: { color: theme.textDim, fontSize: 14.5, lineHeight: 21 },
 });

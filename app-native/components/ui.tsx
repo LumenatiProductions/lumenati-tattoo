@@ -133,6 +133,41 @@ export function Button({
   );
 }
 
+/**
+ * Compact in-row verb (share, end, edit, save). ONE shared size app-wide so
+ * the width system reads: full-width Button = the screen's next action,
+ * ActionPill = a small verb attached to the row it sits in. Never full width.
+ */
+export function ActionPill({
+  label,
+  onPress,
+  disabled,
+  danger,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={() => {
+        (danger ? trouble : tap)();
+        onPress();
+      }}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.pill,
+        danger && styles.pillDanger,
+        pressed && { backgroundColor: theme.surfaceRaised, borderColor: theme.borderStrong },
+        disabled && { opacity: 0.45 },
+      ]}
+    >
+      <Text style={[styles.pillText, danger && { color: theme.bad }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function Badge({
   label,
   tone = "neutral",
@@ -276,6 +311,9 @@ const styles = StyleSheet.create({
   },
   btnGhostText: { color: theme.text, fontSize: 15, fontWeight: "600" },
   btnDanger: { backgroundColor: theme.badSoft, borderColor: "rgba(251,113,133,0.4)", borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 14, alignItems: "center" },
+  pill: { alignSelf: "flex-start", borderColor: theme.border, borderWidth: 1, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: "rgba(255,255,255,0.03)" },
+  pillDanger: { borderColor: "rgba(251,113,133,0.4)" },
+  pillText: { color: theme.text, fontSize: 13, fontWeight: "600" },
   btnDangerText: { color: theme.bad, fontSize: 15, fontWeight: "700" },
   badge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3.5, alignSelf: "flex-start" },
   badgeText: { fontSize: 11.5, fontWeight: "700", letterSpacing: 0.3 },

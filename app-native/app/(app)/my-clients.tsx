@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
-import { Badge, Card, Empty, SectionTitle } from "@/components/ui";
+import { ActionPill, Badge, Card, Empty, SectionTitle } from "@/components/ui";
 import InkWash from "@/components/InkWash";
 import RebookCard from "@/components/RebookCard";
 import { success } from "@/lib/haptics";
@@ -290,9 +290,9 @@ function ClientSheet({
             style={styles.noteInput}
           />
           {(note.trim() !== loadedNote || saved) && (
-            <Pressable onPress={saveNote} disabled={saving} style={styles.saveBtn}>
-              <Text style={styles.saveBtnText}>{saved ? "Saved" : saving ? "Saving…" : "Save note"}</Text>
-            </Pressable>
+            <View style={{ marginTop: 10, flexDirection: "row" }}>
+              <ActionPill label={saved ? "Saved" : saving ? "Saving…" : "Save note"} onPress={saveNote} disabled={saving} />
+            </View>
           )}
 
           <Text style={styles.sheetLabel}>Work together</Text>
@@ -354,16 +354,6 @@ const styles = StyleSheet.create({
     minHeight: 84,
     textAlignVertical: "top",
   },
-  saveBtn: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    borderColor: theme.border,
-    borderWidth: 1,
-    borderRadius: 9,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  saveBtnText: { color: theme.text, fontSize: 13.5, fontWeight: "600" },
   historyEmpty: { color: theme.textFaint, fontSize: 13.5 },
   histRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 7 },
   histDate: { color: theme.textFaint, fontSize: 12.5, width: 96, fontVariant: ["tabular-nums"] },

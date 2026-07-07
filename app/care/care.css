@@ -1,0 +1,10 @@
+/* Tailwind for the public aftercare timeline — scoped to /care, same pattern
+   as healed.css / pay.css / intake.css so it never leaks onto the Y2K pages. */
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0e0e11;
+  --color-brand: #ff1493;
+  --color-brand-soft: #ffe3f1;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}

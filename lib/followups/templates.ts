@@ -64,6 +64,8 @@ Thank you for getting tattooed at {{shop_name}}. Here is how to take care of it 
 - Keep it out of direct sun, pools, and soaking water until it is fully healed.
 - Do not pick or scratch as it peels.
 
+Your day-by-day care timeline lives here — it follows along as it heals: {{care_link}}
+
 If anything looks off or you have questions, just reply to this email and we will help.
 
 See you next time,
@@ -153,6 +155,8 @@ type Tokens = {
   artist_name?: string | null;
   /** Upload URL — for healed_photo. */
   healed_link?: string | null;
+  /** Aftercare timeline URL — for aftercare. */
+  care_link?: string | null;
 };
 
 // Replace {{token}} occurrences. Unknown tokens are left intact so a typo is
@@ -167,6 +171,7 @@ export function fillTokens(text: string, tokens: Tokens): string {
     artist_name: tokens.artist_name || "",
     artist_with: tokens.artist_name ? ` with ${tokens.artist_name}` : "",
     healed_link: tokens.healed_link || "",
+    care_link: tokens.care_link || "",
   };
   return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, key: string) =>
     key in map ? map[key] : whole,
@@ -204,15 +209,24 @@ export function renderEmail(
   const subject = fillTokens(tpl.subject, tokens);
   const text = fillTokens(tpl.body, tokens);
 
-  // Pull the button out of the body: review link or healed-photo upload link.
+  // Pull the button out of the body: review link, healed-photo upload link,
+  // or the aftercare timeline.
   const buttonUrl =
     tpl.kind === "review_request" && tokens.review_link?.trim()
       ? tokens.review_link.trim()
       : tpl.kind === "healed_photo" && tokens.healed_link?.trim()
         ? tokens.healed_link.trim()
-        : undefined;
+        : tpl.kind === "aftercare" && tokens.care_link?.trim()
+          ? tokens.care_link.trim()
+          : undefined;
   const buttonLabel =
-    tpl.kind === "review_request" ? "Leave a review" : tpl.kind === "healed_photo" ? "Upload your photo" : "";
+    tpl.kind === "review_request"
+      ? "Leave a review"
+      : tpl.kind === "healed_photo"
+        ? "Upload your photo"
+        : tpl.kind === "aftercare"
+          ? "Open your care timeline"
+          : "";
 
   const WINDOW_TITLE: Record<FollowupKind, string> = {
     aftercare: "aftercare.txt",

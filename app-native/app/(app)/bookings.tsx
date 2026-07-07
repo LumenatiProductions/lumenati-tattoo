@@ -17,7 +17,7 @@ import {
   type Conflict,
 } from "@/lib/calendar";
 import { theme } from "@/lib/theme";
-import { Badge, Card, Button } from "@/components/ui";
+import { ActionPill, Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
 import { uid } from "@/lib/ids";
@@ -254,15 +254,9 @@ export default function Bookings() {
         </Text>
         {isStaff && b.status === "scheduled" && (
           <View style={styles.actions}>
-            <Pressable onPress={() => setStatus(b.id, "completed")} style={styles.act}>
-              <Text style={styles.actText}>Complete</Text>
-            </Pressable>
-            <Pressable onPress={() => setStatus(b.id, "no_show")} style={styles.act}>
-              <Text style={styles.actText}>No-show</Text>
-            </Pressable>
-            <Pressable onPress={() => setEditId(b.id)} style={styles.act}>
-              <Text style={styles.actText}>Edit</Text>
-            </Pressable>
+            <ActionPill label="Complete" onPress={() => setStatus(b.id, "completed")} />
+            <ActionPill label="No-show" onPress={() => setStatus(b.id, "no_show")} />
+            <ActionPill label="Edit" onPress={() => setEditId(b.id)} />
           </View>
         )}
       </View>
@@ -640,8 +634,6 @@ const styles = StyleSheet.create({
   status: { fontSize: 12, fontWeight: "600" },
   dep: { color: theme.textDim, fontSize: 11 },
   actions: { flexDirection: "row", gap: 8, marginTop: 10 },
-  act: { borderColor: theme.border, borderWidth: 1, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 12 },
-  actText: { color: theme.text, fontSize: 13, fontWeight: "600" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
   sheet: {
