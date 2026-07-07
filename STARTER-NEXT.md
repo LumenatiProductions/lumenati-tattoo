@@ -128,7 +128,24 @@ TRIAL means real texts only reach verified numbers until Scott upgrades —
 the API says so honestly (texted 0 + Twilio's own message surfaced in the
 app note) and manual Fill it stays one pill away.
 
-Then (old roadmap, still greenlit): review velocity on Reports; Instagram
+**Review velocity — SHIPPED 2026-07-07, clicked in Chrome.** Reports gets a
+Review velocity section: Google rating / total reviews / new-in-30-days /
+asks-sent-in-30-days, plus an 8-week bars chart (asks sent vs reviews
+GAINED — deltas between daily snapshots; weeks without a snapshot show an
+honest gap, not a fake zero). Data: new review_snapshots table (one row per
+day). Two feeds: lib/reviews/job.ts runs in the daily ops fan-out and reads
+the Google Places API when GOOGLE_PLACES_API_KEY + GOOGLE_PLACE_ID are set
+(key-based, no OAuth); until then the desk taps "Log today's count" and
+types the number off the Google listing (verified: logged 214, stats +
+chart updated live). The section also nags about the two missing env
+pieces (GOOGLE_REVIEW_URL for the ask emails, the Places pair for
+auto-tracking). GOTCHA hit: this Tailwind build does not reliably compile
+utility classes that first appear in a brand-new file (bg-emerald-400 and
+w-3 came out empty even after a dev-server restart) — the chart bars use
+inline styles on purpose; check computed styles before trusting new
+classes in new files.
+
+Then (old roadmap, still greenlit): Instagram
 Graph API (only when Scott says go); texting promos/waitlist through
 Twilio once upgraded; SaaS "add your shop" wizard.
 

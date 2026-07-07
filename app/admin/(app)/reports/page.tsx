@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/reports-context";
 import { fmt, fmtPrecise } from "@/lib/admin/calc";
 import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import ReviewVelocity from "@/components/admin/ReviewVelocity";
 import Insights from "@/components/admin/Insights";
 
 const PRESETS: { key: RangePreset; label: string }[] = [
@@ -309,6 +310,10 @@ function ReportsInner() {
                 </div>
               </Card>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <ReviewVelocity />
           </div>
 
           <Insights />
