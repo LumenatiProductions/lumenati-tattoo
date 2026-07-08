@@ -3,6 +3,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiGet } from "@/lib/appApi";
+import { useAuth } from "@/lib/auth";
 import { theme } from "@/lib/theme";
 import { Badge, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 
@@ -35,6 +36,8 @@ const usd = (c: number) =>
 
 export default function Reconcile() {
   const insets = useSafeAreaInsets();
+  const { role } = useAuth();
+  const allowed = role === "owner" || role === "bookkeeper";
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,8 +53,23 @@ export default function Reconcile() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (allowed) load();
+  }, [allowed, load]);
+
+  // Same gate the server enforces (owner/bookkeeper) — without it an artist
+  // deep-linking here fires a doomed request and sees a raw fetch error.
+  if (!allowed) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: true, title: "Reconciliation", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+        <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
+          <Card>
+            <Empty>Owners & bookkeepers only.</Empty>
+          </Card>
+        </View>
+      </>
+    );
+  }
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

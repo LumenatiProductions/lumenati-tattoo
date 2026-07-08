@@ -51,14 +51,18 @@ export default function Rent() {
   const period = new Date().toISOString().slice(0, 7);
   const current = (rows ?? []).filter((r) => r.period === period);
   const past = (rows ?? []).filter((r) => r.period !== period);
-  const owed = current.filter((r) => r.status === "pending").reduce((a, r) => a + r.amount_cents, 0);
+  // Outstanding = every unpaid invoice, ANY month — old rent doesn't stop
+  // being owed when the calendar turns (same rule as the web rent page).
+  const pending = (rows ?? []).filter((r) => r.status === "pending");
+  const owed = pending.reduce((a, r) => a + r.amount_cents, 0);
+  const pastDue = pending.filter((r) => r.period !== period);
 
   const renderRow = (r: Invoice, i: number) => (
     <ListRow
       key={r.id}
       first={i === 0}
       title={`${r.artists?.name ?? r.id}  ·  ${money(r.amount_cents)}`}
-      sub={`${r.period}${r.due_date ? ` · due ${r.due_date}` : ""}`}
+      sub={`${r.period}${r.due_date ? ` · due ${r.due_date}` : ""}${r.status === "pending" && r.period < period ? " · PAST MONTH" : ""}`}
       right={
         r.status === "pending" ? (
           <Text onPress={() => markPaid(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
@@ -83,7 +87,12 @@ export default function Rent() {
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
-            <Stat label={`Outstanding · ${period}`} value={money(owed)} hero sub={`${current.filter((r) => r.status === "pending").length} unpaid`} />
+            <Stat
+              label="Outstanding"
+              value={money(owed)}
+              hero
+              sub={`${pending.length} unpaid${pastDue.length ? ` · ${pastDue.length} from past months` : ""}`}
+            />
 
             <SectionTitle>This month</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>

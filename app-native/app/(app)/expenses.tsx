@@ -72,7 +72,7 @@ export default function Expenses() {
         </Card>
 
         <Text style={styles.section}>Add a deduction</Text>
-        <Button label={scanning ? "Reading…" : "📷 Snap a receipt"} tone="ghost" onPress={scan} disabled={scanning} />
+        <Button label={scanning ? "Reading…" : "Snap a receipt"} tone="ghost" onPress={scan} disabled={scanning} />
         {scanNote && <Text style={styles.scanNote}>{scanNote}</Text>}
         <View style={{ height: 10 }} />
         <View style={styles.formRow}>

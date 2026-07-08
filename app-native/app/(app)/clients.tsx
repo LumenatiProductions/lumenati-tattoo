@@ -102,7 +102,9 @@ export default function Clients() {
                     </View>
                     <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
                   </Pressable>
-                  {c.phone && (
+                  {/* !! matters: a legacy phone of "" would render as a bare
+                      text node inside the row View (crashes RN-web's invariant). */}
+                  {!!c.phone && (
                     <Pressable
                       onPress={() => Linking.openURL(`tel:${c.phone}`)}
                       style={({ pressed }) => [styles.call, pressed && { opacity: 0.7 }]}

@@ -4,8 +4,9 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Dimensions } from "react-native";
 import { theme, money } from "@/lib/theme";
-import { Card, Stat } from "@/components/ui";
+import { Card, Empty, Stat } from "@/components/ui";
 import { apiGet } from "@/lib/appApi";
+import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import MoneyChart from "@/components/MoneyChart";
 import { cumulativeSeries, type SaleRow } from "@/lib/personal";
@@ -47,6 +48,8 @@ const payLabel = (a: Artist) =>
 // /api/reports (now Bearer-aware) — no money math duplicated in the app.
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
+  const { role } = useAuth();
+  const allowed = role === "owner" || role === "bookkeeper";
   const [data, setData] = useState<Reports | null>(null);
   const [monthSales, setMonthSales] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,8 +75,23 @@ export default function ReportsScreen() {
     setLoading(false);
   }, []);
   useEffect(() => {
-    load();
-  }, [load]);
+    if (allowed) load();
+  }, [allowed, load]);
+
+  // Same gate the server enforces (owner/bookkeeper) — without it an artist
+  // deep-linking here fires a doomed request and sees a raw fetch error.
+  if (!allowed) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: true, title: "Reports", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+        <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
+          <Card>
+            <Empty>Owners & bookkeepers only.</Empty>
+          </Card>
+        </View>
+      </>
+    );
+  }
 
   return (
     <>

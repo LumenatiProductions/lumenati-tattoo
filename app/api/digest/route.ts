@@ -72,7 +72,7 @@ function digestHtml({
             `<div style="font-size:13px;color:#b91c1c;padding:3px 0;">• ${r.name} — ${fmt(r.amountCents)}${r.dueDate ? ` (due ${r.dueDate})` : ""}</div>`,
         )
         .join("")
-    : `<p style="font-size:13px;color:#16a34a;margin:18px 0 0;">All rent collected. 🎉</p>`;
+    : `<p style="font-size:13px;color:#16a34a;margin:18px 0 0;">All rent collected.</p>`;
 
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;margin:0;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
