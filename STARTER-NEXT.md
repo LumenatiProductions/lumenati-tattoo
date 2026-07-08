@@ -56,14 +56,17 @@ Money: cash + Stripe only, everything through the append-only ledger.
   their empty world (0 of Lumenati's 895 clients). Fixed on the way: the
   "Book with <artist>" deep-link now preselects that artist in /request.
 - **Branding: Lumenati IS the product name** (Scott, 2026-07-08). The app being
-  called Lumenati, and "powered by Lumenati" on shop pages, is CORRECT and
-  stays for every shop. Only a shop's OWN surfaces should flip to their brand:
-  (1) /request form still shows Lumenati-pink submit button + accents instead
-  of the shop's accent (header name is already right); (2) owner push title
-  "Lumenati - today" could read as the shop's name; (3) brief email body could
-  carry the shop name. Small polish, not a rebrand — do NOT strip Lumenati from
-  the app chrome. Stripe Terminal location hardcoded to Lumenati's address is
-  fine (physical device is Lumenati's).
+  called Lumenati, and "powered by Lumenati" on shop pages/emails, is CORRECT
+  and stays for every shop. Only a shop's OWN surfaces flip to their brand. Per-
+  shop branding DONE 2026-07-08: /request form (button + eyebrow use the shop's
+  accent), daily owner push title, morning-brief email (wordmark/footer/from/
+  subject + accent dot), compliance alert email, and follow-up messages to
+  clients (shop_name token + email From resolve to the client's real shop).
+  Lumenati's own notifications unchanged. Do NOT strip Lumenati from the app
+  chrome or the "Powered by Lumenati" signature. Stripe Terminal location
+  hardcoded to Lumenati's address is fine (the physical device is Lumenati's).
+  STILL Lumenati-flavored (design, not a name string, left for later): the
+  follow-up EMAIL shell is the Y2K window style for every shop.
 - **Bug reporter SHIPPED 2026-07-08** (Cinebody-style screenshot reporter):
   floating "Report a bug" pill on web admin + phone app -> screenshot + note ->
   bug_reports table + private bug-reports bucket + Slack ping with a signed
