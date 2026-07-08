@@ -68,15 +68,6 @@ export default function FrontDeskHome() {
         <Link href="/admin/clients" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
           New client
         </Link>
-        <Link href="/admin/intake" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Send intake
-        </Link>
-        <Link href="/admin/bookings" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Bookings
-        </Link>
-        <Link href="/admin/cash" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Cash log
-        </Link>
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -117,9 +117,6 @@ export default function ArtistMoney({
       <Button label="Take payment" big onPress={() => router.push("/pos")} />
       <View style={{ height: 10 }} />
       <Button label="New booking" tone="ghost" onPress={() => router.push("/bookings?new=1")} />
-      <Pressable onPress={() => { tap(); router.push("/cashout"); }} style={({ pressed }) => pressed && { opacity: 0.7 }}>
-        <Text style={styles.cashoutLink}>Cash out early →</Text>
-      </Pressable>
 
       {/* The day ahead — next client ready before the phone goes back away. */}
       <TodayCard artistId={artistId} reloadKey={reloadKey} />
@@ -343,15 +340,7 @@ function nextQuarterly(): string {
 const styles = StyleSheet.create({
   dim: { color: theme.textDim, marginTop: 40, textAlign: "center" },
   greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 8, marginBottom: 20 },
-  cashoutLink: {
-    color: theme.textDim,
-    fontSize: 14.5,
-    fontWeight: "600",
-    textAlign: "center",
-    paddingVertical: 14,
-    marginBottom: 8,
-  },
-  toggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  toggle: { flexDirection: "row", gap: 8, marginTop: 16, marginBottom: 16 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
   tabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   tabText: { color: theme.textDim, fontSize: 13, fontWeight: "600" },

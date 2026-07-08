@@ -112,7 +112,7 @@ export default function ClientsPage() {
             onClick={() => setAdding((v) => !v)}
             className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
           >
-            {adding ? "Close" : "Add walk-in"}
+            {adding ? "Close" : "New client"}
           </button>
           {canSync && (
             <button
@@ -426,8 +426,8 @@ function ClientDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white/6 shadow-xl">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative h-full w-full max-w-md overflow-y-auto border-l border-white/10 shadow-xl" style={{ backgroundColor: "rgba(18, 18, 28, 0.8)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{fullName(client)}</h2>

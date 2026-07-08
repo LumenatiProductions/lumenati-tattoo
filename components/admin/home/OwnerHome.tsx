@@ -55,15 +55,6 @@ export default function OwnerHome() {
         <Link href="/admin/clients" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
           New client
         </Link>
-        <Link href="/admin/bookings" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Bookings
-        </Link>
-        <Link href="/admin/payouts" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Payouts
-        </Link>
-        <Link href="/admin/reports" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Reports
-        </Link>
       </div>
 
       <SectionTitle>

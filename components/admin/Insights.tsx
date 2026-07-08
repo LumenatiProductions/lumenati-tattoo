@@ -80,9 +80,9 @@ export default function Insights() {
               <div key={h} className="flex flex-1 flex-col items-center gap-1" title={`${hourLabel(h)} · ${n} booking${n === 1 ? "" : "s"}`}>
                 <div
                   className="w-full rounded-t bg-brand/70"
-                  style={{ height: `${Math.round((n / maxHour) * 80)}px`, minHeight: n ? 3 : 1, opacity: n ? 1 : 0.15 }}
+                  style={{ height: `${Math.round((n / maxHour) * 80)}px`, minHeight: n ? 3 : 2, opacity: n ? 1 : 0.3 }}
                 />
-                <span className="text-[9px] text-white/50">{h % 2 === 0 ? hourLabel(h) : ""}</span>
+                <span className="text-[10px] text-white/60">{hourLabel(h)}</span>
               </div>
             ))}
           </div>

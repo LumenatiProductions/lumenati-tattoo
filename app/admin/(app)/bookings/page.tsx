@@ -647,8 +647,8 @@ function BookingDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative h-full w-full max-w-md overflow-y-auto bg-white/6 shadow-xl">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative h-full w-full max-w-md overflow-y-auto border-l border-white/10 shadow-xl" style={{ backgroundColor: "rgba(18, 18, 28, 0.8)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{clientName}</h2>

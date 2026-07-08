@@ -307,8 +307,14 @@
   /* ── Info row ── */
   .lmn-hero-sub {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 32px;
+    gap: 24px;
+  }
+
+  .lmn-hero-ctas {
+    display: flex;
+    gap: 20px;
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -320,6 +326,7 @@
     color: rgba(240,236,228,0.8);
     max-width: 500px;
     margin: 0;
+    text-align: center;
   }
 
   .lmn-hero-body strong {
@@ -609,8 +616,10 @@
         Six artists. One house. Book through <strong>IG</strong> or just show up
         — we've got flash on the wall and the door's always open.
       </p>
-      <a href="/book" class="lmn-btn">Get Inked</a>
-      <a href="/flash-wall" class="lmn-btn" style="background:linear-gradient(180deg,rgba(127,255,0,0.9) 0%,rgba(80,180,0,1) 50%,rgba(127,255,0,0.9) 51%,rgba(160,255,80,0.7) 100%);color:#0a0a0a;border-color:rgba(127,255,0,0.3);">Flash Wall</a>
+      <div class="lmn-hero-ctas">
+        <a href="/book" class="lmn-btn">Get Inked</a>
+        <a href="/flash-wall" class="lmn-btn" style="background:linear-gradient(180deg,rgba(127,255,0,0.9) 0%,rgba(80,180,0,1) 50%,rgba(127,255,0,0.9) 51%,rgba(160,255,80,0.7) 100%);color:#0a0a0a;border-color:rgba(127,255,0,0.3);">Flash Wall</a>
+      </div>
     </div>
 
   </div>
