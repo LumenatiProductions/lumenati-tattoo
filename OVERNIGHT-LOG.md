@@ -73,6 +73,22 @@
   Verified: all touched pages clicked in Chrome, zero console errors,
   both sides compile, 22/22 tests.
 
+- **The dashboards were only seeing the newest 1,000 of 2,367 sales.** The
+  database hands back at most 1,000 rows per request no matter what you ask
+  for. The web dashboards' sales feed asked for 3,000 and silently got 1,000
+  — so all-time numbers (like an artist's career tickets/service on Artists
+  & Pay) were missing everything older. It now pages through the full
+  history. Verified: J.D.'s card reads 668 tickets / $196,116 service,
+  matching the full ledger to the penny (before the fix it could only see
+  1,000 rows total across all artists).
+
+- **Same trap on the client roster, defused early.** The shop has 895
+  clients; the web list capped at 1,000 (would have started losing people
+  soon) and the phone app capped at 500 — so searching for an older client
+  on the phone already came up empty. Both now page through everyone, and
+  the client lifetime-value math pages too. Verified: web roster shows
+  "895 shown" in Chrome.
+
 ## Needs Scott
 
 - **Report date ranges are anchored to the computer clock (UTC), not Denver.**

@@ -23,14 +23,29 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const sb = createClient();
-        const { data } = await sb
-          // Canonical ledger (as sales-shaped rows) — the money source of truth.
-          .from("ledger_sales")
-          .select("id, created_at, service_cents, tip_cents, method, artist_id")
-          .order("created_at", { ascending: false })
-          .limit(3000);
+        // Canonical ledger (as sales-shaped rows) — the money source of truth.
+        // PostgREST clamps every response at 1000 rows no matter the limit, so
+        // page through — the shop already has 2000+ sales (20k safety stop).
+        type Row = {
+          id: string;
+          created_at: string | null;
+          service_cents: number | null;
+          tip_cents: number | null;
+          method: string | null;
+          artist_id: string | null;
+        };
+        const data: Row[] = [];
+        for (let start = 0; start < 20000; start += 1000) {
+          const { data: page } = await sb
+            .from("ledger_sales")
+            .select("id, created_at, service_cents, tip_cents, method, artist_id")
+            .order("created_at", { ascending: false })
+            .range(start, start + 999);
+          data.push(...(((page ?? []) as Row[])));
+          if (!page || page.length < 1000) break;
+        }
         if (!alive) return;
-        if (data && data.length) {
+        if (data.length) {
           setSales(
             data.map((r) => ({
               id: r.id,

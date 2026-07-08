@@ -34,17 +34,31 @@ export async function GET(req: Request) {
   if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
 
   const q = new URL(req.url).searchParams.get("q")?.trim();
-  let query = supabase.from("clients").select("*");
-  if (q) {
-    const like = `%${q}%`;
-    query = query.or(
-      `first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},phone.ilike.${like},instagram.ilike.${like}`,
-    );
+  // PostgREST clamps every response at 1000 rows — the roster is near that
+  // already (895), so page through or the list silently loses the tail.
+  type ClientRow = { id: string; total_spent_cents: number | null } & Record<string, unknown>;
+  const data: ClientRow[] = [];
+  let error: { message: string } | null = null;
+  for (let start = 0; start < 20000; start += 1000) {
+    let query = supabase.from("clients").select("*");
+    if (q) {
+      const like = `%${q}%`;
+      query = query.or(
+        `first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},phone.ilike.${like},instagram.ilike.${like}`,
+      );
+    }
+    // Most-recently-seen first; never-seen (manual walk-ins) fall to the bottom.
+    const page = await query
+      .order("last_seen", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .range(start, start + 999);
+    if (page.error) {
+      error = page.error;
+      break;
+    }
+    data.push(...((page.data ?? []) as ClientRow[]));
+    if (!page.data || page.data.length < 1000) break;
   }
-  // Most-recently-seen first; never-seen (manual walk-ins) fall to the bottom.
-  const { data, error } = await query
-    .order("last_seen", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message, clients: [] }, { status: 500 });
 
   // Lifetime value = the Square historical baseline (total_spent_cents) PLUS any
@@ -52,17 +66,23 @@ export async function GET(req: Request) {
   // don't overlap (baseline is pre-cutover, ledger client rows are new), so it's
   // additive and stays right as Square goes away. Sources remain unblended in the
   // ledger; this is only the per-client rollup.
-  const clients = data ?? [];
-  const { data: led } = await supabase
-    .from("ledger")
-    .select("client_id, amount_cents")
-    .not("client_id", "is", null)
-    .in("kind", ["sale", "tip"])
-    .eq("direction", "in")
-    .is("reverses", null);
+  const clients = data;
+  // Same 1000-row clamp applies here, and this SUM feeds lifetime value.
   const byClient = new Map<string, number>();
-  for (const r of (led ?? []) as { client_id: string | null; amount_cents: number }[]) {
-    if (r.client_id) byClient.set(r.client_id, (byClient.get(r.client_id) ?? 0) + (r.amount_cents ?? 0));
+  for (let start = 0; start < 50000; start += 1000) {
+    const { data: led } = await supabase
+      .from("ledger")
+      .select("client_id, amount_cents")
+      .not("client_id", "is", null)
+      .in("kind", ["sale", "tip"])
+      .eq("direction", "in")
+      .is("reverses", null)
+      .order("id", { ascending: true })
+      .range(start, start + 999);
+    for (const r of (led ?? []) as { client_id: string | null; amount_cents: number }[]) {
+      if (r.client_id) byClient.set(r.client_id, (byClient.get(r.client_id) ?? 0) + (r.amount_cents ?? 0));
+    }
+    if (!led || led.length < 1000) break;
   }
   const enriched = clients.map((c) => ({
     ...c,

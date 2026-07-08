@@ -29,12 +29,20 @@ export default function Clients() {
   const [editing, setEditing] = useState<Client | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("clients")
-      .select("id, first_name, last_name, phone, email, instagram")
-      .order("last_seen", { ascending: false, nullsFirst: false })
-      .limit(500);
-    setClients((data ?? []) as Client[]);
+    // Page through: the roster is ~900 and search filters CLIENT-side, so a
+    // capped pull silently makes older clients unfindable (5k safety stop).
+    const all: Client[] = [];
+    for (let start = 0; start < 5000; start += 500) {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, phone, email, instagram")
+        .order("last_seen", { ascending: false, nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(start, start + 499);
+      all.push(...((data ?? []) as Client[]));
+      if (!data || data.length < 500) break;
+    }
+    setClients(all);
     setLoading(false);
   }, []);
   useEffect(() => {
