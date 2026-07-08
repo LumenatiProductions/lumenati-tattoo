@@ -23,13 +23,15 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  const b = (await req.json().catch(() => ({}))) as { items?: { id?: string; qty?: number }[] };
+  const b = (await req.json().catch(() => ({}))) as { items?: { id?: string; qty?: number }[]; date?: string };
   const priced = await priceCart(admin, b.items ?? [], me.shopId);
   if (!priced.ok) return NextResponse.json({ error: priced.error }, { status: 400 });
   const { lines, subtotalCents, taxCents, totalCents } = priced.cart;
 
   const note = `Merch: ${lines.map((l) => `${l.qty}x ${l.name}`).join(", ")}`;
-  const date = new Date().toISOString().slice(0, 10);
+  // The device knows the shop's calendar day; the server (UTC on Vercel) is
+  // already on tomorrow during Denver evenings — same contract as /api/cash.
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date ?? "") ? (b.date as string) : new Date().toISOString().slice(0, 10);
 
   const { data: entry, error } = await admin
     .from("cash_entries")

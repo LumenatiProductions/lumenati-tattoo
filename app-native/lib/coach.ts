@@ -1,4 +1,5 @@
 import type { SaleRow, BookingRow, Expense } from "./personal";
+import { todayLocal } from "@/lib/dates";
 
 // The coach: plain-English, numbers-from-their-own-work suggestions for
 // artists. Two layers, practice first:
@@ -21,7 +22,7 @@ const weekKey = (iso: string): string => {
 
 /** Average weekly take over the last `weeks` COMPLETE weeks (0 if no history). */
 export function avgWeeklyCents(sales: SaleRow[], weeks = 8): number {
-  const thisWeek = weekKey(new Date().toISOString().slice(0, 10));
+  const thisWeek = weekKey(todayLocal());
   const byWeek = new Map<string, number>();
   for (const s of sales) {
     const d = (s.created_at || "").slice(0, 10);
@@ -55,7 +56,7 @@ const localDay = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`);
  */
 export function practiceInsights(sales: SaleRow[], bookings: BookingRow[]): CoachTip[] {
   const tips: CoachTip[] = [];
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = todayLocal();
 
   // Shared: last-60-day ticket economics.
   const sixtyAgo = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);

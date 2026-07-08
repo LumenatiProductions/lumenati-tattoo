@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Badge, Button, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
+import { todayLocal } from "@/lib/dates";
 
 // Intake & consent (parity with /admin/intake): start a form at the chair,
 // share the signing link from the phone's share sheet, confirm the in-person
@@ -53,7 +54,7 @@ const STATE_BADGE: Record<FormState, { tone: "neutral" | "good" | "warn" | "bad"
   voided: { tone: "neutral", label: "Voided" },
 };
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => todayLocal();
 const isToday = (iso: string | null) => !!iso && iso.slice(0, 10) === todayKey();
 
 // Hex token (Hermes has no btoa): 24 random bytes, same entropy as the web's

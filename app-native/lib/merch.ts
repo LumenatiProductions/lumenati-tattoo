@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "./appApi";
+import { todayLocal } from "@/lib/dates";
 
 // Merch at the register — state for the quick-tap shelf on the Take payment
 // screen. Products are inventory items the desk gave a retail price (web
@@ -70,7 +71,7 @@ export function useMerch() {
   const recordCash = useCallback(async (): Promise<{ ok: boolean; totalCents?: number; error?: string }> => {
     const items = Object.entries(cart).map(([id, qty]) => ({ id, qty }));
     if (items.length === 0) return { ok: false, error: "Nothing in the cart." };
-    const r = await apiPost<{ totalCents: number }>("/api/pos/merch-sale", { items });
+    const r = await apiPost<{ totalCents: number }>("/api/pos/merch-sale", { items, date: todayLocal() });
     if (!r.ok || !r.data) return { ok: false, error: r.error || "Could not record the sale." };
     return { ok: true, totalCents: r.data.totalCents };
   }, [cart]);

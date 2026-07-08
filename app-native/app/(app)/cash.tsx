@@ -9,6 +9,7 @@ import { theme, money } from "@/lib/theme";
 import { Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 import RebookCard from "@/components/RebookCard";
+import { todayLocal } from "@/lib/dates";
 
 // Cash log (parity with /admin/cash): quick drawer entries from the counter.
 // Negative amounts are payouts/drops; reconciliation stays on the web.
@@ -82,7 +83,7 @@ export default function Cash() {
     load();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const todayTotal = (rows ?? []).filter((r) => r.date === today).reduce((a, r) => a + r.amount_cents, 0);
 
   return (

@@ -5,6 +5,7 @@ import { useArtists } from "@/lib/admin/artists-context";
 import { useCash, type CashEntry } from "@/lib/admin/cash-context";
 import { fmtPrecise } from "@/lib/admin/calc";
 import { Card, SectionTitle, Badge, Dot, StatCard } from "@/components/admin/ui";
+import { todayLocal } from "@/lib/dates";
 
 // Real drawer log backed by /api/cash (cash_entries). Until the schema is
 // applied the API reports configured:false and the page shows the setup hint.
@@ -346,7 +347,7 @@ function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
     const r = await fetch("/api/pos/merch-sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: Object.entries(cart).map(([id, qty]) => ({ id, qty })) }),
+      body: JSON.stringify({ items: Object.entries(cart).map(([id, qty]) => ({ id, qty })), date: todayLocal() }),
     });
     const d = await r.json().catch(() => ({}));
     setBusy(false);
@@ -434,7 +435,7 @@ function AddEntry({
   }) => Promise<{ ok: boolean; error?: string }>;
   onAdded: () => void;
 }) {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => todayLocal());
   const [artistId, setArtistId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");

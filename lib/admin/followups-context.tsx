@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { FollowupKind, Template } from "@/lib/followups/templates";
+import { todayLocal } from "@/lib/dates";
 
 // Mirrors the DB row shape (snake_case) so the page reads it directly.
 export type Followup = {
@@ -62,7 +63,7 @@ const Ctx = createContext<FollowupsCtx>({
   saveTemplate: async () => ({ ok: false }),
 });
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => todayLocal();
 
 export function FollowupsProvider({ children }: { children: React.ReactNode }) {
   const [followups, setFollowups] = useState<Followup[]>([]);

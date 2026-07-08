@@ -6,6 +6,7 @@ import { useInventory } from "@/lib/admin/inventory-context";
 import { expensesCsv, downloadCsv } from "@/lib/books/export";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 import StripeLedger from "@/components/admin/books/StripeLedger";
+import { todayLocal } from "@/lib/dates";
 
 const CATEGORIES = ["supplies", "rent", "utilities", "software", "equipment", "fees", "other"];
 const usd = (cents: number) =>
@@ -23,7 +24,7 @@ function Inner() {
   const { expenses, loading, error, totalCents, byCategory, addExpense, removeExpense, refresh } = useExpenses();
 
   const exportCsv = () =>
-    downloadCsv(`lumenati-expenses-${new Date().toISOString().slice(0, 10)}.csv`, expensesCsv(expenses));
+    downloadCsv(`lumenati-expenses-${todayLocal()}.csv`, expensesCsv(expenses));
 
   return (
     <div>
@@ -147,7 +148,7 @@ function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
     load();
   }, [load]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const due = bills.filter((b) => b.active && b.next_due <= today);
 
   const postDue = async (id?: string) => {
@@ -280,7 +281,7 @@ function AddBillForm({ onAdded }: { onAdded: () => Promise<void> }) {
   const [vendor, setVendor] = useState("");
   const [amount, setAmount] = useState("");
   const [cadence, setCadence] = useState("monthly");
-  const [nextDue, setNextDue] = useState(new Date().toISOString().slice(0, 10));
+  const [nextDue, setNextDue] = useState(todayLocal());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -373,7 +374,7 @@ function AddBillForm({ onAdded }: { onAdded: () => Promise<void> }) {
 
 function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: boolean; error?: string }> }) {
   const { items } = useInventory();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocal());
   const [category, setCategory] = useState("supplies");
   const [vendor, setVendor] = useState("");
   const [amount, setAmount] = useState("");

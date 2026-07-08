@@ -9,6 +9,7 @@ import {
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { todayLocal } from "@/lib/dates";
 
 const KIND_LABELS: Record<string, string> = {
   tattoo_license: "Tattoo license",
@@ -36,7 +37,7 @@ const STATUS_LABEL: Record<ComplianceStatus, string> = {
 // Days from today to an ISO date (negative = past). Pure display helper.
 function daysUntil(expiresOn: string | null): number | null {
   if (!expiresOn) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const a = new Date(`${today}T00:00:00Z`).getTime();
   const b = new Date(`${expiresOn.slice(0, 10)}T00:00:00Z`).getTime();
   return Math.round((b - a) / 86_400_000);

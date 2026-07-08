@@ -9,6 +9,7 @@ import MiniConfetti from "@/components/MiniConfetti";
 import RewardsStrip from "@/components/RewardsStrip";
 import TodayCard from "@/components/TodayCard";
 import { coachTips } from "@/lib/coach";
+import { todayLocal } from "@/lib/dates";
 import {
   loadMoney,
   loadGoals,
@@ -160,7 +161,7 @@ export default function ArtistMoney({
             ) : (
               <>
                 {rent.unpaid.map((inv) => {
-                  const overdue = !!inv.due_date && inv.due_date < new Date().toISOString().slice(0, 10);
+                  const overdue = !!inv.due_date && inv.due_date < todayLocal();
                   return (
                     <Row
                       key={inv.id}

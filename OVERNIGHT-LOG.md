@@ -54,7 +54,36 @@
   their artist instead.
   Verified: opened the page in Chrome, new wording renders.
 
+- **The books could undercount a busy month on Reconciliation.** The math
+  behind "Stripe charged vs we recorded" silently stopped reading after 200
+  card payments, 1000 tickets, 1000 cash entries, and 100 Stripe line items —
+  a genuinely busy month would show a made-up mismatch. All four now read
+  every row. Verified against the live shop to the penny ($720.00 card this
+  month, matches everywhere), and the Reconciliation page shows green
+  "square" in Chrome.
+
+- **Evening entries were landing on tomorrow's date.** Denver evenings are
+  already "tomorrow" in the computer clock the app was using. From about 6pm
+  on: new cash/expense entries defaulted to tomorrow's date, the Cash Log's
+  "today" total went blank, "Send now" on a follow-up quietly scheduled it
+  for tomorrow, bills/licenses flipped to "due" hours early, and merch sales
+  wrote tomorrow's date into the books. Every "what day is it" check on web
+  and app now uses the shop's local calendar. Added an automated test that
+  locks the day-boundary math down (runs in Denver time too).
+  Verified: all touched pages clicked in Chrome, zero console errors,
+  both sides compile, 22/22 tests.
+
 ## Needs Scott
+
+- **Report date ranges are anchored to the computer clock (UTC), not Denver.**
+  Reports' "this month / this quarter / YTD" presets flip to the new period a
+  few hours early on the last evening of a period (e.g. New Year's Eve after
+  5pm). Left alone on purpose: the whole reports pipe is consistently anchored
+  that way, and re-anchoring money windows deserves a decision (shop timezone
+  setting?) rather than an overnight edit. Same story for the automated
+  overnight jobs (follow-up sends, recurring bills) — they run on computer
+  time, which shifts their "due today" by a few hours, harmless for sends
+  that happen during the day.
 
 - **Tax set-aside default for payroll artists.** The app's tax reserve and
   goals dial default everyone to a 30% set-aside. For W-2 payroll artists

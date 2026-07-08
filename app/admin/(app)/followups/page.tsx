@@ -6,6 +6,7 @@ import { useClients } from "@/lib/admin/clients-context";
 import { useRole } from "@/lib/admin/role-context";
 import { KIND_LABEL, type FollowupKind, type Template } from "@/lib/followups/templates";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { todayLocal } from "@/lib/dates";
 
 const fmtDate = (iso: string | null) =>
   iso
@@ -16,7 +17,7 @@ const fmtDate = (iso: string | null) =>
       })
     : "—";
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => todayLocal();
 
 const STATUS_BADGE: Record<
   Followup["status"],

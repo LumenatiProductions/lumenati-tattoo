@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, SectionTitle, Badge } from "@/components/admin/ui";
 import { toCsv, downloadCsv } from "@/lib/books/export";
+import { todayLocal } from "@/lib/dates";
 
 type Row = {
   id: string;
@@ -43,7 +44,7 @@ export default function StripeLedger() {
 
   const exportCsv = () =>
     downloadCsv(
-      `lumenati-stripe-ledger-${new Date().toISOString().slice(0, 10)}.csv`,
+      `lumenati-stripe-ledger-${todayLocal()}.csv`,
       toCsv(
         ["Date", "Type", "Description", "Amount", "Fee", "Net"],
         rows.map((r) => [

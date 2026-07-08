@@ -8,6 +8,7 @@ import { useBookings } from "@/lib/admin/bookings-context";
 import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 import { ID_TYPES, MEDICAL_QUESTIONS, SIGNATURE_VIEWBOX, type IdType } from "@/lib/intake/forms";
+import { todayLocal } from "@/lib/dates";
 
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
@@ -17,7 +18,7 @@ const fmtDateTime = (iso: string | null) =>
     : "—";
 
 const dayKey = (iso: string) => new Date(iso).toISOString().slice(0, 10);
-const isToday = (iso: string | null) => !!iso && dayKey(iso) === new Date().toISOString().slice(0, 10);
+const isToday = (iso: string | null) => !!iso && dayKey(iso) === todayLocal();
 
 // Derived state of a form, for the badge + filtering.
 type FormState = "complete" | "awaiting_id" | "awaiting_sign" | "voided" | "age_flag";

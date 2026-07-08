@@ -6,6 +6,7 @@ import { theme, money } from "@/lib/theme";
 import { Button, Card } from "@/components/ui";
 import { addExpense, deleteExpense, loadExpenses, expensesYtd, type Expense } from "@/lib/personal";
 import { snapReceipt } from "@/lib/vision";
+import { todayLocal } from "@/lib/dates";
 
 const CATEGORIES = ["supplies", "equipment", "rent", "education", "travel", "other"];
 
@@ -46,7 +47,7 @@ export default function Expenses() {
     if (cents < 1) return;
     setBusy(true);
     await addExpense({
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal(),
       category,
       vendor: vendor.trim() || undefined,
       amountCents: cents,

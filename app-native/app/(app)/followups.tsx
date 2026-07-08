@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Badge, Button, Card, Empty, ListRow, SectionTitle } from "@/components/ui";
+import { todayLocal } from "@/lib/dates";
 
 // Follow-ups queue (parity with /admin/followups): see what's due or coming,
 // pull a send forward to the next cron tick, or skip it. The actual sending
@@ -56,14 +57,14 @@ export default function Followups() {
 
   const act = async (id: string, action: "now" | "skip") => {
     if (action === "now") {
-      await supabase.from("followups").update({ scheduled_for: new Date().toISOString().slice(0, 10) }).eq("id", id);
+      await supabase.from("followups").update({ scheduled_for: todayLocal() }).eq("id", id);
     } else {
       await supabase.from("followups").update({ status: "skipped", result: "skipped from app" }).eq("id", id);
     }
     load();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const due = (rows ?? []).filter((r) => (r.scheduled_for ?? "") <= today);
   const upcoming = (rows ?? []).filter((r) => (r.scheduled_for ?? "") > today);
 
