@@ -25,17 +25,20 @@ export default async function RequestPage({
   let artists: { id: string; name: string }[] = [];
   let shopName = "Lumenati Tattoo";
   let resolvedSlug: string | undefined;
+  // The button + accents wear the shop's color; bare /request stays Lumenati pink.
+  let accent = "#ff1493";
   if (admin) {
     let shopId = LUMENATI_SHOP_ID;
     if (shopSlug) {
       const { data: shop } = await admin
         .from("shops")
-        .select("id, slug, name")
+        .select("id, slug, name, accent")
         .eq("slug", shopSlug)
         .maybeSingle();
       if (shop) {
         shopId = shop.id as string;
         shopName = (shop.name as string) || shopName;
+        if (/^#[0-9a-f]{6}$/i.test((shop.accent as string) ?? "")) accent = shop.accent as string;
         // Lumenati linked with its own slug still gets its logo header.
         if (shopId !== LUMENATI_SHOP_ID) resolvedSlug = shop.slug as string;
       }
@@ -62,11 +65,16 @@ export default async function RequestPage({
           ) : (
             <LumenatiLogo bg="dark" className="w-28" />
           )}
-          <div className="mt-1.5 text-[10px] uppercase tracking-[0.3em] text-zinc-400">Book a tattoo</div>
+          <div
+            className="mt-1.5 text-[10px] uppercase tracking-[0.3em]"
+            style={resolvedSlug ? { color: accent } : undefined}
+          >
+            <span className={resolvedSlug ? "" : "text-zinc-400"}>Book a tattoo</span>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-xl px-5 py-6">
-        <RequestForm artists={artists} shopSlug={resolvedSlug} preselectArtistId={preselectArtistId} />
+        <RequestForm artists={artists} shopSlug={resolvedSlug} preselectArtistId={preselectArtistId} accent={accent} />
       </main>
     </div>
   );

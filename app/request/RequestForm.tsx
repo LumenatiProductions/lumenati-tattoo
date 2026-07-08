@@ -39,10 +39,12 @@ export default function RequestForm({
   artists,
   shopSlug,
   preselectArtistId,
+  accent = "#ff1493",
 }: {
   artists: { id: string; name: string }[];
   shopSlug?: string;
   preselectArtistId?: string;
+  accent?: string;
 }) {
   const [f, setF] = useState({
     name: "",
@@ -135,7 +137,9 @@ export default function RequestForm({
   if (done) {
     return (
       <div className={`${card} text-center`}>
-        <div className="text-lg font-semibold text-emerald-700">Request sent.</div>
+        <div className="text-lg font-semibold" style={{ color: accent }}>
+          Request sent.
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           The shop will look it over and get back to you to lock in a time. Keep an eye on your
           {f.phone.trim() ? " texts" : " inbox"}.
@@ -266,7 +270,8 @@ export default function RequestForm({
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-xl bg-brand px-4 py-3.5 text-base font-bold text-white shadow-sm disabled:opacity-40"
+        style={{ backgroundColor: accent }}
+        className="w-full rounded-xl px-4 py-3.5 text-base font-bold text-white shadow-sm disabled:opacity-40"
       >
         {busy ? "Sending…" : "Send request"}
       </button>
