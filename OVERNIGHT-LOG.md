@@ -1,6 +1,14 @@
 # Overnight bug hunt — 2026-07-08 night
 
-(Summary gets written here when the run ends.)
+**Summary:** Walked every unwalked app screen (as test artist + owner), all
+public pages, and the money math. Ten fixes shipped and pushed, the big three:
+booth rent now shows the true $5,600 outstanding everywhere (June wasn't in
+the app's total), evening entries no longer land on tomorrow's date (Denver
+vs computer-clock bug across 17 spots), and the dashboards now read ALL
+2,367 sales instead of silently stopping at 1,000. Every fix verified by
+clicking it in Chrome and checking money to the penny; two design questions
+left for you under "Needs Scott". Test identities created and deleted each
+cycle, verified gone; nothing sent, nothing built, no database changes.
 
 ## Fixed
 
@@ -88,6 +96,16 @@
   on the phone already came up empty. Both now page through everyone, and
   the client lifetime-value math pages too. Verified: web roster shows
   "895 shown" in Chrome.
+
+- **Same row-cap trap fixed inside the phone app.** The app's Pay screen,
+  the artist money home (You earned / tax reserve / coach), and the
+  deductions list all had pulls that stop at 1,000 rows (deductions at 200).
+  Nobody's numbers are wrong today — but statements sum everything since the
+  last hand-off, so they'd start quietly undercounting as history grows. All
+  page through now.
+  Verified: artist home and Pay screen re-checked in Chrome as a test
+  artist, numbers identical to before (that's the point — today they match,
+  tomorrow they'd have drifted).
 
 ## Needs Scott
 
