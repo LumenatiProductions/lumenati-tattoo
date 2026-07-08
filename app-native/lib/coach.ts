@@ -8,8 +8,9 @@ import type { SaleRow, BookingRow, Expense } from "./personal";
 //   2. MONEY TRUTHS — taxes, goals, deductions. Important but repetitive, so
 //      they follow the practice reads.
 // Everything is deterministic math on their RLS-scoped rows — no AI, no
-// guessing, and it NEVER claims the shop withholds anything (it doesn't —
-// artists are 1099 and must move their tax money themselves).
+// guessing, and it NEVER claims withholding that isn't happening. Tax advice
+// follows the pay setup: booth renters are 1099 contractors who move their own
+// tax money; payroll artists have Gusto withhold on their wages.
 
 const weekKey = (iso: string): string => {
   const d = new Date(`${iso}T00:00:00`);
@@ -179,21 +180,21 @@ export function coachTips(opts: {
   const suggestion = suggestedWeeklyCents(opts.sales);
   const is1099 = opts.taxStatus !== "w2";
 
-  // The standing money truth. Different per tax status —
-  // set yours on the Goals screen.
+  // The standing money truth — follows the pay setup (renters 1099, Gusto
+  // payroll W-2).
   if (is1099) {
     tips.push({
       title: "Nobody is withholding for you",
-      body: `You're paid as a contractor (1099) — every payout is GROSS, before tax. The shop doesn't hold anything back, and neither does this app. Move ${Math.round(
+      body: `As a booth renter you're a contractor (1099) — everything you're handed is GROSS, before tax. The shop holds nothing back (your card sales pass through 100%), and neither does this app. Move ${Math.round(
         opts.taxPct * 100,
-      )}% of every payout into a separate savings account the day you get paid. Right now that account should hold about ${usd(
+      )}% of every payment into a separate savings account the day you get it. Right now that account should hold about ${usd(
         opts.reserveCents,
-      )}. If that's not how you're paid, switch it on the Goals screen.`,
+      )}.`,
     });
   } else {
     tips.push({
-      title: "Payroll covers your wages — not your cash",
-      body: "You're a W-2 employee — tax comes out of your paychecks based on the W-4 you set in Gusto (adjust it there if you keep owing or over-paying). But cash tips and side work usually have NOTHING withheld — report them, and keep a set-aside for the tax they'll add. If that's not how you're paid, switch it on the Goals screen.",
+      title: "Gusto withholds on your wages — not your cash",
+      body: "You're paid through Gusto payroll — tax comes out of your paychecks based on the W-4 you set there (adjust it in Gusto if you keep owing or over-paying; check your stub, not this app). But cash tips and side work usually have NOTHING withheld — report them, and keep a set-aside for the tax they'll add.",
     });
   }
 

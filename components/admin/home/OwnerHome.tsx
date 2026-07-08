@@ -18,9 +18,9 @@ export default function OwnerHome() {
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
   const { outstandingCents: cashOutstanding } = useCash();
-  const { statements: settled, payoutsOwed } = useSettledStatements();
+  const { statements: settled, holdingForRenters } = useSettledStatements();
 
-  const s = shopSummary(artists, sales, []);
+  const s = shopSummary(artists, sales);
   const statements = [...settled].sort((x, y) => y.grossService - x.grossService);
 
   const weekAgo = daysAgoLocal(7);
@@ -76,10 +76,15 @@ export default function OwnerHome() {
         <StatCard
           label="Shop revenue"
           value={fmt(s.splitRevenue + rentCollected)}
-          sub={`${fmt(s.splitRevenue)} splits + ${fmt(rentCollected)} rent`}
+          sub={`${fmt(s.splitRevenue)} from tickets + ${fmt(rentCollected)} rent`}
           accent
         />
-        <StatCard label="Payouts owed" value={fmt(payoutsOwed)} sub="shop → artists, since last settle" tone="warn" />
+        <StatCard
+          label="Holding for renters"
+          value={fmt(holdingForRenters)}
+          sub="their card sales, passed through 100%"
+          tone="warn"
+        />
         <StatCard
           label="Cash to reconcile"
           value={fmt(cashOutstanding)}

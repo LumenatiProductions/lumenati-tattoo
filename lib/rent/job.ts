@@ -3,10 +3,11 @@ import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
 
 // In-house rent generation (rent-invoices-schema.sql). Runs in the daily ops
-// fan-out AND behind the Rent page's Generate button: for every active artist
-// on a rent or hybrid arrangement, make sure this month's invoice exists, each
-// with a Stripe pay link (kind='rent' — never split; rent is the shop's).
-// Idempotent via the (artist_id, period) unique index.
+// fan-out AND behind the Rent page's Generate button: for every active booth
+// renter, make sure this month's invoice exists, each with a Stripe pay link
+// (kind='rent' — the shop's money, always billed on its own; never netted
+// against the renter's sales). Idempotent via the (artist_id, period) unique
+// index.
 
 export const currentPeriod = () => new Date().toISOString().slice(0, 7); // YYYY-MM
 
@@ -18,7 +19,7 @@ export async function generateRentInvoices(client: SupabaseClient) {
     .from("artists")
     .select("id, name, pay_type, rent_cents, shop_id")
     .eq("active", true)
-    .in("pay_type", ["rent", "hybrid"])
+    .eq("pay_type", "booth_rent")
     .gt("rent_cents", 0);
   if (aErr) throw new Error(aErr.message);
 

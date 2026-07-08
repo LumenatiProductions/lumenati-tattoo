@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { statementFor, shopSummary, fmt, fmtPrecise } from "@/lib/admin/calc";
-import type { Artist, Sale, RentCharge } from "@/lib/admin/types";
+import type { Artist, Sale } from "@/lib/admin/types";
 
-// The settlement math is the money-critical core: card money the shop holds vs
-// cash the artist collected vs rent. These tests pin the invariants.
+// The pay math is the money-critical core (2026-07-08 rebuild). Invariants:
+// the shop cuts no checks and withholds nothing — renters get 100% of their
+// card sales passed through (rent NEVER nets in), split artists' share is a
+// Gusto payroll-prep number, and the salaried owner has no statement.
 
 const splitArtist: Artist = {
   id: "a1",
@@ -12,18 +14,29 @@ const splitArtist: Artist = {
   handle: "split",
   color: "#fff",
   active: true,
-  pay: { type: "split", shopSplitPct: 0.3 },
+  pay: { type: "payroll_split", shopSplitPct: 0.3 },
   squareTeamMemberId: null,
 };
 
-const rentArtist: Artist = {
+const renter: Artist = {
   id: "a2",
   slug: "a2",
-  name: "Rent Artist",
+  name: "Booth Renter",
   handle: "rent",
   color: "#000",
   active: true,
-  pay: { type: "rent", rentCents: 80000 },
+  pay: { type: "booth_rent", rentCents: 80000 },
+  squareTeamMemberId: null,
+};
+
+const ownerSalary: Artist = {
+  id: "a3",
+  slug: "a3",
+  name: "Salaried Owner",
+  handle: "owner",
+  color: "#f0f",
+  active: true,
+  pay: { type: "payroll_salary" },
   squareTeamMemberId: null,
 };
 
@@ -38,61 +51,85 @@ const sale = (artistId: string, serviceCents: number, tipCents: number, method: 
   description: "",
 });
 
-describe("statementFor", () => {
-  it("splits a card ticket: shop holds card money, owes artist their share + tips", () => {
-    const st = statementFor(splitArtist, [sale("a1", 10000, 2000, "card")], []);
+describe("statementFor — payroll split", () => {
+  it("computes the Gusto wages: artist share of service + all tips", () => {
+    const st = statementFor(splitArtist, [sale("a1", 10000, 2000, "card")]);
     expect(st.shopCut).toBe(3000); // 30% of service
-    expect(st.shopOwesArtist).toBe(7000 + 2000); // 70% + all tips
-    expect(st.artistOwesShop).toBe(0);
-    expect(st.net).toBe(9000); // shop pays artist
+    expect(st.artistEarnings).toBe(7000 + 2000); // 70% + all tips
+    expect(st.gustoWages).toBe(9000);
+    expect(st.passThroughOwed).toBe(0); // nothing is "held" — Gusto pays
+    expect(st.net).toBe(9000); // clears when marked entered into Gusto
   });
 
-  it("cash ticket flips the flow: artist holds the cash, owes the shop its cut", () => {
-    const st = statementFor(splitArtist, [sale("a1", 10000, 2000, "cash")], []);
-    expect(st.shopOwesArtist).toBe(0);
-    expect(st.artistOwesShop).toBe(3000);
-    expect(st.net).toBe(-3000); // artist pays shop
+  it("cash tickets still land in the wages number — nothing nets against them", () => {
+    const st = statementFor(splitArtist, [sale("a1", 10000, 2000, "cash")]);
+    expect(st.shopCut).toBe(3000);
+    expect(st.gustoWages).toBe(9000); // same wages basis as a card ticket
+    expect(st.cashService).toBe(10000);
+    expect(st.cashTips).toBe(2000);
   });
+});
 
-  it("rent artist keeps 100% of tickets; unpaid rent is what they owe", () => {
-    const rent: RentCharge[] = [
-      { id: "r1", artistId: "a2", periodLabel: "Jun", amountCents: 80000, dueDate: "2026-06-05", paid: false },
-    ];
-    const st = statementFor(rentArtist, [sale("a2", 50000, 5000, "card")], rent);
+describe("statementFor — booth renter", () => {
+  it("card sales are held 100% for the renter: full service + tips, no shop cut", () => {
+    const st = statementFor(renter, [sale("a2", 50000, 5000, "card")]);
     expect(st.shopCut).toBe(0);
-    expect(st.rentOwed).toBe(80000);
-    expect(st.shopOwesArtist).toBe(55000); // full card service + tips
-    expect(st.artistOwesShop).toBe(80000); // just the rent
-    expect(st.net).toBe(-25000);
+    expect(st.artistEarnings).toBe(55000); // all theirs
+    expect(st.passThroughOwed).toBe(55000); // shop holds it until handed over
+    expect(st.gustoWages).toBe(0);
+    expect(st.net).toBe(55000);
   });
 
-  it("paid rent drops out of the statement", () => {
-    const rent: RentCharge[] = [
-      { id: "r1", artistId: "a2", periodLabel: "Jun", amountCents: 80000, dueDate: "2026-06-05", paid: true },
-    ];
-    const st = statementFor(rentArtist, [], rent);
-    expect(st.rentOwed).toBe(0);
+  it("cash never touches the shop — the renter already holds it", () => {
+    const st = statementFor(renter, [sale("a2", 50000, 5000, "cash")]);
+    expect(st.artistEarnings).toBe(55000); // still their money
+    expect(st.passThroughOwed).toBe(0); // nothing for the shop to hand over
     expect(st.net).toBe(0);
   });
 
-  it("ignores other artists' sales and rent", () => {
-    const st = statementFor(splitArtist, [sale("a2", 99999, 0, "card")], [
-      { id: "r", artistId: "a2", periodLabel: "Jun", amountCents: 1, dueDate: "", paid: false },
+  it("rent NEVER appears in a statement — no netting, no owed-to-shop", () => {
+    // renter.pay.rentCents is 80000 and unpaid; the statement must not care.
+    const st = statementFor(renter, [sale("a2", 10000, 0, "card")]);
+    expect(st.net).toBe(10000); // full pass-through, rent billed separately
+  });
+});
+
+describe("statementFor — salaried owner", () => {
+  it("his tickets are entirely shop money and his statement never owes anything", () => {
+    const st = statementFor(ownerSalary, [
+      sale("a3", 40000, 6000, "card"),
+      sale("a3", 10000, 1000, "cash"),
     ]);
+    expect(st.shopCut).toBe(57000); // all service + all tips
+    expect(st.artistEarnings).toBe(0);
+    expect(st.passThroughOwed).toBe(0);
+    expect(st.gustoWages).toBe(0);
+    expect(st.net).toBe(0); // nothing to settle, ever
+  });
+});
+
+describe("statementFor — scoping", () => {
+  it("ignores other artists' sales", () => {
+    const st = statementFor(splitArtist, [sale("a2", 99999, 0, "card")]);
     expect(st.saleCount).toBe(0);
     expect(st.net).toBe(0);
   });
 });
 
 describe("shopSummary", () => {
-  it("payouts owed + collect-from-artists mirror the per-artist nets", () => {
-    const sales = [sale("a1", 10000, 0, "card"), sale("a1", 10000, 0, "cash")];
-    const s = shopSummary([splitArtist], sales, []);
-    // card: shop owes 7000; cash: artist owes 3000 -> net +4000 to artist
-    expect(s.payoutsOwed).toBe(4000);
-    expect(s.collectFromArtists).toBe(0);
-    expect(s.cardTotal).toBe(10000);
-    expect(s.cashTotal).toBe(10000);
+  it("splits the money three ways: shop's take, renter pass-through, Gusto wages", () => {
+    const sales = [
+      sale("a1", 10000, 0, "card"), // split: 3000 shop / 7000 wages
+      sale("a2", 20000, 2000, "card"), // renter: 22000 pass-through
+      sale("a3", 5000, 500, "card"), // owner: 5500 shop
+    ];
+    const s = shopSummary([splitArtist, renter, ownerSalary], sales);
+    expect(s.splitRevenue).toBe(3000 + 5500);
+    expect(s.renterPassThrough).toBe(22000);
+    expect(s.gustoWagesDue).toBe(7000);
+    expect(s.grossSales).toBe(37500);
+    expect(s.cardTotal).toBe(37500);
+    expect(s.cashTotal).toBe(0);
   });
 });
 

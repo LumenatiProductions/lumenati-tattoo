@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-// Calls to the Next API (Tap to Pay, instant payouts). The web admin uses cookie
+// Calls to the Next API (Tap to Pay, settlements). The web admin uses cookie
 // auth; the app sends its Supabase access token as a Bearer (see lib/api-auth.ts
 // server-side). Reads still go straight to Supabase under RLS — this is only for
 // the Stripe/server actions.

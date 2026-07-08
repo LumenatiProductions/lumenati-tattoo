@@ -36,11 +36,14 @@ export async function GET() {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
+  // Only booth renters get Connect accounts — payroll artists are paid via
+  // Gusto and never route through Stripe transfers.
   const { data, error } = await admin
     .from("artists")
     .select("id, name, stripe_account_id, stripe_onboarded")
     .eq("shop_id", shopId)
     .eq("active", true)
+    .eq("pay_type", "booth_rent")
     .order("sort");
   if (error) return NextResponse.json({ error: error.message, artists: [] }, { status: 500 });
 
@@ -75,11 +78,17 @@ export async function POST(req: Request) {
   // The artist must belong to the owner's shop before any Stripe call or update.
   const { data: artist } = await admin
     .from("artists")
-    .select("id, name, stripe_account_id")
+    .select("id, name, stripe_account_id, pay_type")
     .eq("id", b.artistId)
     .eq("shop_id", shopId)
     .maybeSingle();
   if (!artist) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
+  if (artist.pay_type !== "booth_rent") {
+    return NextResponse.json(
+      { error: "Only booth renters get bank links — payroll artists are paid via Gusto." },
+      { status: 400 },
+    );
+  }
 
   if (b.action === "refresh") {
     const status = await refreshOnboardStatus(admin, b.artistId);

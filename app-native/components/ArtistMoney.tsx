@@ -14,6 +14,7 @@ import {
   loadGoals,
   loadExpenses,
   loadRent,
+  taxStatusForPayType,
   type RentStatus,
   cumulativeSeries,
   weeklyStreak,
@@ -103,11 +104,14 @@ export default function ArtistMoney({
   const bars = last7Days(snap.sales);
   const maxBar = Math.max(1, ...bars.map((b) => b.cents));
 
-  // Tax: YTD earned is the ~1099 number; reserve = (earned − deductions) × pct.
+  // Tax: reserve = (earned − deductions) × pct. The tax situation follows the
+  // pay setup (renters 1099, payroll artists W-2); the manual goals setting is
+  // only the fallback when no artist link exists.
   const ytd = earnedInRange(snap.sales, "year");
   const deductYtd = expensesYtd(expenses);
   const taxable = Math.max(0, ytd.total - deductYtd);
   const reserve = Math.round(taxable * goals.tax_setaside_pct);
+  const taxStatus = taxStatusForPayType(rent?.payType) ?? goals.tax_status;
 
   return (
     <View>
@@ -146,8 +150,8 @@ export default function ArtistMoney({
       <SectionTitle>Rewards</SectionTitle>
       <RewardsStrip snap={snap} goals={goals} />
 
-      {/* Booth rent — only for artists whose terms include rent */}
-      {rent && rent.payType !== "split" && (
+      {/* Booth rent — renters only. Billed on its own; never netted. */}
+      {rent && rent.payType === "booth_rent" && (
         <>
           <SectionTitle>Booth rent</SectionTitle>
           <Card style={rent.unpaid.length ? { borderColor: "rgba(251,191,36,0.45)" } : undefined}>
@@ -168,7 +172,8 @@ export default function ArtistMoney({
                 })}
                 <Text style={styles.taxNote}>
                   Owed to the shop{rent.unpaid.length > 1 ? ` — ${money(rent.unpaid.reduce((a, i) => a + i.amount_cents, 0))} total` : ""}.
-                  Pay at the desk or with your rent link; it never comes out of your card payouts.
+                  Rent is billed on its own — it is never taken out of your sales, and your card
+                  money passes through to you 100%.
                 </Text>
               </>
             )}
@@ -228,7 +233,7 @@ export default function ArtistMoney({
         taxPct: goals.tax_setaside_pct,
         ytdCents: ytd.total,
         reserveCents: reserve,
-        taxStatus: goals.tax_status,
+        taxStatus,
       })
         .slice(0, 3)
         .map((tip, i) => (
@@ -241,7 +246,7 @@ export default function ArtistMoney({
       {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
       <SectionTitle right={<EditLink label="Edit %" onPress={() => router.push("/goals")} />}>Taxes</SectionTitle>
       <Card>
-        <Row label="Earned YTD (1099 basis)" value={money(ytd.total)} />
+        <Row label={taxStatus === "1099" ? "Earned YTD (1099 basis)" : "Earned YTD"} value={money(ytd.total)} />
         <Row label="Deductions logged" value={money(deductYtd)} />
         <Row label="Set aside for taxes" value={money(reserve)} strong />
         <Text style={styles.taxNote}>

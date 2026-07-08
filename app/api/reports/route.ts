@@ -173,13 +173,12 @@ export async function GET(req: Request) {
   const artists = (artistsRes.data ?? []).map(rowToArtist);
   const sales = salesRows.map(rowToSale);
 
-  // ── Shop + per-artist money math (reused from calc.ts, same as Payouts) ──
-  // Rent is settled out of band (Square invoices, below), so pass [] here and
-  // fold rent in as its own revenue line rather than per-artist.
-  const summary = shopSummary(artists, sales, []);
+  // ── Shop + per-artist money math (reused from calc.ts, same as the Pay page) ──
+  // Rent is billed out of band (invoices, below) and never nets against sales.
+  const summary = shopSummary(artists, sales);
   const perArtist = artists
     .map((a) => {
-      const st = statementFor(a, sales, []);
+      const st = statementFor(a, sales);
       return {
         id: a.id,
         name: a.name,
@@ -191,12 +190,12 @@ export async function GET(req: Request) {
         grossService: st.grossService,
         grossTips: st.grossTips,
         shopCut: st.shopCut,
-        artistEarnings: st.artistEarnings, // service kept + all tips = 1099 basis
-        cardOwed: st.shopOwesArtist, // card share the shop pays out
-        net: st.net,
+        artistEarnings: st.artistEarnings, // renters: 1099 basis; splits: Gusto wages
+        passThrough: st.passThroughOwed, // renter card sales held for hand-over
+        gustoWages: st.gustoWages,
       };
     })
-    .filter((a) => a.saleCount > 0 || a.payType !== "rent") // hide pure-rent artists with no tickets
+    .filter((a) => a.saleCount > 0 || a.payType !== "booth_rent") // hide renters with no tickets
     .sort((a, b) => b.grossService - a.grossService);
 
   // ── Deposits from bookings in the window ──
@@ -250,8 +249,8 @@ export async function GET(req: Request) {
       shopRevenue: summary.splitRevenue + deposits.forfeited + rentCollected,
       cardTotal: summary.cardTotal,
       cashTotal: summary.cashTotal,
-      payoutsOwed: summary.payoutsOwed,
-      collectFromArtists: summary.collectFromArtists,
+      renterPassThrough: summary.renterPassThrough,
+      gustoWages: summary.gustoWagesDue,
     },
     artists: perArtist,
     deposits,

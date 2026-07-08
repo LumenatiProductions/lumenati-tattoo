@@ -30,10 +30,11 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
   }, [bookings, artistId]);
 
   if (!artist) return null;
-  // Earnings/tips/tickets = period to date; the owed balance comes from the
-  // settlement-aware statement so it matches Payouts (and clears on settle).
-  const st = statementFor(artist, sales, []);
+  // Earnings/tips/tickets = period to date; the live balance comes from the
+  // settlement-aware statement so it matches the Pay page (and clears there).
+  const st = statementFor(artist, sales);
   const balance = settled.find((s) => s.artist.id === artistId) ?? st;
+  const payType = artist.pay.type;
 
   return (
     <div>
@@ -41,14 +42,33 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
       {!real && !loading && <MockBanner source="Square" />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips" accent />
+        {payType === "payroll_salary" ? (
+          <StatCard
+            label="Your sales"
+            value={fmt(st.grossService + st.grossTips)}
+            sub="shop revenue · you're paid a salary via Gusto"
+            accent
+          />
+        ) : (
+          <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips" accent />
+        )}
         <StatCard label="Tips" value={fmt(st.grossTips)} />
-        <StatCard
-          label={balance.net >= 0 ? "Shop owes you" : "You owe shop"}
-          value={fmt(Math.abs(balance.net))}
-          tone={balance.net >= 0 ? "good" : "warn"}
-          sub={balance.net >= 0 ? "since last settle" : "cash cut + rent"}
-        />
+        {payType === "booth_rent" ? (
+          <StatCard
+            label="Shop is holding"
+            value={fmt(balance.passThroughOwed)}
+            tone="good"
+            sub="your card sales — passed through 100%"
+          />
+        ) : payType === "payroll_split" ? (
+          <StatCard
+            label="Next Gusto run"
+            value={fmt(balance.gustoWages)}
+            sub="wages headed to payroll"
+          />
+        ) : (
+          <StatCard label="How you're paid" value="Salary" sub="via Gusto payroll" />
+        )}
         <StatCard label="Tickets" value={String(st.saleCount)} />
       </div>
 

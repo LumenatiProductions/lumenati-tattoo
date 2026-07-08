@@ -46,7 +46,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner", "bookkeeper"] },
       { href: "/admin/reports", label: "Reports", roles: ["owner", "bookkeeper"] },
-      { href: "/admin/payouts", label: "Payouts", roles: ["owner", "bookkeeper", "artist"] },
+      { href: "/admin/payouts", label: "Pay", roles: ["owner", "bookkeeper", "artist"] },
       { href: "/admin/rent", label: "Booth Rent", roles: ["owner", "bookkeeper"] },
       { href: "/admin/cash", label: "Cash Log", roles: ["owner", "bookkeeper", "frontdesk"] },
       { href: "/admin/expenses", label: "Expenses", roles: ["owner", "bookkeeper"] },

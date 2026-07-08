@@ -7,16 +7,16 @@ export type ReportArtist = {
   id: string;
   name: string;
   color: string;
-  payType: "rent" | "split" | "hybrid";
+  payType: "payroll_salary" | "payroll_split" | "booth_rent";
   splitPct: number;
   rentCents: number;
   saleCount: number;
   grossService: number;
   grossTips: number;
   shopCut: number;
-  artistEarnings: number;
-  cardOwed: number;
-  net: number;
+  artistEarnings: number; // renters: 1099 basis; splits: Gusto wages
+  passThrough: number;
+  gustoWages: number;
 };
 
 export type ReportData = {
@@ -32,8 +32,8 @@ export type ReportData = {
     shopRevenue: number;
     cardTotal: number;
     cashTotal: number;
-    payoutsOwed: number;
-    collectFromArtists: number;
+    renterPassThrough: number;
+    gustoWages: number;
   };
   artists: ReportArtist[];
   deposits: { held: number; applied: number; forfeited: number; count: number };

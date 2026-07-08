@@ -12,6 +12,7 @@ type Period = {
   key: string;
   grossCollected: number;
   artistShare: number;
+  passThrough: number;
   splitIncome: number;
   unattributedIncome: number;
   rentIncome: number;
@@ -190,6 +191,7 @@ export default function PnlPage() {
                 <th className="px-4 py-2 font-medium">Period</th>
                 <th className="px-4 py-2 text-right font-medium">Gross collected</th>
                 <th className="px-4 py-2 text-right font-medium">Artist share</th>
+                <th className="px-4 py-2 text-right font-medium">Pass-through</th>
                 <th className="px-4 py-2 text-right font-medium">Shop income</th>
                 <th className="px-4 py-2 text-right font-medium">Expenses</th>
                 <th className="px-4 py-2 text-right font-medium">Profit</th>
@@ -201,6 +203,7 @@ export default function PnlPage() {
                   <td className="px-4 py-2.5 font-medium">{periodLabel(p.key)}</td>
                   <td className="tnum px-4 py-2.5 text-right text-white/75">{usd(p.grossCollected)}</td>
                   <td className="tnum px-4 py-2.5 text-right text-white/75">{usd(p.artistShare)}</td>
+                  <td className="tnum px-4 py-2.5 text-right text-white/75">{usd(p.passThrough)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(p.income)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(p.expensesTotal)}</td>
                   <td
@@ -217,6 +220,7 @@ export default function PnlPage() {
                   <td className="px-4 py-2.5">Total</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.grossCollected)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.artistShare)}</td>
+                  <td className="tnum px-4 py-2.5 text-right">{usd(t.passThrough)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.income)}</td>
                   <td className="tnum px-4 py-2.5 text-right">{usd(t.expensesTotal)}</td>
                   <td className={`tnum px-4 py-2.5 text-right ${t.profit < 0 ? "text-rose-400" : "text-emerald-300"}`}>
@@ -235,13 +239,18 @@ export default function PnlPage() {
             <SectionTitle>Where the income comes from</SectionTitle>
             <Card>
               <div className="divide-y divide-white/8 text-sm">
-                <Line label={"Shop's cut of artist sales (splits)"} value={t.splitIncome} />
+                <Line label="Shop's cut of tickets (splits + the owner's sales)" value={t.splitIncome} />
                 <Line label="Shop sales (no artist attached — walk-ins, guests, products)" value={t.unattributedIncome} />
                 <Line label="Booth rent collected" value={t.rentIncome} />
                 <Line label="Forfeited deposits" value={t.forfeitedDeposits} />
                 <Line label="Total shop income" value={t.income} bold />
               </div>
             </Card>
+            <p className="mt-2 px-1 text-xs text-white/55">
+              Renter pass-through ({usd(t.passThrough)}) moved through the shop&apos;s reader but
+              belongs to the booth renters — it shows in Gross collected and its own column, never
+              in income.
+            </p>
           </div>
           <div>
             <SectionTitle>Where the money goes</SectionTitle>

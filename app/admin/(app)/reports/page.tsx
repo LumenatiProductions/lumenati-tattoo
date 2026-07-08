@@ -20,11 +20,11 @@ const PRESETS: { key: RangePreset; label: string }[] = [
 ];
 
 const payLabel = (a: ReportArtist) =>
-  a.payType === "rent"
+  a.payType === "booth_rent"
     ? "Booth rent"
-    : a.payType === "split"
-      ? `${Math.round(a.splitPct * 100)}% split`
-      : `Hybrid ${Math.round(a.splitPct * 100)}%`;
+    : a.payType === "payroll_split"
+      ? `${Math.round(a.splitPct * 100)}% split · Gusto`
+      : "Owner salary · Gusto";
 
 const dollars = (cents: number) => (cents / 100).toFixed(2);
 
@@ -69,7 +69,7 @@ function ReportsInner() {
     if (!data) return;
     downloadCsv(
       `lumenati-artists-${data.range.from}_to_${data.range.to}.csv`,
-      ["Artist", "Pay type", "Tickets", "Gross service", "Tips", "Shop cut", "Net to artist"],
+      ["Artist", "Pay type", "Tickets", "Gross service", "Tips", "Shop keeps", "Artist's money"],
       data.artists.map((a) => [
         a.name,
         payLabel(a),
@@ -87,7 +87,9 @@ function ReportsInner() {
     downloadCsv(
       `lumenati-1099-${year}.csv`,
       ["Contractor", "Pay arrangement", "Gross earned (service + tips)", "Tickets"],
-      data.artists.map((a) => [a.name, payLabel(a), dollars(a.artistEarnings), a.saleCount]),
+      data.artists
+        .filter((a) => a.payType === "booth_rent")
+        .map((a) => [a.name, payLabel(a), dollars(a.artistEarnings), a.saleCount]),
     );
   };
 
@@ -155,7 +157,12 @@ function ReportsInner() {
               value={fmt(data.shop.serviceRevenue)}
               sub={`${fmt(data.shop.tips)} tips`}
             />
-            <StatCard label="Shop's cut (splits)" value={fmt(data.shop.splitRevenue)} tone="good" />
+            <StatCard
+              label="Shop's cut of tickets"
+              value={fmt(data.shop.splitRevenue)}
+              sub="splits + the owner's sales"
+              tone="good"
+            />
             <StatCard
               label="Rent collected"
               value={fmt(data.shop.rentCollected)}
@@ -173,8 +180,12 @@ function ReportsInner() {
           <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard label="Card total" value={fmt(data.shop.cardTotal)} />
             <StatCard label="Cash total" value={fmt(data.shop.cashTotal)} />
-            <StatCard label="To pay artists" value={fmt(data.shop.payoutsOwed)} tone="warn" />
-            <StatCard label="To collect" value={fmt(data.shop.collectFromArtists)} tone="good" />
+            <StatCard
+              label="Renter pass-through"
+              value={fmt(data.shop.renterPassThrough)}
+              sub="their card sales — not shop income"
+            />
+            <StatCard label="Gusto wages (period)" value={fmt(data.shop.gustoWages)} sub="split artists' share + tips" />
           </div>
 
           {/* ── Per-artist roll-up ── */}
@@ -205,8 +216,8 @@ function ReportsInner() {
                     <th className="px-4 py-2 font-medium">Tickets</th>
                     <th className="px-4 py-2 font-medium">Gross service</th>
                     <th className="px-4 py-2 font-medium">Tips</th>
-                    <th className="px-4 py-2 font-medium">Shop cut</th>
-                    <th className="px-4 py-2 font-medium">Net to artist</th>
+                    <th className="px-4 py-2 font-medium">Shop keeps</th>
+                    <th className="px-4 py-2 font-medium">Artist&apos;s money</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -223,7 +234,9 @@ function ReportsInner() {
                       <td className="px-4 py-2.5 tnum">{fmt(a.grossService)}</td>
                       <td className="px-4 py-2.5 tnum text-white/75">{fmt(a.grossTips)}</td>
                       <td className="px-4 py-2.5 tnum text-emerald-400">{fmt(a.shopCut)}</td>
-                      <td className="px-4 py-2.5 tnum font-medium">{fmt(a.artistEarnings)}</td>
+                      <td className="px-4 py-2.5 tnum font-medium">
+                        {a.payType === "payroll_salary" ? "—" : fmt(a.artistEarnings)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -231,13 +244,17 @@ function ReportsInner() {
             )}
           </Card>
 
-          {/* ── 1099 prep ── */}
+          {/* ── 1099 prep — booth renters only ── */}
           <SectionTitle
             action={
               <button
                 onClick={export1099}
-                disabled={!data.artists.length}
-                title={data.artists.length ? "Download contractor totals for 1099 prep" : "No contractors in this range"}
+                disabled={!data.artists.some((a) => a.payType === "booth_rent")}
+                title={
+                  data.artists.some((a) => a.payType === "booth_rent")
+                    ? "Download renter totals for 1099 prep"
+                    : "No renters in this range"
+                }
                 className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
               >
                 Export 1099 CSV
@@ -248,32 +265,35 @@ function ReportsInner() {
           </SectionTitle>
           <Card className="mb-6 ring-1 ring-brand/20">
             <div className="px-4 py-3 text-xs text-white/65">
-              Your artists are independent contractors (booth rent / split / hybrid). Gross earned =
-              service kept + all tips for the selected period. Confirm with your accountant exactly
-              which figure belongs on the 1099-NEC before filing.
+              Booth renters only — the shop passes their sales through, so they&apos;re the only
+              contractors here. Payroll artists are paid through Gusto, which handles their tax
+              forms. Confirm with your accountant exactly which figure belongs on the 1099-NEC
+              before filing.
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
-                  <th className="px-4 py-2 font-medium">Contractor</th>
+                  <th className="px-4 py-2 font-medium">Renter</th>
                   <th className="px-4 py-2 font-medium">Arrangement</th>
                   <th className="px-4 py-2 font-medium">Tickets</th>
                   <th className="px-4 py-2 font-medium">Gross earned</th>
                 </tr>
               </thead>
               <tbody>
-                {data.artists.map((a) => (
-                  <tr key={a.id} className="border-b border-white/8 last:border-0">
-                    <td className="px-4 py-2.5 font-medium">{a.name}</td>
-                    <td className="px-4 py-2.5 text-white/70">{payLabel(a)}</td>
-                    <td className="px-4 py-2.5 tnum text-white/75">{a.saleCount}</td>
-                    <td className="px-4 py-2.5 tnum font-medium">{fmtPrecise(a.artistEarnings)}</td>
-                  </tr>
-                ))}
-                {data.artists.length === 0 && (
+                {data.artists
+                  .filter((a) => a.payType === "booth_rent")
+                  .map((a) => (
+                    <tr key={a.id} className="border-b border-white/8 last:border-0">
+                      <td className="px-4 py-2.5 font-medium">{a.name}</td>
+                      <td className="px-4 py-2.5 text-white/70">{payLabel(a)}</td>
+                      <td className="px-4 py-2.5 tnum text-white/75">{a.saleCount}</td>
+                      <td className="px-4 py-2.5 tnum font-medium">{fmtPrecise(a.artistEarnings)}</td>
+                    </tr>
+                  ))}
+                {!data.artists.some((a) => a.payType === "booth_rent") && (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-sm text-white/55">
-                      Nothing to report for this period.
+                      No booth renters with tickets in this period.
                     </td>
                   </tr>
                 )}

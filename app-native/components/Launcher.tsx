@@ -32,7 +32,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Finances",
     items: [
-      { href: "/payouts", label: "Payouts", icon: "swap-horizontal-outline", roles: ["owner", "bookkeeper", "artist"] },
+      { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["owner", "bookkeeper", "artist"] },
       { href: "/reports", label: "Reports", icon: "stats-chart-outline", roles: ["owner", "bookkeeper"] },
       { href: "/rent", label: "Booth rent", icon: "key-outline", roles: ["owner", "bookkeeper"] },
       { href: "/cash", label: "Cash log", icon: "cash-outline", roles: ["owner", "bookkeeper", "frontdesk"] },

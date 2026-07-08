@@ -13,7 +13,7 @@ type Row = {
   // Private business terms — only present on authenticated (staff) reads. The
   // public/anon key can no longer read these columns (see security-lockdown.sql),
   // so public reads omit them and they arrive undefined.
-  pay_type?: "rent" | "split" | "hybrid";
+  pay_type?: "payroll_salary" | "payroll_split" | "booth_rent";
   rent_cents?: number;
   split_pct?: number | string;
   guest: boolean;
@@ -36,7 +36,7 @@ export function rowToArtist(r: Row): Artist {
     guest: r.guest,
     roomExtras: r.room_extras,
     pay: {
-      type: r.pay_type ?? "split",
+      type: r.pay_type ?? "payroll_split",
       rentCents: r.rent_cents ?? 0,
       shopSplitPct: r.split_pct == null ? 0 : Number(r.split_pct),
     },

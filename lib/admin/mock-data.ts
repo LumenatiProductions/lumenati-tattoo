@@ -8,12 +8,12 @@ import type { Artist, Sale, CashLogEntry, RentCharge } from "./types";
 // Fallback roster used only when the DB `artists` table isn't reachable; the
 // live roster comes from Supabase (see lib/admin/artists-data.ts).
 export const ARTISTS: Artist[] = [
-  { id: "jd", slug: "jd-pruitt", name: "J.D. Pruitt", handle: "jd.pruitt", color: "#FF1493", active: true, roomExtras: true, pay: { type: "split", shopSplitPct: 0.35 }, squareTeamMemberId: null },
-  { id: "elaine", slug: "electric-elaine", name: "Electric Elaine", handle: "electric.elaine", color: "#FFD700", active: true, pay: { type: "rent", rentCents: 120000 }, squareTeamMemberId: null },
-  { id: "shorty", slug: "shorty", name: "ShorTy", handle: "shorty.tattoo", color: "#7FFF00", active: true, pay: { type: "hybrid", rentCents: 60000, shopSplitPct: 0.15 }, squareTeamMemberId: null },
-  { id: "kalypso", slug: "king-kalypso", name: "King Kalypso", handle: "king.kalypso", color: "#1493FF", active: true, pay: { type: "split", shopSplitPct: 0.3 }, squareTeamMemberId: null },
-  { id: "sam", slug: "sam-durbin-clark", name: "Sam Durbin-Clark", handle: "sam.durbinclark", color: "#9b59b6", active: true, pay: { type: "rent", rentCents: 100000 }, squareTeamMemberId: null },
-  { id: "moonie", slug: "moonie-b-jones", name: "Moonie B. Jones", handle: "moonie.b.jones", color: "#FF6347", active: true, guest: true, pay: { type: "split", shopSplitPct: 0.4 }, squareTeamMemberId: null },
+  { id: "jd", slug: "jd-pruitt", name: "J.D. Pruitt", handle: "jd.pruitt", color: "#FF1493", active: true, roomExtras: true, pay: { type: "payroll_salary" }, squareTeamMemberId: null },
+  { id: "elaine", slug: "electric-elaine", name: "Electric Elaine", handle: "electric.elaine", color: "#FFD700", active: true, pay: { type: "booth_rent", rentCents: 120000 }, squareTeamMemberId: null },
+  { id: "shorty", slug: "shorty", name: "ShorTy", handle: "shorty.tattoo", color: "#7FFF00", active: true, pay: { type: "booth_rent", rentCents: 60000 }, squareTeamMemberId: null },
+  { id: "kalypso", slug: "king-kalypso", name: "King Kalypso", handle: "king.kalypso", color: "#1493FF", active: true, pay: { type: "payroll_split", shopSplitPct: 0.3 }, squareTeamMemberId: null },
+  { id: "sam", slug: "sam-durbin-clark", name: "Sam Durbin-Clark", handle: "sam.durbinclark", color: "#9b59b6", active: true, pay: { type: "booth_rent", rentCents: 100000 }, squareTeamMemberId: null },
+  { id: "moonie", slug: "moonie-b-jones", name: "Moonie B. Jones", handle: "moonie.b.jones", color: "#FF6347", active: true, guest: true, pay: { type: "payroll_split", shopSplitPct: 0.4 }, squareTeamMemberId: null },
 ];
 
 // Seeded LCG -> stable pseudo-random.
@@ -93,9 +93,9 @@ export const CASH_LOG: CashLogEntry[] = SALES.filter((s) => s.method === "cash")
     enteredBy: i % 2 === 0 ? "Front desk — Riley" : "Front desk — Dev",
   }));
 
-// Rent charges for the current period (rent + hybrid artists only).
+// Rent charges for the current period (booth renters only).
 export const RENT_CHARGES: RentCharge[] = ARTISTS.filter(
-  (a) => a.pay.type === "rent" || a.pay.type === "hybrid",
+  (a) => a.pay.type === "booth_rent",
 ).map((a, i) => ({
   id: `r${i + 1}`,
   artistId: a.id,

@@ -107,8 +107,9 @@ const periodKey = (date: string, group: Group): string => {
 type PnlPeriod = {
   key: string;
   grossCollected: number; // every dollar through the shop (service + tips)
-  artistShare: number; // the artists' cut — never the shop's money
-  splitIncome: number; // shop's % of attributed artists' service
+  artistShare: number; // payroll artists' cut (their Gusto wages) — never the shop's money
+  passThrough: number; // booth renters' sales — moves through the shop, never income
+  splitIncome: number; // shop's % of split artists' service + ALL of the owner's sales
   unattributedIncome: number; // sales with no current artist -> all shop
   rentIncome: number; // booth rent collected (ledger)
   forfeitedDeposits: number;
@@ -124,6 +125,7 @@ const blank = (key: string): PnlPeriod => ({
   key,
   grossCollected: 0,
   artistShare: 0,
+  passThrough: 0,
   splitIncome: 0,
   unattributedIncome: 0,
   rentIncome: 0,
@@ -163,9 +165,12 @@ export async function GET(req: Request) {
       .select("id, pay_type, split_pct")
       .eq("shop_id", shopId);
     if (artErr) throw new Error(artErr.message);
-    const splitOf = new Map<string, number>();
+    const payOf = new Map<string, { type: string; split: number }>();
     for (const a of artistRows ?? []) {
-      splitOf.set(a.id as string, a.pay_type === "rent" ? 0 : Number(a.split_pct) || 0);
+      payOf.set(a.id as string, {
+        type: (a.pay_type as string) ?? "payroll_split",
+        split: Number(a.split_pct) || 0,
+      });
     }
 
     // ledger_sales (the view) doesn't expose shop_id, so sales are read from
@@ -220,11 +225,17 @@ export async function GET(req: Request) {
       const svc = s.service_cents ?? 0;
       const tip = s.tip_cents ?? 0;
       p.grossCollected += svc + tip;
-      if (s.artist_id && splitOf.has(s.artist_id)) {
-        const split = splitOf.get(s.artist_id)!;
-        const shopCut = Math.round(svc * split);
+      const pay = s.artist_id ? payOf.get(s.artist_id) : undefined;
+      if (pay?.type === "booth_rent") {
+        // A renter's sale on the shop reader: visible flow, 100% theirs.
+        p.passThrough += svc + tip;
+      } else if (pay?.type === "payroll_salary") {
+        // The salaried owner: his tickets are entirely shop money.
+        p.splitIncome += svc + tip;
+      } else if (pay) {
+        const shopCut = Math.round(svc * pay.split);
         p.splitIncome += shopCut;
-        p.artistShare += svc - shopCut + tip; // artist keeps their % + all tips
+        p.artistShare += svc - shopCut + tip; // wages paid via Gusto
       } else {
         p.unattributedIncome += svc + tip;
       }
@@ -254,6 +265,7 @@ export async function GET(req: Request) {
     const totals = list.reduce((t, p) => {
       t.grossCollected += p.grossCollected;
       t.artistShare += p.artistShare;
+      t.passThrough += p.passThrough;
       t.splitIncome += p.splitIncome;
       t.unattributedIncome += p.unattributedIncome;
       t.rentIncome += p.rentIncome;
@@ -274,12 +286,13 @@ export async function GET(req: Request) {
       const dollars = (c: number) => (c / 100).toFixed(2);
       const csv = toCsv(
         [
-          "Period", "Gross collected", "Artist share", "Shop split income", "Unattributed sales",
-          "Booth rent", "Forfeited deposits", "Income",
+          "Period", "Gross collected", "Artist share (Gusto wages)", "Renter pass-through",
+          "Shop ticket income", "Unattributed sales", "Booth rent", "Forfeited deposits", "Income",
           ...cats.map((c) => `Expenses: ${c}`), "Expenses total", "Profit", "Owner draws", "Sales tax collected",
         ],
         [...list, totals].map((p) => [
-          p.key, dollars(p.grossCollected), dollars(p.artistShare), dollars(p.splitIncome),
+          p.key, dollars(p.grossCollected), dollars(p.artistShare), dollars(p.passThrough),
+          dollars(p.splitIncome),
           dollars(p.unattributedIncome), dollars(p.rentIncome), dollars(p.forfeitedDeposits), dollars(p.income),
           ...cats.map((c) => dollars(p.expensesByCategory[c] ?? 0)),
           dollars(p.expensesTotal), dollars(p.profit), dollars(p.draws), dollars(p.taxCollected),

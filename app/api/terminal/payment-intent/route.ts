@@ -116,8 +116,9 @@ export async function POST(req: Request) {
       .eq("shop_id", me.shopId);
   }
 
-  // Fee on SERVICE only — the tip transfers to the artist in full (same math as
-  // the web pay link).
+  // Booth renters only: a 0-fee destination charge sends 100% (service + tip)
+  // to the renter's bank. Everyone else charges the platform (same rule as the
+  // web pay link).
   const split = await connectChargeParams(admin, artistId ?? null, "ticket", amountCents);
 
   try {

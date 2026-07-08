@@ -3,20 +3,25 @@
 
 export type Role = "owner" | "bookkeeper" | "artist" | "frontdesk";
 
-export type PayType = "rent" | "split" | "hybrid";
+export type PayType = "payroll_salary" | "payroll_split" | "booth_rent";
 
 /**
- * How an artist pays the shop. This varies per artist (Scott: some flat booth
- * rent, some % split, some hybrid).
- *   - rent:   flat booth rent per period; shop takes 0% of tickets.
- *   - split:  shop keeps `shopSplitPct` of each ticket; no rent.
- *   - hybrid: a (smaller) rent AND a (smaller) split.
+ * How an artist is paid (2026-07-08 rebuild — see PAGE-WALK-NOTES 2/11/15).
+ * The shop never cuts checks through the app and withholds nothing:
+ *   - payroll_salary: the owner (J.D.). Salaried via Gusto; his tickets are
+ *     all shop money and he never appears in statements.
+ *   - payroll_split:  shop keeps `shopSplitPct` of service; the artist's share
+ *     + tips are WAGES paid via Gusto — the app only produces the
+ *     payroll-prep numbers to type in each pay period.
+ *   - booth_rent:     the artist's money, 100%. Card sales collected on the
+ *     shop's reader are held and passed through in full; rent is billed
+ *     separately (monthly invoice) and NEVER netted against their sales.
  */
 export interface PayArrangement {
   type: PayType;
-  /** Monthly booth rent in cents (rent + hybrid). */
+  /** Monthly booth rent in cents (booth_rent only). */
   rentCents?: number;
-  /** Shop's cut of each ticket, 0..1 (split + hybrid). */
+  /** Shop's cut of each ticket, 0..1 (payroll_split only). */
   shopSplitPct?: number;
 }
 
@@ -63,7 +68,8 @@ export interface CashLogEntry {
   enteredBy: string; // front-desk name
 }
 
-/** A rent charge owed by an artist for a period (rent + hybrid arrangements). */
+/** A rent charge owed by a booth renter for a period. Billed on its own — it
+ * never enters a statement or nets against the artist's sales. */
 export interface RentCharge {
   id: string;
   artistId: string;

@@ -1,10 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { stripe, siteUrl } from "./client";
 
-// Stripe Connect helpers (POS-STARTER-5). SERVER ONLY. Each artist is an Express
-// connected account; a card ticket is a destination charge on the platform (the
-// shop), with the shop's cut kept as the application fee and the remainder
-// transferred to the artist. Stripe pays the artist out and files their 1099.
+// Stripe Connect helpers (POS-STARTER-5). SERVER ONLY. Booth renters can be
+// Express connected accounts; a renter's card ticket is a destination charge on
+// the platform (the shop) with a 0 application fee — 100% lands in the renter's
+// bank. Stripe pays them out and files their 1099. Payroll artists never route
+// through Connect; their wages come from Gusto.
 
 // Create the Express account if the artist doesn't have one yet; store its id.
 // Returns the account id (existing or new), or null if Stripe isn't configured.
@@ -61,26 +62,26 @@ export async function refreshOnboardStatus(
   return { onboarded, hasAccount: true };
 }
 
-// Compute the destination-charge params for a TICKET payment, or null when the
-// artist isn't on Connect / the payment isn't splittable (deposits stay on the
-// platform — they may be forfeited to the shop, so they aren't transferred).
-// Shop cut = the artist's split (rent artists keep 100% of tickets; the shop is
-// paid via rent separately, so the application fee is 0).
+// Compute the destination-charge params for a TICKET payment, or null when it
+// shouldn't route to the artist's bank. Only BOOTH RENTERS get destination
+// charges: their card sales are 100% theirs (application fee 0 — rent is billed
+// separately, never taken out of sales). Payroll artists' money stays in the
+// shop account; Gusto pays their wages. Deposits stay on the platform — they
+// may be forfeited to the shop, so they aren't transferred.
 export async function connectChargeParams(
   admin: SupabaseClient,
   artistId: string | null,
   kind: string,
-  amountCents: number,
+  _amountCents: number,
 ): Promise<{ destination: string; applicationFeeCents: number } | null> {
   if (kind !== "ticket" || !artistId) return null;
   const { data: a } = await admin
     .from("artists")
-    .select("stripe_account_id, stripe_onboarded, pay_type, split_pct")
+    .select("stripe_account_id, stripe_onboarded, pay_type")
     .eq("id", artistId)
     .maybeSingle();
   if (!a?.stripe_onboarded || !a.stripe_account_id) return null;
+  if (a.pay_type !== "booth_rent") return null;
 
-  const split = a.pay_type === "rent" ? 0 : Number(a.split_pct) || 0;
-  const applicationFeeCents = Math.min(amountCents, Math.max(0, Math.round(amountCents * split)));
-  return { destination: a.stripe_account_id, applicationFeeCents };
+  return { destination: a.stripe_account_id, applicationFeeCents: 0 };
 }

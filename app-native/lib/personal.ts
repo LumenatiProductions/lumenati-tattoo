@@ -187,12 +187,18 @@ export async function loadToday(artistId?: string): Promise<TodayBooking[]> {
   }));
 }
 
-// ── Booth rent (artists on rent or hybrid terms) ──
+// ── Pay setup + booth rent ──
 export type RentStatus = {
-  payType: string; // rent | split | hybrid
-  rentCents: number; // monthly rent from their terms
+  payType: string; // payroll_salary | payroll_split | booth_rent
+  rentCents: number; // monthly rent from their terms (booth_rent only)
   unpaid: { id: string; period: string; amount_cents: number; due_date: string | null }[];
 };
+
+// Tax situation follows the pay setup: renters are contractors (1099); anyone
+// on Gusto payroll is W-2. Used by the coach + goals so advice never drifts
+// from how the artist is actually paid.
+export const taxStatusForPayType = (payType: string | null | undefined): TaxStatus | null =>
+  payType === "booth_rent" ? "1099" : payType ? "w2" : null;
 
 // Resolve "my" artist unless previewing (owner passes the artist explicitly).
 async function myArtistId(): Promise<string | null> {
@@ -216,7 +222,7 @@ export async function loadRent(artistId?: string): Promise<RentStatus | null> {
   ]);
   if (!a) return null;
   return {
-    payType: (a.pay_type as string) ?? "split",
+    payType: (a.pay_type as string) ?? "payroll_split",
     rentCents: (a.rent_cents as number) ?? 0,
     unpaid: (inv ?? []) as RentStatus["unpaid"],
   };

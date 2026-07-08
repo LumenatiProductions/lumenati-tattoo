@@ -6,7 +6,7 @@ import { theme, money } from "@/lib/theme";
 import { Button } from "@/components/ui";
 import { Chips } from "@/components/form";
 import GoalDial from "@/components/GoalDial";
-import { loadGoals, loadMoney, saveGoals } from "@/lib/personal";
+import { loadGoals, loadMoney, loadRent, saveGoals, taxStatusForPayType } from "@/lib/personal";
 import { avgWeeklyCents, suggestedWeeklyCents } from "@/lib/coach";
 import { milestone } from "@/lib/haptics";
 
@@ -30,6 +30,7 @@ export default function Goals() {
   const [monthly, setMonthly] = useState(0); // cents
   const [taxPct, setTaxPct] = useState(30); // whole %
   const [taxStatus, setTaxStatus] = useState<"1099" | "w2">("1099");
+  const [payType, setPayType] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggested, setSuggested] = useState(0);
@@ -41,6 +42,14 @@ export default function Goals() {
       setMonthly(g.monthly_cents);
       setTaxPct(Math.round(g.tax_setaside_pct * 100));
       setTaxStatus(g.tax_status);
+    });
+    // The tax situation follows the pay setup (renters 1099, payroll W-2);
+    // the manual chips only show for accounts with no artist link.
+    loadRent().then((r) => {
+      const pt = r?.payType ?? null;
+      setPayType(pt);
+      const derived = taxStatusForPayType(pt);
+      if (derived) setTaxStatus(derived);
     });
     // Coach: a suggestion grounded in their own last two months.
     loadMoney().then((m) => {
@@ -123,18 +132,28 @@ export default function Goals() {
 
         {mode === "tax" && (
           <View style={{ marginTop: 16 }}>
-            <Chips
-              label="How are you paid?"
-              value={taxStatus}
-              options={["1099", "w2"] as const}
-              display={(v) => (v === "1099" ? "Contractor (1099)" : "Employee (W-2)")}
-              onChange={setTaxStatus}
-            />
-            <Text style={styles.help}>
-              {taxStatus === "1099"
-                ? "Booth renters and most split artists are contractors: nothing is withheld for you, so the set-aside % is your tax money — move it to its own account every payout."
-                : "Employees get payroll withholding on wages — your W-4 in Gusto controls how much. Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
-            </Text>
+            {payType ? (
+              <Text style={styles.help}>
+                {taxStatus === "1099"
+                  ? "You're a booth renter, so you're a contractor (1099): nothing is withheld for you. The set-aside % is your tax money — move it to its own account every time you're paid."
+                  : "You're on Gusto payroll: tax comes out of your paychecks (your W-4 in Gusto controls how much). Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
+              </Text>
+            ) : (
+              <>
+                <Chips
+                  label="How are you paid?"
+                  value={taxStatus}
+                  options={["1099", "w2"] as const}
+                  display={(v) => (v === "1099" ? "Contractor (1099)" : "Employee (W-2)")}
+                  onChange={setTaxStatus}
+                />
+                <Text style={styles.help}>
+                  {taxStatus === "1099"
+                    ? "Contractors have nothing withheld: the set-aside % is your tax money — move it to its own account every time you're paid."
+                    : "Employees get payroll withholding on wages — your W-4 in Gusto controls how much. Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
+                </Text>
+              </>
+            )}
           </View>
         )}
 

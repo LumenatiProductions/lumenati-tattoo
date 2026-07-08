@@ -28,7 +28,8 @@ type Reports = {
     grossSales: number;
     splitRevenue: number;
     rentCollected: number;
-    payoutsOwed: number;
+    renterPassThrough: number;
+    gustoWages: number;
     cardTotal: number;
     cashTotal: number;
   };
@@ -36,7 +37,11 @@ type Reports = {
 };
 
 const payLabel = (a: Artist) =>
-  a.payType === "rent" ? "Booth rent" : a.payType === "split" ? `${Math.round(a.splitPct * 100)}% split` : `Hybrid ${Math.round(a.splitPct * 100)}%`;
+  a.payType === "booth_rent"
+    ? "Booth rent"
+    : a.payType === "payroll_split"
+      ? `${Math.round(a.splitPct * 100)}% split · Gusto`
+      : "Owner salary · Gusto";
 
 // Reports in the app (POS 6e). Reuses the SAME server math as the web via
 // /api/reports (now Bearer-aware) — no money math duplicated in the app.
@@ -101,7 +106,7 @@ export default function ReportsScreen() {
               <Stat label="Gross sales" value={money(data.shop.grossSales)} countTo={data.shop.grossSales} accent />
               <Stat label="Shop's cut" value={money(data.shop.splitRevenue)} />
               <Stat label="Rent collected" value={money(data.shop.rentCollected)} />
-              <Stat label="To pay artists" value={money(data.shop.payoutsOwed)} warn={data.shop.payoutsOwed > 0} />
+              <Stat label="Renter pass-through" value={money(data.shop.renterPassThrough)} warn={data.shop.renterPassThrough > 0} />
             </View>
 
             <Text style={styles.section}>Per-artist</Text>
@@ -118,7 +123,7 @@ export default function ReportsScreen() {
                       </Text>
                     </View>
                     <View style={{ alignItems: "flex-end" }}>
-                      <Text style={styles.net}>{money(a.artistEarnings)}</Text>
+                      <Text style={styles.net}>{a.payType === "payroll_salary" ? "—" : money(a.artistEarnings)}</Text>
                       <Text style={styles.sub}>shop {money(a.shopCut)}</Text>
                     </View>
                   </View>

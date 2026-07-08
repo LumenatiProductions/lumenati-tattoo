@@ -74,15 +74,17 @@ export function Empty({ children }: { children: ReactNode }) {
   return <div className="px-4 py-6 text-center text-sm text-white/55">{children}</div>;
 }
 
-// Per-artist settlement table. Shared by the owner + bookkeeper homes (both want
-// the cross-artist money view; artists never see it).
+// Per-artist statement table. Shared by the owner + bookkeeper homes (both want
+// the cross-artist money view; artists never see it). Renters show the card
+// money the shop is holding for them; split artists show the wages waiting to
+// go into Gusto. The salaried owner is already filtered out upstream.
 export function StatementsTable({ statements }: { statements: ArtistStatement[] }) {
   return (
     <>
       <SectionTitle
         action={
           <Link href="/admin/payouts" className="text-xs font-medium text-brand">
-            Settle up →
+            Handle pay →
           </Link>
         }
       >
@@ -95,8 +97,8 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
               <th className="px-4 py-2.5 font-medium">Artist</th>
               <th className="px-4 py-2.5 font-medium">Arrangement</th>
               <th className="px-4 py-2.5 text-right font-medium">Service</th>
-              <th className="px-4 py-2.5 text-right font-medium">Shop cut</th>
-              <th className="px-4 py-2.5 text-right font-medium">Net</th>
+              <th className="px-4 py-2.5 text-right font-medium">Shop keeps</th>
+              <th className="px-4 py-2.5 text-right font-medium">Next step</th>
             </tr>
           </thead>
           <tbody>
@@ -111,14 +113,14 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
                 </td>
                 <td className="px-4 py-2.5 text-white/70">{payTypeLabel(st.artist)}</td>
                 <td className="tnum px-4 py-2.5 text-right">{fmt(st.grossService)}</td>
-                <td className="tnum px-4 py-2.5 text-right text-white/70">
-                  {fmt(st.shopCut + st.rentOwed)}
-                </td>
+                <td className="tnum px-4 py-2.5 text-right text-white/70">{fmt(st.shopCut)}</td>
                 <td className="tnum px-4 py-2.5 text-right font-semibold">
-                  {st.net >= 0 ? (
-                    <span className="text-emerald-400">{fmt(st.net)}</span>
+                  {st.net === 0 ? (
+                    <span className="text-white/45">—</span>
+                  ) : st.artist.pay.type === "booth_rent" ? (
+                    <span className="text-amber-400">{fmt(st.passThroughOwed)} to hand over</span>
                   ) : (
-                    <span className="text-rose-400">({fmt(-st.net)})</span>
+                    <span className="text-sky-300">{fmt(st.gustoWages)} into Gusto</span>
                   )}
                 </td>
               </tr>
@@ -127,8 +129,9 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
         </table>
       </Card>
       <p className="mt-2 px-1 text-xs text-white/55">
-        Net: <span className="text-emerald-400">green</span> = shop pays the artist ·{" "}
-        <span className="text-rose-400">(red)</span> = artist owes the shop (cash cut + rent).
+        <span className="text-amber-400">Amber</span> = renter money the shop is holding (theirs,
+        100%) · <span className="text-sky-300">blue</span> = wages to type into Gusto. Rent is
+        billed on its own, never taken out of sales.
       </p>
     </>
   );

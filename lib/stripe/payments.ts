@@ -103,11 +103,10 @@ export async function startCheckout(
   const name = `${shopName} · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
   const tip = Math.max(0, Math.round(row.tip_cents ?? 0));
 
-  // Connect (POS-STARTER-5): a ticket for an onboarded artist becomes a
-  // destination charge — shop keeps its cut as the application fee, the rest
-  // transfers to the artist. Deposits and non-onboarded artists charge the
-  // platform normally (no transfer). The fee is computed on the SERVICE amount
-  // only, so the tip rides the transfer to the artist untouched.
+  // Connect (POS-STARTER-5): a ticket for an onboarded BOOTH RENTER becomes a
+  // destination charge with a 0 application fee — 100% (service + tip) lands in
+  // the renter's bank. Deposits, payroll artists, and non-onboarded renters
+  // charge the platform normally (no transfer).
   const split = await connectChargeParams(admin, row.artist_id, row.kind, row.amount_cents);
   const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {
     metadata: { payment_id: row.id, pay_token: row.pay_token },

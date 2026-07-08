@@ -18,9 +18,9 @@ export default function BookkeeperHome() {
   const { artists } = useArtists();
   const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
   const { outstandingCents: cashOutstanding } = useCash();
-  const { statements: settled, payoutsOwed } = useSettledStatements();
+  const { statements: settled, holdingForRenters } = useSettledStatements();
 
-  const s = shopSummary(artists, sales, []);
+  const s = shopSummary(artists, sales);
   const statements = [...settled].sort((x, y) => y.grossService - x.grossService);
 
   return (
@@ -33,10 +33,15 @@ export default function BookkeeperHome() {
         <StatCard
           label="Shop revenue"
           value={fmt(s.splitRevenue + rentCollected)}
-          sub={`${fmt(s.splitRevenue)} splits + ${fmt(rentCollected)} rent`}
+          sub={`${fmt(s.splitRevenue)} from tickets + ${fmt(rentCollected)} rent`}
           accent
         />
-        <StatCard label="Payouts owed" value={fmt(payoutsOwed)} sub="shop → artists, since last settle" tone="warn" />
+        <StatCard
+          label="Holding for renters"
+          value={fmt(holdingForRenters)}
+          sub="their card sales, passed through 100%"
+          tone="warn"
+        />
         <StatCard
           label="Cash to reconcile"
           value={fmt(cashOutstanding)}
@@ -49,7 +54,7 @@ export default function BookkeeperHome() {
           Open Reports →
         </Link>
         <Link href="/admin/payouts" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
-          Payouts
+          Pay
         </Link>
         <Link href="/admin/cash" className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium">
           Cash log

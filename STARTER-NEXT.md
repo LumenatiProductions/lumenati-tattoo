@@ -24,16 +24,21 @@ flag Square data quirks (Scott is tired of re-explaining).
 The 2026-07-08 page walk produced `PAGE-WALK-NOTES.md` (the detailed spec —
 READ IT). Priorities, roughly in dependency order:
 
-1. **Pay-model rebuild** (the big one; notes 2, 5, 10, 11, 15, 19, 20):
-   pay types become GUSTO-PAYROLL (J.D. salary; King Kalypso + Moonie
-   splits) and BOOTH-RENT (Elaine, ShorTy, Sam — drop the unused hybrid
-   type). Nobody withholds anything from artists. Statements = Gusto
-   payroll-prep numbers for payroll folks; renters = 100% pass-through of
-   their card sales (rent billed separately, never netted). Renter sales
-   stay visible in P&L as pass-through flow, never shop income. 1099 prep
-   only applies to renters (accountant conversation pending). Exact %s /
-   amounts: Scott enters at launch via Edit pay. Coach tax advice becomes
-   pay-type aware. Cash-out-early is already deleted.
+1. **Pay-model rebuild — DONE 2026-07-08** (notes 2, 5, 10, 11, 15, 19, 20).
+   Shipped: pay types are now payroll_salary (J.D.), payroll_split
+   (Kalypso 30%, Moonie 40%) and booth_rent (Elaine, ShorTy, Sam; hybrid
+   dropped) — live DB migrated (supabase/2026-07-08-pay-model.sql).
+   /admin/payouts is now "Pay": renter pass-through (100% of card sales,
+   rent NEVER netted) + Gusto payroll prep (wages to type in). J.D. is out
+   of all statements (his phantom $84k "owed" is gone; his sales = shop
+   income). P&L grew a pass-through column/line. 1099 prep = renters only.
+   Stripe Connect = renter bank links, 0 fee. Instant cash-out API deleted.
+   App: Pay screen mirrors web, coach/goals tax advice derives from pay
+   type (renter=1099, payroll=W-2; manual chooser only if no artist link).
+   Verified in Chrome (web owner walk + app as disposable renter/payroll
+   artist, identity cleaned up), tsc both sides, 20/20 tests.
+   Still open: exact %s/rent amounts are Scott's launch numbers via Edit
+   pay; Gusto account decision on the external checklist.
 2. **Artist-driven audit** (notes 5, 7, 17): collapse frontdesk/bookkeeper
    roles into admin everywhere (web, app, RLS, api-auth). Artists mark own
    bookings completed/no-show (RLS + guard trigger like artist-cancel).

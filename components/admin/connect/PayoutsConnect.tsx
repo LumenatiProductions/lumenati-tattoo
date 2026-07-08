@@ -5,9 +5,10 @@ import { Card, SectionTitle, Badge } from "@/components/admin/ui";
 
 type ConnectArtist = { id: string; name: string; hasAccount: boolean; onboarded: boolean };
 
-// Owner-only: set each artist up as a Stripe Connect account so their card
-// tickets auto-split. Lives at the top of Payouts (POS-STARTER-5). Until Stripe
-// keys are set it shows a configure note; the rest of Payouts still works.
+// Owner-only: link each BOOTH RENTER's bank via Stripe Connect so their card
+// sales flow straight through to them (100%, zero fee — rent is billed
+// separately). Lives at the top of the Pay page (POS-STARTER-5). Until Stripe
+// keys are set it shows a configure note; the rest of the page still works.
 export default function PayoutsConnect() {
   const [artists, setArtists] = useState<ConnectArtist[]>([]);
   const [configured, setConfigured] = useState(true);
@@ -87,12 +88,12 @@ export default function PayoutsConnect() {
 
   return (
     <div className="mb-6">
-      <SectionTitle>Artist payouts · Stripe Connect</SectionTitle>
+      <SectionTitle>Renter bank links · Stripe Connect</SectionTitle>
       <Card>
         <div className="border-b border-white/8 px-4 py-3 text-xs text-white/65">
           {configured
-            ? "Onboarded artists are paid automatically: each card ticket splits the shop's cut off as a fee and sends the rest to the artist's bank. Stripe files their 1099."
-            : "Add Stripe keys to enable automatic artist payouts. Until then, settle manually below."}
+            ? "Linked renters get every card sale sent straight to their own bank — 100%, nothing held back. Stripe files their 1099. Rent stays on its own invoice."
+            : "Add Stripe keys to send renters' card sales straight to their banks. Until then, pass sales through manually below."}
         </div>
         {error && <div className="px-4 py-2 text-sm text-rose-400">{error}</div>}
         <div className="divide-y divide-white/8">
@@ -101,7 +102,7 @@ export default function PayoutsConnect() {
               <div className="flex items-center gap-2.5">
                 <span className="text-sm font-medium">{a.name}</span>
                 {a.onboarded ? (
-                  <Badge tone="good">Auto-payouts on</Badge>
+                  <Badge tone="good">Auto pass-through on</Badge>
                 ) : a.hasAccount ? (
                   <Badge tone="warn">Onboarding incomplete</Badge>
                 ) : (
@@ -133,7 +134,7 @@ export default function PayoutsConnect() {
                       disabled={!configured || busyId === a.id}
                       className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
                     >
-                      {busyId === a.id ? "…" : a.hasAccount ? "Finish setup" : "Set up payouts"}
+                      {busyId === a.id ? "…" : a.hasAccount ? "Finish setup" : "Link their bank"}
                     </button>
                   </>
                 )}
@@ -141,7 +142,7 @@ export default function PayoutsConnect() {
             </div>
           ))}
           {artists.length === 0 && (
-            <div className="px-4 py-5 text-center text-sm text-white/55">No active artists.</div>
+            <div className="px-4 py-5 text-center text-sm text-white/55">No booth renters on the roster.</div>
           )}
         </div>
       </Card>

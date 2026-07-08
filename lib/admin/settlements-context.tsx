@@ -3,22 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSales } from "./sales-context";
 import { useArtists } from "./artists-context";
-import { useRent } from "./rent-context";
 import { statementFor, type ArtistStatement } from "./calc";
-import type { RentCharge } from "./types";
 
-// Settlement-aware statements — the single source of truth for "who owes whom".
-// Sales count only AFTER each artist's settled_through, and unpaid rent invoices
-// (matched to artists by payer name) ride along. The Payouts page and the
-// owner/bookkeeper/artist homes all read from here so the home never claims a
-// different number than Settle Up.
-
-const norm = (s: string) => s.trim().toLowerCase();
+// Settlement-aware statements — the single source of truth for the two money
+// jobs the app tracks: card sales held for booth renters (passed through 100%)
+// and Gusto payroll-prep wages for split artists. Sales count only AFTER each
+// artist's settled_through; a settle = "passed it through" for a renter or
+// "entered it into Gusto" for a payroll artist. Rent NEVER appears here — it's
+// billed on its own and never netted. The salaried owner has no statement.
 
 export function useSettledStatements() {
   const { sales } = useSales();
   const { artists } = useArtists();
-  const { invoices } = useRent();
 
   const [settledThrough, setSettledThrough] = useState<Record<string, string>>({});
   const [configured, setConfigured] = useState(false);
@@ -40,48 +36,28 @@ export function useSettledStatements() {
     refresh();
   }, [refresh]);
 
-  // Rent invoices -> per-artist unpaid rent, matched by payer name (best effort
-  // while Square is still the rent system of record).
-  const rentCharges = useMemo<RentCharge[]>(() => {
-    const out: RentCharge[] = [];
-    for (const inv of invoices) {
-      const payer = norm(inv.name || "");
-      if (!payer) continue;
-      const artist = artists.find(
-        (a) => payer === norm(a.name) || payer.includes(norm(a.name)) || norm(a.name).includes(payer),
-      );
-      if (!artist) continue;
-      out.push({
-        id: inv.id,
-        artistId: artist.id,
-        periodLabel: inv.title,
-        amountCents: inv.amountCents,
-        dueDate: inv.dueDate ?? "",
-        paid: inv.paid,
-      });
-    }
-    return out;
-  }, [invoices, artists]);
-
   const statements = useMemo<ArtistStatement[]>(
     () =>
-      artists.map((a) => {
-        const since = settledThrough[a.id];
-        const mine = since ? sales.filter((s) => s.artistId !== a.id || s.date > since) : sales;
-        return statementFor(a, mine, rentCharges);
-      }),
-    [artists, sales, rentCharges, settledThrough],
+      artists
+        .filter((a) => a.pay.type !== "payroll_salary")
+        .map((a) => {
+          const since = settledThrough[a.id];
+          const mine = since ? sales.filter((s) => s.artistId !== a.id || s.date > since) : sales;
+          return statementFor(a, mine);
+        }),
+    [artists, sales, settledThrough],
   );
 
-  // Headline sums: positive nets = shop pays artists, negative = shop collects.
-  const payoutsOwed = useMemo(
-    () => statements.filter((s) => s.net > 0).reduce((a, s) => a + s.net, 0),
+  // Headline sums: renters' card money the shop is holding, and the wages
+  // waiting to be typed into Gusto.
+  const holdingForRenters = useMemo(
+    () => statements.reduce((a, s) => a + s.passThroughOwed, 0),
     [statements],
   );
-  const collectFromArtists = useMemo(
-    () => statements.filter((s) => s.net < 0).reduce((a, s) => a - s.net, 0),
+  const gustoWagesDue = useMemo(
+    () => statements.reduce((a, s) => a + s.gustoWages, 0),
     [statements],
   );
 
-  return { statements, payoutsOwed, collectFromArtists, settledThrough, configured, refresh };
+  return { statements, holdingForRenters, gustoWagesDue, settledThrough, configured, refresh };
 }

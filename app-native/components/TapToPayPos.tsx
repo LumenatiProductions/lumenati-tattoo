@@ -47,7 +47,7 @@ export default function TapToPayPos() {
   // (keypad steps aside); tax rides on top of shelf prices.
   const merch = useMerch();
   const [cashBusy, setCashBusy] = useState(false);
-  const [doneSub, setDoneSub] = useState("Your split is on its way — cash out anytime.");
+  const [doneSub, setDoneSub] = useState("Recorded — it's already on your numbers.");
 
   const {
     initialize,
@@ -151,7 +151,7 @@ export default function TapToPayPos() {
           ? "Shop sale — the books and the stock count are updated."
           : who === "shop"
             ? "Booked to the shop."
-            : "Your split is on its way — cash out anytime.",
+            : "Recorded — it's already on your numbers.",
       );
       setPhase("done");
       setAmount("");

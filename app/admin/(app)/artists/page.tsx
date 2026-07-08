@@ -26,7 +26,7 @@ const blankDraft = (): Draft => ({
   name: "",
   handle: "",
   color: COLOR_PRESETS[0],
-  pay_type: "split",
+  pay_type: "payroll_split",
   rentDollars: "",
   splitPct: "",
   guest: false,
@@ -51,8 +51,9 @@ export default function ArtistsPage() {
     handle: d.handle.trim().replace(/^@/, ""),
     color: d.color,
     pay_type: d.pay_type,
-    rent_cents: d.pay_type === "split" ? 0 : Math.round((parseFloat(d.rentDollars) || 0) * 100),
-    split_pct: d.pay_type === "rent" ? 0 : (parseFloat(d.splitPct) || 0) / 100,
+    rent_cents:
+      d.pay_type === "booth_rent" ? Math.round((parseFloat(d.rentDollars) || 0) * 100) : 0,
+    split_pct: d.pay_type === "payroll_split" ? (parseFloat(d.splitPct) || 0) / 100 : 0,
     guest: d.guest,
   });
 
@@ -131,7 +132,7 @@ export default function ArtistsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Artists &amp; Pay</h1>
           <p className="text-sm text-white/65">
-            Your roster and how each one pays the shop. Adding an artist gives them a room + public page.
+            Your roster and how each one is paid. Adding an artist gives them a room + public page.
           </p>
         </div>
         {isOwner && (
@@ -175,7 +176,7 @@ export default function ArtistsPage() {
       <SectionTitle>The crew ({artists.length})</SectionTitle>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {artists.map((a) => {
-          const st = statementFor(a, sales, []);
+          const st = statementFor(a, sales);
           const editing = editId === a.id;
           return (
             <Card key={a.id}>
@@ -205,7 +206,7 @@ export default function ArtistsPage() {
                   <div className="grid grid-cols-3 border-t border-white/9 text-center">
                     <Stat label="Tickets" value={String(st.saleCount)} />
                     <Stat label="Service" value={fmt(st.grossService)} />
-                    <Stat label="Shop cut" value={fmt(st.shopCut + st.rentOwed)} />
+                    <Stat label="Shop keeps" value={fmt(st.shopCut)} />
                   </div>
                   {isOwner && (
                     <div className="flex items-center gap-2 border-t border-white/9 px-4 py-2.5">
@@ -278,7 +279,7 @@ function SquareHistoryPanel({ artists }: { artists: Artist[] }) {
       <p className="-mt-1 mb-3 text-xs text-white/60">
         Old Square logins with sales that currently count as shop revenue. If one of these people is on
         (or joins) the roster, pick their name and their whole history follows them — tickets, reports,
-        payout math, everything. Leave former guests unlinked on purpose.
+        pay math, everything. Leave former guests unlinked on purpose.
       </p>
       {note && (
         <div className="mb-3 rounded-lg border border-white/10 bg-white/6 px-3 py-2 text-xs text-white/75 shadow-sm">
@@ -331,19 +332,22 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function PayFields({ d, set }: { d: Draft; set: (d: Draft) => void }) {
   return (
     <>
-      <Field label="Pays the shop by">
+      <Field label="How they're paid">
         <select className="inp" value={d.pay_type} onChange={(e) => set({ ...d, pay_type: e.target.value as PayType })}>
-          <option value="split">% split</option>
-          <option value="rent">Booth rent</option>
-          <option value="hybrid">Hybrid (rent + %)</option>
+          <option value="payroll_split">% split · Gusto payroll</option>
+          <option value="booth_rent">Booth rent · 100% pass-through</option>
+          <option value="payroll_salary">Owner salary · Gusto</option>
         </select>
       </Field>
       <div className="grid grid-cols-2 gap-2">
-        {d.pay_type !== "split" && (
+        {d.pay_type === "booth_rent" && (
           <Field label="Rent ($/mo)"><input className="inp" type="number" value={d.rentDollars} onChange={(e) => set({ ...d, rentDollars: e.target.value })} placeholder="1000" /></Field>
         )}
-        {d.pay_type !== "rent" && (
+        {d.pay_type === "payroll_split" && (
           <Field label="Shop split (%)"><input className="inp" type="number" value={d.splitPct} onChange={(e) => set({ ...d, splitPct: e.target.value })} placeholder="30" /></Field>
+        )}
+        {d.pay_type === "payroll_salary" && (
+          <div className="self-end pb-2 text-xs text-white/55">Salary amount lives in Gusto, not here.</div>
         )}
       </div>
     </>

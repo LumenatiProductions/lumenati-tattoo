@@ -13,17 +13,21 @@ import { apiGet, apiPost } from "@/lib/appApi";
 import { theme, money } from "@/lib/theme";
 import { Badge, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 
-// Payouts & settlement (parity with /admin/payouts). Statements are computed
-// from the sales mirror AFTER each artist's latest settlement, exactly like the
-// web: card money the shop holds minus the shop's cut on cash and unpaid rent.
-// "Mark settled" goes through /api/settlements (Bearer) so the receipt email
-// still sends.
+// Pay (parity with /admin/payouts, 2026-07-08 rebuild). The shop cuts no
+// checks and withholds nothing. Two lists:
+//   - Renter pass-through: card sales the shop's reader collected for booth
+//     renters — 100% theirs; clearing a row records the hand-off. Rent is
+//     billed on its own invoice and never nets in here.
+//   - Gusto payroll prep: split artists' wages (share of service + all tips)
+//     to type into Gusto; clearing a row records the entry.
+// The salaried owner never appears. Statements count sales AFTER each artist's
+// settled_through; clearing goes through /api/settlements (Bearer) so the
+// receipt email still sends.
 
 type ArtistRow = {
   id: string;
   name: string;
   pay_type: string;
-  rent_cents: number | null;
   split_pct: number | string | null;
 };
 type SaleRow = {
@@ -35,38 +39,49 @@ type SaleRow = {
 };
 type Statement = {
   artist: ArtistRow;
+  kind: "passthrough" | "payroll";
+  grossService: number;
+  grossTips: number;
   cardService: number;
   cardTips: number;
-  cashService: number;
-  rentOwed: number;
-  net: number; // >0 shop pays artist, <0 artist pays shop
+  shopCut: number;
+  due: number; // pass-through held (renters) or Gusto wages (splits)
   spark?: number[]; // last 14 days of daily totals, for the row sparkline
 };
 
-function statementFor(
-  artist: ArtistRow,
-  sales: SaleRow[],
-  rentOwedByArtist: Record<string, number>,
-  since: string | undefined,
-): Statement {
-  const split = Number(artist.split_pct ?? 0);
-  let cardService = 0,
-    cardTips = 0,
-    cashService = 0;
+function statementFor(artist: ArtistRow, sales: SaleRow[], since: string | undefined): Statement | null {
+  if (artist.pay_type === "payroll_salary") return null; // the owner has no statement
+  const isRenter = artist.pay_type === "booth_rent";
+  const split = isRenter ? 0 : Number(artist.split_pct ?? 0);
+
+  let grossService = 0,
+    grossTips = 0,
+    cardService = 0,
+    cardTips = 0;
   for (const s of sales) {
     if (s.artist_id !== artist.id) continue;
     if (since && (s.created_at ?? "").slice(0, 10) <= since) continue;
-    if (s.method === "cash") {
-      cashService += s.service_cents ?? 0;
-    } else {
+    grossService += s.service_cents ?? 0;
+    grossTips += s.tip_cents ?? 0;
+    if (s.method !== "cash") {
       cardService += s.service_cents ?? 0;
       cardTips += s.tip_cents ?? 0;
     }
   }
-  const rentOwed = rentOwedByArtist[artist.id] ?? 0;
-  const shopOwesArtist = Math.round(cardService * (1 - split)) + cardTips;
-  const artistOwesShop = Math.round(cashService * split) + rentOwed;
-  return { artist, cardService, cardTips, cashService, rentOwed, net: shopOwesArtist - artistOwesShop };
+
+  const shopCut = isRenter ? 0 : Math.round(grossService * split);
+  return {
+    artist,
+    kind: isRenter ? "passthrough" : "payroll",
+    grossService,
+    grossTips,
+    cardService,
+    cardTips,
+    shopCut,
+    // Renters: the shop only holds what its reader collected — hand over all
+    // of it. Splits: wages = their share of service + all tips.
+    due: isRenter ? cardService + cardTips : grossService - shopCut + grossTips,
+  };
 }
 
 export default function Payouts() {
@@ -82,24 +97,19 @@ export default function Payouts() {
   const canSettle = (role === "owner" || role === "bookkeeper") && !preview;
 
   const load = useCallback(async () => {
-    const [{ data: artists }, { data: sales }, { data: rent }, settle, mine] = await Promise.all([
-      supabase.from("artists").select("id, name, pay_type, rent_cents, split_pct").eq("active", true).order("sort"),
+    const [{ data: artists }, { data: sales }, settle, mine] = await Promise.all([
+      supabase.from("artists").select("id, name, pay_type, split_pct").eq("active", true).order("sort"),
       supabase
         .from("sales")
         .select("artist_id, service_cents, tip_cents, method, created_at")
         .order("created_at", { ascending: false })
         .limit(3000),
-      supabase.from("rent_invoices").select("artist_id, amount_cents").eq("status", "pending"),
       apiGet<{ configured: boolean; settledThrough: Record<string, string> }>("/api/settlements"),
       role === "artist" && email
         ? supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
 
-    const rentOwed: Record<string, number> = {};
-    for (const r of rent ?? []) {
-      rentOwed[r.artist_id] = (rentOwed[r.artist_id] ?? 0) + (r.amount_cents ?? 0);
-    }
     const settledThrough = settle.ok ? settle.data?.settledThrough ?? {} : {};
     setSettleConfigured(settle.ok && settle.data?.configured === true);
 
@@ -122,10 +132,10 @@ export default function Payouts() {
     }
 
     setStatements(
-      visible.map((a) => ({
-        ...statementFor(a as ArtistRow, (sales ?? []) as SaleRow[], rentOwed, settledThrough[a.id]),
-        spark: sparkBy[a.id],
-      })),
+      visible
+        .map((a) => statementFor(a as ArtistRow, (sales ?? []) as SaleRow[], settledThrough[a.id]))
+        .filter((st): st is Statement => !!st)
+        .map((st) => ({ ...st, spark: sparkBy[st.artist.id] })),
     );
   }, [role, email, preview]);
 
@@ -139,35 +149,38 @@ export default function Payouts() {
     setRefreshing(false);
   }, [load]);
 
-  const settle = (st: Statement, kind: "pay" | "collect") => {
-    const verb = kind === "pay" ? "paid out" : "collected";
+  const settle = (st: Statement) => {
+    const isRenter = st.kind === "passthrough";
     Alert.alert(
-      "Mark settled",
-      `Record that ${money(Math.abs(st.net))} was ${verb} and settle ${st.artist.name} through today?`,
+      isRenter ? "Mark passed through" : "Mark entered in Gusto",
+      isRenter
+        ? `Record that ${money(st.due)} was handed over to ${st.artist.name} and clear their sales through today?`
+        : `Record that ${st.artist.name}'s ${money(st.due)} in wages was entered into Gusto through today?`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Settle",
+          text: isRenter ? "Passed through" : "Entered",
           style: "default",
           onPress: async () => {
             setBusyId(st.artist.id);
             setMsg(null);
             const res = await apiPost<{ receipt?: { sent: boolean; reason?: string } }>("/api/settlements", {
               artistId: st.artist.id,
-              amountCents: st.net,
-              note: `card ${money(st.cardService)} svc + ${money(st.cardTips)} tips · cash cut ${money(
-                Math.round(st.cashService * Number(st.artist.split_pct ?? 0)),
-              )}${st.rentOwed ? ` · rent ${money(st.rentOwed)}` : ""}`,
+              amountCents: st.due,
+              note: isRenter
+                ? `pass-through · card ${money(st.cardService)} svc + ${money(st.cardTips)} tips`
+                : `Gusto entry · ${money(st.due)} wages (${money(st.grossService)} svc, shop cut ${money(st.shopCut)}, tips ${money(st.grossTips)})`,
             });
             setBusyId(null);
             if (!res.ok) {
-              setMsg(res.error ?? "Could not record that settlement.");
+              setMsg(res.error ?? "Could not record that.");
               return;
             }
             setMsg(
-              res.data?.receipt?.sent
-                ? `${st.artist.name} settled through today — receipt emailed.`
-                : `${st.artist.name} settled through today.`,
+              (isRenter
+                ? `${st.artist.name}'s sales passed through — clean through today.`
+                : `${st.artist.name} entered into Gusto through today.`) +
+                (res.data?.receipt?.sent ? " Receipt emailed." : ""),
             );
             load();
           },
@@ -176,12 +189,12 @@ export default function Payouts() {
     );
   };
 
-  const pays = (statements ?? []).filter((s) => s.net > 0).sort((a, b) => b.net - a.net);
-  const collects = (statements ?? []).filter((s) => s.net < 0).sort((a, b) => a.net - b.net);
+  const renters = (statements ?? []).filter((s) => s.kind === "passthrough" && s.due > 0).sort((a, b) => b.due - a.due);
+  const payroll = (statements ?? []).filter((s) => s.kind === "payroll" && s.due > 0).sort((a, b) => b.due - a.due);
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Payouts", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <Stack.Screen options={{ headerShown: true, title: "Pay", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView
         style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
@@ -193,51 +206,57 @@ export default function Payouts() {
           <>
             {role !== "artist" && !preview && (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-                <Stat label="To pay artists" value={money(pays.reduce((a, s) => a + s.net, 0))} hero />
-                <Stat label="To collect" value={money(collects.reduce((a, s) => a - s.net, 0))} />
-                <Stat label="To settle" value={String(pays.length + collects.length)} />
+                <Stat label="Holding for renters" value={money(renters.reduce((a, s) => a + s.due, 0))} hero />
+                <Stat label="Gusto wages" value={money(payroll.reduce((a, s) => a + s.due, 0))} />
+                <Stat label="Rows to clear" value={String(renters.length + payroll.length)} />
               </View>
             )}
 
             {msg ? <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 12 }}>{msg}</Text> : null}
 
-            <SectionTitle>Shop pays out</SectionTitle>
+            <SectionTitle>Renter pass-through</SectionTitle>
             <Card>
-              {pays.length === 0 ? (
-                <Empty>Nobody to pay right now.</Empty>
+              {renters.length === 0 ? (
+                <Empty>Not holding anything for renters.</Empty>
               ) : (
-                pays.map((s, i) => (
+                renters.map((s, i) => (
                   <StatementRow
                     key={s.artist.id}
                     st={s}
-                    kind="pay"
                     first={i === 0}
                     busy={busyId === s.artist.id}
                     canSettle={canSettle && settleConfigured}
-                    onSettle={() => settle(s, "pay")}
+                    onSettle={() => settle(s)}
                   />
                 ))
               )}
             </Card>
+            <Text style={styles.note}>
+              Card sales collected on the shop&apos;s reader for booth renters — theirs, 100%. Rent
+              is billed on its own invoice, never taken out of sales.
+            </Text>
 
-            <SectionTitle>Shop collects</SectionTitle>
+            <SectionTitle>Gusto payroll prep</SectionTitle>
             <Card>
-              {collects.length === 0 ? (
-                <Empty>Nothing to collect.</Empty>
+              {payroll.length === 0 ? (
+                <Empty>Nothing new for payroll.</Empty>
               ) : (
-                collects.map((s, i) => (
+                payroll.map((s, i) => (
                   <StatementRow
                     key={s.artist.id}
                     st={s}
-                    kind="collect"
                     first={i === 0}
                     busy={busyId === s.artist.id}
                     canSettle={canSettle && settleConfigured}
-                    onSettle={() => settle(s, "collect")}
+                    onSettle={() => settle(s)}
                   />
                 ))
               )}
             </Card>
+            <Text style={styles.note}>
+              The wages number is the artist&apos;s share of service plus all tips. Type it into
+              Gusto, run payroll there, then clear the row.
+            </Text>
           </>
         )}
       </ScrollView>
@@ -245,30 +264,27 @@ export default function Payouts() {
   );
 }
 
-const SETTLE_DRAG = 150; // px of drag that commits a settle
+const SETTLE_DRAG = 150; // px of drag that commits a clear
 
 function StatementRow({
   st,
-  kind,
   first,
   busy,
   canSettle,
   onSettle,
 }: {
   st: Statement;
-  kind: "pay" | "collect";
   first: boolean;
   busy: boolean;
   canSettle: boolean;
   onSettle: () => void;
 }) {
-  const split = Number(st.artist.split_pct ?? 0);
-  const sub =
-    kind === "pay"
-      ? `card ${money(st.cardService)} svc + ${money(st.cardTips)} tips`
-      : `cash cut ${money(Math.round(st.cashService * split))}${st.rentOwed ? ` + rent ${money(st.rentOwed)}` : ""}`;
+  const isRenter = st.kind === "passthrough";
+  const sub = isRenter
+    ? `card ${money(st.cardService)} svc + ${money(st.cardTips)} tips`
+    : `${money(st.grossService)} svc · shop cut ${money(st.shopCut)} · tips ${money(st.grossTips)}`;
 
-  // Swipe-to-settle (Apple-Card-ish): drag the row right; past the threshold
+  // Swipe-to-clear (Apple-Card-ish): drag the row right; past the threshold
   // it clunks and commits. Spring back otherwise. Tap still works.
   const tx = useSharedValue(0);
   const commit = () => {
@@ -294,7 +310,7 @@ function StatementRow({
     <View style={!first && { borderTopColor: theme.border, borderTopWidth: 1 }}>
       {canSettle && (
         <Animated.View style={[StyleSheet.absoluteFill, styles.settleFill, fillStyle]}>
-          <Text style={styles.settleFillText}>Settle ✓</Text>
+          <Text style={styles.settleFillText}>{isRenter ? "Passed through" : "In Gusto"}</Text>
         </Animated.View>
       )}
       <GestureDetector gesture={pan}>
@@ -305,7 +321,7 @@ function StatementRow({
           </View>
           {spark && (
             <Svg width={64} height={22} style={{ marginRight: 12 }}>
-              <Polyline points={spark} stroke={kind === "pay" ? "rgba(235,240,255,0.55)" : theme.good} strokeWidth={1.8} fill="none" />
+              <Polyline points={spark} stroke={isRenter ? theme.warn : "rgba(235,240,255,0.55)"} strokeWidth={1.8} fill="none" />
             </Svg>
           )}
           <Pressable
@@ -315,15 +331,15 @@ function StatementRow({
           >
             <Text
               style={{
-                color: kind === "pay" ? theme.warn : theme.good,
+                color: isRenter ? theme.warn : theme.text,
                 fontSize: 17,
                 fontWeight: "700",
                 fontVariant: ["tabular-nums"],
               }}
             >
-              {money(Math.abs(st.net))}
+              {money(st.due)}
             </Text>
-            {canSettle && <Badge label={busy ? "Settling…" : "Slide or tap to settle"} tone="brand" />}
+            {canSettle && <Badge label={busy ? "Saving…" : "Slide or tap to clear"} tone="brand" />}
           </Pressable>
         </Animated.View>
       </GestureDetector>
@@ -346,4 +362,5 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
   },
   settleFillText: { color: theme.good, fontSize: 15, fontWeight: "800" },
+  note: { color: theme.textFaint, fontSize: 12, lineHeight: 17, marginTop: 8 },
 });
