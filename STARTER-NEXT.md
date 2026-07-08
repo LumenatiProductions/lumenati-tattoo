@@ -14,7 +14,43 @@ standard template at /s/<shop> for every other shop (same room_content data,
 different skin — shops.template picks). Owner login: lumenati@icloud.com.
 Money: cash + Stripe only, everything through the append-only ledger.
 
-## DONE 2026-07-07: THE DATA WALLS ARE UP (both missions from last starter)
+## THE MISSION THIS SESSION: WALK EVERY PAGE WITH SCOTT (his call, 2026-07-08)
+Scott wants to go page by page through the WHOLE product and give feedback on
+each. Do NOT batch-audit or fan out — this is interactive. For each page: open
+it (web admin in Chrome on :3002; app screens in Metro web on :8081 via the
+disposable-artist session recipe; public pages direct), show it / describe what
+it does, and ask Scott for his feedback. Move at HIS pace, one page at a time,
+capture what he wants changed, and only then act. Keep a running list of his
+notes so nothing drops. Start wherever he wants; default order = the inventory
+below (admin first, then app, then public).
+
+Full page inventory (walk all of these):
+- WEB ADMIN (:3002/admin): Overview, My Room (/room), Bookings, Clients, Intake,
+  Follow-ups, Social, Profit & Loss (/pnl), Reports, Payouts, Booth Rent (/rent),
+  Cash Log (/cash), Expenses, Reconciliation (/reconcile), Artists & Pay
+  (/artists), Inventory, Compliance, Staff, Integrations, + QR card (/card/<slug>)
+  and Login.
+- PHONE APP (:8081, signed-in): home, bookings, cash, cashout, clients,
+  my-clients, compliance, expenses, followups, goals, healed-shots, intake,
+  integrations, inventory, payouts, pos, promos, qr-card, reconcile, rent,
+  reports, room, social, staff, waitlist (+ sign-in).
+- PUBLIC: Y2K root site + /(site)/[artist] + /book + /contact (Lumenati skin);
+  standard template /s/<shop> + /s/<shop>/<artist>; /request; /pay/<token>;
+  /intake/<token>; /care/<token>; /healed/<token>; /claim/<offer>/<entry>;
+  /kiosk; /start wizard.
+
+## PARKED (scoped, do NOT build unless Scott says go): auto-deductions
+Full scope in repo `AUTO-DEDUCTIONS-PLAN.md`. Artist links the account they buy
+supplies with (bank/card via an aggregator like Plaid — we never see card
+numbers), the app auto-catches business charges, artist taps to confirm, it feeds
+their deductions + makes the tax set-aside real. Backbone is the ACCOUNT FEED
+(catches online supply orders receipts-photos miss); email-forwarding for
+itemized detail is phase 2. Post-launch, opt-in per artist (per-account cost).
+Open decisions: who pays the fee, artist-only vs owner rollup, aggregator choice.
+
+## DONE 2026-07-07/08 (all shipped, verified, pushed)
+
+### Data walls (2026-07-07)
 - **RLS**: every role/identity policy also requires shop_id =
   current_shop_id() (reads AND with-check); only the deliberate public reads
   stay open. Column defaults are gone — a BEFORE INSERT trigger stamps the
@@ -83,12 +119,11 @@ Money: cash + Stripe only, everything through the append-only ledger.
   explicit go; before eas update point EXPO_PUBLIC_API_URL at
   https://lumenati-tattoo.vercel.app).
 
-## What's likely NEXT (Scott picks)
-1. **Second-shop dry run**: mint a wizard code, walk a fake shop through
-   /start → template page → an artist login on the app, end to end.
-2. Branding pass for multi-shop (emails/pushes/Stripe labels per shop).
-3. Scott's external checklist below — Twilio upgrade is still the
-   highest-leverage unlock.
+## After the page walk (Scott's standing backlog)
+- Second-shop dry run + per-shop branding are DONE (see above). Remaining big
+  rocks: the parked auto-deductions feature (AUTO-DEDUCTIONS-PLAN.md), an EAS
+  build to light up phone screenshots + push tokens, and Scott's external
+  checklist (Twilio upgrade is the highest-leverage unlock).
 
 ## The disposable-identity test recipe (battle-tested)
 scripts/two-shop-breakin.mjs is now the automated version (creates shop
