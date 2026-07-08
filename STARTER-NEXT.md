@@ -55,13 +55,23 @@ Money: cash + Stripe only, everything through the append-only ledger.
   new shop not Lumenati; a second-shop artist logs into the app and sees only
   their empty world (0 of Lumenati's 895 clients). Fixed on the way: the
   "Book with <artist>" deep-link now preselects that artist in /request.
-- **Branding pass = the clear next job (exact gaps found in the dry run):**
-  (1) app is hardwired to the LUMENATI logo/wordmark for every shop's artists;
-  (2) /request form header shows the shop name but the submit button + accents
-  stay Lumenati pink instead of the shop's accent; (3) owner push title
-  "Lumenati - today" for every shop; (4) brief email body has the LUMENATI
-  wordmark; (5) Stripe Terminal location hardcoded to Lumenati's address.
-  All cosmetic, no data leaks — but they'd confuse a real second shop.
+- **Branding: Lumenati IS the product name** (Scott, 2026-07-08). The app being
+  called Lumenati, and "powered by Lumenati" on shop pages, is CORRECT and
+  stays for every shop. Only a shop's OWN surfaces should flip to their brand:
+  (1) /request form still shows Lumenati-pink submit button + accents instead
+  of the shop's accent (header name is already right); (2) owner push title
+  "Lumenati - today" could read as the shop's name; (3) brief email body could
+  carry the shop name. Small polish, not a rebrand — do NOT strip Lumenati from
+  the app chrome. Stripe Terminal location hardcoded to Lumenati's address is
+  fine (physical device is Lumenati's).
+- **Bug reporter SHIPPED 2026-07-08** (Cinebody-style screenshot reporter):
+  floating "Report a bug" pill on web admin + phone app -> screenshot + note ->
+  bug_reports table + private bug-reports bucket + Slack ping with a signed
+  screenshot link. Web works now. APP screenshots need ONE EAS build to include
+  react-native-view-shot (guarded require -> note-only until then, never
+  crashes); the reporter itself is OTA-safe, only the native capture waits on a
+  build. No AI draft (kept tiny); add an /admin triage page later if Slack
+  isn't enough.
 - Owed small items: one real 4x6 print of a QR card; Tap to Pay done screen
   on a real phone; artist push tokens (week-review push unobserved until an
   artist logs into the app on a real phone).
