@@ -34,7 +34,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 async function loadFollowup(token: string) {
   const admin = createAdminClient();
-  if (!admin || !UUID_RE.test(token)) return { admin: null, followup: null };
+  if (!admin) return { admin: null, followup: null };
+  // A malformed token (truncated SMS link) is an INVALID link, not a server
+  // problem — admin stays set so callers answer 404, not 503.
+  if (!UUID_RE.test(token)) return { admin, followup: null };
   const { data } = await admin
     .from("followups")
     .select("id, booking_id, client_id, kind, created_at, shop_id")

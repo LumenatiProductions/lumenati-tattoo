@@ -42,6 +42,18 @@
   Verified: all 6 unpaid rows render in Chrome (June tagged PAST MONTH),
   tsc both sides clean, 20/20 tests. Commit: (this one).
 
+- **Broken healed-photo links told clients to "refresh and try again".** If a
+  client's healed-photo text got cut off mid-link (happens with SMS), the page
+  claimed a server problem and told them to refresh — forever. It now says
+  what's true: the link isn't active, reply to the text and we'll sort it out.
+  Verified: opened a garbage link in Chrome, saw the honest message; the
+  server now answers "invalid link" instead of "server error".
+
+- **Public consent-form pages still said "see the front desk".** There is no
+  front desk — four messages on the public signing page now point people to
+  their artist instead.
+  Verified: opened the page in Chrome, new wording renders.
+
 ## Needs Scott
 
 - **Tax set-aside default for payroll artists.** The app's tax reserve and
@@ -70,3 +82,11 @@
   payroll = W-2 wording) — the rebuild's wiring is live.
 - `npx next lint` isn't set up in this repo (prompts to install a config);
   skipped rather than adding new tooling overnight.
+- Public pages walk: booking form loads and validates; payment and aftercare
+  pages fail politely on dead links; the blue-screen 404 easter egg is alive;
+  /s/lumenati correctly redirects to the main Y2K site; the "Add your shop"
+  wizard refuses wrong or missing invite codes (no shop was created — tested
+  with a wrong code only) and the real code rides in on the invite link.
+- Phone-width layout checks couldn't run: Chrome ignores the automation
+  window-resize in this session. Worth a quick thumb-through on a real phone
+  sometime; nothing looked suspicious at desktop width.

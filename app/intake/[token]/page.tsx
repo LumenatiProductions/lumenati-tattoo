@@ -67,9 +67,9 @@ export default function SignPage() {
 
       <main className="mx-auto max-w-xl px-5 py-6">
         {status === "loading" && <Centered>Loading your form…</Centered>}
-        {status === "error" && <Centered>Something went wrong loading this form. Please refresh or see the front desk.</Centered>}
-        {status === "invalid" && <Centered>This signing link isn’t valid. Please ask the front desk for a new one.</Centered>}
-        {status === "void" && <Centered>This form has been voided. Please see the front desk.</Centered>}
+        {status === "error" && <Centered>Something went wrong loading this form. Please refresh or grab your artist.</Centered>}
+        {status === "invalid" && <Centered>This signing link isn’t valid. Ask your artist to send a fresh one.</Centered>}
+        {status === "void" && <Centered>This form has been voided. Ask your artist if you need a new one.</Centered>}
         {status === "signed" && (
           <Centered>
             <div className="text-lg font-semibold text-emerald-700">All signed — thank you.</div>
@@ -299,7 +299,7 @@ function SignForm({
       {/* Guardian co-sign — only for an under-age signer when the shop allows it. */}
       {underage && !guardianAllowed && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-          You must be at least 18 to sign this form yourself. Please see the front desk.
+          You must be at least 18 to sign this form yourself. Grab your artist and they’ll sort it out.
         </div>
       )}
       {needsGuardian && (
