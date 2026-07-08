@@ -1,19 +1,20 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
 import { usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiPost } from "@/lib/appApi";
 import { theme } from "@/lib/theme";
 
-// Floating "Report a bug" pill for the app, mirroring the web admin's. Tapping
-// it captures the current screen (best-effort) and opens a sheet for a note,
-// then posts to /api/bugs.
+// Bug reporter. The real trigger (Cinebody pattern, Scott 2026-07-08) is
+// TAKING A SCREENSHOT: the OS screenshot event pops the report sheet with the
+// capture attached. The floating "Report a bug" pill only renders as a
+// fallback on binaries that can't detect screenshots yet.
 //
-// Screenshot capture uses react-native-view-shot, a NATIVE module — it only
-// works in a build that includes it. The require is guarded so a build without
-// it (or an OTA update onto an older binary) degrades to a note-only report
-// instead of crashing. Until the next EAS build ships, reports come through
-// without an image; the note + screen + role are still captured.
+// Both capture (react-native-view-shot) and screenshot detection
+// (expo-screen-capture) are NATIVE modules — they only work in a build that
+// includes them. The requires are guarded so a build without them (or an OTA
+// update onto an older binary) degrades to the pill + note-only report instead
+// of crashing. Both come alive with the next EAS build.
 let ViewShot: { captureScreen?: (opts: unknown) => Promise<string> } | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -22,6 +23,17 @@ try {
   ViewShot = null;
 }
 const hasViewShot = !!(ViewShot && typeof ViewShot.captureScreen === "function");
+
+type ScreenshotSub = { remove: () => void };
+let ScreenCapture: { addScreenshotListener?: (cb: () => void) => ScreenshotSub } | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  ScreenCapture = require("expo-screen-capture");
+} catch {
+  ScreenCapture = null;
+}
+const hasScreenshotTrigger =
+  Platform.OS !== "web" && !!(ScreenCapture && typeof ScreenCapture.addScreenshotListener === "function");
 
 type Phase = "hidden" | "sheet" | "sending" | "done";
 
@@ -55,6 +67,20 @@ export default function BugReporter() {
     setPhase("sheet");
   }, []);
 
+  // Screenshot -> report sheet. Subscribing can throw on a binary that ships
+  // the JS but not the native module (OTA onto an older build), so it's
+  // guarded like the require.
+  useEffect(() => {
+    if (!hasScreenshotTrigger || !ScreenCapture?.addScreenshotListener) return;
+    let sub: ScreenshotSub | null = null;
+    try {
+      sub = ScreenCapture.addScreenshotListener(() => open());
+    } catch {
+      sub = null;
+    }
+    return () => sub?.remove();
+  }, [open]);
+
   const send = useCallback(async () => {
     if (note.trim().length < 2) {
       setErr("Add a quick note about what went wrong.");
@@ -80,26 +106,29 @@ export default function BugReporter() {
 
   return (
     <>
-      <Pressable
-        onPress={open}
-        style={{
-          position: "absolute",
-          right: 14,
-          bottom: insets.bottom + 14,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          paddingVertical: 8,
-          paddingHorizontal: 13,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: theme.border,
-          backgroundColor: "rgba(20,20,28,0.92)",
-        }}
-      >
-        <Text style={{ color: theme.textDim, fontSize: 13 }}>◎</Text>
-        <Text style={{ color: theme.textDim, fontSize: 13, fontWeight: "600" }}>Report a bug</Text>
-      </Pressable>
+      {/* Fallback pill — only when the binary can't detect screenshots. */}
+      {!hasScreenshotTrigger && (
+        <Pressable
+          onPress={open}
+          style={{
+            position: "absolute",
+            right: 14,
+            bottom: insets.bottom + 14,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingVertical: 8,
+            paddingHorizontal: 13,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: theme.border,
+            backgroundColor: "rgba(20,20,28,0.92)",
+          }}
+        >
+          <Text style={{ color: theme.textDim, fontSize: 13 }}>◎</Text>
+          <Text style={{ color: theme.textDim, fontSize: 13, fontWeight: "600" }}>Report a bug</Text>
+        </Pressable>
+      )}
 
       <Modal visible={phase !== "hidden"} transparent animationType="slide" onRequestClose={() => setPhase("hidden")}>
         <Pressable
