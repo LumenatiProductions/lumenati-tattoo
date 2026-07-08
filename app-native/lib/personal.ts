@@ -24,25 +24,50 @@ export type MoneySnapshot = {
   bookings: BookingRow[];
 };
 
+// PostgREST clamps every response at 1000 rows no matter the limit — any pull
+// that feeds money math has to page or it silently undercounts (20k stop).
+export async function pageAll<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: unknown }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let start = 0; start < 20000; start += 1000) {
+    const { data } = await build(start, start + 999);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < 1000) break;
+  }
+  return out;
+}
+
 // Pull the raw rows once; the screen derives every range from them. An artist's
 // RLS already scopes to their own rows; pass artistId only when an OWNER is
 // previewing an artist's home (their RLS sees everything, so filter explicitly).
 export async function loadMoney(artistId?: string): Promise<MoneySnapshot> {
   const yearStart = `${new Date().getFullYear()}-01-01`;
-  let s = supabase.from("sales").select("created_at, service_cents, tip_cents").gte("created_at", yearStart);
-  // All non-cancelled bookings this year INCLUDING future ones — the coach
-  // reads rebooking and open-days from them; hourly filters to completed itself.
-  let b = supabase
-    .from("bookings")
-    .select("starts_at, ends_at, status, client_id")
-    .gte("starts_at", yearStart)
-    .neq("status", "cancelled");
-  if (artistId) {
-    s = s.eq("artist_id", artistId);
-    b = b.eq("artist_id", artistId);
-  }
-  const [sr, br] = await Promise.all([s, b]);
-  return { sales: (sr.data ?? []) as SaleRow[], bookings: (br.data ?? []) as BookingRow[] };
+  const [sales, bookings] = await Promise.all([
+    pageAll<SaleRow>((from, to) => {
+      let s = supabase
+        .from("sales")
+        .select("created_at, service_cents, tip_cents")
+        .gte("created_at", yearStart)
+        .order("created_at", { ascending: true });
+      if (artistId) s = s.eq("artist_id", artistId);
+      return s.range(from, to);
+    }),
+    // All non-cancelled bookings this year INCLUDING future ones — the coach
+    // reads rebooking and open-days from them; hourly filters to completed itself.
+    pageAll<BookingRow>((from, to) => {
+      let b = supabase
+        .from("bookings")
+        .select("starts_at, ends_at, status, client_id")
+        .gte("starts_at", yearStart)
+        .neq("status", "cancelled")
+        .order("starts_at", { ascending: true });
+      if (artistId) b = b.eq("artist_id", artistId);
+      return b.range(from, to);
+    }),
+  ]);
+  return { sales, bookings };
 }
 
 export function earnedInRange(sales: SaleRow[], range: Range) {
@@ -266,12 +291,14 @@ export type Expense = {
 };
 
 export async function loadExpenses(): Promise<Expense[]> {
-  const { data } = await supabase
-    .from("artist_expenses")
-    .select("id, date, category, vendor, amount_cents, note")
-    .order("date", { ascending: false })
-    .limit(200);
-  return (data ?? []) as Expense[];
+  // Feeds the YTD deduction sum (taxable income) — page, don't cap.
+  return pageAll<Expense>((from, to) =>
+    supabase
+      .from("artist_expenses")
+      .select("id, date, category, vendor, amount_cents, note")
+      .order("date", { ascending: false })
+      .range(from, to),
+  );
 }
 
 export async function addExpense(e: {

@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { apiGet, apiPost } from "@/lib/appApi";
+import { pageAll } from "@/lib/personal";
 import { theme, money } from "@/lib/theme";
 import { Badge, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 
@@ -97,13 +98,17 @@ export default function Payouts() {
   const canSettle = (role === "owner" || role === "bookkeeper") && !preview;
 
   const load = useCallback(async () => {
-    const [{ data: artists }, { data: sales }, settle, mine] = await Promise.all([
+    const [{ data: artists }, sales, settle, mine] = await Promise.all([
       supabase.from("artists").select("id, name, pay_type, split_pct").eq("active", true).order("sort"),
-      supabase
-        .from("sales")
-        .select("artist_id, service_cents, tip_cents, method, created_at")
-        .order("created_at", { ascending: false })
-        .limit(3000),
+      // Statements sum ALL sales after settled_through (all-time before the
+      // first settlement) — page, since responses clamp at 1000 rows.
+      pageAll<SaleRow>((from, to) =>
+        supabase
+          .from("sales")
+          .select("artist_id, service_cents, tip_cents, method, created_at")
+          .order("created_at", { ascending: false })
+          .range(from, to),
+      ),
       apiGet<{ configured: boolean; settledThrough: Record<string, string> }>("/api/settlements"),
       role === "artist" && email
         ? supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle()
