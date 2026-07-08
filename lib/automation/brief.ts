@@ -98,7 +98,7 @@ async function gather(admin: SupabaseClient, shopId: string): Promise<Gathered> 
   };
 }
 
-function briefHtml(g: Gathered) {
+function briefHtml(g: Gathered, shopName: string, accent: string) {
   const section = (title: string, lines: string[], empty: string) => `
     <div style="margin-top:18px;">
       <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0e0e11;">${title}</div>
@@ -122,7 +122,7 @@ function briefHtml(g: Gathered) {
   <tr><td align="center">
     <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:92%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
       <tr><td style="background:#0e0e11;padding:22px 28px;">
-        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">LUMENATI</span><span style="font-size:22px;font-weight:800;color:#FF1493;">.</span>
+        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">${shopName}</span><span style="font-size:22px;font-weight:800;color:${accent};">.</span>
         <div style="font-size:10px;letter-spacing:3px;color:#8a8a92;margin-top:2px;text-transform:uppercase;">Today at the shop · ${g.date}</div>
       </td></tr>
       <tr><td style="padding:22px 28px;">
@@ -132,7 +132,7 @@ function briefHtml(g: Gathered) {
         ${section(`Compliance (${g.expiring.length})`, g.expiring, "Nothing lapsing.")}
       </td></tr>
       <tr><td style="padding:0 28px 24px;">
-        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">${SHOP_NAME} · your daily brief, sent automatically.</div>
+        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">${shopName} · your daily brief, sent automatically. Powered by Lumenati.</div>
       </td></tr>
     </table>
   </td></tr>
@@ -158,11 +158,13 @@ async function briefRecipients(client: SupabaseClient, shopId: string): Promise<
 
 export async function runMorningBrief(admin: unknown) {
   const client = admin as SupabaseClient;
-  const { data: shops } = await client.from("shops").select("id, name");
+  const { data: shops } = await client.from("shops").select("id, name, accent");
   const key = process.env.RESEND_API_KEY;
 
   const results: Record<string, unknown>[] = [];
-  for (const shop of (shops ?? []) as { id: string; name: string }[]) {
+  for (const shop of (shops ?? []) as { id: string; name: string; accent: string | null }[]) {
+    const shopName = shop.name?.trim() || SHOP_NAME;
+    const accent = /^#[0-9a-f]{6}$/i.test(shop.accent ?? "") ? (shop.accent as string) : "#FF1493";
     const g = await gather(client, shop.id);
     if (!key) {
       results.push({ shop: shop.id, appts: g.appts.length, emailed: false, note: "RESEND_API_KEY not set" });
@@ -178,10 +180,10 @@ export async function runMorningBrief(admin: unknown) {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: `${shop.name || SHOP_NAME} <onboarding@resend.dev>`,
+        from: `${shopName} <onboarding@resend.dev>`,
         to: recipients,
-        subject: `${shop.name || SHOP_NAME} — today: ${g.appts.length} appointment${g.appts.length === 1 ? "" : "s"}`,
-        html: briefHtml(g),
+        subject: `${shopName} — today: ${g.appts.length} appointment${g.appts.length === 1 ? "" : "s"}`,
+        html: briefHtml(g, shopName, accent),
       }),
     });
     if (!res.ok) {

@@ -35,7 +35,9 @@ export async function runPushReminders(admin: unknown, shopId: string) {
   if (parts.length) {
     const tokens = await tokensForRoles(client, ["owner"], shopId);
     if (tokens.length) {
-      const res = await sendExpoPush(tokens, "Lumenati — today", parts.join(" · "));
+      const { data: shop } = await client.from("shops").select("name").eq("id", shopId).maybeSingle();
+      const title = `${(shop?.name as string | undefined)?.trim() || "Your shop"} — today`;
+      const res = await sendExpoPush(tokens, title, parts.join(" · "));
       pushed += res.sent;
     }
   }

@@ -297,7 +297,21 @@ type FollowupRow = {
   kind: FollowupKind;
   channel: string;
   scheduled_for: string | null;
+  shop_id?: string | null;
 };
+
+// Client-facing messages must sign with the sending shop's name, not Lumenati.
+// Cheap per-run cache keyed by shop_id (a drain is a handful of shops at most).
+const shopNameCache = new Map<string, string>();
+async function shopNameFor(client: SupabaseClient, shopId: string | null | undefined): Promise<string> {
+  if (!shopId) return SHOP_NAME;
+  const hit = shopNameCache.get(shopId);
+  if (hit) return hit;
+  const { data } = await client.from("shops").select("name").eq("id", shopId).maybeSingle();
+  const name = (data?.name as string | undefined)?.trim() || SHOP_NAME;
+  shopNameCache.set(shopId, name);
+  return name;
+}
 
 const REMINDER_KINDS: FollowupKind[] = ["reminder_48h", "reminder_24h"];
 
@@ -313,17 +327,17 @@ const apptTime = (iso: string) =>
     timeZone: SHOP_TZ,
   });
 
-async function postResend(to: string, subject: string, html: string) {
+async function postResend(to: string, subject: string, html: string, fromName?: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false as const, error: "RESEND_API_KEY not set" };
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      // Set RESEND_FROM to a verified-domain address once the domain is moved
-      // over (e.g. "Lumenati Tattoo <hello@lumenati.com>"); until then the
-      // sandbox sender works for testing but lands in spam.
-      from: process.env.RESEND_FROM || `${SHOP_NAME} <onboarding@resend.dev>`,
+      // RESEND_FROM (once a verified domain is moved over) wins; otherwise the
+      // sandbox sender is labelled with the sending shop's name so a client of
+      // another shop never sees "Lumenati" as the sender.
+      from: process.env.RESEND_FROM || `${fromName?.trim() || SHOP_NAME} <onboarding@resend.dev>`,
       to: [to],
       subject,
       html,
@@ -364,10 +378,13 @@ export async function sendFollowupRow(
     return finalize(client, row.id, "skipped", "No email or mobile on file");
   }
 
+  const shopName = await shopNameFor(client, row.shop_id);
+
   // Reminder context: appointment time + artist, and a liveness check.
   const tokens: Parameters<typeof renderEmail>[1] = {
     first_name: contact.first_name,
     review_link: reviewLink(),
+    shop_name: shopName,
   };
   if (row.kind === "healed_photo") {
     // The followup's own uuid is the upload capability — see /api/healed.
@@ -409,7 +426,7 @@ export async function sendFollowupRow(
     return finalize(client, row.id, "skipped", "No client email on file (SMS unavailable)");
   }
   const { subject, html } = renderEmail(template, tokens);
-  const sent = await postResend(contact.email, subject, html);
+  const sent = await postResend(contact.email, subject, html, shopName);
   if (!sent.ok) {
     return finalize(client, row.id, "failed", sent.error);
   }
@@ -439,7 +456,7 @@ async function finalize(
 export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap, shopId?: string) {
   let dq = client
     .from("followups")
-    .select("id, booking_id, client_id, kind, channel, scheduled_for")
+    .select("id, booking_id, client_id, kind, channel, scheduled_for, shop_id")
     .eq("status", "pending")
     .lte("scheduled_for", today());
   if (shopId) dq = dq.eq("shop_id", shopId);

@@ -92,7 +92,11 @@ async function ownerNames(client: SupabaseClient, artistIds: string[]) {
   return new Map((data || []).map((a: { id: string; name: string }) => [a.id, a.name]));
 }
 
-function alertHtml(rows: { what: string; expires: string | null; status: string; days: number | null }[]) {
+function alertHtml(
+  rows: { what: string; expires: string | null; status: string; days: number | null }[],
+  shopName: string,
+  accent: string,
+) {
   const line = (r: (typeof rows)[number]) => {
     const color = r.status === "expired" ? "#b91c1c" : "#b45309";
     const when =
@@ -109,7 +113,7 @@ function alertHtml(rows: { what: string; expires: string | null; status: string;
   <tr><td align="center">
     <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
       <tr><td style="background:#0e0e11;padding:22px 28px;">
-        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">LUMENATI</span><span style="font-size:22px;font-weight:800;color:#FF1493;">.</span>
+        <span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">${shopName}</span><span style="font-size:22px;font-weight:800;color:${accent};">.</span>
         <div style="font-size:10px;letter-spacing:3px;color:#8a8a92;margin-top:2px;text-transform:uppercase;">Compliance — action needed</div>
       </td></tr>
       <tr><td style="padding:26px 28px;">
@@ -118,7 +122,7 @@ function alertHtml(rows: { what: string; expires: string | null; status: string;
         ${rows.map(line).join("")}
       </td></tr>
       <tr><td style="padding:0 28px 24px;">
-        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">Lumenati Tattoo &nbsp;//&nbsp; anything within ${EXPIRY_WINDOW_DAYS} days of expiry is flagged here automatically.</div>
+        <div style="font-size:11px;color:#a1a1aa;border-top:1px solid #ececef;padding-top:14px;">${shopName} &nbsp;//&nbsp; anything within ${EXPIRY_WINDOW_DAYS} days of expiry is flagged here automatically. Powered by Lumenati.</div>
       </td></tr>
     </table>
   </td></tr>
@@ -172,14 +176,18 @@ async function emailOwner(
   const recipients = await alertRecipients(client, shopId);
   if (!recipients.length) return { emailed: false, reason: "no owner email" };
 
+  const { data: shop } = await client.from("shops").select("name, accent").eq("id", shopId).maybeSingle();
+  const shopName = (shop?.name as string | undefined)?.trim() || SHOP_NAME;
+  const accent = /^#[0-9a-f]{6}$/i.test((shop?.accent as string) ?? "") ? (shop!.accent as string) : "#FF1493";
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: `${SHOP_NAME} <onboarding@resend.dev>`,
+      from: `${shopName} <onboarding@resend.dev>`,
       to: recipients,
-      subject: `Lumenati — ${rows.length} compliance item${rows.length === 1 ? "" : "s"} need attention`,
-      html: alertHtml(rows),
+      subject: `${shopName} — ${rows.length} compliance item${rows.length === 1 ? "" : "s"} need attention`,
+      html: alertHtml(rows, shopName, accent),
     }),
   });
   if (!res.ok) {
