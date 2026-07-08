@@ -144,9 +144,15 @@ function InHouseRent() {
   };
 
   const period = new Date().toISOString().slice(0, 7);
-  const current = invoices.filter((i) => i.period === period);
+  // Every unpaid invoice from ANY month stays visible (old rent doesn't vanish
+  // when the calendar turns) + whatever this month already settled.
+  const visible = invoices
+    .filter((i) => i.status !== "paid" || i.period === period)
+    .sort((a, b) => (a.period === b.period ? a.artist_id.localeCompare(b.artist_id) : a.period < b.period ? -1 : 1));
   const artistName = (id: string) => artists.find((a) => a.id === id)?.name ?? id;
   const monthLabel = new Date(`${period}-01T00:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const periodLabel = (p: string) =>
+    new Date(`${p}-01T00:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div className="mb-6">
@@ -172,19 +178,20 @@ function InHouseRent() {
             Run <code className="font-mono">supabase/rent-invoices-schema.sql</code> in Supabase, then
             Generate creates this month&apos;s invoices with pay links — rent without Square.
           </div>
-        ) : current.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="px-4 py-5 text-center text-sm text-white/55">
-            No {monthLabel} invoices yet — Generate makes one per rent/hybrid artist, each with a pay link.
+            No {monthLabel} invoices yet — Generate makes one per booth renter, each with a pay link.
           </div>
         ) : (
           <div className="divide-y divide-white/8">
-            {current.map((i) => (
+            {visible.map((i) => (
               <div key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                 <div>
                   <div className="text-sm font-medium">{artistName(i.artist_id)}</div>
                   <div className="text-xs text-white/60">
-                    {monthLabel}
+                    {periodLabel(i.period)}
                     {i.due_date ? ` · due ${i.due_date.slice(5)}` : ""}
+                    {i.status !== "paid" && i.period < period ? " · PAST MONTH" : ""}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
