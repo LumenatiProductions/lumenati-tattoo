@@ -14,6 +14,19 @@ const monthStart = () => {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`;
 };
 
+// PostgREST caps any select at 1000 rows and these reads feed month SUMS —
+// a busy month must not silently undercount (same paging as /api/pnl).
+async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ data: unknown }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let start = 0; ; start += 1000) {
+    const { data } = await build(start, start + 999);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < 1000) break;
+  }
+  return out;
+}
+
 export async function GET(req: Request) {
   // Cookie (web admin) or Bearer (the app). Owner/bookkeeper only either way,
   // and they see everything — no artist scoping needed on these reads.
@@ -30,24 +43,49 @@ export async function GET(req: Request) {
   // ── Our records (tolerate any missing optional tables) ──
   // On the Bearer path me.db is the service-role client, so every tenant read
   // must pin the caller's shop explicitly.
-  const [paymentsRes, salesRes, cashRes, sessionsRes] = await Promise.all([
-    supabase
-      .from("payments")
-      .select("id, amount_cents, tip_cents, status, kind, paid_at, created_at, artist_id, client_id, stripe_payment_intent_id")
-      .eq("shop_id", me.shopId)
-      .gte("created_at", fromIso)
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("sales")
-      .select("service_cents, tip_cents, method, created_at")
-      .eq("shop_id", me.shopId)
-      .gte("created_at", fromIso),
-    supabase
-      .from("cash_entries")
-      .select("amount_cents, reconciled")
-      .eq("shop_id", me.shopId)
-      .gte("created_at", fromIso),
+  type PaymentRow = {
+    id: string;
+    amount_cents: number;
+    tip_cents: number | null;
+    status: string;
+    kind: string;
+    paid_at: string | null;
+    created_at: string;
+    artist_id: string | null;
+    client_id: string | null;
+    stripe_payment_intent_id: string | null;
+  };
+  type SaleRow = { service_cents: number | null; tip_cents: number | null; method: string; created_at: string };
+  type CashRow = { amount_cents: number; reconciled: boolean };
+
+  const [payments, sales, cashEntries, sessionsRes] = await Promise.all([
+    pageAll<PaymentRow>((a, b) =>
+      supabase
+        .from("payments")
+        .select("id, amount_cents, tip_cents, status, kind, paid_at, created_at, artist_id, client_id, stripe_payment_intent_id")
+        .eq("shop_id", me.shopId)
+        .gte("created_at", fromIso)
+        .order("created_at", { ascending: false })
+        .range(a, b),
+    ),
+    pageAll<SaleRow>((a, b) =>
+      supabase
+        .from("sales")
+        .select("service_cents, tip_cents, method, created_at")
+        .eq("shop_id", me.shopId)
+        .gte("created_at", fromIso)
+        .order("created_at", { ascending: true })
+        .range(a, b),
+    ),
+    pageAll<CashRow>((a, b) =>
+      supabase
+        .from("cash_entries")
+        .select("amount_cents, reconciled")
+        .eq("shop_id", me.shopId)
+        .gte("created_at", fromIso)
+        .order("created_at", { ascending: true })
+        .range(a, b),
+    ),
     supabase
       .from("cash_sessions")
       .select("opened_at, over_short_cents, closed_at")
@@ -57,7 +95,6 @@ export async function GET(req: Request) {
       .limit(10),
   ]);
 
-  const payments = paymentsRes.data ?? [];
   const paid = payments.filter((p) => p.status === "paid");
   const stripeRecorded = {
     paidCount: paid.length,
@@ -65,7 +102,6 @@ export async function GET(req: Request) {
     pendingCount: payments.filter((p) => p.status === "pending").length,
   };
 
-  const sales = salesRes.data ?? [];
   const squareRecorded = {
     count: sales.length,
     cardCents: sales
@@ -95,8 +131,10 @@ export async function GET(req: Request) {
       `${c.first_name} ${c.last_name}`.trim(),
     ]),
   );
+  // The list stays bounded (newest 200) — only the SUMS need every row.
   const recent = payments
     .filter((p) => p.status !== "pending") // unpaid links live on their own banner
+    .slice(0, 200)
     .map((p) => ({
       id: p.id as string,
       at: (p.paid_at ?? p.created_at) as string,
@@ -108,7 +146,6 @@ export async function GET(req: Request) {
       refundable: p.status === "paid" && !!p.stripe_payment_intent_id,
     }));
 
-  const cashEntries = cashRes.data ?? [];
   const cash = {
     loggedCents: cashEntries.reduce((a, c) => a + c.amount_cents, 0),
     unreconciledCents: cashEntries.filter((c) => !c.reconciled).reduce((a, c) => a + c.amount_cents, 0),
@@ -134,17 +171,21 @@ export async function GET(req: Request) {
       const [bal, payouts, txns] = await Promise.all([
         stripe.balance.retrieve(),
         stripe.payouts.list({ limit: 10 }),
-        stripe.balanceTransactions.list({ limit: 100, created: { gte: Math.floor(new Date(fromIso).getTime() / 1000) } }),
+        // Stripe pages at 100; the month's charge/fee SUMS need every txn
+        // (10k safety cap — far beyond a month of shop volume).
+        stripe.balanceTransactions
+          .list({ limit: 100, created: { gte: Math.floor(new Date(fromIso).getTime() / 1000) } })
+          .autoPagingToArray({ limit: 10000 }),
       ]);
       const usdSum = (rows: { amount: number; currency: string }[]) =>
         rows.filter((r) => r.currency === "usd").reduce((a, r) => a + r.amount, 0);
-      const charges = txns.data.filter((t) => t.type === "charge" || t.type === "payment");
+      const charges = txns.filter((t) => t.type === "charge" || t.type === "payment");
       stripeView = {
         configured: true,
         availableCents: usdSum(bal.available),
         pendingCents: usdSum(bal.pending),
         chargesCents: charges.reduce((a, t) => a + t.amount, 0),
-        feesCents: txns.data.reduce((a, t) => a + t.fee, 0),
+        feesCents: txns.reduce((a, t) => a + t.fee, 0),
         payouts: payouts.data.map((p) => ({
           id: p.id,
           date: new Date(p.arrival_date * 1000).toISOString().slice(0, 10),
