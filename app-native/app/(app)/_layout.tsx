@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { PreviewProvider } from "@/lib/preview";
 import { theme } from "@/lib/theme";
 import { registerPush } from "@/lib/push";
+import BugReporter from "@/components/BugReporter";
 
 // Auth guard for the signed-in area. No session -> back to sign-in.
 export default function AppLayout() {
@@ -25,6 +26,7 @@ export default function AppLayout() {
   return (
     <PreviewProvider>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }} />
+      <BugReporter />
     </PreviewProvider>
   );
 }

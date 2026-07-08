@@ -17,6 +17,7 @@ import { CashProvider } from "@/lib/admin/cash-context";
 import { ArtistsProvider, useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
+import BugReporter from "@/components/BugReporter";
 import type { Role } from "@/lib/admin/types";
 
 type NavItem = { href: string; label: string; roles: Role[]; soon?: boolean };
@@ -221,6 +222,7 @@ export default function AdminShell({
                     <div className="admin-wash flex min-h-screen text-ink antialiased">
                       <Sidebar />
                       <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+                      <BugReporter />
                     </div>
                    </CashProvider>
                   </FollowupsProvider>

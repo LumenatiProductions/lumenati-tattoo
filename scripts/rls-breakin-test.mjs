@@ -76,6 +76,7 @@ const SENSITIVE = [
   "square_team_members",// staff mapping
   "square_sync",        // sync bookkeeping
   "followup_templates", // outreach copy
+  "bug_reports",        // reporter emails + notes that may quote client/money data
 ];
 
 const headers = { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" };
