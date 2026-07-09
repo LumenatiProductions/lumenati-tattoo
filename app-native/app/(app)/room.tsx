@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -26,6 +26,13 @@ const SONGS: { id: string; label: string }[] = [
 ];
 const COLORS = ["#FF1493", "#FFD700", "#7FFF00", "#1493FF", "#9b59b6", "#FF6347", "#00E0C0", "#FF8A00", "#B026FF"];
 
+// Legacy gallery photos live at site-relative paths (/legacy-assets/...);
+// new uploads are full Storage URLs. Resolve for the phone.
+const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+const imgSrc = (src: string) => (src.startsWith("http") ? src : `${SITE}${src}`);
+
+type Polaroid = { id: string; src: string; caption: string };
+type PortfolioItem = { id: string; src: string; alt: string };
 type Room = {
   artist_id: string;
   tagline: string;
@@ -34,6 +41,8 @@ type Room = {
   song_id: string;
   accent_color: string;
   profile_photo: string;
+  polaroids: Polaroid[];
+  portfolio: PortfolioItem[];
 };
 
 type RosterArtist = { id: string; name: string; slug: string };
@@ -77,10 +86,10 @@ export default function MyRoom() {
       setRoom(null);
       const { data: r } = await supabase
         .from("room_content")
-        .select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo")
+        .select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo, polaroids, portfolio")
         .eq("artist_id", artistId)
         .maybeSingle();
-      if (r) setRoom(r as Room);
+      if (r) setRoom({ ...(r as Room), polaroids: (r.polaroids as Polaroid[]) ?? [], portfolio: (r.portfolio as PortfolioItem[]) ?? [] });
     })();
   }, [artistId]);
 
@@ -102,46 +111,74 @@ export default function MyRoom() {
         song_id: room.song_id,
         accent_color: room.accent_color,
         profile_photo: room.profile_photo,
+        polaroids: room.polaroids,
+        portfolio: room.portfolio,
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
     setMsg(error ? error.message : "Saved — your room is live.");
   }, [room]);
 
-  const pickPhoto = useCallback(async () => {
-    if (!room) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-    if (res.canceled || !res.assets[0]) return;
-    setSaving(true);
-    setMsg(null);
-    try {
-      const asset = res.assets[0];
-      const ext = (asset.fileName?.split(".").pop() ?? "jpg").toLowerCase();
-      const path = `${room.artist_id}/${Date.now()}-app.${ext}`;
-      const file = await fetch(asset.uri);
-      const blob = await file.arrayBuffer();
-      const { error } = await supabase.storage.from("room-photos").upload(path, blob, {
-        contentType: asset.mimeType ?? "image/jpeg",
-        upsert: false,
+  // Pick from the library and land it in the public room-photos bucket.
+  // Square-crops for the profile shot; galleries keep the framing as shot.
+  const uploadFromLibrary = useCallback(
+    async (square: boolean): Promise<string | null> => {
+      if (!room) return null;
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+        allowsEditing: square,
+        ...(square ? { aspect: [1, 1] as [number, number] } : {}),
       });
-      if (error) {
-        setMsg(`Upload failed: ${error.message}`);
-        return;
+      if (res.canceled || !res.assets[0]) return null;
+      setSaving(true);
+      setMsg(null);
+      try {
+        const asset = res.assets[0];
+        const ext = (asset.fileName?.split(".").pop() ?? "jpg").toLowerCase();
+        const path = `${room.artist_id}/${Date.now()}-app.${ext}`;
+        const file = await fetch(asset.uri);
+        const blob = await file.arrayBuffer();
+        const { error } = await supabase.storage.from("room-photos").upload(path, blob, {
+          contentType: asset.mimeType ?? "image/jpeg",
+          upsert: false,
+        });
+        if (error) {
+          setMsg(`Upload failed: ${error.message}`);
+          return null;
+        }
+        const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
+        return data.publicUrl;
+      } catch {
+        setMsg("Could not read that photo.");
+        return null;
+      } finally {
+        setSaving(false);
       }
-      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
-      set("profile_photo", data.publicUrl);
-      setMsg("Photo ready — tap Save to make it live.");
-    } catch {
-      setMsg("Could not read that photo.");
-    } finally {
-      setSaving(false);
-    }
-  }, [room]);
+    },
+    [room],
+  );
+
+  const pickPhoto = useCallback(async () => {
+    const url = await uploadFromLibrary(true);
+    if (!url) return;
+    set("profile_photo", url);
+    setMsg("Photo ready — tap Save to make it live.");
+  }, [uploadFromLibrary]);
+
+  const addPolaroid = useCallback(async () => {
+    const url = await uploadFromLibrary(false);
+    if (!url || !room) return;
+    set("polaroids", [...room.polaroids, { id: `p-${Date.now()}`, src: url, caption: "" }]);
+    setMsg("Polaroid added — caption it and tap Save.");
+  }, [uploadFromLibrary, room]);
+
+  const addPortfolio = useCallback(async () => {
+    const url = await uploadFromLibrary(false);
+    if (!url || !room) return;
+    set("portfolio", [...room.portfolio, { id: `w-${Date.now()}`, src: url, alt: "" }]);
+    setMsg("Added to your portfolio — tap Save to make it live.");
+  }, [uploadFromLibrary, room]);
 
   return (
     <>
@@ -219,12 +256,37 @@ export default function MyRoom() {
               </View>
             </Card>
 
+            <SectionTitle>Polaroids</SectionTitle>
+            <Card>
+              <Text style={styles.note}>The snapshots taped around your room — you, the crew, the shop life.</Text>
+              <PhotoGrid
+                items={room.polaroids.map((p) => ({ id: p.id, src: p.src, text: p.caption }))}
+                textLabel="Caption"
+                onText={(id, text) =>
+                  set("polaroids", room.polaroids.map((x) => (x.id === id ? { ...x, caption: text } : x)))
+                }
+                onRemove={(id) => set("polaroids", room.polaroids.filter((x) => x.id !== id))}
+                onMove={(id, dir) => set("polaroids", moveItem(room.polaroids, id, dir))}
+              />
+              <Button label="Add a polaroid" tone="ghost" onPress={addPolaroid} disabled={saving} />
+            </Card>
+
+            <SectionTitle>Portfolio</SectionTitle>
+            <Card>
+              <Text style={styles.note}>Your work, in the order the world sees it. Healed-shot approvals land here too.</Text>
+              <PhotoGrid
+                items={room.portfolio.map((w) => ({ id: w.id, src: w.src, text: w.alt }))}
+                textLabel="Describe the piece"
+                onText={(id, text) => set("portfolio", room.portfolio.map((x) => (x.id === id ? { ...x, alt: text } : x)))}
+                onRemove={(id) => set("portfolio", room.portfolio.filter((x) => x.id !== id))}
+                onMove={(id, dir) => set("portfolio", moveItem(room.portfolio, id, dir))}
+              />
+              <Button label="Add a piece" tone="ghost" onPress={addPortfolio} disabled={saving} />
+            </Card>
+
             <View style={{ marginTop: 20, gap: 10 }}>
               <Button label={saving ? "Saving…" : "Save changes"} onPress={save} disabled={saving} />
               {msg ? <Text style={[styles.note, { textAlign: "center" }]}>{msg}</Text> : null}
-              <Text style={[styles.note, { textAlign: "center" }]}>
-                Polaroids + portfolio curation live in the web editor for now.
-              </Text>
             </View>
             </>
             )}
@@ -235,7 +297,79 @@ export default function MyRoom() {
   );
 }
 
+// Reorder helper: swap the item one slot up or down.
+function moveItem<T extends { id: string }>(items: T[], id: string, dir: -1 | 1): T[] {
+  const i = items.findIndex((x) => x.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= items.length) return items;
+  const next = [...items];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
+
+// A row-per-photo editor: thumbnail, caption field, up/down/remove. Simple
+// beats drag-and-drop on a phone; the order here IS the public order.
+function PhotoGrid({
+  items,
+  textLabel,
+  onText,
+  onRemove,
+  onMove,
+}: {
+  items: { id: string; src: string; text: string }[];
+  textLabel: string;
+  onText: (id: string, text: string) => void;
+  onRemove: (id: string) => void;
+  onMove: (id: string, dir: -1 | 1) => void;
+}) {
+  if (items.length === 0) return <Text style={styles.note}>Nothing here yet.</Text>;
+  return (
+    <View style={{ gap: 12, marginBottom: 12 }}>
+      {items.map((it, i) => (
+        <View key={it.id} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+          <Image source={{ uri: imgSrc(it.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: "#1a1a22" }} />
+          <View style={{ flex: 1 }}>
+            <TextInput
+              value={it.text}
+              onChangeText={(t) => onText(it.id, t)}
+              placeholder={textLabel}
+              placeholderTextColor="#6b7280"
+              style={styles.gridInput}
+            />
+            <View style={{ flexDirection: "row", gap: 14, marginTop: 6 }}>
+              <Text style={[styles.gridAction, i === 0 && styles.gridActionOff]} onPress={() => onMove(it.id, -1)}>
+                Up
+              </Text>
+              <Text
+                style={[styles.gridAction, i === items.length - 1 && styles.gridActionOff]}
+                onPress={() => onMove(it.id, 1)}
+              >
+                Down
+              </Text>
+              <Text style={[styles.gridAction, { color: "#fb7185" }]} onPress={() => onRemove(it.id)}>
+                Remove
+              </Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  gridInput: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderRadius: 10,
+    color: "#f4f4f6",
+    fontSize: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  gridAction: { color: "#9aa2b1", fontSize: 13, fontWeight: "600" },
+  gridActionOff: { opacity: 0.3 },
   sub: { color: theme.textDim, fontSize: 14, lineHeight: 20, marginBottom: 4 },
   note: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
   label: { color: theme.textDim, fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
