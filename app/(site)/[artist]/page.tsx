@@ -13,10 +13,14 @@ export const dynamic = "force-dynamic";
 // The artist's own live promo, if one is running (artist_campaigns — written
 // from the phone app; RLS lets the anon key read active rows only). Newest
 // wins; date-expired promos stay off even if the artist forgot to end them.
+const SHOP_TZ = process.env.SHOP_TIMEZONE || "America/Denver";
+
 async function fetchLivePromo(artistId: string) {
   const sb = getSupabase();
   if (!sb) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  // Promo expiry follows the shop's calendar — UTC flips to "tomorrow" at
+  // 5-6pm Denver and would kill a promo hours early.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: SHOP_TZ }).format(new Date());
   const { data } = await sb
     .from("artist_campaigns")
     .select("title, offer, ends_at")

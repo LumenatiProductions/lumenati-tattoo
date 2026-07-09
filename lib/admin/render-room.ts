@@ -101,7 +101,7 @@ export function renderRoomHtml(
       const r = TILTS[i % TILTS.length];
       return `    <div class="bedroom-polaroid" style="--r:${r}deg;transform:rotate(${r}deg);">
       <div class="polaroid-tack"></div>
-      <img src="${escAttr(p.src)}" alt="">
+      <img loading="lazy" decoding="async" src="${escAttr(p.src)}" alt="">
       <span class="bedroom-polaroid-label">${esc(p.caption)}</span>
     </div>`;
     })
@@ -115,7 +115,7 @@ export function renderRoomHtml(
   const thumbs = content.portfolio
     .map(
       (p) =>
-        `      <div class="br-thumb"><img src="${escAttr(p.src)}" alt="${escAttr(p.alt)}"></div>`,
+        `      <div class="br-thumb"><img loading="lazy" decoding="async" src="${escAttr(p.src)}" alt="${escAttr(p.alt)}"></div>`,
     )
     .join("\n");
   html = html.replace(
@@ -170,7 +170,7 @@ export function renderRoomHtml(
         const tapes = i % 2 === 0
           ? '<div class="wall-poster-tape tl"></div>\n    <div class="wall-poster-tape tr"></div>'
           : '<div class="wall-poster-tape tl"></div>';
-        return `<div class="bedroom-wall-poster" style="${slot}">\n    ${tapes}\n    <img src="${escAttr(pp.src)}" alt="">\n  </div>`;
+        return `<div class="bedroom-wall-poster" style="${slot}">\n    ${tapes}\n    <img loading="lazy" decoding="async" src="${escAttr(pp.src)}" alt="">\n  </div>`;
       })
       .join("\n  ");
     html = html.replace(

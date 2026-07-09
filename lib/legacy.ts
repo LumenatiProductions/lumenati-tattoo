@@ -38,5 +38,11 @@ export function readLegacyBlock(name: string): string {
     if (html.includes(cdnUrl)) html = html.split(cdnUrl).join(localPath);
   }
 
+  // Every legacy image defers until it scrolls near the viewport. The blocks
+  // are injected client-side after mount anyway, so nothing here is LCP; the
+  // rooms carry ~90 images each and this keeps the fold from paying for the
+  // whole wall.
+  html = html.replace(/<img (?![^>]*loading=)/g, '<img loading="lazy" decoding="async" ');
+
   return html;
 }
