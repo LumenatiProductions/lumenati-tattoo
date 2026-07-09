@@ -4,7 +4,7 @@ import { parsePermalink, resolveOEmbed } from "@/lib/social/instagram";
 
 export const dynamic = "force-dynamic";
 
-const CURATORS = ["owner", "frontdesk"] as const;
+const CURATORS = ["owner"] as const;
 
 // Resolve the signed-in user's role, or null. Shared by every handler.
 async function curator() {

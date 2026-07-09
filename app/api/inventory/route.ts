@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // The supply closet is run by the front of house.
-const STAFF = ["owner", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 // Resolve the signed-in user's role, or null. Shared by every handler.
 async function staff() {

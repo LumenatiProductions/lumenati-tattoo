@@ -16,7 +16,7 @@ type Item = { id: string; name: string; brand: string | null; category: string; 
 const isLow = (i: Item) => Number(i.qty) <= Number(i.reorder_at);
 
 // Inventory ported to the app (POS 6e) + the snap-to-count from 6d wired in.
-// Reads/writes inventory_items directly under RLS (owner/frontdesk). Artists get
+// Reads/writes inventory_items directly under RLS (admin). Artists get
 // an empty list (RLS), which is correct.
 export default function Inventory() {
   const insets = useSafeAreaInsets();

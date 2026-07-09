@@ -61,7 +61,7 @@ export default function BookingsPage() {
   const { clients } = useClients();
   const { artists } = useArtists();
   const { realRole } = useRole();
-  const canWrite = realRole === "owner" || realRole === "bookkeeper" || realRole === "frontdesk";
+  const canWrite = realRole === "owner";
   const canSync = realRole === "owner";
 
   const [filter, setFilter] = useState<Filter>("today");

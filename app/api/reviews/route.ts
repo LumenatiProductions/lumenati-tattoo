@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 //   POST — { rating?, count } log today's Google standing by hand (until the
 //          Places key exists). RLS also guards; we gate for clean errors.
 
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 async function gate() {
   const supabase = await createClient();

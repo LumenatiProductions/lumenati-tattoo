@@ -4,7 +4,7 @@ import { loadTemplates, sendFollowupRow } from "@/lib/followups/job";
 
 export const dynamic = "force-dynamic";
 
-const STAFF_ROLES = ["owner", "bookkeeper", "frontdesk"];
+const STAFF_ROLES = ["owner"];
 
 async function staff() {
   const supabase = await createClient();

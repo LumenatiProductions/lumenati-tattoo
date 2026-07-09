@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminShell from "@/components/admin/AdminShell";
 import NoAccess from "@/components/admin/NoAccess";
-import type { Role } from "@/lib/admin/types";
+import { normalizeRole } from "@/lib/admin/types";
 
 // Auth gate for the whole dashboard. Middleware already bounces anonymous
 // visitors to /admin/login; here we load the profile (role) and block anyone
@@ -29,7 +29,7 @@ export default async function AppLayout({
 
   return (
     <AdminShell
-      realRole={profile.role as Role}
+      realRole={normalizeRole(profile.role)}
       realArtistId={profile.artist_id}
       email={profile.email}
       fullName={profile.full_name}

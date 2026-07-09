@@ -60,7 +60,7 @@ export function ExpensesProvider({ children }: { children: React.ReactNode }) {
         setExpenses(d.expenses || []);
         setError(null);
       } else {
-        setError(r.status === 403 ? "Owners & bookkeepers only." : d.error || "Could not load expenses.");
+        setError(r.status === 403 ? "Admins only." : d.error || "Could not load expenses.");
         setExpenses([]);
       }
     } catch {

@@ -56,7 +56,7 @@ export default function FollowupsPage() {
   } = useFollowups();
   const { clients } = useClients();
   const { realRole } = useRole();
-  const canWrite = realRole === "owner" || realRole === "bookkeeper" || realRole === "frontdesk";
+  const canWrite = realRole === "owner";
 
   const [filter, setFilter] = useState<Filter>("due");
   const [showTemplates, setShowTemplates] = useState(false);

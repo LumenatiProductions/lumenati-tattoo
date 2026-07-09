@@ -5,12 +5,12 @@ import { resolveStaff } from "@/lib/api-auth";
 export const dynamic = "force-dynamic";
 
 // Settlements record "we squared up with this artist through DATE" — see
-// supabase/settlements-schema.sql. Owner / bookkeeper write; an artist's own
+// supabase/settlements-schema.sql. Admin writes; an artist's own
 // rows are readable under RLS. If the table hasn't been applied yet the GET
 // reports { configured: false } so the Payouts page can hide the buttons
 // instead of erroring (same graceful-gate pattern as Stripe/Square).
-const BOOKS = ["owner", "bookkeeper"] as const;
-const READ = ["owner", "bookkeeper", "artist"] as const;
+const BOOKS = ["owner"] as const;
+const READ = ["owner", "artist"] as const;
 const METHODS = ["check", "cash", "stripe", "other"] as const;
 
 const can = (role: string | null, roles: readonly string[]) => !!role && roles.includes(role);
@@ -55,12 +55,12 @@ export async function GET(req: Request) {
   return NextResponse.json({ configured: true, settlements: data ?? [], settledThrough });
 }
 
-// Record a settlement. Owner / bookkeeper.
+// Record a settlement. Admins.
 // Body: { artistId, amountCents, settledThrough?, method?, note? }
 export async function POST(req: Request) {
   const me = await resolveStaff(req);
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!can(me.role, BOOKS)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!can(me.role, BOOKS)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const supabase = me.db;
 
   const b = (await req.json().catch(() => ({}))) as {

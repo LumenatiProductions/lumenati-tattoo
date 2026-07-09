@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 // The desk runs intake; artists can read forms for their own bookings (RLS
 // scopes them) so they can confirm consent is on file before they start. We gate
 // here too for clean 401/403s.
-const WRITE_ROLES = ["owner", "bookkeeper", "frontdesk"] as const;
-const READ_ROLES = ["owner", "bookkeeper", "frontdesk", "artist"] as const;
+const WRITE_ROLES = ["owner"] as const;
+const READ_ROLES = ["owner", "artist"] as const;
 const VALID_ID_TYPES = ID_TYPES.map((t) => t.value);
 
 async function staff() {
@@ -70,7 +70,7 @@ export async function GET() {
   return NextResponse.json({ forms: data ?? [], unsignedToday });
 }
 
-// Start a consent form. Owner / bookkeeper / front desk.
+// Start a consent form. Admins.
 // Body: { bookingId?, clientId?, artistId?, placement? }. Missing client/artist
 // are inferred from the booking when a bookingId is given. The form starts
 // unsigned with a fresh sign_token; the response carries the public signing URL
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ form: data, signUrl });
 }
 
-// Update a form's desk-side fields, or void it. Owner / bookkeeper / front desk.
+// Update a form's desk-side fields, or void it. Admins.
 // Field edits: idChecked, idType, artistId, placement.
 // Void: { void: true, voidReason } — a legal record is never hard-deleted, and a
 // voided form cannot be un-voided here.

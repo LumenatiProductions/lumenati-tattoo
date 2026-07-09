@@ -50,7 +50,7 @@ const payLabel = (a: Artist) =>
 export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const { role } = useAuth();
-  const allowed = role === "owner" || role === "bookkeeper";
+  const allowed = role === "owner";
   const [data, setData] = useState<Reports | null>(null);
   const [monthSales, setMonthSales] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +62,7 @@ export default function ReportsScreen() {
       // Anchor the default YTD window to the phone's local calendar — the
       // server would otherwise use UTC, which is tomorrow from 5-6pm Denver.
       apiGet<Reports>(`/api/reports?from=${todayLocal().slice(0, 4)}-01-01&to=${todayLocal()}`),
-      // Month-to-date shop gross for the chart (owner/bookkeeper RLS sees all).
+      // Month-to-date shop gross for the chart (admin RLS sees all).
       supabase
         .from("sales")
         .select("created_at, service_cents, tip_cents")
@@ -81,7 +81,7 @@ export default function ReportsScreen() {
     if (allowed) load();
   }, [allowed, load]);
 
-  // Same gate the server enforces (owner/bookkeeper) — without it an artist
+  // Same gate the server enforces (admins) — without it an artist
   // deep-linking here fires a doomed request and sees a raw fetch error.
   if (!allowed) {
     return (
@@ -89,7 +89,7 @@ export default function ReportsScreen() {
         <Stack.Screen options={{ headerShown: true, title: "Reports", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
           <Card>
-            <Empty>Owners & bookkeepers only.</Empty>
+            <Empty>Admins only.</Empty>
           </Card>
         </View>
       </>

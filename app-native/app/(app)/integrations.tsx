@@ -58,7 +58,7 @@ export default function Integrations() {
         <Stack.Screen options={{ headerShown: true, title: "Integrations", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
           <Card>
-            <Empty>Owners only.</Empty>
+            <Empty>Admins only.</Empty>
           </Card>
         </View>
       </>

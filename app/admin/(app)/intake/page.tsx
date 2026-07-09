@@ -53,7 +53,7 @@ export default function IntakePage() {
   const { artists } = useArtists();
   const { bookings } = useBookings();
   const { realRole } = useRole();
-  const canWrite = realRole === "owner" || realRole === "bookkeeper" || realRole === "frontdesk";
+  const canWrite = realRole === "owner";
 
   const [filter, setFilter] = useState<Filter>("incomplete");
   const [adding, setAdding] = useState(false);

@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 //   PATCH — staff: decline, or accept (find-or-create the client, create the
 //           booking with source=web_request, stamp the request).
 
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 async function staff() {
   const supabase = await createClient();
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
   // Ping the desk (and the asked-for artist) — best-effort, never blocks.
   await pushEvent(
     admin,
-    { roles: ["owner", "frontdesk"], artistId, shopId },
+    { roles: ["owner"], artistId, shopId },
     "New booking request",
     `${name}: ${idea.slice(0, 90)}`,
   );

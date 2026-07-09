@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // The shop's sales tax rate, stored in basis points (725 = 7.25%) on the shop
 // row. Used to suggest the tax split when logging taxable sales (aftercare
 // products); the remittance figure on the P&L sums what was actually captured.
-const BOOKS = ["owner", "bookkeeper"] as const;
+const BOOKS = ["owner"] as const;
 
 async function gate() {
   const supabase = await createClient();
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const me = await gate();
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!BOOKS.includes(me.role as (typeof BOOKS)[number])) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const b = (await req.json().catch(() => ({}))) as { bps?: number };
   const bps = Math.round(Number(b.bps));

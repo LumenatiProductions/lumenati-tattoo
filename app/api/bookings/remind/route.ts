@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // nudge or a "we moved your time" note after a reschedule. Text first (Reply C
 // closes back into /api/sms/inbound), email as the fallback. Same rails as the
 // accept flow. Cookie (desk) OR Bearer (app) auth via resolveStaff.
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 const SHOP_TZ = process.env.SHOP_TIMEZONE || "America/Denver";
 
 export async function POST(req: Request) {

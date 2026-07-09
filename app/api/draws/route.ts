@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // Owner draws — money the owner takes out of the business. A distribution,
 // not an expense: it sits below the profit line on the P&L. Books crew only.
-const BOOKS = ["owner", "bookkeeper"] as const;
+const BOOKS = ["owner"] as const;
 const METHODS = ["cash", "check", "transfer", "other"] as const;
 
 async function gate() {
@@ -26,7 +26,7 @@ const ok = (r: string | null) => !!r && BOOKS.includes(r as (typeof BOOKS)[numbe
 export async function GET() {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const { data, error } = await supabase
     .from("owner_draws")
@@ -40,7 +40,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const b = (await req.json().catch(() => ({}))) as {
     date?: string;
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });

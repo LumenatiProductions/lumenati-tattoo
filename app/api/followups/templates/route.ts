@@ -8,8 +8,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const WRITE_ROLES = ["owner", "bookkeeper", "frontdesk"];
-const READ_ROLES = ["owner", "bookkeeper", "frontdesk", "artist"];
+const WRITE_ROLES = ["owner"];
+const READ_ROLES = ["owner", "artist"];
 
 async function staff() {
   const supabase = await createClient();

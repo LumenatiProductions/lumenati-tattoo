@@ -68,7 +68,7 @@ const FILTER_LABEL: Record<Filter, string> = { attention: "Needs attention", tod
 export default function Intake() {
   const insets = useSafeAreaInsets();
   const { role, email } = useAuth();
-  const canWrite = role === "owner" || role === "bookkeeper" || role === "frontdesk";
+  const canWrite = role === "owner";
 
   const [forms, setForms] = useState<Form[] | null>(null);
   const [clients, setClients] = useState<Named[]>([]);

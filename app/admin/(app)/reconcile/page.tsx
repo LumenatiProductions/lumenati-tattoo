@@ -100,8 +100,8 @@ export default function ReconcilePage() {
     })();
   }, []);
 
-  if (!["owner", "bookkeeper"].includes(realRole)) {
-    return <p className="text-sm text-white/65">Owners &amp; bookkeepers only.</p>;
+  if (!["owner"].includes(realRole)) {
+    return <p className="text-sm text-white/65">Admins only.</p>;
   }
 
   const monthLabel = data

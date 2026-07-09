@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // One reconciliation read for the /admin/reconcile page: Stripe's view of the
 // money (balance + recent payouts) next to OUR records (payments rows, Square
 // sales mirror, the cash log + drawer sessions) for the current month, so the
-// books can be squared without QuickBooks. Owner / bookkeeper only.
+// books can be squared without QuickBooks. Admins only.
 
 const monthStart = () => {
   const n = new Date();
@@ -28,12 +28,12 @@ async function pageAll<T>(build: (from: number, to: number) => PromiseLike<{ dat
 }
 
 export async function GET(req: Request) {
-  // Cookie (web admin) or Bearer (the app). Owner/bookkeeper only either way,
+  // Cookie (web admin) or Bearer (the app). Admins only either way,
   // and they see everything — no artist scoping needed on these reads.
   const me = await resolveStaff(req);
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!["owner", "bookkeeper"].includes(me.role)) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (me.role !== "owner") {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const supabase = me.db;
 

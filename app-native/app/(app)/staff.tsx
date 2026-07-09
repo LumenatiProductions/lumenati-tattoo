@@ -13,10 +13,8 @@ import { Chips, LabeledInput } from "@/components/form";
 // web + app access immediately.
 
 const ROLE_LABELS: Record<Role, string> = {
-  owner: "Co-owner",
-  bookkeeper: "Bookkeeper",
+  owner: "Admin",
   artist: "Artist",
-  frontdesk: "Front desk",
 };
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
 
@@ -62,7 +60,7 @@ export default function Staff() {
         <Stack.Screen options={{ headerShown: true, title: "Staff", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
           <Card>
-            <Empty>Owners only.</Empty>
+            <Empty>Admins only.</Empty>
           </Card>
         </View>
       </>

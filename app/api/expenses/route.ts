@@ -4,8 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-// Shop expenses are the books — owner / bookkeeper only (RLS enforces it too).
-const BOOKS = ["owner", "bookkeeper"] as const;
+// Shop expenses are the books — admins only (RLS enforces it too).
+const BOOKS = ["owner"] as const;
 const CATEGORIES = ["supplies", "rent", "utilities", "software", "equipment", "fees", "other"] as const;
 
 async function gate() {
@@ -35,7 +35,7 @@ const orNull = (v: string | null | undefined) => {
 export async function GET() {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const { data, error } = await supabase
     .from("expenses")
@@ -49,7 +49,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const { supabase, user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role) || !shopId) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role) || !shopId) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const b = (await req.json().catch(() => ({}))) as {
     date?: string;
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });

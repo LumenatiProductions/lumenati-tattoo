@@ -5,7 +5,7 @@ import { enqueueFollowups, loadTemplates } from "@/lib/followups/job";
 export const dynamic = "force-dynamic";
 
 // The desk runs outreach; artists don't touch the queue.
-const STAFF_ROLES = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF_ROLES = ["owner"] as const;
 
 async function staff() {
   const supabase = await createClient();

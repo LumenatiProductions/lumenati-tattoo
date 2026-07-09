@@ -4,10 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // The cash drawer log — see supabase/cash-schema.sql. Desk logs entries, books
-// reconcile them. Owner / bookkeeper / front desk (RLS enforces it too). If the
+// reconcile them. Admins (RLS enforces it too). If the
 // table hasn't been applied yet, GET reports { configured: false } so the page
 // can show its setup hint instead of erroring.
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 async function gate() {
   const supabase = await createClient();

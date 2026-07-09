@@ -5,7 +5,7 @@ import { renderY2kEmail } from "@/lib/email/y2k";
 
 export const dynamic = "force-dynamic";
 
-const WRITE_ROLES = ["owner", "bookkeeper", "frontdesk"];
+const WRITE_ROLES = ["owner"];
 
 async function staff() {
   const supabase = await createClient();
@@ -22,7 +22,7 @@ async function staff() {
 }
 
 // Send a client the "your consent form is ready to sign" link — by email OR
-// text. Owner / bookkeeper / front desk. Body: { id, to } where `to` is an
+// text. Admins. Body: { id, to } where `to` is an
 // email address or a mobile number. If the matching service isn't configured we
 // don't fail — we hand the signing URL back so the desk can send it manually.
 export async function POST(req: Request) {

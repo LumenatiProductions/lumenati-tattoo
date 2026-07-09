@@ -96,7 +96,7 @@ export default function Bookings() {
   const router = useRouter();
   const { role, email } = useAuth();
   const { preview } = usePreview();
-  const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
+  const isStaff = role === "owner";
 
   const [rows, setRows] = useState<Booking[]>([]);
   const [names, setNames] = useState<{ c: Map<string, string>; a: Map<string, string> }>({ c: new Map(), a: new Map() });

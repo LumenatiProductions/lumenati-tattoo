@@ -43,7 +43,7 @@ export default function Waitlist() {
   const insets = useSafeAreaInsets();
   const { role, email } = useAuth();
   const { preview } = usePreview();
-  const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
+  const isStaff = role === "owner";
   // The freed slot handed over from Bookings' cancel moment.
   const params = useLocalSearchParams<{ slot?: string; artist?: string }>();
   const slotISO = typeof params.slot === "string" && !Number.isNaN(new Date(params.slot).getTime()) ? params.slot : null;

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 // Recent money in/out straight from Stripe (charges, fees, refunds, payouts) —
 // the real ledger that, with the expenses table, replaces the QuickBooks export.
-// Owner / bookkeeper only.
+// Admins only.
 export async function GET() {
   const supabase = await createClient();
   const {
@@ -18,8 +18,8 @@ export async function GET() {
     .select("role")
     .eq("email", user.email!)
     .maybeSingle();
-  if (!profile || !["owner", "bookkeeper"].includes(profile.role)) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!profile || profile.role !== "owner") {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
 
   if (!isStripeConfigured || !stripe) {

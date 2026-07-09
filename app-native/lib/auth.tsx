@@ -3,8 +3,12 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
 // Roles match the web (lib/admin/role-context). The app is role-routed: artists
-// land on their money home, owner/bookkeeper on the cockpit.
-export type Role = "owner" | "bookkeeper" | "artist" | "frontdesk";
+// land on their money home, admins on the cockpit. Two roles, period —
+// retired values (bookkeeper/frontdesk) normalize to admin ('owner') here.
+export type Role = "owner" | "artist";
+
+const normalizeRole = (raw: string | null | undefined): Role | null =>
+  raw == null ? null : raw === "artist" ? "artist" : "owner";
 
 type AuthState = {
   loading: boolean;
@@ -31,7 +35,7 @@ async function fetchProfile(email: string | null): Promise<{ role: Role; fullNam
   if (!email) return { role: "artist", fullName: null };
   const { data } = await supabase.from("profiles").select("role, full_name").eq("email", email).maybeSingle();
   return {
-    role: (data?.role as Role | undefined) ?? "artist",
+    role: normalizeRole(data?.role as string | undefined) ?? "artist",
     fullName: (data?.full_name as string | null) ?? null,
   };
 }

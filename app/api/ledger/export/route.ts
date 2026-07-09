@@ -6,7 +6,7 @@ import { toCsv } from "@/lib/books/export";
 export const dynamic = "force-dynamic";
 
 // General-ledger CSV — every money event in a window, straight from the
-// canonical ledger, for the accountant at tax time. Owner + bookkeeper only.
+// canonical ledger, for the accountant at tax time. Admins only.
 async function gate() {
   const supabase = await createClient();
   const {
@@ -27,8 +27,8 @@ const isISODate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$
 export async function GET(req: Request) {
   const me = await gate();
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!["owner", "bookkeeper"].includes(me.role)) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (me.role !== "owner") {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const db = createAdminClient();
   if (!db) return NextResponse.json({ error: "Service role not set." }, { status: 500 });

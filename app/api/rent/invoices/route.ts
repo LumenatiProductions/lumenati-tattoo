@@ -7,13 +7,13 @@ import { siteUrl } from "@/lib/stripe/client";
 export const dynamic = "force-dynamic";
 
 // In-house rent invoices (rent-invoices-schema.sql).
-//   GET   — owner/bookkeeper: recent invoices with their pay-link URLs
+//   GET   — admin: recent invoices with their pay-link URLs
 //   POST  — { action: "generate" } make this month's invoices exist
 //           { action: "email", id } email the artist their pay link
 //           { action: "mark_paid", id, method } artist paid in cash/check —
 //             marks the invoice paid and books the rent in the ledger
 
-const BOOKS = ["owner", "bookkeeper"] as const;
+const BOOKS = ["owner"] as const;
 
 async function gate() {
   const supabase = await createClient();
@@ -34,7 +34,7 @@ const isMissingTable = (msg: string) => /relation .* does not exist|42P01/i.test
 export async function GET() {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const { data, error } = await supabase
     .from("rent_invoices")
@@ -72,7 +72,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ok(role)) return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!ok(role)) return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
   const b = (await req.json().catch(() => ({}))) as { action?: string; id?: string; method?: string };
 

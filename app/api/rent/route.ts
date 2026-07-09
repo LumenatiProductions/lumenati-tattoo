@@ -4,7 +4,7 @@ import { fetchRentInvoices, isSquareConfigured } from "@/lib/square/client";
 
 export const dynamic = "force-dynamic";
 
-// Live booth-rent status from Square. Owners + bookkeeper only.
+// Live booth-rent status from Square. Admins only.
 export async function GET() {
   const supabase = await createClient();
   const {
@@ -17,7 +17,7 @@ export async function GET() {
     .select("role")
     .eq("email", user.email!)
     .maybeSingle();
-  if (!profile || !["owner", "bookkeeper"].includes(profile.role)) {
+  if (!profile || profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (!isSquareConfigured) return NextResponse.json({ invoices: [], configured: false });

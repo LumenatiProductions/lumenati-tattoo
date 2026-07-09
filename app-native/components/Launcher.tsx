@@ -14,29 +14,29 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Go to",
     items: [
-      { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
+      { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "artist"] },
     ],
   },
   {
     title: "Front of house",
     items: [
       { href: "/room", label: "Rooms", icon: "color-palette-outline", roles: ["owner", "artist"] },
-      { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
-      { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "bookkeeper", "frontdesk", "artist"] },
-      { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
-      { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
-      { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner", "frontdesk"] },
-      { href: "/social", label: "Social", icon: "image-outline", roles: ["owner", "frontdesk"] },
+      { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "artist"] },
+      { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "artist"] },
+      { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner"] },
+      { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner"] },
+      { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner"] },
+      { href: "/social", label: "Social", icon: "image-outline", roles: ["owner"] },
     ],
   },
   {
     title: "Finances",
     items: [
-      { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["owner", "bookkeeper", "artist"] },
-      { href: "/reports", label: "Reports", icon: "stats-chart-outline", roles: ["owner", "bookkeeper"] },
-      { href: "/rent", label: "Booth rent", icon: "key-outline", roles: ["owner", "bookkeeper"] },
-      { href: "/cash", label: "Cash log", icon: "cash-outline", roles: ["owner", "bookkeeper", "frontdesk"] },
-      { href: "/reconcile", label: "Reconcile", icon: "git-compare-outline", roles: ["owner", "bookkeeper"] },
+      { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["owner", "artist"] },
+      { href: "/reports", label: "Reports", icon: "stats-chart-outline", roles: ["owner"] },
+      { href: "/rent", label: "Booth rent", icon: "key-outline", roles: ["owner"] },
+      { href: "/cash", label: "Cash log", icon: "cash-outline", roles: ["owner"] },
+      { href: "/reconcile", label: "Reconcile", icon: "git-compare-outline", roles: ["owner"] },
     ],
   },
   {
@@ -53,7 +53,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Shop",
     items: [
-      { href: "/inventory", label: "Inventory", icon: "cube-outline", roles: ["owner", "frontdesk"] },
+      { href: "/inventory", label: "Inventory", icon: "cube-outline", roles: ["owner"] },
       { href: "/compliance", label: "Compliance", icon: "shield-checkmark-outline", roles: ["owner"] },
     ],
   },

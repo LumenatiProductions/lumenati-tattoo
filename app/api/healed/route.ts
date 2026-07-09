@@ -165,7 +165,7 @@ export async function POST(req: Request) {
 }
 
 // Staff: list the queue / approve / dismiss.
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 async function staffGate() {
   const supabase = await createClient();
   const {

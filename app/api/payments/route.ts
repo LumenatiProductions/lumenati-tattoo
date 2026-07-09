@@ -6,7 +6,7 @@ import { isStripeConfigured } from "@/lib/stripe/client";
 
 export const dynamic = "force-dynamic";
 
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 // Front-of-house + bookkeeping generate pay links. (The kiosk in POS-STARTER-2
 // will call the same create path with a device token instead of a user.)
@@ -32,7 +32,7 @@ const isStaff = (r: string | null) => !!r && STAFF.includes(r as (typeof STAFF)[
 
 const KINDS: PaymentKind[] = ["deposit", "ticket", "other"];
 
-// List recent payments. Owner / bookkeeper / front desk (RLS also enforces it).
+// List recent payments. Admins (RLS also enforces it).
 export async function GET() {
   const { supabase, user, role } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });

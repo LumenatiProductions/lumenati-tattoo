@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Shop insights for the Reports page (owner / bookkeeper): rebooking rate,
+// Shop insights for the Reports page (admins): rebooking rate,
 // no-show rate per artist, busiest hours, top clients by lifetime spend. All
 // computed from bookings + clients already in the DB — no schema, no mocks.
 
@@ -21,8 +21,8 @@ export async function GET() {
     .select("role")
     .eq("email", user.email!)
     .maybeSingle();
-  if (!profile || !["owner", "bookkeeper"].includes(profile.role)) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!profile || profile.role !== "owner") {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
 
   const since = new Date(Date.now() - WINDOW_DAYS * 86_400_000).toISOString();

@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 // The desk runs the calendar; artists read their own day (RLS scopes them to
 // artist_id = my_artist(), and we gate here for clean 401/403s).
-const WRITE_ROLES = ["owner", "bookkeeper", "frontdesk"] as const;
-const READ_ROLES = ["owner", "bookkeeper", "frontdesk", "artist"] as const;
+const WRITE_ROLES = ["owner"] as const;
+const READ_ROLES = ["owner", "artist"] as const;
 
 // An artist works one client at a time, so two scheduled bookings on the same
 // artist that overlap in time is almost always a mistake. We block it (409 with
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ bookings: data ?? [] });
 }
 
-// Create a booking by hand. Owner / bookkeeper / front desk.
+// Create a booking by hand. Admins.
 // Body: { startsAt, endsAt?, clientId?, artistId?, serviceDesc?, estPriceCents?,
 //         depositCents?, depositStatus?, depositPaymentId?, notes?, source? }
 export async function POST(req: Request) {
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ booking: data });
 }
 
-// Edit a booking and/or run a status transition. Owner / bookkeeper / front desk.
+// Edit a booking and/or run a status transition. Admins.
 // Plain field edits: clientId, artistId, startsAt, endsAt, serviceDesc,
 // estPriceCents, depositCents, depositPaymentId, notes.
 // Status transition: pass `status` (scheduled|completed|no_show|cancelled). The

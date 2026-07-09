@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 //   POST  — open the drawer: { openingFloatCents }
 //   PATCH — close it: { countedCents, note? } (expected computed server-side)
 
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 async function gate() {
   const supabase = await createClient();

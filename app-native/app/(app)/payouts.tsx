@@ -95,7 +95,7 @@ export default function Payouts() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const canSettle = (role === "owner" || role === "bookkeeper") && !preview;
+  const canSettle = (role === "owner") && !preview;
 
   const load = useCallback(async () => {
     const [{ data: artists }, sales, settle, mine] = await Promise.all([

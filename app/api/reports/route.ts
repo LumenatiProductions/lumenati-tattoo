@@ -9,11 +9,11 @@ import type { Sale } from "@/lib/admin/types";
 
 export const dynamic = "force-dynamic";
 
-// Reports is the shop-wide / cross-artist financial view: owner + bookkeeper
+// Reports is the shop-wide / cross-artist financial view: admin
 // only (artists see their own numbers on Payouts). Accepts BOTH the web admin's
 // cookie session and the app's Bearer token; either way we resolve the role and
 // then read with the service-role client (a privileged all-data aggregation that
-// only owner/bookkeeper reach). An artist gets a 403.
+// only admins reach). An artist gets a 403.
 async function gate(req: Request): Promise<{ role: string | null; authed: boolean; shopId: string | null }> {
   const supabase = await createClient();
   const {
@@ -143,8 +143,8 @@ const isISODate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$
 export async function GET(req: Request) {
   const { role, authed, shopId } = await gate(req);
   if (!authed) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!role || !shopId || !["owner", "bookkeeper"].includes(role)) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!role || !shopId || role !== "owner") {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const db = createAdminClient();
   if (!db) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
@@ -155,7 +155,7 @@ export async function GET(req: Request) {
   const to = isISODate(url.searchParams.get("to")) ? url.searchParams.get("to")! : def.to;
   const toExclusiveEnd = `${to}T23:59:59.999`; // make `to` inclusive of its whole day
 
-  // ── Pull the real rows in the window (service-role: owner/bookkeeper see all) ──
+  // ── Pull the real rows in the window (service-role: admins see all) ──
   const [artistsRes, salesRows, bookingsRes, inventoryRes] = await Promise.all([
     db.from("artists").select("*").eq("shop_id", shopId).eq("active", true).order("sort"),
     // Reads the canonical ledger (as sales-shaped rows) — the money source of truth.

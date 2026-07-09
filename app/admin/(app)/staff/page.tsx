@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { useArtists } from "@/lib/admin/artists-context";
 import { ROLE_LABELS, useRole } from "@/lib/admin/role-context";
+import { normalizeRole } from "@/lib/admin/types";
 import { Card, SectionTitle, Badge } from "@/components/admin/ui";
 import type { Role } from "@/lib/admin/types";
 
@@ -130,7 +131,7 @@ export default function StaffPage() {
                     <td className="tnum px-4 py-2.5 text-white/70">
                       {p.phone ? prettyPhone(p.phone) : <span className="text-white/45">—</span>}
                     </td>
-                    <td className="px-4 py-2.5"><Badge tone="brand">{ROLE_LABELS[p.role]}</Badge></td>
+                    <td className="px-4 py-2.5"><Badge tone="brand">{ROLE_LABELS[normalizeRole(p.role)]}</Badge></td>
                     <td className="px-4 py-2.5 text-white/70">
                       {p.artist_id ? artists.find((a) => a.id === p.artist_id)?.name ?? p.artist_id : "—"}
                     </td>

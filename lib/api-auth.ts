@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+// Retired roles (bookkeeper/frontdesk) read as admin ('owner') — the shop is
+// artists + admin, nothing else (2026-07-09 audit).
+const normalizeRole = (raw: string | null | undefined): string | null =>
+  raw == null ? null : raw === "artist" ? "artist" : "owner";
+
 // Bearer-token auth for the app (POS-STARTER-6). The web admin uses cookie auth
 // (@supabase/ssr); the React Native app instead sends its Supabase access token
 // as `Authorization: Bearer <jwt>`. This validates the token, resolves the role
@@ -43,7 +48,7 @@ export async function resolveStaff(req: Request): Promise<StaffCtx | null> {
     return {
       db: supabase,
       email: user.email ?? null,
-      role: profile.role,
+      role: normalizeRole(profile.role)!,
       artistId: (profile.artist_id as string | null) ?? null,
       shopId: profile.shop_id as string,
     };
@@ -80,7 +85,7 @@ export async function userFromBearer(req: Request): Promise<AppUser | null> {
   return {
     userId: data.user.id,
     email,
-    role: profile.role,
+    role: normalizeRole(profile.role as string),
     artistId: (profile.artist_id as string | null) ?? null,
     shopId: profile.shop_id as string,
   };

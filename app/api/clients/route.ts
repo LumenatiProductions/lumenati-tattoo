@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // Front-of-house runs the CRM. (Artists get scoped read once `bookings` exists.)
-const STAFF = ["owner", "bookkeeper", "frontdesk"] as const;
+const STAFF = ["owner"] as const;
 
 // Resolve the signed-in user's role, or null. Shared by every handler (mirrors
 // the social route's `curator()`).
@@ -91,7 +91,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ clients: enriched });
 }
 
-// Add a walk-in by hand. Owner / bookkeeper / front desk.
+// Add a walk-in by hand. Admins.
 // Body: { firstName, lastName?, email?, phone?, instagram?, birthdate?, notes?, preferredArtistId? }
 export async function POST(req: Request) {
   const { supabase, user, role } = await staff();
@@ -131,7 +131,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ client: data });
 }
 
-// Edit an existing client. Owner / bookkeeper / front desk.
+// Edit an existing client. Admins.
 // Body: { id, ...any of firstName,lastName,email,phone,instagram,birthdate,notes,preferredArtistId }
 export async function PATCH(req: Request) {
   const { supabase, user, role } = await staff();

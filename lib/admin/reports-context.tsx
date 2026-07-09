@@ -105,7 +105,7 @@ export function ReportsProvider({ children }: { children: React.ReactNode }) {
         setError(null);
       } else {
         // Artists / non-staff get a 403 — surface it plainly, don't crash.
-        setError(r.status === 403 ? "Reports are for owners and bookkeepers." : d.error || "Could not load reports.");
+        setError(r.status === 403 ? "Reports are for admins." : d.error || "Could not load reports.");
         setData(null);
       }
     } catch {

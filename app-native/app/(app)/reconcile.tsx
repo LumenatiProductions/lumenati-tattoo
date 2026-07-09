@@ -37,7 +37,7 @@ const usd = (c: number) =>
 export default function Reconcile() {
   const insets = useSafeAreaInsets();
   const { role } = useAuth();
-  const allowed = role === "owner" || role === "bookkeeper";
+  const allowed = role === "owner";
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,7 +56,7 @@ export default function Reconcile() {
     if (allowed) load();
   }, [allowed, load]);
 
-  // Same gate the server enforces (owner/bookkeeper) — without it an artist
+  // Same gate the server enforces (admins) — without it an artist
   // deep-linking here fires a doomed request and sees a raw fetch error.
   if (!allowed) {
     return (
@@ -64,7 +64,7 @@ export default function Reconcile() {
         <Stack.Screen options={{ headerShown: true, title: "Reconciliation", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
           <Card>
-            <Empty>Owners & bookkeepers only.</Empty>
+            <Empty>Admins only.</Empty>
           </Card>
         </View>
       </>

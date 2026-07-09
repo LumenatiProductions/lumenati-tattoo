@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // double-post, so mashing the button is safe. next_due then advances one
 // cadence step. A bill several periods behind posts one period per call —
 // press again to catch up (each press shows what it did).
-const BOOKS = ["owner", "bookkeeper"] as const;
+const BOOKS = ["owner"] as const;
 
 async function gate() {
   const supabase = await createClient();
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   const { supabase, user, role } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!role || !BOOKS.includes(role as (typeof BOOKS)[number])) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
 
   const b = (await req.json().catch(() => ({}))) as { id?: string };

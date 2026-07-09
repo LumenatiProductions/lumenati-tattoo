@@ -83,7 +83,7 @@ export default function CompliancePage() {
   // The API is owner-gated too — this just renders the clean message instead of
   // a wall of 403 errors if someone types the URL.
   if (realRole !== "owner") {
-    return <p className="text-sm text-white/65">Owners only.</p>;
+    return <p className="text-sm text-white/65">Admins only.</p>;
   }
 
   return (

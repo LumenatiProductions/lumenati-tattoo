@@ -19,7 +19,7 @@ const usd = (cents: number) =>
   (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 // The Stripe side of the books — read-only money in/out. Empty until Stripe keys
-// are set (POS-STARTER-1), then it's live. Owner/bookkeeper gated server-side.
+// are set (POS-STARTER-1), then it's live. Admin gated server-side.
 export default function StripeLedger() {
   const [rows, setRows] = useState<Row[]>([]);
   const [configured, setConfigured] = useState(true);

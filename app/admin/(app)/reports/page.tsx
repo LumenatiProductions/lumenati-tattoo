@@ -99,7 +99,7 @@ function ReportsInner() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm text-white/65">
-            Shop-wide financials, per-artist roll-ups, and 1099 prep. Owner &amp; bookkeeper only.
+            Shop-wide financials, per-artist roll-ups, and 1099 prep. Admins only.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">

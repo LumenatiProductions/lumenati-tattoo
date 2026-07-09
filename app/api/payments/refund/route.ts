@@ -6,13 +6,13 @@ import { pushEvent } from "@/lib/push/send";
 
 export const dynamic = "force-dynamic";
 
-// Refund a paid payment. Owner / bookkeeper only. For a Connect destination
+// Refund a paid payment. Admins only. For a Connect destination
 // charge (a ticket split to an artist) the refund REVERSES the transfer — the
 // money comes back out of the artist's balance and the shop's application fee is
 // returned proportionally — so a refund can't leave the shop out of pocket. We
 // then undo our books: flip the payment to `refunded`, drop the mirrored sale,
 // and mark a deposit's booking refunded. Idempotent on the payment id.
-const BOOKS = ["owner", "bookkeeper"] as const;
+const BOOKS = ["owner"] as const;
 
 async function staff() {
   const supabase = await createClient();
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const { role, shopId } = await staff();
   if (!role || !shopId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!BOOKS.includes(role as (typeof BOOKS)[number])) {
-    return NextResponse.json({ error: "Owners & bookkeepers only." }, { status: 403 });
+    return NextResponse.json({ error: "Admins only." }, { status: 403 });
   }
 
   const b = (await req.json().catch(() => ({}))) as { paymentId?: string; paymentIntentId?: string };

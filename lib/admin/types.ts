@@ -1,7 +1,14 @@
 // ── Lumenati command center: core domain types ──
 // Money is always integer cents to avoid float drift.
 
-export type Role = "owner" | "bookkeeper" | "artist" | "frontdesk";
+// Two roles, period (2026-07-09 artist-driven audit): Admin runs the shop,
+// Artist runs their chair. The stored admin value stays 'owner' so RLS and
+// gates keep their string; retired values (bookkeeper/frontdesk) normalize
+// to admin at the auth boundary and can no longer be assigned.
+export type Role = "owner" | "artist";
+
+export const normalizeRole = (raw: string | null | undefined): Role =>
+  raw === "artist" ? "artist" : raw === "owner" || raw === "bookkeeper" || raw === "frontdesk" ? "owner" : "artist";
 
 export type PayType = "payroll_salary" | "payroll_split" | "booth_rent";
 

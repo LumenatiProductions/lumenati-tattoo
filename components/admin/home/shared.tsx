@@ -74,7 +74,7 @@ export function Empty({ children }: { children: ReactNode }) {
   return <div className="px-4 py-6 text-center text-sm text-white/55">{children}</div>;
 }
 
-// Per-artist statement table. Shared by the owner + bookkeeper homes (both want
+// Per-artist statement table. (Both admin views want
 // the cross-artist money view; artists never see it). Renters show the card
 // money the shop is holding for them; split artists show the wages waiting to
 // go into Gusto. The salaried owner is already filtered out upstream.
@@ -137,7 +137,7 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
   );
 }
 
-// Booth-rent panel. Shared by the owner + bookkeeper homes.
+// Booth-rent panel.
 export function RentPanel({
   rent,
   outstanding,

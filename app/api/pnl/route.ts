@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // Profit & Loss — the one screen that answers "did the shop make money":
 // money in (from the canonical ledger) minus money out (expenses) = profit,
-// bucketed by month / quarter / year. Owner + bookkeeper only.
+// bucketed by month / quarter / year. Admins only.
 //
 // Income is the SHOP's money, not gross tickets: an artist's share of their
 // sales was never the shop's to keep, so it is deducted up front (same split
@@ -141,8 +141,8 @@ const blank = (key: string): PnlPeriod => ({
 export async function GET(req: Request) {
   const { role, authed, shopId } = await gate(req);
   if (!authed) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!role || !shopId || !["owner", "bookkeeper"].includes(role)) {
-    return NextResponse.json({ error: "Owners & bookkeepers only" }, { status: 403 });
+  if (!role || !shopId || role !== "owner") {
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const db = createAdminClient();
   if (!db) return NextResponse.json({ error: "Service role not set." }, { status: 500 });

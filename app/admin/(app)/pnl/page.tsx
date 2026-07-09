@@ -63,7 +63,7 @@ export default function PnlPage() {
       const r = await fetch(`/api/pnl?from=${range.from}&to=${range.to}&group=${group}`);
       const d = await r.json();
       if (!r.ok) {
-        setError(r.status === 403 ? "Owners & bookkeepers only." : d.error || "Could not load the P&L.");
+        setError(r.status === 403 ? "Admins only." : d.error || "Could not load the P&L.");
         setData(null);
       } else {
         setData(d);
@@ -93,7 +93,7 @@ export default function PnlPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Profit &amp; Loss</h1>
           <p className="text-sm text-white/65">
-            Money in minus money out — the shop&apos;s actual profit. Owner &amp; bookkeeper only.
+            Money in minus money out — the shop&apos;s actual profit. Admins only.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">

@@ -27,13 +27,10 @@ const daysAgoLocal = (n: number) => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 
-// Two roles now: Admin runs the shop, Artist runs their chair (legacy
-// bookkeeper/frontdesk values read as Admin).
+// Two roles: Admin runs the shop, Artist runs their chair.
 const ROLE_LABEL: Record<string, string> = {
   owner: "Admin",
-  bookkeeper: "Admin",
   artist: "Artist",
-  frontdesk: "Admin",
 };
 
 // Role-routed home: artists get the money + coaching dashboard (6b), staff get
@@ -41,7 +38,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default function Home() {
   const { role, email, fullName, signOut } = useAuth();
   const insets = useSafeAreaInsets();
-  const isStaff = role === "owner" || role === "bookkeeper" || role === "frontdesk";
+  const isStaff = role === "owner";
   // Greet like a person: profile name first, email prefix as the fallback.
   const firstName = (fullName ?? "").trim().split(/\s+/)[0] || (email ?? "").split("@")[0];
   const [refreshing, setRefreshing] = useState(false);
@@ -177,8 +174,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
   const [stats, setStats] = useState<StaffStats | null>(null);
   // Same role gating as the Launcher — a glance row never opens a screen the
   // role can't use. Bookkeepers also skip ops noise (stock/follow-ups), like
-  // the web bookkeeper home.
-  const ops = role === "owner" || role === "frontdesk";
+  const ops = role === "owner";
 
   useEffect(() => {
     (async () => {
