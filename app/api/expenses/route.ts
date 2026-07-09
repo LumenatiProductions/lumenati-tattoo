@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { storeProofPhoto } from "@/lib/storage/proof";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
     amountCents?: number;
     note?: string;
     receiptUrl?: string;
+    receiptBase64?: string;
     // Optional restock link: a supplies purchase can land in inventory too.
     restockItemId?: string;
     restockQty?: number;
@@ -95,6 +97,18 @@ export async function POST(req: Request) {
     .filter(Boolean)
     .join(" ");
 
+  // Receipt photo (note 13): store the snap privately, keep the path on the row.
+  let receiptPath: string | null = null;
+  if (b.receiptBase64) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    if (admin) {
+      const stored = await storeProofPhoto(admin, "receipts", b.receiptBase64);
+      if (stored.error) return NextResponse.json({ error: stored.error }, { status: 400 });
+      receiptPath = stored.path ?? null;
+    }
+  }
+
   const { data, error } = await supabase
     .from("expenses")
     .insert({
@@ -103,7 +117,7 @@ export async function POST(req: Request) {
       vendor: orNull(b.vendor),
       amount_cents: amountCents,
       note,
-      receipt_url: orNull(b.receiptUrl),
+      receipt_url: receiptPath ?? orNull(b.receiptUrl),
     })
     .select()
     .single();

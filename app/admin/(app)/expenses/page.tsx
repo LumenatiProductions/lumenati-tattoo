@@ -94,6 +94,16 @@ function Inner() {
                   <td className="px-4 py-2.5">
                     {e.vendor || <span className="text-white/45">—</span>}
                     {e.note && <div className="text-xs text-white/55">{e.note}</div>}
+                    {e.receipt_url && (
+                      <a
+                        href={`/api/cash/photo?expense=${e.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-white/60 underline hover:text-white"
+                      >
+                        receipt
+                      </a>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 tnum font-medium">{usd(e.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
@@ -381,6 +391,7 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
   const [note, setNote] = useState("");
   const [restockItemId, setRestockItemId] = useState("");
   const [restockQty, setRestockQty] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -401,12 +412,22 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
     }
     setBusy(true);
     setErr(null);
+    let receiptBase64: string | undefined;
+    if (receipt) {
+      receiptBase64 = await new Promise<string>((res2, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res2(String(fr.result));
+        fr.onerror = rej;
+        fr.readAsDataURL(receipt);
+      });
+    }
     const res = await onAdd({
       date,
       category,
       vendor: vendor || null,
       amountCents: cents,
       note,
+      ...(receiptBase64 ? { receiptBase64 } : {}),
       ...(category === "supplies" && restockItemId ? { restockItemId, restockQty: qty } : {}),
     });
     setBusy(false);
@@ -416,6 +437,7 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
       setNote("");
       setRestockItemId("");
       setRestockQty("");
+      setReceipt(null);
     } else {
       setErr(res.error || "Could not add.");
     }
@@ -490,7 +512,7 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
         )}
 
         {err && <div className="text-xs text-rose-400 sm:col-span-5">{err}</div>}
-        <div className="sm:col-span-5">
+        <div className="flex items-center gap-3 sm:col-span-5">
           <button
             type="submit"
             disabled={busy}
@@ -498,6 +520,16 @@ function AddForm({ onAdd }: { onAdd: (input: ExpenseInput) => Promise<{ ok: bool
           >
             {busy ? "Adding…" : "Add expense"}
           </button>
+          <label className="cursor-pointer rounded-lg border border-white/15 px-3 py-2 text-xs text-white/70 hover:bg-white/5">
+            {receipt ? `Receipt: ${receipt.name}` : "Attach receipt photo"}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
+            />
+          </label>
         </div>
       </form>
     </Card>

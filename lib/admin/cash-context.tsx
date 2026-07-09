@@ -13,6 +13,12 @@ export type CashEntry = {
   reconciled: boolean;
   reconciled_at: string | null;
   created_at: string;
+  // The handoff board (page-walk 12/13): where the dollar physically is.
+  handed_off_at: string | null;
+  received_at: string | null;
+  received_by: string | null;
+  photo_path: string | null;
+  rent_invoice_id: string | null;
 };
 
 export type NewCashEntry = {
@@ -35,6 +41,8 @@ type CashCtx = {
   refresh: () => Promise<void>;
   addEntry: (input: NewCashEntry) => Promise<{ ok: boolean; error?: string }>;
   toggleReconciled: (id: string, reconciled: boolean) => Promise<void>;
+  /** The admin's Got-it tap; optional stack photo rides along as base64. */
+  receive: (id: string, imageBase64?: string) => Promise<{ ok: boolean; error?: string }>;
 };
 
 const Ctx = createContext<CashCtx>({
@@ -47,6 +55,7 @@ const Ctx = createContext<CashCtx>({
   refresh: async () => {},
   addEntry: async () => ({ ok: false }),
   toggleReconciled: async () => {},
+  receive: async () => ({ ok: false }),
 });
 
 export function CashProvider({ children }: { children: React.ReactNode }) {
@@ -115,6 +124,25 @@ export function CashProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  const receive: CashCtx["receive"] = useCallback(
+    async (id, imageBase64) => {
+      try {
+        const r = await fetch("/api/cash/receive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryId: id, ...(imageBase64 ? { imageBase64 } : {}) }),
+        });
+        const d = await r.json().catch(() => ({}));
+        await refresh();
+        return r.ok ? { ok: true } : { ok: false, error: d.error || "Could not mark it received." };
+      } catch {
+        await refresh();
+        return { ok: false, error: "Could not mark it received." };
+      }
+    },
+    [refresh],
+  );
+
   const { totalCents, outstandingCents } = useMemo(
     () => ({
       totalCents: entries.reduce((a, c) => a + c.amount_cents, 0),
@@ -135,6 +163,7 @@ export function CashProvider({ children }: { children: React.ReactNode }) {
         refresh,
         addEntry,
         toggleReconciled,
+        receive,
       }}
     >
       {children}

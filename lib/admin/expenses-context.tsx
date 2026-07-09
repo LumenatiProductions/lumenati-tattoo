@@ -20,6 +20,8 @@ export type ExpenseInput = {
   amountCents: number;
   note?: string;
   receiptUrl?: string | null;
+  /** Receipt snap as a data URL — stored privately server-side (note 13). */
+  receiptBase64?: string;
   /** Optional: also receive stock for this purchase (supplies). */
   restockItemId?: string;
   restockQty?: number;

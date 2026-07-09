@@ -18,7 +18,7 @@ export type InventoryItem = {
   unit: string;
 };
 
-async function capture(): Promise<{ base64: string; mediaType: string } | null> {
+export async function capture(): Promise<{ base64: string; mediaType: string } | null> {
   const cam = await ImagePicker.requestCameraPermissionsAsync();
   const opts: ImagePicker.ImagePickerOptions = { base64: true, quality: 0.6, allowsEditing: false };
   const res = cam.granted

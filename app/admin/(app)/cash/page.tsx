@@ -18,9 +18,34 @@ const fmtDate = (iso: string) =>
 
 export default function CashPage() {
   const { artists } = useArtists();
-  const { entries, loading, error, configured, totalCents, outstandingCents, addEntry, toggleReconciled, refresh } =
+  const { entries, loading, error, configured, totalCents, outstandingCents, addEntry, toggleReconciled, receive, refresh } =
     useCash();
   const [adding, setAdding] = useState(false);
+  const [receiveErr, setReceiveErr] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // The handoff board: where every cash dollar physically is right now.
+  const inTransit = entries.filter((c) => c.handed_off_at && !c.received_at);
+  const atChairs = entries.filter((c) => c.artist_id && !c.handed_off_at && !c.received_at);
+  const inBox = entries.filter((c) => c.received_at && !c.reconciled);
+  const sum = (xs: CashEntry[]) => xs.reduce((a, c) => a + c.amount_cents, 0);
+
+  const gotIt = async (id: string, file?: File | null) => {
+    setBusyId(id);
+    setReceiveErr(null);
+    let imageBase64: string | undefined;
+    if (file) {
+      imageBase64 = await new Promise<string>((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result));
+        fr.onerror = rej;
+        fr.readAsDataURL(file);
+      });
+    }
+    const r = await receive(id, imageBase64);
+    setBusyId(null);
+    if (!r.ok) setReceiveErr(r.error ?? "Could not mark it received.");
+  };
 
   const doneCount = entries.filter((c) => c.reconciled).length;
 
@@ -29,8 +54,9 @@ export default function CashPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Cash Log</h1>
         <p className="text-sm text-white/65">
-          The shop runs a lot of cash. Log it at the desk, reconcile against the
-          drawer, and it flows into the books.
+          Cash the shop is holding, live. Artists log it at the chair, tap when they
+          hand it off, you tap when the stack is in your hand — reconciling is just
+          confirming the count.
         </p>
       </div>
 
@@ -45,6 +71,61 @@ export default function CashPage() {
         <div className="mb-5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
           {error}
         </div>
+      )}
+
+      {/* ── The handoff board ── */}
+      <div className="mb-5 grid grid-cols-3 gap-3">
+        <StatCard label="In the box" value={fmtPrecise(sum(inBox))} tone="good" />
+        <StatCard label="In transit" value={fmtPrecise(sum(inTransit))} tone={inTransit.length ? "warn" : undefined} />
+        <StatCard label="Still at the chairs" value={fmtPrecise(sum(atChairs))} tone={atChairs.length ? "warn" : undefined} />
+      </div>
+      {receiveErr && (
+        <div className="mb-4 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">{receiveErr}</div>
+      )}
+      {inTransit.length > 0 && (
+        <>
+          <SectionTitle>Incoming — tap when the stack is in your hand</SectionTitle>
+          <Card className="mb-5">
+            <div className="divide-y divide-white/8">
+              {inTransit.map((c) => {
+                const a = artists.find((x) => x.id === c.artist_id);
+                return (
+                  <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                    <div>
+                      <div className="text-sm font-medium">
+                        {fmtPrecise(c.amount_cents)} · {a?.name ?? "Shop"}
+                      </div>
+                      <div className="text-xs text-white/60">
+                        {fmtDate(c.date)}
+                        {c.note ? ` · ${c.note}` : ""}
+                        {c.rent_invoice_id ? " · cash rent — Got it marks it paid" : ""}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer rounded-lg border border-white/15 px-2.5 py-1.5 text-xs text-white/70 hover:bg-white/5">
+                        Snap + got it
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => gotIt(c.id, e.target.files?.[0])}
+                        />
+                      </label>
+                      <button
+                        onClick={() => gotIt(c.id)}
+                        disabled={busyId === c.id}
+                        className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40"
+                      >
+                        {busyId === c.id ? "…" : "Got it"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </>
       )}
 
       <DrawerPanel entriesVersion={entries.length} />
@@ -125,17 +206,35 @@ export default function CashPage() {
                   <td className="px-4 py-2.5 text-white/60">{c.entered_by ?? "—"}</td>
                   <td className="tnum px-4 py-2.5 text-right font-medium">{fmtPrecise(c.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <button
-                      onClick={() => toggleReconciled(c.id, !c.reconciled)}
-                      className="align-middle"
-                      title="Toggle reconciled"
-                    >
-                      {c.reconciled ? (
-                        <Badge tone="good">reconciled</Badge>
-                      ) : (
-                        <Badge tone="warn">open</Badge>
-                      )}
-                    </button>
+                    <span className="inline-flex items-center gap-2">
+                      {c.photo_path ? (
+                        <a
+                          href={`/api/cash/photo?entry=${c.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-white/60 underline hover:text-white"
+                        >
+                          photo
+                        </a>
+                      ) : null}
+                      <button
+                        onClick={() => toggleReconciled(c.id, !c.reconciled)}
+                        className="align-middle"
+                        title="Toggle reconciled"
+                      >
+                        {c.reconciled ? (
+                          <Badge tone="good">reconciled</Badge>
+                        ) : c.received_at ? (
+                          <Badge tone="warn">in the box</Badge>
+                        ) : c.handed_off_at ? (
+                          <Badge tone="neutral">in transit</Badge>
+                        ) : c.artist_id ? (
+                          <Badge tone="neutral">with artist</Badge>
+                        ) : (
+                          <Badge tone="warn">open</Badge>
+                        )}
+                      </button>
+                    </span>
                   </td>
                 </tr>
               );

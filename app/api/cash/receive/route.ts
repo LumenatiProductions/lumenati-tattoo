@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveStaff } from "@/lib/api-auth";
+import { storeProofPhoto } from "@/lib/storage/proof";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   if (!me) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (me.role !== "owner") return NextResponse.json({ error: "Admins only" }, { status: 403 });
 
-  const b = (await req.json().catch(() => ({}))) as { entryId?: string; photoPath?: string };
+  const b = (await req.json().catch(() => ({}))) as { entryId?: string; photoPath?: string; imageBase64?: string };
   if (!b.entryId) return NextResponse.json({ error: "Missing entryId" }, { status: 400 });
 
   const { data: entry } = await me.db
@@ -31,6 +32,15 @@ export async function POST(req: Request) {
     handed_off_at: new Date().toISOString(),
   };
   if (b.photoPath) patch.photo_path = b.photoPath;
+  // Snap-the-stack (note 13): the photo rides the same request as the tap.
+  if (b.imageBase64) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    if (!admin) return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
+    const stored = await storeProofPhoto(admin, "cash", b.imageBase64);
+    if (stored.error) return NextResponse.json({ error: stored.error }, { status: 400 });
+    patch.photo_path = stored.path;
+  }
   const { error } = await me.db
     .from("cash_entries")
     .update(patch)

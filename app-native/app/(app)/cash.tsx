@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { apiPost } from "@/lib/appApi";
-import { snapCash } from "@/lib/vision";
+import { capture, snapCash } from "@/lib/vision";
 import { success } from "@/lib/haptics";
 import { theme, money } from "@/lib/theme";
 import { ActionPill, Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
@@ -125,10 +125,13 @@ export default function Cash() {
     load();
   };
 
-  const gotIt = async (r: Entry) => {
+  const receive = async (r: Entry, imageBase64?: string) => {
     setBusyId(r.id);
     setErr(null);
-    const res = await apiPost<{ rentPaid: boolean }>("/api/cash/receive", { entryId: r.id });
+    const res = await apiPost<{ rentPaid: boolean }>("/api/cash/receive", {
+      entryId: r.id,
+      ...(imageBase64 ? { imageBase64 } : {}),
+    });
     setBusyId(null);
     if (!res.ok) {
       setErr(res.error ?? "Could not mark it received.");
@@ -136,6 +139,21 @@ export default function Cash() {
     }
     success();
     load();
+  };
+
+  // Got it, with the optional snap-the-stack (note 13) — proof lives on the line.
+  const gotIt = (r: Entry) => {
+    Alert.alert(`Got ${money(r.amount_cents)}?`, "Snap the stack for the record, or just confirm.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Snap + confirm",
+        onPress: async () => {
+          const img = await capture();
+          await receive(r, img?.base64);
+        },
+      },
+      { text: "Got it", onPress: () => receive(r) },
+    ]);
   };
 
   const all = rows ?? [];
