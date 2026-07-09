@@ -109,22 +109,17 @@ cycle, verified gone; nothing sent, nothing built, no database changes.
 
 ## Needs Scott
 
-- **Report date ranges are anchored to the computer clock (UTC), not Denver.**
-  Reports' "this month / this quarter / YTD" presets flip to the new period a
-  few hours early on the last evening of a period (e.g. New Year's Eve after
-  5pm). Left alone on purpose: the whole reports pipe is consistently anchored
-  that way, and re-anchoring money windows deserves a decision (shop timezone
-  setting?) rather than an overnight edit. Same story for the automated
-  overnight jobs (follow-up sends, recurring bills) — they run on computer
-  time, which shifts their "due today" by a few hours, harmless for sends
-  that happen during the day.
+- ~~Report date ranges anchored to the computer clock~~ — RESOLVED (Scott,
+  morning of 7/9): they follow the shop's clock now. Reports/P&L presets and
+  the app's Reports window all anchor to the local calendar instead of the
+  world clock, so "this month" no longer flips to the new period at 5-6pm on
+  the last evening. The overnight automated jobs still run on computer time
+  (their sends happen during the day, so no visible effect).
 
-- **Tax set-aside default for payroll artists.** The app's tax reserve and
-  goals dial default everyone to a 30% set-aside. For W-2 payroll artists
-  (J.D., Kalypso, Moonie) taxes already come out of their Gusto paychecks, so
-  30% is probably too aggressive a default — the copy already explains it
-  right, this is only about the starting number. Design call: keep 30% for
-  everyone, or start payroll folks lower (e.g. 10% for cash tips)?
+- ~~Tax set-aside default for payroll artists~~ — RESOLVED (Scott, morning
+  of 7/9): Gusto handles their withholding. Payroll artists now default to a
+  10% set-aside (cash tips + side work); renters stay at 30%. Anyone who has
+  saved their own number keeps it.
 
 ## Checked clean
 

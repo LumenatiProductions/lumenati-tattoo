@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import MoneyChart from "@/components/MoneyChart";
 import { cumulativeSeries, type SaleRow } from "@/lib/personal";
+import { todayLocal } from "@/lib/dates";
 
 type Artist = {
   id: string;
@@ -58,12 +59,14 @@ export default function ReportsScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     const [r, s] = await Promise.all([
-      apiGet<Reports>("/api/reports"),
+      // Anchor the default YTD window to the phone's local calendar — the
+      // server would otherwise use UTC, which is tomorrow from 5-6pm Denver.
+      apiGet<Reports>(`/api/reports?from=${todayLocal().slice(0, 4)}-01-01&to=${todayLocal()}`),
       // Month-to-date shop gross for the chart (owner/bookkeeper RLS sees all).
       supabase
         .from("sales")
         .select("created_at, service_cents, tip_cents")
-        .gte("created_at", `${new Date().toISOString().slice(0, 7)}-01`),
+        .gte("created_at", `${todayLocal().slice(0, 7)}-01`),
     ]);
     setMonthSales(((s.data ?? []) as SaleRow[]) || []);
     if (r.ok && r.data) {

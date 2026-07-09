@@ -6,7 +6,7 @@ import { theme, money } from "@/lib/theme";
 import { Button } from "@/components/ui";
 import { Chips } from "@/components/form";
 import GoalDial from "@/components/GoalDial";
-import { loadGoals, loadMoney, loadRent, saveGoals, taxStatusForPayType } from "@/lib/personal";
+import { defaultTaxPctFor, loadGoals, loadMoney, loadRent, saveGoals, taxStatusForPayType } from "@/lib/personal";
 import { avgWeeklyCents, suggestedWeeklyCents } from "@/lib/coach";
 import { milestone } from "@/lib/haptics";
 
@@ -37,19 +37,18 @@ export default function Goals() {
   const [avgWeek, setAvgWeek] = useState(0);
 
   useEffect(() => {
-    loadGoals().then((g) => {
+    // The tax situation follows the pay setup (renters 1099, payroll W-2);
+    // the manual chips only show for accounts with no artist link. Until the
+    // artist saves their own %, the dial's default follows the pay type too
+    // (W-2 = Gusto already withholds, start at 10% for cash tips; 1099 = 30%).
+    Promise.all([loadGoals(), loadRent()]).then(([g, r]) => {
       setWeekly(g.weekly_cents);
       setMonthly(g.monthly_cents);
-      setTaxPct(Math.round(g.tax_setaside_pct * 100));
-      setTaxStatus(g.tax_status);
-    });
-    // The tax situation follows the pay setup (renters 1099, payroll W-2);
-    // the manual chips only show for accounts with no artist link.
-    loadRent().then((r) => {
       const pt = r?.payType ?? null;
       setPayType(pt);
-      const derived = taxStatusForPayType(pt);
-      if (derived) setTaxStatus(derived);
+      const status = taxStatusForPayType(pt) ?? g.tax_status;
+      setTaxStatus(status);
+      setTaxPct(Math.round((g.saved ? g.tax_setaside_pct : defaultTaxPctFor(status)) * 100));
     });
     // Coach: a suggestion grounded in their own last two months.
     loadMoney().then((m) => {
@@ -158,8 +157,10 @@ export default function Goals() {
         )}
 
         <Text style={styles.help}>
-          Weekly and monthly stay in sync — they&apos;re one goal, two views. A common tax
-          starting point is 25–30%; adjust with your tax pro — this app estimates, it doesn&apos;t file.
+          Weekly and monthly stay in sync — they&apos;re one goal, two views.{" "}
+          {taxStatus === "w2"
+            ? "Gusto already withholds tax from your paychecks — this set-aside is just for cash tips and side work. Adjust with your tax pro — this app estimates, it doesn't file."
+            : "A common tax starting point is 25–30%; adjust with your tax pro — this app estimates, it doesn't file."}
         </Text>
         {error && <Text style={styles.error}>{error}</Text>}
         <View style={{ height: 14 }} />

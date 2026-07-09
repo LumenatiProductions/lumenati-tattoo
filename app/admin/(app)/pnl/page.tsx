@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, SectionTitle, StatCard } from "@/components/admin/ui";
 import ProfitChart from "@/components/admin/ProfitChart";
+import { todayLocal } from "@/lib/dates";
 
 // Profit & Loss — the one screen that answers "did the shop make money".
 // Money in (ledger) minus money out (expenses) = profit, by month/quarter/year.
@@ -51,9 +52,9 @@ export default function PnlPage() {
   const [error, setError] = useState<string | null>(null);
 
   const range = useMemo(() => {
-    if (scope === "all") return { from: "2021-01-01", to: new Date().toISOString().slice(0, 10) };
+    if (scope === "all") return { from: "2021-01-01", to: todayLocal() };
     const isCurrent = scope === String(thisYear);
-    return { from: `${scope}-01-01`, to: isCurrent ? new Date().toISOString().slice(0, 10) : `${scope}-12-31` };
+    return { from: `${scope}-01-01`, to: isCurrent ? todayLocal() : `${scope}-12-31` };
   }, [scope]);
 
   const refresh = useCallback(async () => {
@@ -367,7 +368,7 @@ function Line({ label, value, bold = false }: { label: string; value: number; bo
 // never changes profit, so it lives on this page below the line.
 function DrawsSection({ onChange }: { onChange: () => void }) {
   const [draws, setDraws] = useState<Draw[]>([]);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayLocal());
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("transfer");
   const [note, setNote] = useState("");

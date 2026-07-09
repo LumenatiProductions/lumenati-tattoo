@@ -27,6 +27,8 @@ import {
   type Range,
   type MoneySnapshot,
   type Goals,
+  type GoalsLoad,
+  defaultTaxPctFor,
   type Expense,
 } from "@/lib/personal";
 
@@ -55,7 +57,7 @@ export default function ArtistMoney({
   const router = useRouter();
   const [range, setRange] = useState<Range>("week");
   const [snap, setSnap] = useState<MoneySnapshot | null>(null);
-  const [goals, setGoals] = useState<Goals | null>(null);
+  const [goals, setGoals] = useState<GoalsLoad | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [rent, setRent] = useState<RentStatus | null>(null);
 
@@ -106,13 +108,15 @@ export default function ArtistMoney({
   const maxBar = Math.max(1, ...bars.map((b) => b.cents));
 
   // Tax: reserve = (earned − deductions) × pct. The tax situation follows the
-  // pay setup (renters 1099, payroll artists W-2); the manual goals setting is
-  // only the fallback when no artist link exists.
+  // pay setup (renters 1099, payroll artists W-2); until the artist saves
+  // their own %, the default follows it too (W-2 = Gusto withholds, keep 10%
+  // for cash tips; 1099 = 30%).
   const ytd = earnedInRange(snap.sales, "year");
   const deductYtd = expensesYtd(expenses);
   const taxable = Math.max(0, ytd.total - deductYtd);
-  const reserve = Math.round(taxable * goals.tax_setaside_pct);
   const taxStatus = taxStatusForPayType(rent?.payType) ?? goals.tax_status;
+  const taxPct = goals.saved ? goals.tax_setaside_pct : defaultTaxPctFor(taxStatus);
+  const reserve = Math.round(taxable * taxPct);
 
   return (
     <View>
@@ -144,7 +148,7 @@ export default function ArtistMoney({
         <Stat label="You earned" value={money(e.total)} countTo={e.total} sub={`${money(e.tips)} tips`} hero />
         <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
         <Stat label="Tickets" value={String(e.tickets)} />
-        <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(goals.tax_setaside_pct * 100)}% set-aside`} warn />
+        <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(taxPct * 100)}% set-aside`} warn />
       </View>
 
       {/* Rewards — earned milestones from their own numbers, plus the next to chase */}
@@ -231,7 +235,7 @@ export default function ArtistMoney({
         bookings: snap.bookings,
         expenses,
         weeklyGoalCents: goals.weekly_cents,
-        taxPct: goals.tax_setaside_pct,
+        taxPct,
         ytdCents: ytd.total,
         reserveCents: reserve,
         taxStatus,

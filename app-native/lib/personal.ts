@@ -263,12 +263,19 @@ export type Goals = {
 };
 const DEFAULT_GOALS: Goals = { weekly_cents: 0, monthly_cents: 0, tax_setaside_pct: 0.3, tax_status: "1099" };
 
-export async function loadGoals(): Promise<Goals> {
+// Default set-aside follows the pay setup (Scott, 2026-07-09): Gusto already
+// withholds from W-2 paychecks, so payroll artists only need a small cushion
+// for cash tips and side work. Renters are 1099 — nothing is withheld
+// anywhere, so 30% stays their starting point. A saved goals row always wins.
+export const defaultTaxPctFor = (s: TaxStatus): number => (s === "w2" ? 0.1 : 0.3);
+
+export type GoalsLoad = Goals & { saved: boolean };
+export async function loadGoals(): Promise<GoalsLoad> {
   const { data } = await supabase
     .from("artist_goals")
     .select("weekly_cents, monthly_cents, tax_setaside_pct, tax_status")
     .maybeSingle();
-  return data ? { ...DEFAULT_GOALS, ...data } : DEFAULT_GOALS;
+  return data ? { ...DEFAULT_GOALS, ...data, saved: true } : { ...DEFAULT_GOALS, saved: false };
 }
 
 export async function saveGoals(g: Goals): Promise<{ ok: boolean; error?: string }> {

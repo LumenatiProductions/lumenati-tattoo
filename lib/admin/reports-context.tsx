@@ -43,29 +43,25 @@ export type ReportData = {
 
 // ── Date-range presets ──────────────────────────────────────────────────────
 export type RangePreset = "this_month" | "this_quarter" | "ytd" | "year";
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+// Local calendar, not UTC: this runs in the shop's browser, and "this month"
+// must not flip to the new period at 5-6pm Denver on the last evening.
+const iso = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const firstOfMonth = (y: number, m0: number) => `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
 
 // Resolve a preset (optionally for a specific calendar year, used by the 1099
 // view) to a concrete {from,to}. "year" needs `year`; the others are relative
 // to today.
 export function resolveRange(preset: RangePreset, year?: number): { from: string; to: string } {
   const now = new Date();
-  const y = year ?? now.getUTCFullYear();
+  const y = year ?? now.getFullYear();
   if (preset === "year") return { from: `${y}-01-01`, to: `${y}-12-31` };
-  if (preset === "ytd") return { from: `${now.getUTCFullYear()}-01-01`, to: iso(now) };
+  if (preset === "ytd") return { from: `${now.getFullYear()}-01-01`, to: iso(now) };
   if (preset === "this_month") {
-    const m = now.getUTCMonth();
-    return {
-      from: iso(new Date(Date.UTC(now.getUTCFullYear(), m, 1))),
-      to: iso(now),
-    };
+    return { from: firstOfMonth(now.getFullYear(), now.getMonth()), to: iso(now) };
   }
   // this_quarter
-  const q = Math.floor(now.getUTCMonth() / 3);
-  return {
-    from: iso(new Date(Date.UTC(now.getUTCFullYear(), q * 3, 1))),
-    to: iso(now),
-  };
+  const q = Math.floor(now.getMonth() / 3);
+  return { from: firstOfMonth(now.getFullYear(), q * 3), to: iso(now) };
 }
 
 type ReportsCtx = {
