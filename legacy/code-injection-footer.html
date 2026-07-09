@@ -164,7 +164,11 @@
   };
 
   var path=window.location.pathname.replace(/\/$/,'');
-  var currentTrack=(path in pageTrackMap)?pageTrackMap[path]:Math.floor(Math.random()*playlist.length);
+  // Room pages inject their artist's pick (window.__ROOM_SONG_ID__, set from
+  // room data). The legacy path map stays as a fallback; homepage is random.
+  var songIdMap={'offspring':0,'goldfinger':1,'no-doubt':2,'shorty':3,'outkast':4,'blink182':5,'manson':6};
+  var roomSong=(typeof window.__ROOM_SONG_ID__==='string'&&songIdMap.hasOwnProperty(window.__ROOM_SONG_ID__))?songIdMap[window.__ROOM_SONG_ID__]:null;
+  var currentTrack=(roomSong!==null)?roomSong:((path in pageTrackMap)?pageTrackMap[path]:Math.floor(Math.random()*playlist.length));
 
   function loadTrack(i){
     currentTrack=i;

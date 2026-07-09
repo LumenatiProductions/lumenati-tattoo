@@ -115,5 +115,8 @@ export function renderRoomHtml(
     html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-skate">[\s\S]*?<\/a>\s*/, "");
   }
 
+  // The Winamp widget (site-wide bundle) starts on the artist's actual pick.
+  html += `\n<script>window.__ROOM_SONG_ID__=${JSON.stringify(content.songId)};</script>`;
+
   return html;
 }
