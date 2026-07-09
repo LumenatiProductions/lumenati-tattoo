@@ -305,6 +305,24 @@ export default function Bookings() {
         )}
         {!isStaff && b.status === "scheduled" && b.artist_id === myArtistId && (
           <View style={styles.actions}>
+            {/* Artists close out their own chair — no front desk. RLS + a DB
+                guard allow exactly these transitions on their own bookings. */}
+            <ActionPill label="Complete" onPress={() => setStatus(b.id, "completed")} />
+            <ActionPill
+              label="No-show"
+              onPress={() =>
+                Alert.alert(
+                  "Mark this a no-show?",
+                  b.deposit_status === "held"
+                    ? "They didn't make it — their deposit stays with the shop."
+                    : "They didn't make it. If anyone's waiting you can offer the freed slot.",
+                  [
+                    { text: "Keep it", style: "cancel" },
+                    { text: "No-show", style: "destructive", onPress: () => setStatus(b.id, "no_show") },
+                  ],
+                )
+              }
+            />
             <ActionPill
               label="Cancel"
               onPress={() =>
