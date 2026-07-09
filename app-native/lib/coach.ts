@@ -170,7 +170,7 @@ export function coachTips(opts: {
   bookings: BookingRow[];
   expenses: Expense[];
   weeklyGoalCents: number;
-  taxPct: number; // 0..1
+  taxPct: number | null; // 0..1, null until the artist saves their own
   ytdCents: number;
   reserveCents: number;
   taxStatus: "1099" | "w2";
@@ -186,11 +186,11 @@ export function coachTips(opts: {
   if (is1099) {
     tips.push({
       title: "Nobody is withholding for you",
-      body: `As a booth renter you're a contractor (1099) — everything you're handed is GROSS, before tax. The shop holds nothing back (your card sales pass through 100%), and neither does this app. Move ${Math.round(
-        opts.taxPct * 100,
-      )}% of every payment into a separate savings account the day you get it. Right now that account should hold about ${usd(
-        opts.reserveCents,
-      )}.`,
+      body: `As a booth renter you're a contractor (1099) — everything you're handed is GROSS, before tax. The shop holds nothing back (your card sales pass through 100%), and neither does this app. ${
+        opts.taxPct != null
+          ? `Move ${Math.round(opts.taxPct * 100)}% of every payment into a separate savings account the day you get it. Right now that account should hold about ${usd(opts.reserveCents)}.`
+          : "Pick your set-aside % in Goals — 25-30% is a common starting point, but it's your number (your tax pro knows it best)."
+      }`,
     });
   } else {
     tips.push({
@@ -226,7 +226,7 @@ export function coachTips(opts: {
     });
   }
 
-  if (is1099 && opts.taxPct < 0.2 && opts.ytdCents > 1000000) {
+  if (is1099 && opts.taxPct != null && opts.taxPct < 0.2 && opts.ytdCents > 1000000) {
     tips.push({
       title: "Your set-aside looks thin",
       body: `You're saving ${Math.round(

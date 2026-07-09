@@ -2,14 +2,14 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/lib/theme";
 import { computeRewards } from "@/lib/rewards";
-import type { MoneySnapshot, Goals } from "@/lib/personal";
+import type { MoneySnapshot, GoalsLoad } from "@/lib/personal";
 
 // Earned achievements as a horizontal strip of chips, colored by tone, with a
 // dashed "Next:" teaser for the closest one left to chase. Tasteful, not corny.
 
 const TONE: Record<string, string> = { brand: theme.brand, gold: "#FFD700", good: theme.good };
 
-export default function RewardsStrip({ snap, goals }: { snap: MoneySnapshot; goals: Goals }) {
+export default function RewardsStrip({ snap, goals }: { snap: MoneySnapshot; goals: GoalsLoad }) {
   const { earned, next } = computeRewards(snap, goals);
   if (earned.length === 0 && !next) return null;
 

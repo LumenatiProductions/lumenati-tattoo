@@ -28,7 +28,6 @@ import {
   type MoneySnapshot,
   type Goals,
   type GoalsLoad,
-  defaultTaxPctFor,
   type Expense,
 } from "@/lib/personal";
 
@@ -108,15 +107,15 @@ export default function ArtistMoney({
   const maxBar = Math.max(1, ...bars.map((b) => b.cents));
 
   // Tax: reserve = (earned − deductions) × pct. The tax situation follows the
-  // pay setup (renters 1099, payroll artists W-2); until the artist saves
-  // their own %, the default follows it too (W-2 = Gusto withholds, keep 10%
-  // for cash tips; 1099 = 30%).
+  // pay setup (renters 1099, payroll artists W-2), but the % is THEIRS — the
+  // app assumes nothing until they save one (Scott, 2026-07-09), it only
+  // suggests on the Goals screen.
   const ytd = earnedInRange(snap.sales, "year");
   const deductYtd = expensesYtd(expenses);
   const taxable = Math.max(0, ytd.total - deductYtd);
   const taxStatus = taxStatusForPayType(rent?.payType) ?? goals.tax_status;
-  const taxPct = goals.saved ? goals.tax_setaside_pct : defaultTaxPctFor(taxStatus);
-  const reserve = Math.round(taxable * taxPct);
+  const taxPct = goals.saved ? goals.tax_setaside_pct : null;
+  const reserve = taxPct == null ? 0 : Math.round(taxable * taxPct);
 
   return (
     <View>
@@ -148,7 +147,12 @@ export default function ArtistMoney({
         <Stat label="You earned" value={money(e.total)} countTo={e.total} sub={`${money(e.tips)} tips`} hero />
         <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
         <Stat label="Tickets" value={String(e.tickets)} />
-        <Stat label="Tax reserve" value={money(reserve)} sub={`${Math.round(taxPct * 100)}% set-aside`} warn />
+        <Stat
+          label="Tax reserve"
+          value={taxPct == null ? "—" : money(reserve)}
+          sub={taxPct == null ? "pick your % in Goals" : `${Math.round(taxPct * 100)}% set-aside`}
+          warn={taxPct != null}
+        />
       </View>
 
       {/* Rewards — earned milestones from their own numbers, plus the next to chase */}
@@ -249,14 +253,28 @@ export default function ArtistMoney({
         ))}
 
       {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
-      <SectionTitle right={<EditLink label="Edit %" onPress={() => router.push("/goals")} />}>Taxes</SectionTitle>
+      <SectionTitle right={taxPct != null ? <EditLink label="Edit %" onPress={() => router.push("/goals")} /> : undefined}>Taxes</SectionTitle>
       <Card>
         <Row label={taxStatus === "1099" ? "Earned YTD (1099 basis)" : "Earned YTD"} value={money(ytd.total)} />
         <Row label="Deductions logged" value={money(deductYtd)} />
-        <Row label="Set aside for taxes" value={money(reserve)} strong />
-        <Text style={styles.taxNote}>
-          Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
-        </Text>
+        {taxPct != null ? (
+          <>
+            <Row label="Set aside for taxes" value={money(reserve)} strong />
+            <Text style={styles.taxNote}>
+              Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.taxNote}>
+              {taxStatus === "1099"
+                ? "Nothing is withheld for you anywhere — pick a set-aside % and this tracks the dollars for you. 25-30% is a common starting point; your number is your call."
+                : "Gusto withholds from your paychecks. If you want a set-aside for cash tips and side work, pick a % — your call."}
+            </Text>
+            <View style={{ height: 10 }} />
+            <Button label="Set your tax %" tone="ghost" onPress={() => router.push("/goals?mode=tax")} />
+          </>
+        )}
         <View style={{ height: 10 }} />
         <Link href="/expenses" asChild>
           <Pressable style={styles.linkBtn}>

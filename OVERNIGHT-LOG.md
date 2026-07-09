@@ -117,9 +117,13 @@ cycle, verified gone; nothing sent, nothing built, no database changes.
   (their sends happen during the day, so no visible effect).
 
 - ~~Tax set-aside default for payroll artists~~ — RESOLVED (Scott, morning
-  of 7/9): Gusto handles their withholding. Payroll artists now default to a
-  10% set-aside (cash tips + side work); renters stay at 30%. Anyone who has
-  saved their own number keeps it.
+  of 7/9, refined same morning): the app assumes NOTHING until the artist
+  picks their own number. Home shows a dash + "pick your % in Goals" instead
+  of an invented reserve, the Taxes card and coach ask instead of presuming,
+  and the Tax-ready reward is only earned by actually choosing. The Goals
+  dial opens on a suggestion (10% for Gusto payroll folks since paycheck tax
+  is handled there, 25-30% ballpark for renters) but nothing counts until
+  they hit Save.
 
 ## Checked clean
 

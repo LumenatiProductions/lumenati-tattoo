@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
 import { Button } from "@/components/ui";
@@ -25,7 +25,9 @@ const DIAL: Record<Mode, { min: number; max: number; step: number; caption: stri
 export default function Goals() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<Mode>("weekly");
+  // The home's "Set your tax %" button lands straight on the tax dial.
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const [mode, setMode] = useState<Mode>(params.mode === "tax" ? "tax" : "weekly");
   const [weekly, setWeekly] = useState(0); // cents
   const [monthly, setMonthly] = useState(0); // cents
   const [taxPct, setTaxPct] = useState(30); // whole %

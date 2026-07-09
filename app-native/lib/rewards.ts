@@ -1,4 +1,4 @@
-import type { MoneySnapshot, Goals, SaleRow } from "./personal";
+import type { MoneySnapshot, GoalsLoad, SaleRow } from "./personal";
 import { earnedInRange, weeklyStreak } from "./personal";
 
 // Earned achievements, computed from the artist's OWN numbers. Tasteful, never
@@ -37,7 +37,7 @@ const localToday = () => {
 
 export function computeRewards(
   snap: MoneySnapshot,
-  goals: Goals,
+  goals: GoalsLoad,
 ): { earned: Badge[]; next: Badge | null } {
   const sales = snap.sales;
   const tickets = sales.length;
@@ -56,7 +56,7 @@ export function computeRewards(
     { id: "first", label: "First ticket", icon: "flash", tone: "brand", earned: tickets >= 1 },
     { id: "goalweek", label: "Weekly goal", icon: "checkmark-circle", tone: "good", earned: goalWeekHit },
     { id: "t25", label: "25 tickets", icon: "ribbon", tone: "brand", earned: tickets >= 25 },
-    { id: "tax", label: "Tax-ready", icon: "shield-checkmark", tone: "good", earned: goals.tax_setaside_pct > 0 && ytd > 0 },
+    { id: "tax", label: "Tax-ready", icon: "shield-checkmark", tone: "good", earned: goals.saved && goals.tax_setaside_pct > 0 && ytd > 0 },
     { id: "s3", label: "3-week streak", icon: "flame", tone: "gold", earned: streak >= 3 },
     { id: "record", label: "Record day", icon: "star", tone: "gold", earned: recordDay },
     { id: "k10", label: `${money(1_000_000)} year`, icon: "trending-up", tone: "good", earned: ytd >= 1_000_000 },
