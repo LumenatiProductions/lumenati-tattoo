@@ -31,7 +31,19 @@ const COLORS = ["#FF1493", "#FFD700", "#7FFF00", "#1493FF", "#9b59b6", "#FF6347"
 const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const imgSrc = (src: string) => (src.startsWith("http") ? src : `${SITE}${src}`);
 
+// Mirrors STICKER_CATALOG in lib/admin/render-room.ts — keep the ids in sync.
+const STICKERS: { id: string; src: string }[] = [
+  { id: "bolt", src: "/legacy-assets/sqsp-013.png" },
+  { id: "8ball", src: "/legacy-assets/sqsp-002.png" },
+  { id: "skateboard", src: "/legacy-assets/sqsp-015.png" },
+  { id: "rainbow", src: "/legacy-assets/sqsp-022.png" },
+  { id: "smilie", src: "/legacy-assets/sqsp-014.png" },
+  { id: "tongue", src: "/legacy-assets/sqsp-020.png" },
+  { id: "stars", src: "/legacy-assets/sqsp-030.png" },
+];
+
 type Polaroid = { id: string; src: string; caption: string };
+type Poster = { id: string; src: string };
 type PortfolioItem = { id: string; src: string; alt: string };
 type Room = {
   artist_id: string;
@@ -43,6 +55,8 @@ type Room = {
   profile_photo: string;
   polaroids: Polaroid[];
   portfolio: PortfolioItem[];
+  stickers: string[] | null;
+  posters: Poster[] | null;
 };
 
 type RosterArtist = { id: string; name: string; slug: string };
@@ -86,10 +100,10 @@ export default function MyRoom() {
       setRoom(null);
       const { data: r } = await supabase
         .from("room_content")
-        .select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo, polaroids, portfolio")
+        .select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo, polaroids, portfolio, stickers, posters")
         .eq("artist_id", artistId)
         .maybeSingle();
-      if (r) setRoom({ ...(r as Room), polaroids: (r.polaroids as Polaroid[]) ?? [], portfolio: (r.portfolio as PortfolioItem[]) ?? [] });
+      if (r) setRoom({ ...(r as Room), polaroids: (r.polaroids as Polaroid[]) ?? [], portfolio: (r.portfolio as PortfolioItem[]) ?? [], stickers: (r.stickers as string[] | null) ?? null, posters: (r.posters as Poster[] | null) ?? null });
     })();
   }, [artistId]);
 
@@ -113,6 +127,8 @@ export default function MyRoom() {
         profile_photo: room.profile_photo,
         polaroids: room.polaroids,
         portfolio: room.portfolio,
+        stickers: room.stickers,
+        posters: room.posters,
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
@@ -171,6 +187,13 @@ export default function MyRoom() {
     if (!url || !room) return;
     set("polaroids", [...room.polaroids, { id: `p-${Date.now()}`, src: url, caption: "" }]);
     setMsg("Polaroid added — caption it and tap Save.");
+  }, [uploadFromLibrary, room]);
+
+  const addPoster = useCallback(async () => {
+    const url = await uploadFromLibrary(false);
+    if (!url || !room) return;
+    set("posters", [...(room.posters ?? []), { id: `wp-${Date.now()}`, src: url }].slice(0, 4));
+    setMsg("Poster up — tap Save to make it live.");
   }, [uploadFromLibrary, room]);
 
   const addPortfolio = useCallback(async () => {
@@ -256,6 +279,51 @@ export default function MyRoom() {
               </View>
             </Card>
 
+            <SectionTitle>Stickers</SectionTitle>
+            <Card>
+              <Text style={styles.note}>
+                Slap up to seven on your walls — tap to toggle.{room.stickers === null ? " (Using the classic set until you pick.)" : ""}
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
+                {STICKERS.map((st) => {
+                  const on = (room.stickers ?? []).includes(st.id);
+                  return (
+                    <Pressable
+                      key={st.id}
+                      onPress={() => {
+                        const cur = room.stickers ?? [];
+                        set("stickers", on ? cur.filter((x) => x !== st.id) : [...cur, st.id].slice(0, 7));
+                      }}
+                      style={{
+                        padding: 8,
+                        borderRadius: 12,
+                        borderWidth: 2,
+                        borderColor: on ? "rgba(235,240,255,0.6)" : "rgba(255,255,255,0.12)",
+                        backgroundColor: on ? "rgba(235,240,255,0.10)" : "transparent",
+                      }}
+                    >
+                      <Image source={{ uri: imgSrc(st.src) }} style={{ width: 52, height: 52 }} resizeMode="contain" />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Card>
+
+            <SectionTitle>Wall posters</SectionTitle>
+            <Card>
+              <Text style={styles.note}>
+                Up to four, taped to your walls in the designed spots.{room.posters === null ? " (Using the classic set until you add your own.)" : ""}
+              </Text>
+              <PhotoGrid
+                items={(room.posters ?? []).map((pp) => ({ id: pp.id, src: pp.src, text: "" }))}
+                textLabel=""
+                onText={() => {}}
+                onRemove={(id) => set("posters", (room.posters ?? []).filter((x) => x.id !== id))}
+                onMove={(id, dir) => set("posters", moveItem(room.posters ?? [], id, dir))}
+              />
+              <Button label="Add a poster" tone="ghost" onPress={addPoster} disabled={saving || (room.posters ?? []).length >= 4} />
+            </Card>
+
             <SectionTitle>Polaroids</SectionTitle>
             <Card>
               <Text style={styles.note}>The snapshots taped around your room — you, the crew, the shop life.</Text>
@@ -329,13 +397,15 @@ function PhotoGrid({
         <View key={it.id} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
           <Image source={{ uri: imgSrc(it.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: "#1a1a22" }} />
           <View style={{ flex: 1 }}>
-            <TextInput
-              value={it.text}
-              onChangeText={(t) => onText(it.id, t)}
-              placeholder={textLabel}
-              placeholderTextColor="#6b7280"
-              style={styles.gridInput}
-            />
+            {textLabel !== "" && (
+              <TextInput
+                value={it.text}
+                onChangeText={(t) => onText(it.id, t)}
+                placeholder={textLabel}
+                placeholderTextColor="#6b7280"
+                style={styles.gridInput}
+              />
+            )}
             <View style={{ flexDirection: "row", gap: 14, marginTop: 6 }}>
               <Text style={[styles.gridAction, i === 0 && styles.gridActionOff]} onPress={() => onMove(it.id, -1)}>
                 Up

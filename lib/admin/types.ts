@@ -113,4 +113,8 @@ export interface RoomContent {
   profilePhoto: string; // src
   polaroids: Polaroid[];
   portfolio: PortfolioItem[];
+  /** Chosen sticker catalog ids; null = not chosen yet (room keeps its baked-in set). */
+  stickers: string[] | null;
+  /** The artist's own wall posters; null = not chosen yet. */
+  posters: { id: string; src: string }[] | null;
 }

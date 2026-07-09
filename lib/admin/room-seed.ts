@@ -45,6 +45,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
       pf("jd-f2", "/legacy-assets/sqsp-001.jpg", "black & grey"),
       pf("jd-f3", "/legacy-assets/sqsp-029.jpg", "flash"),
     ],
+    stickers: null,
+    posters: null,
   },
   elaine: {
     artistId: "elaine",
@@ -56,6 +58,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     profilePhoto: "/legacy-assets/sqsp-034.jpg",
     polaroids: [],
     portfolio: [pf("el-f1", "/legacy-assets/sqsp-034.jpg", "fine line")],
+    stickers: null,
+    posters: null,
   },
   shorty: {
     artistId: "shorty",
@@ -67,6 +71,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     profilePhoto: "/legacy-assets/sqsp-031.png",
     polaroids: [],
     portfolio: [],
+    stickers: null,
+    posters: null,
   },
   kalypso: {
     artistId: "kalypso",
@@ -78,6 +84,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     profilePhoto: "/legacy-assets/sqsp-063.png",
     polaroids: [],
     portfolio: [],
+    stickers: null,
+    posters: null,
   },
   sam: {
     artistId: "sam",
@@ -92,6 +100,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
       pf("sam-f1", "/legacy-assets/sqsp-077.jpg", "blackwork"),
       pf("sam-f2", "/legacy-assets/sqsp-076.jpg", "lines"),
     ],
+    stickers: null,
+    posters: null,
   },
   moonie: {
     artistId: "moonie",
@@ -103,6 +113,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     profilePhoto: "/legacy-assets/sqsp-087.png",
     polaroids: [],
     portfolio: [],
+    stickers: null,
+    posters: null,
   },
 };
 

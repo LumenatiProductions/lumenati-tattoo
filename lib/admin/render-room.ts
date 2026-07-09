@@ -15,6 +15,36 @@ const escAttr = (s: string) => esc(s).replace(/"/g, "&quot;");
 
 const TILTS = [-4, 3, -2, 5, -3, 2];
 
+// The sticker catalog — every artist picks from the same sheet. Ids are
+// stable; the app's picker mirrors this list.
+export const STICKER_CATALOG = [
+  { id: "bolt", src: "/legacy-assets/sqsp-013.png" },
+  { id: "8ball", src: "/legacy-assets/sqsp-002.png" },
+  { id: "skateboard", src: "/legacy-assets/sqsp-015.png" },
+  { id: "rainbow", src: "/legacy-assets/sqsp-022.png" },
+  { id: "smilie", src: "/legacy-assets/sqsp-014.png" },
+  { id: "tongue", src: "/legacy-assets/sqsp-020.png" },
+  { id: "stars", src: "/legacy-assets/sqsp-030.png" },
+] as const;
+
+// The five designed sticker spots and four poster spots — positions are part
+// of the room's look; picks fill them in order.
+const STICKER_SLOTS = [
+  "top:6%;right:6%;transform:rotate(-12deg);width:120px",
+  "top:45%;left:2%;transform:rotate(15deg);width:100px",
+  "top:20%;right:2%;transform:rotate(-20deg);width:110px",
+  "top:55%;right:8%;transform:rotate(8deg);width:105px",
+  "top:30%;left:3%;transform:rotate(-8deg);width:90px",
+  "bottom:20%;right:4%;transform:rotate(14deg);width:95px",
+  "top:8%;left:15%;transform:rotate(6deg);width:100px",
+];
+const POSTER_SLOTS = [
+  "top:18%;right:3%;transform:rotate(2deg);width:180px;",
+  "top:3%;right:15%;transform:rotate(-3deg);width:160px;",
+  "top:calc(22% - 70px);left:8%;transform:rotate(4deg);width:300px;",
+  "top:55%;left:4%;transform:rotate(-5deg);width:140px;",
+];
+
 export function renderRoomHtml(
   content: RoomContent,
   name: string,
@@ -113,6 +143,40 @@ export function renderRoomHtml(
     // Mobile game/skate buttons
     html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-game">[\s\S]*?<\/a>\s*/, "");
     html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-skate">[\s\S]*?<\/a>\s*/, "");
+  }
+
+  // ── Stickers: chosen catalog set into the five designed wall slots ──
+  // (null = artist hasn't picked; the baked-in set stays.)
+  if (content.stickers) {
+    const chosen = content.stickers
+      .map((id) => STICKER_CATALOG.find((c) => c.id === id))
+      .filter((c): c is (typeof STICKER_CATALOG)[number] => !!c)
+      .slice(0, STICKER_SLOTS.length);
+    const imgs = chosen
+      .map((c, i) => `<img class="bedroom-sticker" src="${escAttr(c.src)}" style="${STICKER_SLOTS[i]}" alt="">`)
+      .join("\n  ");
+    html = html.replace(
+      /<!-- Stickers -->[\s\S]*?(?=<\/section>|<!-- |$)/,
+      `<!-- Stickers -->\n  ${imgs}\n\n  `,
+    );
+  }
+
+  // ── Wall posters: the artist's own, taped into the four designed spots ──
+  if (content.posters) {
+    const posters = content.posters
+      .slice(0, POSTER_SLOTS.length)
+      .map((pp, i) => {
+        const slot = POSTER_SLOTS[i];
+        const tapes = i % 2 === 0
+          ? '<div class="wall-poster-tape tl"></div>\n    <div class="wall-poster-tape tr"></div>'
+          : '<div class="wall-poster-tape tl"></div>';
+        return `<div class="bedroom-wall-poster" style="${slot}">\n    ${tapes}\n    <img src="${escAttr(pp.src)}" alt="">\n  </div>`;
+      })
+      .join("\n  ");
+    html = html.replace(
+      /<!-- Wall posters -->[\s\S]*?(?=\n\n|<!-- Polaroid row)/,
+      `<!-- Wall posters -->\n  ${posters}\n\n  `,
+    );
   }
 
   // The Winamp widget (site-wide bundle) starts on the artist's actual pick.
