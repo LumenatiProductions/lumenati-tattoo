@@ -47,7 +47,8 @@ export async function loadMoney(artistId?: string): Promise<MoneySnapshot> {
   const [sales, bookings] = await Promise.all([
     pageAll<SaleRow>((from, to) => {
       let s = supabase
-        .from("sales")
+        // ledger_sales so chair-logged cash counts in You earned / goals / tax.
+        .from("ledger_sales")
         .select("created_at, service_cents, tip_cents")
         .gte("created_at", yearStart)
         .order("created_at", { ascending: true });

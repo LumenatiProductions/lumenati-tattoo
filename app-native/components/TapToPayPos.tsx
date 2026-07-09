@@ -13,6 +13,7 @@ import { useMerch } from "@/lib/merch";
 import MerchShelf from "@/components/MerchShelf";
 import RebookCard from "@/components/RebookCard";
 import CloseoutCard from "@/components/CloseoutCard";
+import CashCloseout from "@/components/CashCloseout";
 import Y2kPaidFX from "@/components/Y2kPaidFX";
 
 // The real Tap to Pay flow (iOS, real builds only — pos.tsx gates rendering).
@@ -48,6 +49,7 @@ export default function TapToPayPos() {
   // (keypad steps aside); tax rides on top of shelf prices.
   const merch = useMerch();
   const [cashBusy, setCashBusy] = useState(false);
+  const [serviceCashOpen, setServiceCashOpen] = useState(false);
   const [doneSub, setDoneSub] = useState("Recorded — it's already on your numbers.");
 
   const {
@@ -386,6 +388,24 @@ export default function TapToPayPos() {
           <View style={{ height: 10 }} />
           <Button label={`Paid cash · ${money(totalCents)}`} tone="ghost" onPress={takeCash} />
         </>
+      )}
+      {/* An artist ticket can be cash too — the close-out flow books it,
+          starts the drip, and puts the stack on the handoff board. */}
+      {!merchTotals && who !== "shop" && hasAmount && !busy && !serviceCashOpen && (
+        <>
+          <View style={{ height: 10 }} />
+          <Button label={`Client paid ${money(cents)} cash`} tone="ghost" onPress={() => setServiceCashOpen(true)} />
+        </>
+      )}
+      {!merchTotals && who !== "shop" && hasAmount && serviceCashOpen && (
+        <CashCloseout
+          artistId={who}
+          serviceCents={cents}
+          onDone={() => {
+            setServiceCashOpen(false);
+            setAmount("");
+          }}
+        />
       )}
       {busy && <ActivityIndicator color={theme.textDim} style={{ marginTop: 16 }} />}
       <Text style={styles.note}>

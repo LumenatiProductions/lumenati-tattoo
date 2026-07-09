@@ -3,6 +3,9 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text } from "react-nativ
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
+import { apiPost } from "@/lib/appApi";
+import { useAuth } from "@/lib/auth";
+import { todayLocal } from "@/lib/dates";
 import { theme, money } from "@/lib/theme";
 import { Badge, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 
@@ -21,7 +24,10 @@ type Invoice = {
 
 export default function Rent() {
   const insets = useSafeAreaInsets();
+  const { role } = useAuth();
+  const isAdmin = role === "owner";
   const [rows, setRows] = useState<Invoice[] | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -48,6 +54,19 @@ export default function Rent() {
     load();
   };
 
+  // The renter's side of cash rent (two-tap): declaring "paying in cash" puts
+  // the stack on the handoff board; the invoice flips to paid when the admin
+  // taps Got it with the cash in hand.
+  const payCash = async (id: string) => {
+    const r = await apiPost("/api/cash/rent-cash", { invoiceId: id, date: todayLocal() });
+    setNote(
+      r.ok
+        ? "On the board — hand the cash to an admin and it clears when they tap Got it."
+        : r.error ?? "Could not start the cash handoff.",
+    );
+    load();
+  };
+
   const period = new Date().toISOString().slice(0, 7);
   const current = (rows ?? []).filter((r) => r.period === period);
   const past = (rows ?? []).filter((r) => r.period !== period);
@@ -65,9 +84,15 @@ export default function Rent() {
       sub={`${r.period}${r.due_date ? ` · due ${r.due_date}` : ""}${r.status === "pending" && r.period < period ? " · PAST MONTH" : ""}`}
       right={
         r.status === "pending" ? (
-          <Text onPress={() => markPaid(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
-            Mark paid
-          </Text>
+          isAdmin ? (
+            <Text onPress={() => markPaid(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
+              Mark paid
+            </Text>
+          ) : (
+            <Text onPress={() => payCash(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
+              Paying cash
+            </Text>
+          )
         ) : (
           <Badge label={r.status} tone={r.status === "paid" ? "good" : "neutral"} />
         )
@@ -87,6 +112,7 @@ export default function Rent() {
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
+            {note ? <Text style={{ color: theme.textDim, fontSize: 13, marginBottom: 10 }}>{note}</Text> : null}
             <Stat
               label="Outstanding"
               value={money(owed)}

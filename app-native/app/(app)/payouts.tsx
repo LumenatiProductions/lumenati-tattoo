@@ -104,7 +104,9 @@ export default function Payouts() {
       // first settlement) — page, since responses clamp at 1000 rows.
       pageAll<SaleRow>((from, to) =>
         supabase
-          .from("sales")
+          // ledger_sales, not the raw Square mirror: cash logged at the chair
+          // lands in the ledger and must count toward wages/pass-through.
+          .from("ledger_sales")
           .select("artist_id, service_cents, tip_cents, method, created_at")
           .order("created_at", { ascending: false })
           .range(from, to),

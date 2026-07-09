@@ -4,15 +4,20 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { apiPost } from "@/lib/appApi";
 import { snapCash } from "@/lib/vision";
+import { success } from "@/lib/haptics";
 import { theme, money } from "@/lib/theme";
-import { Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
+import { ActionPill, Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 import RebookCard from "@/components/RebookCard";
 import { todayLocal } from "@/lib/dates";
 
-// Cash log (parity with /admin/cash): quick drawer entries from the counter.
-// Negative amounts are payouts/drops; reconciliation stays on the web.
+// Cash is a handoff board now (page-walk note 12), not a drawer log.
+// The dollar gets handled once: the artist logs it at the chair (close-out),
+// taps "Handed off" when they pass the stack, the admin taps "Got it" — and
+// the page shows where every cash dollar physically is: at a chair, in
+// transit, or in the box. Reconciliation is just confirming the box count.
 
 type Entry = {
   id: string;
@@ -20,35 +25,53 @@ type Entry = {
   amount_cents: number;
   note: string;
   reconciled: boolean;
+  artist_id: string | null;
+  handed_off_at: string | null;
+  received_at: string | null;
+  rent_invoice_id: string | null;
   artists: { name: string } | null;
 };
 type Artist = { id: string; name: string };
 
 export default function Cash() {
   const insets = useSafeAreaInsets();
-  const { email } = useAuth();
+  const { role, email } = useAuth();
+  const isAdmin = role === "owner";
   const [rows, setRows] = useState<Entry[] | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [myArtistId, setMyArtistId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [who, setWho] = useState("shop");
   const [busy, setBusy] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [counting, setCounting] = useState(false);
   const [countNote, setCountNote] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   // A positive artist entry is a client paying — the paid moment. Holds that
   // artist's id so the rebook ask appears right after the save.
   const [rebookFor, setRebookFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAdmin || !email) return;
+    supabase
+      .from("profiles")
+      .select("artist_id")
+      .eq("email", email)
+      .maybeSingle()
+      .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
+  }, [isAdmin, email]);
 
   const load = useCallback(async () => {
     const [{ data }, { data: a }] = await Promise.all([
       supabase
         .from("cash_entries")
-        .select("id, date, amount_cents, note, reconciled, artists(name)")
+        .select("id, date, amount_cents, note, reconciled, artist_id, handed_off_at, received_at, rent_invoice_id, artists(name)")
         .order("date", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(40),
+        .limit(60),
       supabase.from("artists").select("id, name").eq("active", true).order("sort"),
     ]);
     setRows((data ?? []) as unknown as Entry[]);
@@ -74,6 +97,9 @@ export default function Cash() {
       note: note.trim(),
       artist_id: who === "shop" ? null : who,
       entered_by: email,
+      // Logged at the counter by the admin = it's already in the box.
+      received_at: new Date().toISOString(),
+      received_by: email,
     });
     setBusy(false);
     setAmount("");
@@ -83,12 +109,49 @@ export default function Cash() {
     load();
   };
 
+  const handOff = async (r: Entry) => {
+    setBusyId(r.id);
+    setErr(null);
+    const { error } = await supabase
+      .from("cash_entries")
+      .update({ handed_off_at: new Date().toISOString() })
+      .eq("id", r.id);
+    setBusyId(null);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    success();
+    load();
+  };
+
+  const gotIt = async (r: Entry) => {
+    setBusyId(r.id);
+    setErr(null);
+    const res = await apiPost<{ rentPaid: boolean }>("/api/cash/receive", { entryId: r.id });
+    setBusyId(null);
+    if (!res.ok) {
+      setErr(res.error ?? "Could not mark it received.");
+      return;
+    }
+    success();
+    load();
+  };
+
+  const all = rows ?? [];
+  const atChairs = all.filter((r) => !r.handed_off_at && !r.received_at && r.artist_id);
+  const inTransit = all.filter((r) => r.handed_off_at && !r.received_at);
+  const inBox = all.filter((r) => r.received_at && !r.reconciled);
+  const sum = (xs: Entry[]) => xs.reduce((a, r) => a + r.amount_cents, 0);
   const today = todayLocal();
-  const todayTotal = (rows ?? []).filter((r) => r.date === today).reduce((a, r) => a + r.amount_cents, 0);
+  const todayTotal = all.filter((r) => r.date === today).reduce((a, r) => a + r.amount_cents, 0);
+
+  const rowTitle = (r: Entry) => `${money(r.amount_cents)}  ·  ${r.artists?.name ?? "Shop"}`;
+  const rowSub = (r: Entry) => `${r.date}${r.note ? ` · ${r.note}` : ""}`;
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Cash log", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <Stack.Screen options={{ headerShown: true, title: isAdmin ? "Shop cash" : "My cash", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView
         style={{ backgroundColor: theme.bg }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
@@ -96,15 +159,42 @@ export default function Cash() {
       >
         {rows === null ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
-        ) : (
+        ) : isAdmin ? (
           <>
-            <Stat label="Cash today" value={money(todayTotal)} hero />
+            {/* The box, live: what's been received and not yet counted down. */}
+            <Stat label="In the box" value={money(sum(inBox))} hero sub={`${money(todayTotal)} moved today`} />
+
+            <SectionTitle>Incoming — tap when the stack is in your hand</SectionTitle>
+            <Card style={{ paddingVertical: 4 }}>
+              {inTransit.length === 0 ? (
+                <Empty>Nothing in transit.</Empty>
+              ) : (
+                inTransit.map((r, i) => (
+                  <ListRow
+                    key={r.id}
+                    first={i === 0}
+                    title={rowTitle(r)}
+                    sub={rowSub(r)}
+                    right={<ActionPill label={busyId === r.id ? "…" : "Got it"} onPress={() => gotIt(r)} />}
+                  />
+                ))
+              )}
+            </Card>
+
+            <SectionTitle>Still at the chairs</SectionTitle>
+            <Card style={{ paddingVertical: 4 }}>
+              {atChairs.length === 0 ? (
+                <Empty>Nothing outstanding with artists.</Empty>
+              ) : (
+                atChairs.map((r, i) => (
+                  <ListRow key={r.id} first={i === 0} title={rowTitle(r)} sub={rowSub(r)} right={<Badge label="with artist" tone="warn" />} />
+                ))
+              )}
+            </Card>
 
             <View style={{ marginTop: 14 }}>
-              {/* One pink bar at a time: while the rebook ask is up, THAT is
-                  the screen's next action and Log cash steps back to ghost. */}
               <Button
-                label={adding ? "Cancel" : "Log cash"}
+                label={adding ? "Cancel" : "Log cash at the counter"}
                 tone={adding || rebookFor ? "ghost" : "brand"}
                 onPress={() => {
                   setRebookFor(null);
@@ -149,19 +239,7 @@ export default function Cash() {
                     <Text style={{ color: theme.warn, fontSize: 12.5, marginTop: 8, lineHeight: 17 }}>
                       {countNote} Double-check before saving.
                     </Text>
-                  ) : (
-                    <View style={{ marginTop: 8, gap: 3 }}>
-                      <Text style={{ color: theme.textFaint, fontSize: 12, lineHeight: 17 }}>
-                        ▪ Lay the bills flat on the counter — no overlapping, no stacks
-                      </Text>
-                      <Text style={{ color: theme.textFaint, fontSize: 12, lineHeight: 17 }}>
-                        ▪ Shoot from straight above with every bill in frame
-                      </Text>
-                      <Text style={{ color: theme.textFaint, fontSize: 12, lineHeight: 17 }}>
-                        ▪ It only counts what it can see — check the total before saving
-                      </Text>
-                    </View>
-                  )}
+                  ) : null}
                 </View>
                 <Chips
                   label="For"
@@ -177,22 +255,76 @@ export default function Cash() {
 
             <SectionTitle>Recent</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
-              {rows.length === 0 ? (
+              {all.length === 0 ? (
                 <Empty>No cash entries yet.</Empty>
               ) : (
-                rows.map((r, i) => (
+                all.slice(0, 20).map((r, i) => (
                   <ListRow
                     key={r.id}
                     first={i === 0}
-                    title={`${money(r.amount_cents)}  ·  ${r.artists?.name ?? "Shop"}`}
-                    sub={`${r.date}${r.note ? ` · ${r.note}` : ""}`}
-                    right={<Badge label={r.reconciled ? "Reconciled" : "Open"} tone={r.reconciled ? "good" : "neutral"} />}
+                    title={rowTitle(r)}
+                    sub={rowSub(r)}
+                    right={
+                      <Badge
+                        label={r.reconciled ? "Reconciled" : r.received_at ? "In the box" : r.handed_off_at ? "In transit" : "With artist"}
+                        tone={r.reconciled || r.received_at ? "good" : "neutral"}
+                      />
+                    }
                   />
                 ))
               )}
             </Card>
           </>
+        ) : (
+          <>
+            {/* The artist's side of the board: what they're physically holding
+                for the shop. Cash gets logged at the register close-out. */}
+            <Stat label="You're holding for the shop" value={money(sum(atChairs))} hero warn={sum(atChairs) > 0} />
+
+            <SectionTitle>Hand these to an admin</SectionTitle>
+            <Card style={{ paddingVertical: 4 }}>
+              {atChairs.length === 0 ? (
+                <Empty>Nothing to hand off — log cash on Take payment when a client pays.</Empty>
+              ) : (
+                atChairs.map((r, i) => (
+                  <ListRow
+                    key={r.id}
+                    first={i === 0}
+                    title={rowTitle(r)}
+                    sub={rowSub(r)}
+                    right={<ActionPill label={busyId === r.id ? "…" : "Handed off"} onPress={() => handOff(r)} />}
+                  />
+                ))
+              )}
+            </Card>
+
+            <SectionTitle>Waiting on the admin&apos;s tap</SectionTitle>
+            <Card style={{ paddingVertical: 4 }}>
+              {inTransit.length === 0 ? (
+                <Empty>Nothing in transit.</Empty>
+              ) : (
+                inTransit.map((r, i) => (
+                  <ListRow key={r.id} first={i === 0} title={rowTitle(r)} sub={rowSub(r)} right={<Badge label="in transit" tone="neutral" />} />
+                ))
+              )}
+            </Card>
+
+            <SectionTitle>Settled</SectionTitle>
+            <Card style={{ paddingVertical: 4 }}>
+              {all.filter((r) => r.received_at).length === 0 ? (
+                <Empty>Nothing settled yet.</Empty>
+              ) : (
+                all
+                  .filter((r) => r.received_at)
+                  .slice(0, 10)
+                  .map((r, i) => (
+                    <ListRow key={r.id} first={i === 0} title={rowTitle(r)} sub={rowSub(r)} right={<Badge label="received" tone="good" />} />
+                  ))
+              )}
+            </Card>
+          </>
         )}
+        {err ? <Text style={{ color: theme.bad, fontSize: 13, marginTop: 10 }}>{err}</Text> : null}
       </ScrollView>
     </>
   );

@@ -7,6 +7,10 @@ import { Button, Card } from "@/components/ui";
 import { tapToPayAvailable } from "@/lib/terminal";
 import { useMerch } from "@/lib/merch";
 import MerchShelf from "@/components/MerchShelf";
+import CashCloseout from "@/components/CashCloseout";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 import InkWash from "@/components/InkWash";
 
 // Take an in-person payment with Tap to Pay (POS 6c). On real iOS builds the
@@ -40,7 +44,19 @@ export default function Pos() {
 }
 
 function Fallback() {
+  const { role, email } = useAuth();
   const [amount, setAmount] = useState("");
+  const [myArtistId, setMyArtistId] = useState<string | null>(null);
+  const [cashOpen, setCashOpen] = useState(false);
+  useEffect(() => {
+    if (role !== "artist" || !email) return;
+    supabase
+      .from("profiles")
+      .select("artist_id")
+      .eq("email", email)
+      .maybeSingle()
+      .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
+  }, [role, email]);
   const cents = Math.round((Number(amount) || 0) * 100);
   // Cash merch works everywhere — it's a books write, no card reader involved.
   const merch = useMerch();
@@ -106,6 +122,21 @@ function Fallback() {
         taxBps={merch.taxBps}
         disabled={busy}
       />
+      {myArtistId && cents > 0 && !cashOpen && (
+        <View style={{ marginTop: 12 }}>
+          <Button label={`Client paid ${money(cents)} cash`} onPress={() => setCashOpen(true)} />
+        </View>
+      )}
+      {myArtistId && cents > 0 && cashOpen && (
+        <CashCloseout
+          artistId={myArtistId}
+          serviceCents={cents}
+          onDone={() => {
+            setCashOpen(false);
+            setAmount("");
+          }}
+        />
+      )}
       {error && <Text style={styles.error}>{error}</Text>}
       <View style={{ height: 18 }} />
       {merch.totals ? (
