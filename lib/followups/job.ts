@@ -61,6 +61,70 @@ const stamp = (rows: EnqueueRow[], shopId?: string) =>
   shopId ? rows.map((r) => ({ ...r, shop_id: shopId })) : rows;
 
 /**
+ * The one-tap close-out (page-walk note 8): queue the drip for ONE booking the
+ * moment the artist closes it out — no waiting for the nightly scan. Same rows
+ * and idempotency as enqueueFollowups (upsert on booking_id+kind), so the scan
+ * running later never duplicates. Returns the kinds actually queued so the app
+ * can say "aftercare drip started" honestly.
+ */
+export async function enqueueForBooking(
+  client: SupabaseClient,
+  bookingId: string,
+  shopId: string,
+): Promise<{ queued: FollowupKind[]; reason?: string }> {
+  const tpl = await loadTemplates(client, shopId);
+  const { data: b } = await client
+    .from("bookings")
+    .select("id, client_id, starts_at")
+    .eq("id", bookingId)
+    .eq("shop_id", shopId)
+    .maybeSingle();
+  if (!b) return { queued: [], reason: "Booking not found" };
+  if (!b.client_id) return { queued: [], reason: "No client on the booking — nobody to message" };
+
+  const t = today();
+  const visitDay = (b.starts_at as string).slice(0, 10);
+  const rows: EnqueueRow[] = [];
+  if (tpl.aftercare.enabled) {
+    rows.push({
+      booking_id: b.id as string,
+      client_id: b.client_id as string,
+      kind: "aftercare",
+      channel: "email",
+      scheduled_for: maxDate(t, visitDay),
+      status: "pending",
+    });
+  }
+  if (tpl.review_request.enabled) {
+    rows.push({
+      booking_id: b.id as string,
+      client_id: b.client_id as string,
+      kind: "review_request",
+      channel: "email",
+      scheduled_for: maxDate(t, addDays(visitDay, tpl.review_request.lead_days)),
+      status: "pending",
+    });
+  }
+  if (tpl.healed_photo.enabled) {
+    rows.push({
+      booking_id: b.id as string,
+      client_id: b.client_id as string,
+      kind: "healed_photo",
+      channel: "email",
+      scheduled_for: maxDate(t, addDays(visitDay, tpl.healed_photo.lead_days)),
+      status: "pending",
+    });
+  }
+  if (rows.length) {
+    const { error } = await client
+      .from("followups")
+      .upsert(stamp(rows, shopId), { onConflict: "booking_id,kind", ignoreDuplicates: true });
+    if (error) return { queued: [], reason: error.message };
+  }
+  return { queued: rows.map((r) => r.kind) };
+}
+
+/**
  * Enqueue follow-ups that are now due to exist. Idempotent:
  *  - aftercare + review_request upsert on (booking_id, kind), so re-running over
  *    the same completed bookings never duplicates.

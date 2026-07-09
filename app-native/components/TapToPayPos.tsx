@@ -12,6 +12,7 @@ import { createTapToPayIntent, getLocationId } from "@/lib/terminal";
 import { useMerch } from "@/lib/merch";
 import MerchShelf from "@/components/MerchShelf";
 import RebookCard from "@/components/RebookCard";
+import CloseoutCard from "@/components/CloseoutCard";
 import Y2kPaidFX from "@/components/Y2kPaidFX";
 
 // The real Tap to Pay flow (iOS, real builds only — pos.tsx gates rendering).
@@ -199,6 +200,9 @@ export default function TapToPayPos() {
         <View style={{ height: 14 }} />
         <Button label="New payment" tone="ghost" onPress={() => setPhase("idle")} />
       </Card>
+      {/* The close-out, right at the paid moment — artist tickets only. One
+          tap: booking completed, deposit applied, aftercare drip started. */}
+      {who !== "shop" && <CloseoutCard artistId={who} />}
       {/* The rebook ask, right at the paid moment — artist tickets only (a
           merch sale has nobody to rebook). */}
       {who !== "shop" && <RebookCard artistId={who} />}
