@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPaymentLink } from "@/lib/stripe/payments";
-import { isStripeConfigured } from "@/lib/stripe/client";
+import { isStripeConfigured, siteUrl } from "@/lib/stripe/client";
+import { isSmsConfigured, sendSms } from "@/lib/sms";
 
 // In-house rent generation (rent-invoices-schema.sql). Runs in the daily ops
 // fan-out AND behind the Rent page's Generate button: for every active booth
@@ -66,6 +67,151 @@ export async function generateRentInvoices(client: SupabaseClient) {
   return { feature: "rent_invoices", period, created };
 }
 
+// ── The nudge ladder (page-walk notes 3/11) ──
+// Fixed date rungs per invoice: invoice ready (mint), due today, past due
+// (+3d), then a firmer weekly repeat (+7, +14, ... capped). Pure so it's
+// testable: given the dates and how many rungs were already delivered,
+// which rung (if any) is owed today?
+export type RentNudge = { rung: number; tone: "ready" | "due" | "late" | "firm" };
+export function rentNudgeDue(
+  createdDate: string, // YYYY-MM-DD
+  dueDate: string, // YYYY-MM-DD
+  today: string, // YYYY-MM-DD
+  delivered: number,
+): RentNudge | null {
+  const add = (d: string, n: number) => {
+    const t = new Date(`${d}T00:00:00Z`);
+    t.setUTCDate(t.getUTCDate() + n);
+    return t.toISOString().slice(0, 10);
+  };
+  const rungs: { on: string; tone: RentNudge["tone"] }[] = [
+    { on: createdDate, tone: "ready" },
+    { on: dueDate, tone: "due" },
+    { on: add(dueDate, 3), tone: "late" },
+  ];
+  for (let w = 7; w <= 42; w += 7) rungs.push({ on: add(dueDate, w), tone: "firm" });
+  // Rungs can collide (invoice minted after its due date) — keep date order.
+  const passed = rungs.filter((r) => r.on <= today);
+  if (passed.length <= delivered) return null;
+  // Deliver only the LATEST owed rung — nobody wants four catch-up texts.
+  const rung = passed.length;
+  return { rung, tone: passed[passed.length - 1].tone };
+}
+
+const money = (c: number) => `$${(c / 100).toLocaleString("en-US")}`;
+
+function nudgeCopy(tone: RentNudge["tone"], name: string, amount: number, period: string, dueDate: string, payUrl: string | null) {
+  const link = payUrl ? ` Pay here: ${payUrl}` : "";
+  switch (tone) {
+    case "ready":
+      return `Lumenati Tattoo: your ${period} booth rent invoice (${money(amount)}) is ready — due ${dueDate}.${link}`;
+    case "due":
+      return `Lumenati Tattoo: booth rent (${money(amount)}) is due today.${link}`;
+    case "late":
+      return `Lumenati Tattoo: your ${period} booth rent (${money(amount)}) is past due. Square it up when you're in.${link}`;
+    case "firm":
+      return `Lumenati Tattoo: booth rent for ${period} (${money(amount)}) is still open — please handle it this week or talk to the shop.${link}`;
+  }
+}
+
+/**
+ * Walk every pending invoice up the ladder. Sends are gated behind
+ * RENT_AUTOSEND === "true" AND a live channel (Twilio SMS first, Resend email
+ * fallback) — until Scott flips the switch this reports what WOULD go out and
+ * touches nothing. Real sends advance the rung state; dry runs never do.
+ */
+export async function nudgeRentInvoices(client: SupabaseClient) {
+  const autosend = process.env.RENT_AUTOSEND === "true";
+  const canSend = autosend && (isSmsConfigured || !!process.env.RESEND_API_KEY);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: pending, error } = await client
+    .from("rent_invoices")
+    .select("id, artist_id, period, amount_cents, due_date, created_at, nudge_count, payment_id, shop_id")
+    .eq("status", "pending");
+  if (error) {
+    if (/relation .* does not exist|42P01/i.test(error.message)) return { feature: "rent_nudges", note: "schema not applied" };
+    throw new Error(error.message);
+  }
+  const rows = pending ?? [];
+  if (!rows.length) return { feature: "rent_nudges", checked: 0, sent: 0 };
+
+  const artistIds = [...new Set(rows.map((r) => r.artist_id as string))];
+  const [{ data: profiles }, { data: pays }] = await Promise.all([
+    client.from("profiles").select("artist_id, email, phone").in("artist_id", artistIds),
+    client
+      .from("payments")
+      .select("id, pay_token")
+      .in("id", rows.map((r) => r.payment_id).filter(Boolean) as string[]),
+  ]);
+  const contact = new Map((profiles ?? []).map((p) => [p.artist_id as string, p]));
+  const tokens = new Map((pays ?? []).map((p) => [p.id as string, p.pay_token as string]));
+
+  let sent = 0;
+  let unreachable = 0;
+  const wouldSend: string[] = [];
+  for (const inv of rows) {
+    const due = rentNudgeDue(
+      (inv.created_at as string).slice(0, 10),
+      (inv.due_date as string) ?? `${inv.period}-05`,
+      today,
+      (inv.nudge_count as number) ?? 0,
+    );
+    if (!due) continue;
+    const who = contact.get(inv.artist_id as string);
+    if (!who?.phone && !who?.email) {
+      // No login yet = no way to reach them. The admin rent page still shows
+      // the unpaid row; nudges start the day they're onboarded on Team.
+      unreachable++;
+      continue;
+    }
+    const payUrl = inv.payment_id && tokens.has(inv.payment_id as string) ? `${siteUrl}/pay/${tokens.get(inv.payment_id as string)}` : null;
+    const body = nudgeCopy(due.tone, inv.artist_id as string, inv.amount_cents as number, inv.period as string, (inv.due_date as string) ?? "", payUrl);
+
+    if (!canSend) {
+      wouldSend.push(`${inv.artist_id} ${inv.period} rung ${due.rung} (${due.tone})`);
+      continue;
+    }
+    let delivered = false;
+    if (isSmsConfigured && who.phone) {
+      const r = await sendSms(who.phone as string, body);
+      delivered = r.ok;
+    }
+    if (!delivered && who.email && process.env.RESEND_API_KEY) {
+      const r = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || "Lumenati Tattoo <onboarding@resend.dev>",
+          to: [who.email],
+          subject: `Booth rent ${inv.period}`,
+          text: body,
+        }),
+      });
+      delivered = r.ok;
+    }
+    if (delivered) {
+      sent++;
+      await client
+        .from("rent_invoices")
+        .update({ nudge_count: due.rung, last_nudged_at: new Date().toISOString() })
+        .eq("id", inv.id);
+    }
+  }
+
+  return {
+    feature: "rent_nudges",
+    checked: rows.length,
+    sent,
+    unreachable,
+    autosend: canSend,
+    ...(wouldSend.length ? { wouldSend } : {}),
+  };
+}
+
 export async function runDailyJob(admin: unknown) {
-  return generateRentInvoices(admin as SupabaseClient);
+  const client = admin as SupabaseClient;
+  const generated = await generateRentInvoices(client);
+  const nudges = await nudgeRentInvoices(client);
+  return { ...generated, nudges };
 }

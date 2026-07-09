@@ -12,6 +12,7 @@ import { coachTips } from "@/lib/coach";
 import { todayLocal } from "@/lib/dates";
 import {
   loadMoney,
+  rentOnTimeStreak,
   loadGoals,
   loadExpenses,
   loadRent,
@@ -159,7 +160,8 @@ export default function ArtistMoney({
       <SectionTitle>Rewards</SectionTitle>
       <RewardsStrip snap={snap} goals={goals} />
 
-      {/* Booth rent — renters only. Billed on its own; never netted. */}
+      {/* Booth rent — renters only. Billed on its own; never netted. The
+          coach line turns rent into per-appointment money (page-walk 3/11). */}
       {rent && rent.payType === "booth_rent" && (
         <>
           <SectionTitle>Booth rent</SectionTitle>
@@ -184,7 +186,13 @@ export default function ArtistMoney({
                   Rent is billed on its own — it is never taken out of your sales, and your card
                   money passes through to you 100%.
                 </Text>
+                <RentCoachLine rent={rent} bookings={snap.bookings} />
               </>
+            )}
+            {rentOnTimeStreak(rent.history) >= 2 && (
+              <Text style={styles.streakLine}>
+                {rentOnTimeStreak(rent.history)} months paid on time — keep the run alive.
+              </Text>
             )}
           </Card>
         </>
@@ -283,6 +291,38 @@ export default function ArtistMoney({
         </Link>
       </Card>
     </View>
+  );
+}
+
+// Rent as per-appointment money: "you owe $X and have N sessions on the books
+// — set aside about $Y each." Advisory only, updates as the book fills.
+function RentCoachLine({
+  rent,
+  bookings,
+}: {
+  rent: RentStatus;
+  bookings: { starts_at: string; status: string }[];
+}) {
+  const owed = rent.unpaid.reduce((a, i) => a + i.amount_cents, 0);
+  if (owed <= 0) return null;
+  const now = new Date();
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const upcoming = bookings.filter(
+    (b) => b.status === "scheduled" && new Date(b.starts_at) >= now && new Date(b.starts_at) < monthEnd,
+  ).length;
+  if (upcoming === 0) {
+    return (
+      <Text style={styles.taxNote}>
+        Nothing on the book this month yet — every session you add chips {money(owed)} down.
+      </Text>
+    );
+  }
+  const per = Math.ceil(owed / upcoming / 100) * 100;
+  return (
+    <Text style={styles.taxNote}>
+      {upcoming} session{upcoming === 1 ? "" : "s"} on the book this month — set aside about {money(per)} from
+      each and rent takes care of itself.
+    </Text>
   );
 }
 
@@ -392,6 +432,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
   rowLabel: { color: theme.textDim, fontSize: 14 },
   rowValue: { color: theme.textDim, fontSize: 15, fontWeight: "600" },
+  streakLine: { color: theme.good, fontSize: 13, marginTop: 10, fontWeight: "600" },
   taxNote: { color: theme.textFaint, fontSize: 12, marginTop: 10, lineHeight: 17 },
   linkBtn: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   linkBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },

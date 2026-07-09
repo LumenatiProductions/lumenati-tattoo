@@ -218,6 +218,7 @@ export type RentStatus = {
   payType: string; // payroll_salary | payroll_split | booth_rent
   rentCents: number; // monthly rent from their terms (booth_rent only)
   unpaid: { id: string; period: string; amount_cents: number; due_date: string | null }[];
+  history: { period: string; status: string; paid_at: string | null; due_date: string | null }[];
 };
 
 // Tax situation follows the pay setup: renters are contractors (1099); anyone
@@ -237,7 +238,7 @@ async function myArtistId(): Promise<string | null> {
 export async function loadRent(artistId?: string): Promise<RentStatus | null> {
   const id = artistId ?? (await myArtistId());
   if (!id) return null;
-  const [{ data: a }, { data: inv }] = await Promise.all([
+  const [{ data: a }, { data: inv }, { data: hist }] = await Promise.all([
     supabase.from("artists").select("pay_type, rent_cents").eq("id", id).maybeSingle(),
     supabase
       .from("rent_invoices")
@@ -245,13 +246,38 @@ export async function loadRent(artistId?: string): Promise<RentStatus | null> {
       .eq("artist_id", id)
       .eq("status", "pending")
       .order("period"),
+    // Recent history feeds the on-time streak (rent coach).
+    supabase
+      .from("rent_invoices")
+      .select("period, status, paid_at, due_date")
+      .eq("artist_id", id)
+      .order("period", { ascending: false })
+      .limit(12),
   ]);
   if (!a) return null;
   return {
     payType: (a.pay_type as string) ?? "payroll_split",
     rentCents: (a.rent_cents as number) ?? 0,
     unpaid: (inv ?? []) as RentStatus["unpaid"],
+    history: (hist ?? []) as RentStatus["history"],
   };
+}
+
+// Consecutive months of rent paid by its due date, newest first. The current
+// month doesn't break the streak while it's still pending and not yet due.
+export function rentOnTimeStreak(history: RentStatus["history"], todayISO?: string): number {
+  const today = todayISO ?? new Date().toISOString().slice(0, 10);
+  let streak = 0;
+  for (let i = 0; i < history.length; i++) {
+    const h = history[i];
+    if (i === 0 && h.status === "pending" && (!h.due_date || h.due_date >= today)) continue;
+    if (h.status === "paid" && h.paid_at && h.due_date && h.paid_at.slice(0, 10) <= h.due_date) {
+      streak++;
+      continue;
+    }
+    break;
+  }
+  return streak;
 }
 
 // ── Goals (one row per user) ──
