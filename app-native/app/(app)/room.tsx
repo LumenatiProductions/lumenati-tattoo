@@ -196,6 +196,46 @@ export default function MyRoom() {
     setMsg("Poster up — tap Save to make it live.");
   }, [uploadFromLibrary, room]);
 
+  // ── Flash wall pieces (their own table; the public /flash-wall renders them) ──
+  type Flash = { id: string; src: string; title: string; price_cents: number; status: string };
+  const [flash, setFlash] = useState<Flash[]>([]);
+  const loadFlash = useCallback(async () => {
+    if (!artistId) return;
+    const { data } = await supabase
+      .from("flash_pieces")
+      .select("id, src, title, price_cents, status")
+      .eq("artist_id", artistId)
+      .order("created_at", { ascending: false });
+    setFlash((data ?? []) as Flash[]);
+  }, [artistId]);
+  useEffect(() => {
+    loadFlash();
+  }, [loadFlash]);
+
+  const addFlash = useCallback(async () => {
+    const url = await uploadFromLibrary(false);
+    if (!url || !artistId) return;
+    const { error } = await supabase.from("flash_pieces").insert({ artist_id: artistId, src: url });
+    setMsg(error ? error.message : "Pinned to the flash wall — set a price below.");
+    loadFlash();
+  }, [uploadFromLibrary, artistId, loadFlash]);
+
+  const patchFlash = useCallback(
+    async (id: string, patch: Record<string, unknown>) => {
+      setFlash((p) => p.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+      await supabase.from("flash_pieces").update(patch).eq("id", id);
+    },
+    [],
+  );
+
+  const removeFlash = useCallback(
+    async (id: string) => {
+      setFlash((p) => p.filter((f) => f.id !== id));
+      await supabase.from("flash_pieces").delete().eq("id", id);
+    },
+    [],
+  );
+
   const addPortfolio = useCallback(async () => {
     const url = await uploadFromLibrary(false);
     if (!url || !room) return;
@@ -350,6 +390,46 @@ export default function MyRoom() {
                 onMove={(id, dir) => set("portfolio", moveItem(room.portfolio, id, dir))}
               />
               <Button label="Add a piece" tone="ghost" onPress={addPortfolio} disabled={saving} />
+            </Card>
+
+            <SectionTitle>Flash wall</SectionTitle>
+            <Card>
+              <Text style={styles.note}>
+                Pinned straight to the public flash wall — no save needed. Mark a piece claimed the moment someone grabs it.
+              </Text>
+              {flash.length === 0 ? (
+                <Text style={styles.note}>Nothing pinned yet.</Text>
+              ) : (
+                <View style={{ gap: 12, marginBottom: 12 }}>
+                  {flash.map((f) => (
+                    <View key={f.id} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                      <Image source={{ uri: imgSrc(f.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: "#1a1a22" }} />
+                      <View style={{ flex: 1 }}>
+                        <TextInput
+                          value={f.price_cents > 0 ? String(f.price_cents / 100) : ""}
+                          onChangeText={(t) => patchFlash(f.id, { price_cents: Math.max(0, Math.round((Number(t) || 0) * 100)) })}
+                          placeholder="Price ($)"
+                          placeholderTextColor="#6b7280"
+                          keyboardType="numeric"
+                          style={styles.gridInput}
+                        />
+                        <View style={{ flexDirection: "row", gap: 14, marginTop: 6 }}>
+                          <Text
+                            style={[styles.gridAction, f.status === "claimed" && { color: "#fbbf24" }]}
+                            onPress={() => patchFlash(f.id, { status: f.status === "claimed" ? "available" : "claimed" })}
+                          >
+                            {f.status === "claimed" ? "Claimed — tap to relist" : "Available — tap when claimed"}
+                          </Text>
+                          <Text style={[styles.gridAction, { color: "#fb7185" }]} onPress={() => removeFlash(f.id)}>
+                            Remove
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <Button label="Pin new flash" tone="ghost" onPress={addFlash} disabled={saving} />
             </Card>
 
             <View style={{ marginTop: 20, gap: 10 }}>
