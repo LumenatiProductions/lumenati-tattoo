@@ -34,13 +34,13 @@ export async function GET() {
   return NextResponse.json({ posts: data ?? [] });
 }
 
-// Add a post by pasting its Instagram URL. Owner + front desk.
+// Add a post by pasting its Instagram URL. Admins.
 // Body: { url: string, artistId?: string|null, caption?: string, mediaUrl?: string }
 export async function POST(req: Request) {
   const { supabase, user, role } = await curator();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!role || !CURATORS.includes(role as (typeof CURATORS)[number])) {
-    return NextResponse.json({ error: "Owners and front desk only" }, { status: 403 });
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
 
   const body = (await req.json().catch(() => ({}))) as {
@@ -85,13 +85,13 @@ export async function POST(req: Request) {
   return NextResponse.json({ post: data });
 }
 
-// Toggle the "featured" curation flag (and allow caption/artist edits). Owner + front desk.
+// Toggle the "featured" curation flag (and allow caption/artist edits). Admins.
 // Body: { id: string, featured?: boolean, caption?: string, artistId?: string|null }
 export async function PATCH(req: Request) {
   const { supabase, user, role } = await curator();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!role || !CURATORS.includes(role as (typeof CURATORS)[number])) {
-    return NextResponse.json({ error: "Owners and front desk only" }, { status: 403 });
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const body = (await req.json().catch(() => ({}))) as {
     id?: string;
@@ -124,7 +124,7 @@ export async function DELETE(req: Request) {
   const { supabase, user, role } = await curator();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!role || !CURATORS.includes(role as (typeof CURATORS)[number])) {
-    return NextResponse.json({ error: "Owners and front desk only" }, { status: 403 });
+    return NextResponse.json({ error: "Admins only" }, { status: 403 });
   }
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });

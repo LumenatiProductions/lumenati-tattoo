@@ -109,7 +109,7 @@ export async function POST(req: Request) {
   const { admin, form } = await loadByToken(body.token);
   if (!admin) return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   if (!form) return NextResponse.json({ error: "This signing link is not valid." }, { status: 404 });
-  if (form.voided) return NextResponse.json({ error: "This form has been voided. Please see the front desk." }, { status: 409 });
+  if (form.voided) return NextResponse.json({ error: "This form has been voided. Ask your artist for a fresh one." }, { status: 409 });
   if (form.signed_at) return NextResponse.json({ error: "This form has already been signed." }, { status: 409 });
 
   const signedName = (body.signedName ?? "").trim();
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
   if (age_ok === false) {
     if (!guardianAllowed) {
       return NextResponse.json(
-        { error: `You must be at least the minimum age to sign here. Please see the front desk.`, ageBlocked: true },
+        { error: `You must be at least the minimum age to sign here. Grab your artist — a guardian may need to co-sign.`, ageBlocked: true },
         { status: 403 },
       );
     }

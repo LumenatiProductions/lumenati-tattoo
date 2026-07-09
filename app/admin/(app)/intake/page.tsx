@@ -445,7 +445,7 @@ function FormDrawer({
         <div className="space-y-5 p-5">
           {f.age_ok === false && !f.guardian_name && (
             <div className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
-              Date of birth is below the minimum age. Do not proceed without front-desk review / guardian consent.
+              Date of birth is below the minimum age. Do not proceed — an admin review and the guardian flow come first.
             </div>
           )}
           {f.guardian_name && (

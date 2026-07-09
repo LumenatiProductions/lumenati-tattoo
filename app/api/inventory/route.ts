@@ -72,7 +72,7 @@ export async function GET() {
   return NextResponse.json({ items: data ?? [] });
 }
 
-// Add a stock item. Owner / front desk.
+// Add a stock item. Admins.
 export async function POST(req: Request) {
   const { supabase, user, role } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
@@ -194,7 +194,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ item: data });
 }
 
-// Remove an item. Owner / front desk. Pass ?id=<uuid>. Log rows cascade-delete.
+// Remove an item. Admins. Pass ?id=<uuid>. Log rows cascade-delete.
 export async function DELETE(req: Request) {
   const { supabase, user, role } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });

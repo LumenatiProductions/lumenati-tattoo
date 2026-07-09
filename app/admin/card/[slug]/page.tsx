@@ -146,8 +146,8 @@ export default async function ArtistCardPage({
       </div>
       <p className="card-hint">
         Prints as a 4 x 6 card — pick 4x6 paper (or borderless) in the print
-        dialog and turn margins off. Ships straight to the front desk, mirror
-        frames, or a stack next to the register.
+        dialog and turn margins off. Ships straight to mirror frames, station
+        tables, or a stack next to the register.
       </p>
     </div>
   );

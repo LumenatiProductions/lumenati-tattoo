@@ -68,7 +68,20 @@ const FILTER_LABEL: Record<Filter, string> = { attention: "Needs attention", tod
 export default function Intake() {
   const insets = useSafeAreaInsets();
   const { role, email } = useAuth();
-  const canWrite = role === "owner";
+  const isAdmin = role === "owner";
+  // Which artist is holding this phone — gates per-row actions to THEIR forms.
+  const [myArtistId, setMyArtistId] = useState<string | null>(null);
+  useEffect(() => {
+    if (isAdmin || !email) return;
+    supabase
+      .from("profiles")
+      .select("artist_id")
+      .eq("email", email)
+      .maybeSingle()
+      .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
+  }, [isAdmin, email]);
+  // Artists run their own intake: anyone with a chair can start + work forms.
+  const canStart = isAdmin || !!myArtistId;
 
   const [forms, setForms] = useState<Form[] | null>(null);
   const [clients, setClients] = useState<Named[]>([]);
@@ -182,16 +195,17 @@ export default function Intake() {
               <Stat label="Needs ID check" value={String(awaitingId)} />
             </View>
 
-            {canWrite && (
+            {canStart && (
               <View style={{ marginTop: 14 }}>
                 <Button label={adding ? "Cancel" : "New form"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
               </View>
             )}
 
-            {adding && canWrite && (
+            {adding && canStart && (
               <NewForm
-                bookings={todays}
-                artists={artists}
+                bookings={isAdmin ? todays : todays.filter((bk) => bk.artist_id === myArtistId)}
+                artists={isAdmin ? artists : artists.filter((a) => a.id === myArtistId)}
+                lockedArtistId={isAdmin ? null : myArtistId}
                 clientName={clientName}
                 email={email}
                 onDone={() => {
@@ -221,7 +235,7 @@ export default function Intake() {
                     form={f}
                     first={i === 0}
                     open={openId === f.id}
-                    canWrite={canWrite}
+                    canWrite={isAdmin || (!!myArtistId && f.artist_id === myArtistId)}
                     clientName={clientName(f.client_id)}
                     artistName={artistName(f.artist_id)}
                     onToggle={() => setOpenId((v) => (v === f.id ? null : f.id))}
@@ -287,7 +301,7 @@ function FormRow({
         <View style={{ paddingBottom: 14, gap: 10 }}>
           {s === "age_flag" && (
             <Text style={{ color: theme.bad, fontSize: 13 }}>
-              Date of birth is below the minimum age. Do not proceed without front-desk review.
+              Date of birth is below the minimum age. Do not proceed — bring in an admin and sort the guardian flow first.
             </Text>
           )}
           {!!f.medical_flags && (
@@ -326,18 +340,21 @@ function FormRow({
 function NewForm({
   bookings,
   artists,
+  lockedArtistId,
   clientName,
   email,
   onDone,
 }: {
   bookings: Booking[];
   artists: Named[];
+  /** Set for artists: the form is theirs, no chooser. */
+  lockedArtistId: string | null;
   clientName: (id: string | null) => string;
   email: string | null;
   onDone: () => void;
 }) {
   const [bookingId, setBookingId] = useState("walkin");
-  const [artistId, setArtistId] = useState("any");
+  const [artistId, setArtistId] = useState(lockedArtistId ?? "any");
   const [placement, setPlacement] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -350,7 +367,7 @@ function NewForm({
     const { error } = await supabase.from("consent_forms").insert({
       booking_id: bk?.id ?? null,
       client_id: bk?.client_id ?? null,
-      artist_id: artistId === "any" ? bk?.artist_id ?? null : artistId,
+      artist_id: lockedArtistId ?? (artistId === "any" ? bk?.artist_id ?? null : artistId),
       placement: placement.trim() || null,
       sign_token: token,
       created_by: email,
@@ -381,13 +398,15 @@ function NewForm({
         }}
         onChange={setBookingId}
       />
-      <Chips
-        label="Artist"
-        value={artistId}
-        options={["any", ...artists.map((a) => a.id)]}
-        display={(id) => (id === "any" ? "Any" : artists.find((a) => a.id === id)?.name ?? id)}
-        onChange={setArtistId}
-      />
+      {!lockedArtistId && (
+        <Chips
+          label="Artist"
+          value={artistId}
+          options={["any", ...artists.map((a) => a.id)]}
+          display={(id) => (id === "any" ? "Any" : artists.find((a) => a.id === id)?.name ?? id)}
+          onChange={setArtistId}
+        />
+      )}
       <LabeledInput label="Placement (body area)" value={placement} onChange={setPlacement} placeholder="Left forearm, ribs…" />
       <Button label={busy ? "Starting…" : "Start form + share link"} onPress={start} disabled={busy} />
       {err ? <Text style={{ color: theme.bad, fontSize: 13, marginTop: 8 }}>{err}</Text> : null}
