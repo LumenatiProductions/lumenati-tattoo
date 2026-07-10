@@ -1,163 +1,126 @@
-# Lumenati — next-session starter
+# Lumenati — next-session starter: THE ARCADE
 
 Read this first in a fresh context. Scott is NOT a coder: explain in plain
-English, no jargon/file paths in chat. Never use emojis or em dashes.
+English, no jargon/file paths in chat. Never use emojis or em dashes. Dive
+straight into Priority 1 — no questions, no menus.
 
 ## What this is
-A tattoo-shop management product Lumenati owns end to end, replacing Square
-(POS) and QuickBooks (books) — growing into a SaaS for every tattoo shop
-(/start wizard, invite-gated). Two surfaces:
+A tattoo-shop management product Lumenati owns end to end. Two surfaces:
 - **Web Command Center** (`/admin`, Next.js, dev on :3002) = admins.
-- **Phone app** (`app-native`, Expo) = artists + admin on the go.
-Public layer: Y2K site at root (custom skin) + standard template /s/<shop>.
-Owner login: lumenati@icloud.com. Money: cash + Stripe, append-only ledger.
+- **Phone app** (`app-native`, Expo, Metro :8081) = artists + admin on the go.
+Public layer: Y2K site at root. Owner login: lumenati@icloud.com.
+Core principle: NO front desk — artists run their own world from the app.
+Square is historical only; never flag its data quirks.
 
-## CORE PRINCIPLE (Scott, 2026-07-08, non-negotiable)
-**There is NO front desk.** The shop is run entirely by the artists; the
-product gives each artist full power over their own world. Roles are ADMIN
-and ARTIST only. Anything about an artist's own bookings/clients/money is
-artist-doable in the app. Staff gates only protect OTHER people's worlds.
-Also: **Square is historical only** — shop starts fresh in the app; NEVER
-flag Square data quirks (Scott is tired of re-explaining).
+Backlog status: the 2026-07-08 page-walk items 1-5, the up-for-grabs pool,
+the flash wall, the site perf pass, and the mobile Command Center ALL
+shipped (2026-07-08..10). Social (item 7) is blocked on Meta/IG API access.
 
-## THE MISSION: execute the page-walk backlog
-The 2026-07-08 page walk produced `PAGE-WALK-NOTES.md` (the detailed spec —
-READ IT). Priorities, roughly in dependency order:
+## THE MISSION (Scott, 2026-07-10, verbatim intent)
+"Build like 5 different video games like JD's skate game... we could
+probably make that better now too with Fable 5. Artists get to choose which
+game is on their room, and also let people upload videos to the video
+button. Basically carry all the JD options to everywhere but allow the
+artists to customize them."
 
-1. **Pay-model rebuild — DONE 2026-07-08** (notes 2, 5, 10, 11, 15, 19, 20).
-   Shipped: pay types are now payroll_salary (J.D.), payroll_split
-   (Kalypso 30%, Moonie 40%) and booth_rent (Elaine, ShorTy, Sam; hybrid
-   dropped) — live DB migrated (supabase/2026-07-08-pay-model.sql).
-   /admin/payouts is now "Pay": renter pass-through (100% of card sales,
-   rent NEVER netted) + Gusto payroll prep (wages to type in). J.D. is out
-   of all statements (his phantom $84k "owed" is gone; his sales = shop
-   income). P&L grew a pass-through column/line. 1099 prep = renters only.
-   Stripe Connect = renter bank links, 0 fee. Instant cash-out API deleted.
-   App: Pay screen mirrors web, coach/goals tax advice derives from pay
-   type (renter=1099, payroll=W-2; manual chooser only if no artist link).
-   Verified in Chrome (web owner walk + app as disposable renter/payroll
-   artist, identity cleaned up), tsc both sides, 20/20 tests.
-   Still open: exact %s/rent amounts are Scott's launch numbers via Edit
-   pay; Gusto account decision on the external checklist.
-2. **Artist-driven audit** (notes 5, 7, 17): collapse frontdesk/bookkeeper
-   roles into admin everywhere (web, app, RLS, api-auth). Artists mark own
-   bookings completed/no-show (RLS + guard trigger like artist-cancel).
-   Artists send intake forms to their own clients. Sweep "front desk"
-   wording (e.g. QR card print copy).
-3. **One-tap close-out** (notes 8, 12, 13): end of payment -> confirm which
-   booking -> completed + aftercare drip queued + confirmation. Cash flow:
-   artist logs cash at source, two-tap handoff to J.D. (optional photo of
-   the stack), Stephanie only reconciles. Cash Log page becomes "cash the
-   shop is holding". Expense entries get receipt photos.
-4. **Booth rent engine** (notes 3, 11): auto-generate + auto-send invoices
-   on the 1st, escalating nudges, rent coach in the app ("rent is $X, N
-   appts booked, set aside ~$Y each"), on-time-streak reward (design open:
-   Scott floated year-end discount). Plumbing already exists on /admin/rent.
-5. **Rooms** (notes 4, 25): artists manage EVERYTHING from the app —
-   upload/arrange profile/polaroids/portfolio (app is profile-only today),
-   sticker + poster picker (currently baked-in J.D. set). Mount the main
-   site's existing Winamp widget on each room wired to the artist's song
-   pick. Main artists page reads accent colors from room data (hand-coded
-   today). Flash wall: artists add flash from the app (site wall is empty).
-6. **Up-for-grabs pool** (note 26): unassigned bookings get badge + push;
-   first artist tap claims atomically; artist cancel returns to pool.
-7. **Social redesign** (note 9): replace paste-a-link wall with IG
-   monitoring of artist accounts (Business Discovery; artists need
-   business/creator accounts) + one-tap repost to shop IG (needs Meta app +
-   review). Ad generator later.
-8. **UX debt** (notes 22-24): coach cards get ONE action tap each; inline
-   new-client inside New Booking + New Intake forms; intake new-form flow
-   redesign (client-first, explicit "text/email/tablet" send choices);
-   "Sunset Square" cutover button on Integrations; compliance items get
-   photo/doc attachments (renewal warnings already exist); POS web fallback
-   layout is shoved off-screen left (cosmetic).
-9. **BIG, separate**: mobile-browser layout for the whole Command Center
-   ("match the app" feel). And the clients cleanup pass: tag artists out of
-   the client roster (keep their money history).
+Three deliverables:
 
-## SHIPPED 2026-07-08 (this session, all verified in Chrome, tsc+18/18)
-- Overview quick buttons: sidebar duplicates removed, only "New client"
-  stays (owner + front-desk homes).
-- Admin drawers (bookings/clients/intake): real frosted glass via inline
-  styles — Tailwind v4 silently dropped the new classes (known gotcha).
-- Reports busiest-hours chart: every hour labeled 8a-9p, faint stubs for
-  quiet hours.
-- App: cash-out-early button + screen DELETED; day-card/pills spacing;
-  themed header defaults at Stack level (kills the blue back-button flash —
-  verify on native); Expo web capped at 560px centered column on dark
-  (+html.tsx added; wrapper View in the app-group layout does the capping).
-- Clients: "Add walk-in" renamed "New client".
-- Y2K hero: intro text centered, Get Inked/Flash Wall in a centered row
-  BELOW it (legacy/hero-y2k.html).
-- Kiosk flow PROVEN live end to end: booking -> unsigned form -> kiosk
-  check-in -> "sign your consent form" -> real form. Test data cleaned up
-  via the UI (form voided, booking cancelled — they remain as records).
+### 1. The game catalog (~5 new games + a better skate game)
+JD's room has a Win98-style game window: a `<canvas>` in Tahoma window
+chrome with Score/Lives in the status bar, opened by the desktop "Games"
+icon. In `legacy/artist-page-y2k.html`: icon ~line 748, game window +
+canvas ~894, the game IIFE ~906-1440, click wiring ~1442, mobile buttons
+`jd-mob-game`/`jd-mob-skate`. Build ~5 more games in exactly that shell —
+same window chrome, keyboard AND touch controls, era-true Y2K arcade feel,
+each one a self-contained IIFE with zero dependencies and zero downloaded
+assets. Era-appropriate candidates (give them tattoo-shop-flavored twists):
+Snake, brick breaker, asteroids/space shooter, Pong vs CPU, a runner.
+ALSO: improve the skate game itself (physics, feel, polish) — Scott expects
+it to get better with Fable 5. Keep controls dead simple.
 
-## Walk status
-Admin pages + app home/bookings/pos walked with Scott. NOT yet walked: app
-cash, clients, my-clients, compliance, expenses, followups, goals,
-healed-shots, intake, integrations, inventory, payouts, promos, qr-card,
-reconcile, rent, reports, room, social, staff, waitlist; public /book,
-/request, /pay, /intake, /care, /healed, /claim, /s/<shop>, /start. Scott
-ended the walk satisfied; resume only if he asks.
+### 2. Artists pick their game + their video (My Room in the app)
+- `room_content` gains `game_id text` and `video_url text` (ADDITIVE
+  `alter table add column` — passes the auto-mode classifier; new
+  policies/functions/triggers would NOT, see gotchas). NULL = today's
+  behavior: JD keeps skate + his hardcoded Vimeo clip, others have neither.
+- renderRoomHtml (`lib/admin/render-room.ts`): today it STRIPS the JD-only
+  extras for `!isJd` ("Strip JD-only extras" block). Invert: every room
+  gets the Games + Video icons when the artist picked one; inject the
+  chosen game's IIFE and the artist's video. Follow the sticker/poster
+  pattern (STICKER_CATALOG in the same file: catalog + null-means-classic).
+- Video: artist uploads a clip from the phone. New PUBLIC storage bucket
+  (service-role creation like room-photos; bucket creation passes the
+  classifier). Cap size (~60MB) and type (mp4/mov). The room's video window
+  becomes a `<video>` tag when video_url is set; JD's Vimeo iframe stays
+  his default until he uploads his own. App picker: `uploadFromLibrary` in
+  `app-native/app/(app)/room.tsx` is images-only (expo-image-picker) —
+  extend mediaTypes for video and route to the video bucket.
+- My Room UI: a "Game" chip row (matches the sticker picker style) + a
+  Video row (upload / replace / remove). Include picks in select/save like
+  stickers/posters: web mapping `lib/admin/room-data.ts`, seeds
+  `lib/admin/room-seed.ts`, RoomContent type `lib/admin/types.ts`.
 
-## PARKED (do NOT build unless Scott says go)
-Auto-deductions: full scope in `AUTO-DEDUCTIONS-PLAN.md` (account feed via
-aggregator, artist confirms charges, feeds deductions + tax set-aside).
-Note: same account-feed engine could feed SHOP expenses too (Scott liked
-that). Open: who pays the fee, artist-only vs owner rollup, aggregator.
+### 3. Mobile buttons too
+Carry the template's mobile-btn equivalents to every room with the same
+conditional logic.
 
-## Open / owed items
+## Definition of done
+- 6 playable games (skate improved + ~5 new), each verified by PLAYING it
+  in Chrome on a real room page — press the keys, score points, lose a
+  life. Watch-the-output rule: never claim a game works without playing it.
+- A disposable artist picks a game + uploads a video in the app; their
+  public room shows both. A second artist picks a different game; the rooms
+  differ. JD's room pixel-identical while his new fields stay NULL.
+- Renderer assertions extended, tsc clean both sides, vitest green,
+  commit + push per game/feature.
+
+## How to work here (hard-won gotchas — trust these)
+- Scott's dev servers are already running (:3002 web, :8081 Metro). NEVER
+  kill Metro. Shell cwd resets between calls — cd the repo first.
+- Live DB DDL: SQL file in supabase/, apply with
+  `node scripts/apply-sql.mjs supabase/<file>.sql` (SUPABASE_ACCESS_TOKEN
+  in ~/.zshrc). Additive columns/buckets pass auto mode; policies/functions
+  get classifier-blocked — build everything else first, then ask Scott to
+  shift+tab and say go. If a compound command is denied, NOTHING in it ran
+  (including any heredoc file-write — recheck the file exists).
+- Disposable identities: full recipe in memory
+  reference_lumenati_test_identity. Short form: auth user + profiles row
+  (keyed by EMAIL, no id column: email/role/artist_id/shop_id, shop
+  11111111-…) via service key; password-grant; on localhost:8081 go to
+  /sign-in, wait 3s, inject `sb-humjddiwzzanvvqztypy-auth-token` into
+  localStorage, navigate. Test data screams OVERNIGHT TEST; delete + sweep
+  same session; clear the injected token.
+- Metro web CANNOT click buttons that call the Next API (app points at the
+  prod deploy; browsers block cross-site) — prove API paths with curl +
+  Bearer. Supabase-direct actions click fine in Chrome.
+- The long-running web dev server serves a STALE compile of admin.css — a
+  Tailwind class never used in /admin before silently doesn't exist. New
+  admin CSS goes in its own file (see app/admin/phone.css). Room pages are
+  unaffected (legacy blocks are inline-styled).
+- readLegacyBlock rewrites Squarespace CDN URLs to /legacy-assets AND adds
+  loading=lazy to imgs — template assertions must expect the rewritten form.
+- Verify UI in Chrome MCP (never computer-use); window resize works now.
+- public/ was slimmed 80MB -> 33MB; keep new games asset-free, compress any
+  new media with sharp (already in node_modules).
+- No real sends (RENT_AUTOSEND / FOLLOWUPS_AUTOSEND stay off; deposit 0 in
+  tests mints no Stripe links). No eas build/update without explicit go.
+- Web dev server if needed: `npx next dev -p 3002` (plain dev binds 3000).
+
+## Open / owed items (carry-over)
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens.
-- Tap to Pay go-live bundle: live Stripe keys, Apple production entitlement
-  (flow demo video), real-phone done-screen check. Flow proven on sandbox.
-- Owed: real 4x6 QR card print; artist push tokens (need an artist login on
-  a real phone).
-- App changes since the 2026-07-05 build are OTA-safe but NOT on phones
-  until Scott approves a build or eas update (NEVER build without explicit
-  go; before eas update set EXPO_PUBLIC_API_URL to
-  https://lumenati-tattoo.vercel.app). Bug-reporter native screenshots
-  still wait on one EAS build (react-native-view-shot).
-- Shop-provides-supplies list: Scott will find out what the shop provides
-  (Inventory stays empty until then).
+- Tap to Pay go-live bundle: live Stripe keys, Apple production
+  entitlement, real-phone done-screen check (sandbox proven).
+- App changes are OTA-safe but NOT on phones until Scott approves a build
+  or eas update (before eas update set EXPO_PUBLIC_API_URL to
+  https://lumenati-tattoo.vercel.app).
+- Owed: real 4x6 QR card print; artist push tokens need an artist login on
+  a real phone.
 
-## The disposable-identity test recipe (battle-tested, used again today)
-scripts/two-shop-breakin.mjs automates the full second-shop matrix. Manual
-recipe for app-as-artist in Chrome:
-1. Auth user via Supabase admin API (service key in .env.local).
-2. profiles row via PostgREST w/ service key — profiles is keyed by EMAIL
-   (email/role/artist_id/full_name/shop_id; no id column). Link artist_id
-   "jd" + shop 11111111-… for J.D.'s world.
-3. Password-grant a session; inject JSON into localStorage
-   (sb-humjddiwzzanvvqztypy-auth-token) on localhost:8081. RIGHT ORIGIN.
-4. DELETE profile (by email) + auth user after. Done today, verified empty.
-Sim: Scott drives it (iOS "Open in Lumenati?" dialogs need human taps;
-NEVER take over his input). simctl screenshots work read-only.
-
-## Environment gotchas (hard-won)
-- Expo web works; app screens verifiable in Chrome at localhost:8081 (now a
-  centered phone column). Reuse Scott's Metro if running. +html.tsx changes
-  need a Metro restart to serve — runtime body-bg is set in the app layout.
-- Web dev server: `npx next dev -p 3002` (plain dev binds 3000).
-- Tailwind v4 silently drops utility classes new to a file — inline styles
-  for must-render bits; CHECK COMPUTED STYLES (bit us again today on the
-  drawers).
-- App booking writes must be real instants (toISOString).
-- SHOP_WIZARD_CODE local-only; schema files DRIFT from live DB — verify live.
-- Kiosk device token lives in .env.local (KIOSK_DEVICE_TOKEN).
-
-## Scott's external checklist (gates launch — docs/owner-setup-checklist.md)
-- Twilio TRIAL upgrade (highest leverage: texts, phone-code logins, blasts).
-- Sales-tax rate on P&L; real recurring bills on Expenses.
-- GOOGLE_REVIEW_URL, GOOGLE_PLACES_API_KEY + GOOGLE_PLACE_ID, email domain +
-  RESEND_FROM, live Stripe keys + webhook secret, consent-copy legal review,
-  FOLLOWUPS_AUTOSEND=true.
-- NEW: Gusto account/plan decision (pay-model rebuild produces the numbers,
-  Gusto runs payroll). Meta developer app for the Social redesign.
-
-## How to work
-- Web: `npx next dev -p 3002`; deploy = push main (Vercel). Verify money to
-  the penny; verify UI by clicking it in Chrome.
-- DB: SQL via the Management API (memory reference_lumenati_supabase_db).
-- Commit style: what shipped + how it was verified; push when green.
+## Still Scott's (remind if asked, don't build)
+- Twilio upgrade, then RENT_AUTOSEND=true (and FOLLOWUPS_AUTOSEND).
+- Artist logins on the Team page (gates rent nudges + pool pushes).
+- Sales-tax rate, recurring bills, live Stripe keys, GOOGLE_* keys, email
+  domain (docs/owner-setup-checklist.md).
+- Meta developer app for the Social redesign; Gusto account decision.
+- Sunset Square cutover button: build only when Scott says go.
