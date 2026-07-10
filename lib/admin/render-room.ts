@@ -36,7 +36,7 @@ export const STICKER_CATALOG = [
 // as drop-in IIFEs that share the template's window shell. The app's picker
 // mirrors id + label.
 export const GAME_CATALOG = [
-  { id: "skate", label: "Skate", exe: "sk8_or_die.exe", hint: "SPACE ollie // air: LEFT RIGHT UP tricks" },
+  { id: "skate", label: "Skate", exe: "sk8_or_die.exe", hint: "SPACE ollie // arrows: tricks + manual" },
   { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer // machine +50" },
   { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows, mouse or drag // SPACE launches" },
   { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires // drag on phones" },
