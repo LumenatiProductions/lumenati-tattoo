@@ -26,12 +26,18 @@
 
   // Announcer: tiny mp3 one-liners; rooms work fine without them
   var VOICE_CACHE = {};
+  var calloutCd = 0;
+  function sayCallout(name) {
+    if (calloutCd > 0) return;
+    calloutCd = 480;
+    say(name);
+  }
   function say(name, delay) {
     try {
       setTimeout(function() {
         try {
           if (!VOICE_CACHE[name]) {
-            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3');
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3?v=3');
             VOICE_CACHE[name].volume = 0.5;
           }
           VOICE_CACHE[name].currentTime = 0;
@@ -215,9 +221,11 @@
       score += pts; eaten++;
       document.getElementById('jd-br-score').textContent = score;
       popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: (wasLive ? 'CAUGHT +' : '+') + pts + (!wasLive && eatStreak > 1 ? ' x' + eatStreak : ''), color: wasLive ? PINK : eatStreak > 1 ? YELLOW : '#fff', life: 40 });
+      if (wasLive) sayCallout('snake-c3');
       if (eatStreak === 5 && frenzyT <= 0) {
         frenzyT = 600;
         popups.push({ x: head.x * CELL + 10, y: head.y * CELL - 14, text: 'FRENZY! 2X', color: '#FF6347', life: 60 });
+        sayCallout('snake-c2');
         sfxBonus();
       }
       sfxEat();
@@ -246,6 +254,7 @@
   function update() {
     frame++;
     musicTick();
+    if (calloutCd > 0) calloutCd--;
     if (flashT > 0) flashT--;
     if (bannerT > 0) bannerT--;
     if (frenzyT > 0) frenzyT--;

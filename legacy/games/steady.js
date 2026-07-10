@@ -23,6 +23,61 @@
   function sfxFlinchWarn() { playSfx(1200, 0.07, 'square', 0.1); setTimeout(function(){playSfx(1200, 0.07, 'square', 0.1);}, 110); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
+
+  // Announcer: this game's own voice; rooms work fine without the clips
+  var VOICE_CACHE = {};
+  function say(name, delay) {
+    try {
+      setTimeout(function() {
+        try {
+          if (!VOICE_CACHE[name]) {
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3?v=3');
+            VOICE_CACHE[name].volume = 0.5;
+          }
+          VOICE_CACHE[name].currentTime = 0;
+          VOICE_CACHE[name].play().catch(function() {});
+        } catch (e) {}
+      }, delay || 0);
+    } catch (e) {}
+  }
+  var calloutCd = 0;
+  function sayCallout(name) {
+    if (calloutCd > 0) return;
+    calloutCd = 480;
+    say(name);
+  }
+
+  // ── This game's own chiptune: smooth focused session groove ──
+  var SONGS = [
+    { root: 98.00, bass: [0,-1,-1,7, -1,-1,5,-1, 0,-1,-1,7, -1,-1,3,-1],  lead: [12,-1,-1,15, -1,-1,14,-1, 12,-1,-1,10, -1,-1,7,-1] },
+    { root: 110.00, bass: [0,-1,5,-1, -1,3,-1,-1, 0,-1,5,-1, -1,7,-1,-1], lead: [15,-1,-1,12, -1,14,-1,-1, 15,-1,17,-1, 14,-1,12,-1] },
+  ];
+  var MENU_SONG = { root: 98.00, bass: [0,-1,7,-1, 5,-1,7,-1, 3,-1,7,-1, 5,-1,7,-1], lead: [12,-1,14,15, -1,14,-1,12, 15,-1,17,15, -1,14,12,-1] };
+  var musicStep = -1, musicFrame = 0, jingleT = 0;
+  function musicTick() {
+    if (jingleT > 0) { jingleT--; return; }
+    var menu = mode !== 'play';
+    var stepFrames = menu ? 14 : Math.max(10, 16 - level);
+    musicFrame++;
+    if (musicFrame < stepFrames) return;
+    musicFrame = 0;
+    musicStep = (musicStep + 1) % 16;
+    var song = menu ? MENU_SONG : SONGS[(level - 1) % SONGS.length];
+    var b = song.bass[musicStep];
+    if (b >= 0) playSfx(song.root * Math.pow(2, b / 12), 0.12, 'triangle', 0.045);
+    var l = song.lead[musicStep];
+    if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
+    if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
+    if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+  }
+  function deathJingle() {
+    jingleT = 110;
+    var seq = [[392, 0], [370, 150], [330, 300], [294, 450], [262, 620], [196, 830], [131, 1120]];
+    for (var i = 0; i < seq.length; i++) (function(n, d, last) {
+      setTimeout(function() { playSfx(n, last ? 0.6 : 0.18, 'square', 0.085); }, d);
+    })(seq[i][0], seq[i][1], i === seq.length - 1);
+  }
+
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF';
   var STENCIL = '#7b2fbf'; // stencils are purple, always
   var SKINS = ['#f0c8a0', '#d9a276', '#b97a4e', '#8d5a3b', '#6b4128'];
@@ -68,7 +123,7 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; trust = 3; level = 1; frame = 0; mode = 'intro'; introT = 0;
+    score = 0; trust = 3; level = 1; frame = 0; mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0;
     combo = 1; comboT = 0; grace = 0; bannerT = 0; bannerText = ''; doneAcc = null;
     particles = []; keyU = false; keyD = false;
     document.getElementById('jd-br-score').textContent = '0';
@@ -107,6 +162,8 @@
 
   function update() {
     frame++;
+    musicTick();
+    if (calloutCd > 0) calloutCd--;
     if (bannerT > 0) bannerT--;
     if (comboT > 0) { comboT--; if (comboT === 0) combo = 1; }
     if (grace > 0) grace--;
@@ -159,11 +216,12 @@
           sfxWince();
           combo = 1; comboT = 0;
           grace = 120;
+          sayCallout('steady-c3');
           offStreak = 0;
           if (trust <= 0) {
             enterBoard(score);
             saveBest();
-            sfxGameOver();
+            deathJingle();
             return;
           }
         }
@@ -183,6 +241,7 @@
       document.getElementById('jd-br-score').textContent = score;
       bannerT = 120;
       bannerText = acc >= 90 ? 'CLEAN WORK: ' + acc + '%' : acc >= 70 ? 'SOLID: ' + acc + '%' : 'ROUGH: ' + acc + '%';
+      if (acc >= 70) sayCallout(acc >= 90 ? 'steady-c2' : 'steady-c1');
       if (acc >= 90 && trust < 3) {
         trust++;
         document.getElementById('jd-br-lives').textContent = trust;
@@ -252,6 +311,7 @@
     boardIdx = -1;
     initSlot = 0;
     mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
+    say(mode === 'enter' ? 'high-score' : 'game-over', 350);
   }
 
   function commitInitials() {
@@ -586,7 +646,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
       acc -= 16.67;
     }
     draw();
@@ -594,7 +654,7 @@
   }
 
   var obs = new MutationObserver(function() {
-    if (document.getElementById('jd-game-overlay').style.display === 'flex') init();
+    if (document.getElementById('jd-game-overlay').style.display === 'flex') { init(); say('title-steady', 700); }
   });
   var overlay = document.getElementById('jd-game-overlay');
   if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['style'] });

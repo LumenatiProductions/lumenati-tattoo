@@ -24,6 +24,61 @@
   function sfxLevel() { playSfx(700, 0.1, 'square', 0.12); setTimeout(function(){playSfx(950, 0.1, 'square', 0.12);}, 100); setTimeout(function(){playSfx(1250, 0.15, 'square', 0.12);}, 200); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
+
+  // Announcer: this game's own voice; rooms work fine without the clips
+  var VOICE_CACHE = {};
+  function say(name, delay) {
+    try {
+      setTimeout(function() {
+        try {
+          if (!VOICE_CACHE[name]) {
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3?v=3');
+            VOICE_CACHE[name].volume = 0.5;
+          }
+          VOICE_CACHE[name].currentTime = 0;
+          VOICE_CACHE[name].play().catch(function() {});
+        } catch (e) {}
+      }, delay || 0);
+    } catch (e) {}
+  }
+  var calloutCd = 0;
+  function sayCallout(name) {
+    if (calloutCd > 0) return;
+    calloutCd = 480;
+    say(name);
+  }
+
+  // ── This game's own chiptune: bouncy demolition major ──
+  var SONGS = [
+    { root: 130.81, bass: [0,-1,7,-1, 0,-1,7,-1, 5,-1,9,-1, 7,-1,5,-1], lead: [12,16,19,-1, 16,-1,12,-1, 17,21,24,-1, 19,-1,16,-1] },
+    { root: 146.83, bass: [0,0,-1,7, 5,5,-1,9, 0,0,-1,7, 10,-1,9,7],   lead: [19,-1,16,12, -1,17,-1,21, 19,-1,16,12, 24,-1,21,19] },
+  ];
+  var MENU_SONG = { root: 164.81, bass: [0,-1,7,-1, 5,-1,9,-1, 0,-1,7,-1, 10,9,7,5], lead: [16,-1,19,16, -1,21,19,-1, 16,-1,19,24, 21,19,16,-1] };
+  var musicStep = -1, musicFrame = 0, jingleT = 0;
+  function musicTick() {
+    if (jingleT > 0) { jingleT--; return; }
+    var menu = mode !== 'play';
+    var stepFrames = menu ? 12 : Math.max(9, 15 - level);
+    musicFrame++;
+    if (musicFrame < stepFrames) return;
+    musicFrame = 0;
+    musicStep = (musicStep + 1) % 16;
+    var song = menu ? MENU_SONG : SONGS[(level - 1) % SONGS.length];
+    var b = song.bass[musicStep];
+    if (b >= 0) playSfx(song.root * Math.pow(2, b / 12), 0.12, 'triangle', 0.045);
+    var l = song.lead[musicStep];
+    if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
+    if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
+    if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+  }
+  function deathJingle() {
+    jingleT = 110;
+    var seq = [[392, 0], [370, 150], [330, 300], [294, 450], [262, 620], [196, 830], [131, 1120]];
+    for (var i = 0; i < seq.length; i++) (function(n, d, last) {
+      setTimeout(function() { playSfx(n, last ? 0.6 : 0.18, 'square', 0.085); }, d);
+    })(seq[i][0], seq[i][1], i === seq.length - 1);
+  }
+
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
 
   var COLS = 8, BW = 46, BH = 14, BGAP = 3, BTOP = 36;
@@ -94,7 +149,7 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; lives = 3; level = 1; frame = 0; flashT = 0; mode = 'intro'; introT = 0;
+    score = 0; lives = 3; level = 1; frame = 0; flashT = 0; mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0;
     bannerT = 0; bannerText = '';
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
@@ -123,6 +178,8 @@
 
   function update() {
     frame++;
+    musicTick();
+    if (calloutCd > 0) calloutCd--;
     if (flashT > 0) flashT--;
 
     // Paddle
@@ -188,6 +245,7 @@
         serve();
         bannerT = 90;
         bannerText = 'SHEET ' + level + ': ' + design().name;
+        sayCallout(['bricks-c1', 'bricks-c2', 'bricks-c3'][level % 3]);
       }
 
       // Dropped it
@@ -196,7 +254,7 @@
         document.getElementById('jd-br-lives').textContent = lives;
         flashT = 12;
         sfxLose();
-        if (lives <= 0) { enterBoard(score); saveBest(); sfxGameOver(); return; }
+        if (lives <= 0) { enterBoard(score); saveBest(); deathJingle(); return; }
         serve();
       }
     }
@@ -262,6 +320,7 @@
     boardIdx = -1;
     initSlot = 0;
     mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
+    say(mode === 'enter' ? 'high-score' : 'game-over', 350);
   }
 
   function commitInitials() {
@@ -558,7 +617,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
       acc -= 16.67;
     }
     draw();
@@ -566,7 +625,7 @@
   }
 
   var obs = new MutationObserver(function() {
-    if (document.getElementById('jd-game-overlay').style.display === 'flex') init();
+    if (document.getElementById('jd-game-overlay').style.display === 'flex') { init(); say('title-bricks', 700); }
   });
   var overlay = document.getElementById('jd-game-overlay');
   if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['style'] });

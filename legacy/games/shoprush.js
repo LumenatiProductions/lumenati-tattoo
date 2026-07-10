@@ -24,6 +24,61 @@
   function sfxDay() { playSfx(700, 0.1, 'square', 0.12); setTimeout(function(){playSfx(950, 0.1, 'square', 0.12);}, 100); setTimeout(function(){playSfx(1250, 0.15, 'square', 0.12);}, 200); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
+
+  // Announcer: this game's own voice; rooms work fine without the clips
+  var VOICE_CACHE = {};
+  function say(name, delay) {
+    try {
+      setTimeout(function() {
+        try {
+          if (!VOICE_CACHE[name]) {
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3?v=3');
+            VOICE_CACHE[name].volume = 0.5;
+          }
+          VOICE_CACHE[name].currentTime = 0;
+          VOICE_CACHE[name].play().catch(function() {});
+        } catch (e) {}
+      }, delay || 0);
+    } catch (e) {}
+  }
+  var calloutCd = 0;
+  function sayCallout(name) {
+    if (calloutCd > 0) return;
+    calloutCd = 480;
+    say(name);
+  }
+
+  // ── This game's own chiptune: bustling front-of-house bounce ──
+  var SONGS = [
+    { root: 155.56, bass: [0,0,7,0, 5,5,9,5, 0,0,7,0, 10,9,7,5],      lead: [12,-1,16,-1, 17,16,-1,12, 16,-1,19,-1, 21,19,16,12] },
+    { root: 164.81, bass: [0,-1,0,7, 5,-1,5,9, 0,-1,0,7, 9,-1,7,5],    lead: [16,19,-1,16, 12,-1,17,-1, 16,19,-1,21, 24,21,19,16] },
+  ];
+  var MENU_SONG = { root: 155.56, bass: [0,7,0,7, 5,9,5,9, 0,7,0,7, 10,-1,9,7], lead: [16,-1,12,16, 19,-1,16,-1, 21,-1,19,16, -1,17,16,12] };
+  var musicStep = -1, musicFrame = 0, jingleT = 0;
+  function musicTick() {
+    if (jingleT > 0) { jingleT--; return; }
+    var menu = mode !== 'play';
+    var stepFrames = menu ? 11 : Math.max(9, 15 - day);
+    musicFrame++;
+    if (musicFrame < stepFrames) return;
+    musicFrame = 0;
+    musicStep = (musicStep + 1) % 16;
+    var song = menu ? MENU_SONG : SONGS[(day - 1) % SONGS.length];
+    var b = song.bass[musicStep];
+    if (b >= 0) playSfx(song.root * Math.pow(2, b / 12), 0.12, 'triangle', 0.045);
+    var l = song.lead[musicStep];
+    if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
+    if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
+    if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+  }
+  function deathJingle() {
+    jingleT = 110;
+    var seq = [[392, 0], [370, 150], [330, 300], [294, 450], [262, 620], [196, 830], [131, 1120]];
+    for (var i = 0; i < seq.length; i++) (function(n, d, last) {
+      setTimeout(function() { playSfx(n, last ? 0.6 : 0.18, 'square', 0.085); }, d);
+    })(seq[i][0], seq[i][1], i === seq.length - 1);
+  }
+
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF';
   var SKINS = ['#f0c8a0', '#d9a276', '#b97a4e', '#8d5a3b', '#6b4128'];
   var SHIRTS = ['#e74c3c', '#3498db', '#2ecc71', '#e67e22', '#9b59b6', '#00bcd4'];
@@ -51,7 +106,7 @@
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; hearts = 3; day = 1; frame = 0; served = 0; servedTarget = 5;
-    mode = 'intro'; introT = 0; bannerT = 0; bannerText = ''; particles = [];
+    mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0; bannerT = 0; bannerText = ''; particles = [];
     runner = { x: 200, y: 170, tx: null, ty: null, kx: 0, ky: 0, lead: null };
     clients = [];
     chairs = CHAIRS.map(function(c) { return { x: c.x, y: c.y, state: 'free', t: 0, client: null }; });
@@ -103,12 +158,14 @@
     if (hearts <= 0) {
       enterBoard(score);
       saveBest();
-      sfxGameOver();
+      deathJingle();
     }
   }
 
   function update() {
     frame++;
+    musicTick();
+    if (calloutCd > 0) calloutCd--;
     if (bannerT > 0) bannerT--;
 
     // Runner: keys beat taps
@@ -194,6 +251,7 @@
       } else if (ch.state === 'done' && near(runner.x, runner.y, ch.x - 24, ch.y, 24)) {
         var pay = 30 + ch.tip;
         score += pay;
+        if (ch.tip >= 14) sayCallout('shoprush-c1');
         document.getElementById('jd-br-score').textContent = score;
         spawnParticles(ch.x - 10, ch.y - 10, YELLOW, 10);
         sfxCash();
@@ -208,6 +266,7 @@
           servedTarget = 4 + day;
           bannerT = 110;
           bannerText = 'DAY ' + day;
+          say(day % 2 === 0 ? 'shoprush-c2' : 'shoprush-c3', 300);
           sfxDay();
         }
       }
@@ -295,6 +354,7 @@
     boardIdx = -1;
     initSlot = 0;
     mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
+    say(mode === 'enter' ? 'high-score' : 'game-over', 350);
   }
 
   function commitInitials() {
@@ -637,7 +697,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
       acc -= 16.67;
     }
     draw();
@@ -645,7 +705,7 @@
   }
 
   var obs = new MutationObserver(function() {
-    if (document.getElementById('jd-game-overlay').style.display === 'flex') init();
+    if (document.getElementById('jd-game-overlay').style.display === 'flex') { init(); say('title-shoprush', 700); }
   });
   var overlay = document.getElementById('jd-game-overlay');
   if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['style'] });

@@ -941,6 +941,13 @@
   var scrollX = 0;
   var holdingJump = false, coyote = 0, jumpBuffer = 0, flipped = false;
   var usedHeel = false, usedShove = false, usedImp = false, usedBack = false, lastUpTap = -99;
+  var lingoCd = 0;
+  var YEAHS = ['yeah-dude', 'gnarly', 'so-sick', 'radical', 'shred-it'];
+  function sayLingo() {
+    if (lingoCd > 0) return;
+    lingoCd = 700;
+    say(YEAHS[Math.floor(Math.random() * YEAHS.length)]);
+  }
   var upHeld = false, downHeld = false, grabT = 0, grabTotal = 0, wasGrabbing = false;
   var manualT = 0, wasManual = false, grindTilt = 0, usedNose = false, usedFive = false;
 
@@ -1004,7 +1011,7 @@
       setTimeout(function() {
         try {
           if (!VOICE_CACHE[name]) {
-            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3');
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3?v=3');
             VOICE_CACHE[name].volume = 0.5;
           }
           VOICE_CACHE[name].currentTime = 0;
@@ -1106,7 +1113,10 @@
     score += pts;
     document.getElementById('jd-br-score').textContent = score;
     addPopup(x, y, (label ? label + ' ' : '') + '+' + pts + (combo > 1 ? ' x' + combo : ''), combo > 1 ? YELLOW : '#fff');
-    if (combo < 5) combo++;
+    if (combo < 5) {
+      combo++;
+      if (combo === 5) sayLingo();
+    }
     comboTimer = 150;
     if (combo > 2) sfxCombo(combo);
   }
@@ -1187,6 +1197,7 @@
           player.vy = Math.min(player.vy, -7);
           sfxFlip();
           trick(40, player.x + player.w / 2, player.y - 10, 'BACKFLIP');
+          sayLingo();
         }
         lastUpTap = frame;
       }
@@ -1225,8 +1236,8 @@
       level = nl;
       bannerT = 110;
       bannerText = 'LEVEL ' + level + ': ' + LOCALES[(level - 1) % LOCALES.length].name;
-      var YEAHS = ['yeah-dude', 'gnarly', 'so-sick', 'radical', 'shred-it'];
-      say(YEAHS[Math.floor(Math.random() * YEAHS.length)]);
+      lingoCd = 0;
+      sayLingo();
       sfxCombo(4);
       spawnParticles(player.x + player.w / 2, player.y, YELLOW, 14);
     }
@@ -1241,6 +1252,7 @@
     }
 
     if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 1; }
+    if (lingoCd > 0) lingoCd--;
     if (shake > 0) shake *= 0.85;
     if (player.squash > 0) player.squash *= 0.8;
     if (player.flipT > 0) player.flipT--;
