@@ -28,18 +28,20 @@ Square is historical only; never flag its data quirks.
   existing, so the app is safe pre-migration. NOT yet on phones (no eas
   update run).
 
-## Priority 1 — land the migration, then e2e
-1. Migration `supabase/2026-07-10-room-arcade-video.sql` (additive
-   game_id/video_url) was CLASSIFIER-BLOCKED in auto mode. Ask Scott to
-   shift+tab and say go, then run:
-   `node scripts/apply-sql.mjs supabase/2026-07-10-room-arcade-video.sql`
-2. E2E per the definition of done: disposable artist picks a game +
-   uploads a video in the app (Metro web, session-injection recipe in
-   memory reference_lumenati_test_identity); their public room shows both;
-   a second artist picks a different game; JD's room unchanged with NULL
-   fields. Sweep the test rows same session.
-3. Check the Arcade/Video sections render in My Room on Metro web
-   (they appear automatically once the columns exist).
+## Priority 1 — one leftover migration
+E2E is DONE (2026-07-10 afternoon, Scott's session): game_id/video_url
+applied live; disposable artist picked Ink Snake + uploaded a video
+through the app, second artist got Walk-In, both public rooms verified
+in Chrome, JD byte-identical, test data swept to zero. Scott's polish
+pass also shipped: per-game status-bar instructions (games set their
+own at init), My Room spacing, pink standout Flash wall card, video
+titles.
+
+ONE thing left: `supabase/2026-07-10-room-video-title.sql` (additive
+video_title) got classifier-blocked. Ask Scott to shift+tab and go:
+`node scripts/apply-sql.mjs supabase/2026-07-10-room-video-title.sql`
+The app's Video title field and the renderer filename swap are already
+shipped and gate on the column existing, so nothing breaks meanwhile.
 
 ## How to work here (hard-won gotchas — trust these)
 - Scott's dev servers are already running (:3002 web, :8081 Metro). NEVER
