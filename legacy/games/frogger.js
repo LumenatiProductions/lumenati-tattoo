@@ -118,7 +118,7 @@
       var cars = [];
       var spacing = (W + d.w + 60) / n;
       for (var j = 0; j < n; j++) {
-        cars.push({ x: j * spacing + Math.random() * 40, color: CAR_COLORS[(i * 2 + j) % CAR_COLORS.length] });
+        cars.push({ x: j * spacing + Math.random() * 40, color: CAR_COLORS[(i * 2 + j) % CAR_COLORS.length], taxi: Math.random() < 0.18 });
       }
       lanes.push({ row: d.row, dir: d.dir, speed: d.speed, w: d.w, cars: cars });
     }
@@ -316,9 +316,20 @@
     else hop(0, dy > 0 ? 1 : -1);
   });
 
-  function drawCar(x, y, w, color, dir) {
+  function drawCar(x, y, w, color, dir, taxi) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + 31, w / 2, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (taxi) color = '#f2c14e';
     ctx.fillStyle = color;
     ctx.fillRect(x, y + 8, w, 20);
+    if (taxi) {
+      ctx.fillStyle = '#14121a';
+      ctx.fillRect(x + w / 2 - 7, y + 4, 14, 5);
+      ctx.fillStyle = '#f2c14e';
+      ctx.fillRect(x + w / 2 - 5, y + 5, 10, 3);
+    }
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.fillRect(x, y + 8, w, 3);
     // Cabin windows
@@ -610,6 +621,23 @@
       }
     }
 
+    // Street lamps pour light onto the lanes
+    for (var i = 0; i < 2; i++) {
+      var lpx = 140 + i * 180;
+      for (var rr2 = 0; rr2 < 2; rr2++) {
+        var lpy = rr2 === 0 ? ROW_Y[4] : ROW_Y[7];
+        var pool = ctx.createRadialGradient(lpx, lpy - 18, 4, lpx, lpy - 18, 60);
+        pool.addColorStop(0, 'rgba(255,220,150,0.14)');
+        pool.addColorStop(1, 'rgba(255,220,150,0)');
+        ctx.fillStyle = pool;
+        ctx.fillRect(lpx - 60, lpy - 78, 120, 120);
+        ctx.fillStyle = '#3a3a44';
+        ctx.fillRect(lpx - 1, lpy - 34, 3, 36);
+        ctx.fillStyle = '#ffe1aa';
+        ctx.fillRect(lpx - 4, lpy - 38, 9, 5);
+      }
+    }
+
     // Median decoration: the shop's flash rack
     ctx.fillStyle = '#2a2a34';
     ctx.fillRect(8, ROW_Y[4] + 8, 60, 24);
@@ -638,7 +666,7 @@
     for (var i = 0; i < lanes.length; i++) {
       var ln = lanes[i];
       for (var j = 0; j < ln.cars.length; j++) {
-        drawCar(ln.cars[j].x, ROW_Y[ln.row], ln.w, ln.cars[j].color, ln.dir);
+        drawCar(ln.cars[j].x, ROW_Y[ln.row], ln.w, ln.cars[j].color, ln.dir, ln.cars[j].taxi);
       }
     }
 
@@ -663,6 +691,10 @@
     if (!blink && mode !== 'over') {
       var px = player.col * CELL + CELL / 2;
       var py = ROW_Y[player.row] + CELL / 2 + (hopT > 0 ? -4 : 0);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(px, ROW_Y[player.row] + CELL / 2 + 13, 8, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = '#f0c8a0';
       ctx.fillRect(px - 5, py - 14, 10, 8); // head
       ctx.fillStyle = PINK;

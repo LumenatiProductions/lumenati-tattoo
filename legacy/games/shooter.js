@@ -87,7 +87,7 @@
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
   var score, lives, wave, frame, bannerT;
-  var player, bullets, ebullets, germs, gx, gy, gdir, ufo, particles, invuln, shootCd, touching;
+  var player, bullets, ebullets, germs, gx, gy, gdir, ufo, particles, invuln, shootCd, touching, rings, muzzle;
   var keyL = false, keyR = false, keyFire = false;
 
   var best = 0;
@@ -115,7 +115,7 @@
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     player = { x: W / 2, y: 288, w: 22, h: 18 };
-    bullets = []; ebullets = []; particles = []; ufo = null;
+    bullets = []; ebullets = []; particles = []; ufo = null; rings = []; muzzle = 0;
     invuln = 0; shootCd = 0; touching = false;
     buildWave();
     var hintEl = document.getElementById('jd-game-hint');
@@ -150,6 +150,7 @@
     if (shootCd > 0 || bullets.length >= 3) return;
     bullets.push({ x: player.x, y: player.y - 12 });
     shootCd = 12;
+    muzzle = 3;
     sfxShoot();
   }
 
@@ -244,6 +245,7 @@
             score += (GROWS - g.r) * 10 + (g.maxHp === 2 ? 20 : 0);
             document.getElementById('jd-br-score').textContent = score;
             sfxPop(GROWS - g.r);
+            rings.push({ x: x + GW / 2, y: y + GH / 2, r: 4, life: 14, c: ROW_COLOR[g.r] });
             spawnParticles(x + GW / 2, y + GH / 2, ROW_COLOR[g.r], 8);
           } else {
             g.flashT = 8;
@@ -258,6 +260,7 @@
         document.getElementById('jd-br-score').textContent = score;
         sfxUfo();
         sayCallout('shooter-c2');
+        rings.push({ x: ufo.x, y: 26, r: 6, life: 18, c: YELLOW });
         spawnParticles(ufo.x, 26, YELLOW, 14);
         ufo = null;
         hit = true;
@@ -297,6 +300,11 @@
       p.x += p.vx; p.y += p.vy; p.life--;
       if (p.life <= 0) particles.splice(i, 1);
     }
+    for (var i = rings.length - 1; i >= 0; i--) {
+      rings[i].r += 1.7; rings[i].life--;
+      if (rings[i].life <= 0) rings.splice(i, 1);
+    }
+    if (muzzle > 0) muzzle--;
   }
 
   // ── Input ──
@@ -593,6 +601,13 @@
     // Faint grid: a petri-dish scan
     ctx.fillStyle = 'rgba(0,255,255,0.03)';
     for (var y = 20; y < H; y += 20) ctx.fillRect(0, y, W, 1);
+    // Spores drifting through the dish
+    for (var i = 0; i < 12; i++) {
+      var spx = ((i * 53 + frame * (0.2 + (i % 3) * 0.15)) % (W + 20)) - 10;
+      var spy = ((i * 97 + frame * 0.08) % (H + 20)) - 10;
+      ctx.fillStyle = 'rgba(46,204,113,' + (0.05 + (i % 3) * 0.02).toFixed(2) + ')';
+      ctx.fillRect(spx, spy, 2, 2);
+    }
 
     if (ufo) {
       ctx.fillStyle = YELLOW;
@@ -613,6 +628,14 @@
       ctx.fillRect(e.x - 2, e.y - 4, 4, 8);
     }
 
+    // Kill rings
+    for (var i = 0; i < rings.length; i++) {
+      ctx.globalAlpha = rings[i].life / 18;
+      ctx.strokeStyle = rings[i].c;
+      ctx.beginPath(); ctx.arc(rings[i].x, rings[i].y, rings[i].r, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
     // Needles
     ctx.fillStyle = '#eee';
     for (var i = 0; i < bullets.length; i++) {
@@ -624,6 +647,10 @@
     var blink = invuln > 0 && Math.floor(frame / 4) % 2 === 0;
     if (!blink) {
       var px = player.x, py = player.y;
+      if (muzzle > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(px - 2, py - 16, 4, 4);
+      }
       ctx.fillStyle = '#ccc';
       ctx.fillRect(px - 1, py - 12, 2, 6);
       ctx.fillStyle = PURPLE;

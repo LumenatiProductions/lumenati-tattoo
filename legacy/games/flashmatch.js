@@ -122,7 +122,7 @@
       var t = deck[i]; deck[i] = deck[j]; deck[j] = t;
     }
     cards = deck.map(function(f, i) {
-      return { face: f, state: 'down', flipT: 0, col: i % COLS, row: Math.floor(i / COLS) };
+      return { face: f, state: 'down', flipT: 0, dealT: 14 + i * 3, col: i % COLS, row: Math.floor(i / COLS) };
     });
     first = null; second = null; missT = 0;
     timerMax = Math.max(2400, 5400 - (level - 1) * 700); // 90s -> 40s
@@ -200,7 +200,7 @@
         first = null; second = null;
       }
     }
-    for (var i = 0; i < cards.length; i++) if (cards[i].flipT > 0) cards[i].flipT--;
+    for (var i = 0; i < cards.length; i++) { if (cards[i].flipT > 0) cards[i].flipT--; if (cards[i].dealT > 0) cards[i].dealT--; }
 
     timer--;
     if (timer <= 0) {
@@ -387,6 +387,12 @@
 
   function drawCard(c) {
     var x = GX + c.col * (CW + GAP), y = GY + c.row * (CHH + GAP);
+    if (c.dealT > 0) {
+      ctx.globalAlpha = Math.max(0, 1 - c.dealT / 16);
+      y -= c.dealT * 3;
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(x + 3, y + 4, CW, CHH);
     var squeeze = c.flipT > 0 ? Math.abs(Math.sin(c.flipT / 8 * Math.PI)) : 0;
     var w = CW * (1 - squeeze * 0.7);
     var xx = x + (CW - w) / 2;
@@ -426,8 +432,14 @@
         }
       }
     }
+    if (c.state === 'matched') {
+      var sweep = ((frame * 1.6 + c.col * 24 + c.row * 12) % (w + 40)) - 20;
+      ctx.fillStyle = 'rgba(255,255,255,0.13)';
+      ctx.fillRect(xx + Math.max(0, Math.min(w - 6, sweep)), y, 6, CHH);
+    }
     ctx.strokeStyle = c.state === 'matched' ? LIME : c.state === 'up' ? '#14121a' : 'rgba(255,255,255,0.3)';
     ctx.strokeRect(xx + 0.5, y + 0.5, w - 1, CHH - 1);
+    ctx.globalAlpha = 1;
   }
 
   // ── Shop leaderboard: top 5 on this machine, signed with three initials ──
@@ -646,7 +658,15 @@
 
   function draw() {
     if (mode === 'intro') { drawIntro(); return; }
-    ctx.fillStyle = '#14101c';
+    var felt = ctx.createLinearGradient(0, 0, 0, H);
+    felt.addColorStop(0, '#171223');
+    felt.addColorStop(1, '#100c18');
+    ctx.fillStyle = felt;
+    ctx.fillRect(0, 0, W, H);
+    var vig = ctx.createRadialGradient(W / 2, H / 2, 80, W / 2, H / 2, 260);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = vig;
     ctx.fillRect(0, 0, W, H);
 
     for (var i = 0; i < cards.length; i++) drawCard(cards[i]);

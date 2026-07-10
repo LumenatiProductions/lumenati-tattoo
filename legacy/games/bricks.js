@@ -106,7 +106,7 @@
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
   var score, lives, level, frame, flashT, bannerT, bannerText;
-  var paddle, ball, bricks, particles;
+  var paddle, ball, bricks, particles, trail, paddleFlash;
   var keyL = false, keyR = false;
 
   var best = 0;
@@ -154,7 +154,7 @@
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     paddle = { x: W / 2 - 30, y: 298, w: 60, h: 8 };
-    particles = [];
+    particles = []; trail = []; paddleFlash = 0;
     buildBricks();
     serve();
     var hintEl = document.getElementById('jd-game-hint');
@@ -180,6 +180,7 @@
     frame++;
     musicTick();
     if (calloutCd > 0) calloutCd--;
+    if (paddleFlash > 0) paddleFlash--;
     if (flashT > 0) flashT--;
 
     // Paddle
@@ -193,6 +194,8 @@
     } else {
       ball.x += ball.vx;
       ball.y += ball.vy;
+      trail.push({ x: ball.x, y: ball.y });
+      if (trail.length > 7) trail.shift();
 
       // Walls
       if (ball.x < ball.r) { ball.x = ball.r; ball.vx = Math.abs(ball.vx); sfxWall(); }
@@ -209,6 +212,7 @@
         ball.vx = Math.sin(ang) * sp;
         ball.vy = -Math.abs(Math.cos(ang) * sp);
         ball.y = paddle.y - ball.r;
+        paddleFlash = 8;
         sfxPaddle();
       }
 
@@ -521,6 +525,12 @@
     if (mode === 'intro') { drawIntro(); return; }
     ctx.fillStyle = '#100a18';
     ctx.fillRect(0, 0, W, H);
+    // The room glows faintly in this sheet's ink
+    var tint = ctx.createRadialGradient(W / 2, 120, 30, W / 2, 120, 260);
+    tint.addColorStop(0, design().color + '18');
+    tint.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = tint;
+    ctx.fillRect(0, 0, W, H);
 
     // Ceiling line
     ctx.fillStyle = '#2a2438';
@@ -546,10 +556,20 @@
     ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
     ctx.fillStyle = PINK;
     ctx.fillRect(paddle.x + paddle.w / 2 - 6, paddle.y, 12, paddle.h);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = paddleFlash > 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)';
     ctx.fillRect(paddle.x, paddle.y, paddle.w, 2);
+    if (paddleFlash > 0) {
+      ctx.fillStyle = 'rgba(255,20,147,' + (paddleFlash * 0.05).toFixed(2) + ')';
+      ctx.fillRect(paddle.x - 4, paddle.y - 4, paddle.w + 8, paddle.h + 8);
+    }
 
-    // Ball: ink drop
+    // Ball trail + ink drop
+    for (var i = 0; i < trail.length; i++) {
+      ctx.globalAlpha = (i / trail.length) * 0.35;
+      ctx.fillStyle = PINK;
+      ctx.fillRect(trail[i].x - 2, trail[i].y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
     ctx.fillStyle = PINK;
     ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#fff';

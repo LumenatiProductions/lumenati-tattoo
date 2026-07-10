@@ -93,7 +93,7 @@
 
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
-  var frame, you, cpu, ball, serveT, rally, trail, won, tier, bannerT, bannerText;
+  var frame, you, cpu, ball, serveT, rally, trail, won, tier, bannerT, bannerText, scoreFlash;
   var keyU = false, keyD = false;
 
   var best = 0;
@@ -108,7 +108,7 @@
     tier = 0; bannerT = 0; bannerText = '';
     you = { y: H / 2 - PH / 2, score: 0 };
     cpu = { y: H / 2 - PH / 2, score: 0 };
-    trail = [];
+    trail = []; scoreFlash = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '0';
     serve(Math.random() < 0.5 ? 1 : -1);
@@ -133,6 +133,7 @@
 
   function point(scorer) {
     if (rally >= 8) sayCallout('pong-c1');
+    scoreFlash = 14;
     scorer.score++;
     document.getElementById('jd-br-score').textContent = you.score;
     document.getElementById('jd-br-lives').textContent = cpu.score;
@@ -188,6 +189,7 @@
     cpu.y = Math.max(18, Math.min(H - PH - 4, cpu.y));
 
     if (bannerT > 0) bannerT--;
+    if (scoreFlash > 0) scoreFlash--;
     if (serveT > 0) { serveT--; return; }
 
     ball.x += ball.vx;
@@ -494,8 +496,12 @@
     ctx.fillRect(0, 14, W, 2);
     ctx.fillRect(0, H - 2, W, 2);
     for (var y = 20; y < H; y += 16) {
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.12 + Math.abs(Math.sin(frame * 0.03 + y * 0.05)) * 0.08).toFixed(2) + ')';
       ctx.fillRect(W / 2 - 1, y, 2, 8);
+    }
+    if (scoreFlash > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,' + (scoreFlash * 0.02).toFixed(2) + ')';
+      ctx.fillRect(0, 0, W, H);
     }
 
     // Big scores
@@ -524,6 +530,11 @@
     }
     ctx.globalAlpha = 1;
     if (serveT === 0 || Math.floor(frame / 6) % 2 === 0) {
+      var glow = ctx.createRadialGradient(ball.x, ball.y, 2, ball.x, ball.y, 16);
+      glow.addColorStop(0, 'rgba(255,20,147,0.5)');
+      glow.addColorStop(1, 'rgba(255,20,147,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(ball.x - 16, ball.y - 16, 32, 32);
       ctx.fillStyle = PINK;
       ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#fff';

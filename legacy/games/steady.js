@@ -522,12 +522,32 @@
     ctx.fillStyle = '#14101c';
     ctx.fillRect(0, 0, W, H);
 
-    // The skin band
+    // The skin band, with living texture
     ctx.fillStyle = skin;
     ctx.fillRect(0, 62, W, 232);
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    for (var i = 0; i < 70; i++) {
+      var tx2 = ((i * 67 + Math.floor(sx / 3)) % W + W) % W;
+      var ty2 = 74 + (i * 41) % 208;
+      ctx.fillRect(tx2, ty2, 1 + (i % 2), 1);
+    }
+    ctx.fillStyle = 'rgba(120,60,40,0.12)';
+    ctx.fillRect(((177 + Math.floor(sx / 3)) % W), 130, 3, 2);
+    ctx.fillRect(((313 + Math.floor(sx / 3)) % W), 230, 2, 2);
     ctx.fillStyle = 'rgba(0,0,0,0.08)';
     ctx.fillRect(0, 62, W, 8);
     ctx.fillRect(0, 286, W, 8);
+    // The station below: ink pot and towels
+    ctx.fillStyle = '#1c1522';
+    ctx.fillRect(0, 294, W, 26);
+    ctx.fillStyle = '#14121a';
+    ctx.fillRect(20, 298, 12, 14);
+    ctx.fillStyle = PINK;
+    ctx.fillRect(22, 296, 8, 4);
+    ctx.fillStyle = '#e8e4d8';
+    ctx.fillRect(44, 300, 22, 10);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(44, 304, 22, 1);
 
     // Finished work behind the needle: ink where clean, red nicks where not
     for (var x = 0; x < NEEDLE_X; x++) {
@@ -564,8 +584,13 @@
       ctx.fillText('! FLINCH !', W / 2, 52);
     }
 
-    // The machine: vibrates while inking
+    // Cable sways from the machine up to the power supply
     var vib = (Math.random() - 0.5) * 1.6;
+    ctx.strokeStyle = '#3a3440';
+    ctx.beginPath();
+    ctx.moveTo(NEEDLE_X, needleY - 34 + vib);
+    ctx.quadraticCurveTo(NEEDLE_X - 40 + Math.sin(frame * 0.04) * 8, needleY - 90, 10, 8);
+    ctx.stroke();
     var on = record[Math.floor(sx + NEEDLE_X) - 1];
     var inking = on && on.good;
     ctx.fillStyle = '#ccc';

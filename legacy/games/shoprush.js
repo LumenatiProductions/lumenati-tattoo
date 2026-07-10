@@ -321,17 +321,28 @@
     runner.tx = p[0]; runner.ty = p[1];
   }, { passive: false });
 
-  function drawPerson(x, y, skin, shirt, hair, seated) {
+  function drawPerson(x, y, skin, shirt, hair, seated, moving) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 13, 8, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    var bob = moving ? Math.abs(Math.sin(frame * 0.32 + x * 0.13)) * 2 : 0;
+    y -= bob;
     ctx.fillStyle = hair;
     ctx.fillRect(x - 5, y - 16, 10, 4);
     ctx.fillStyle = skin;
     ctx.fillRect(x - 4, y - 13, 8, 7);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(x - 1, y - 10, 2, 1);
     ctx.fillStyle = shirt;
     ctx.fillRect(x - 6, y - 5, 12, 11);
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(x - 6, y - 5, 12, 2);
     if (!seated) {
       ctx.fillStyle = '#223';
-      ctx.fillRect(x - 5, y + 6, 4, 6);
-      ctx.fillRect(x + 1, y + 6, 4, 6);
+      var step2 = moving ? Math.sin(frame * 0.32 + x * 0.13) * 2 : 0;
+      ctx.fillRect(x - 5, y + 6 + Math.max(0, step2), 4, 6 - Math.max(0, step2));
+      ctx.fillRect(x + 1, y + 6 + Math.max(0, -step2), 4, 6 - Math.max(0, -step2));
     }
   }
 
@@ -560,44 +571,105 @@
 
   function draw() {
     if (mode === 'intro') { drawIntro(); return; }
-    // Shop floor
-    ctx.fillStyle = '#241a20';
+    // Wood plank floor with grain
+    ctx.fillStyle = '#2a1d24';
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#2e2028';
-    for (var y = 60; y < H; y += 24) ctx.fillRect(0, y, W, 12);
-    // Back wall + sign
+    for (var py2 = 58; py2 < H; py2 += 18) {
+      var rowShade = (Math.floor(py2 / 18) % 2 === 0) ? '#30222a' : '#281a21';
+      ctx.fillStyle = rowShade;
+      ctx.fillRect(0, py2, W, 17);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(0, py2 + 17, W, 1);
+      var off = (Math.floor(py2 / 18) % 2) * 60;
+      for (var px2 = off; px2 < W; px2 += 120) {
+        ctx.fillRect(px2, py2, 1, 17);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect((py2 * 37) % W, py2 + 8, 3, 2);
+    }
+    // Back wall: brick tint, flash sheets, framed pieces
     ctx.fillStyle = '#1a1016';
     ctx.fillRect(0, 0, W, 58);
-    ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? PINK : '#c8006e';
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    for (var by2 = 4; by2 < 54; by2 += 10) {
+      for (var bx2 = (by2 % 20 === 4 ? 0 : 14); bx2 < W; bx2 += 28) ctx.fillRect(bx2, by2, 12, 1);
+    }
+    for (var i = 0; i < 4; i++) {
+      var fsx = 64 + i * 84;
+      ctx.fillStyle = '#efe9dc';
+      ctx.fillRect(fsx, 8, 22, 28);
+      ctx.fillStyle = ['#d81e3c', '#2d6cdf', '#2e8b4a', '#f2c14e'][i];
+      ctx.fillRect(fsx + 6, 14, 10, 10);
+      ctx.fillStyle = '#14121a';
+      ctx.fillRect(fsx + 8, 26, 6, 5);
+    }
+    // Neon sign with a real glow
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
+    var neonOn = Math.floor(frame / 30) % 2 === 0;
+    ctx.fillStyle = neonOn ? 'rgba(255,20,147,0.25)' : 'rgba(200,0,110,0.15)';
+    ctx.fillText('* LUMENATI TATTOO *', W / 2 + 1, 41);
+    ctx.fillText('* LUMENATI TATTOO *', W / 2 - 1, 39);
+    ctx.fillStyle = neonOn ? PINK : '#c8006e';
     ctx.fillText('* LUMENATI TATTOO *', W / 2, 40);
 
-    // Door
+    // Door with a striped awning
     ctx.fillStyle = '#3a2a34';
     ctx.fillRect(DOOR.x - 16, 30, 32, 28);
+    for (var aw = 0; aw < 4; aw++) {
+      ctx.fillStyle = aw % 2 === 0 ? PINK : '#efe9dc';
+      ctx.fillRect(DOOR.x - 18 + aw * 9, 26, 9, 5);
+    }
     ctx.fillStyle = LIME;
     ctx.font = '8px monospace';
     ctx.fillText('OPEN', DOOR.x, 47);
 
-    // Bench
+    // Bench with cushions
     ctx.fillStyle = '#4a3440';
     ctx.fillRect(24, 96, 44, 158);
     ctx.fillStyle = '#5c4250';
     ctx.fillRect(24, 96, 44, 5);
+    for (var i = 0; i < 4; i++) {
+      ctx.fillStyle = '#6b4a5c';
+      ctx.fillRect(28, 104 + i * 42, 36, 24);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(28, 104 + i * 42, 36, 3);
+    }
 
-    // Stations
+    // Stations: lit work areas with the kit laid out
     for (var i = 0; i < chairs.length; i++) {
       var ch = chairs[i];
+      // lamp light pool over the whole station
+      var pool = ctx.createRadialGradient(ch.x + 8, ch.y - 4, 6, ch.x + 8, ch.y - 4, 52);
+      pool.addColorStop(0, ch.state === 'busy' ? 'rgba(255,225,170,0.16)' : 'rgba(255,225,170,0.09)');
+      pool.addColorStop(1, 'rgba(255,225,170,0)');
+      ctx.fillStyle = pool;
+      ctx.fillRect(ch.x - 48, ch.y - 56, 112, 104);
       ctx.fillStyle = '#3a2a34';
       ctx.fillRect(ch.x - 18, ch.y - 24, 66, 52);
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(ch.x - 18, ch.y - 24, 66, 2);
+      // the lamp arm
+      ctx.fillStyle = '#888';
+      ctx.fillRect(ch.x + 40, ch.y - 24, 2, 10);
+      ctx.fillRect(ch.x + 30, ch.y - 26, 12, 2);
+      ctx.fillStyle = '#ffe1aa';
+      ctx.fillRect(ch.x + 27, ch.y - 25, 5, 4);
+      // ink caps on the tray
+      for (var ic = 0; ic < 3; ic++) {
+        ctx.fillStyle = ['#FF1493', '#14121a', '#2d6cdf'][ic];
+        ctx.fillRect(ch.x - 16 + ic * 5, ch.y - 20, 3, 3);
+      }
+      // cushioned chair
       ctx.fillStyle = '#111';
-      ctx.fillRect(ch.x - 10, ch.y - 8, 26, 20); // the chair
+      ctx.fillRect(ch.x - 10, ch.y - 8, 26, 20);
+      ctx.fillStyle = '#2a2030';
+      ctx.fillRect(ch.x - 8, ch.y - 6, 22, 8);
       ctx.fillStyle = '#666';
       ctx.fillRect(ch.x - 10, ch.y + 12, 26, 3);
       // The artist, always at station
       var bob = ch.state === 'busy' ? Math.sin(frame * 0.3 + i) * 2 : 0;
-      drawPerson(ch.x + 30, ch.y + bob, SKINS[i % SKINS.length], '#1c1418', i === 0 ? PINK : HAIRS[i % HAIRS.length], false);
+      drawPerson(ch.x + 30, ch.y + bob, SKINS[i % SKINS.length], '#1c1418', i === 0 ? PINK : HAIRS[i % HAIRS.length], false, false);
       if (ch.state === 'busy') {
         // machine arm + progress
         ctx.fillStyle = '#9b59b6';
@@ -622,7 +694,7 @@
     for (var i = 0; i < clients.length; i++) {
       var c = clients[i];
       if (c.state === 'inchair') continue;
-      drawPerson(c.x, c.y, c.skin, c.shirt, c.hair, c.state === 'waiting');
+      drawPerson(c.x, c.y, c.skin, c.shirt, c.hair, c.state === 'waiting', c.state !== 'waiting');
       if (c.state === 'waiting') {
         var pr = c.patience / c.pmax;
         ctx.fillStyle = 'rgba(255,255,255,0.25)';
@@ -638,7 +710,8 @@
     }
 
     // Runner (you): pink-haired shop runner
-    drawPerson(runner.x, runner.y, '#f0c8a0', '#14101c', PINK, false);
+    var runnerMoving = runner.kx !== 0 || runner.ky !== 0 || runner.tx !== null;
+    drawPerson(runner.x, runner.y, '#f0c8a0', '#14101c', PINK, false, runnerMoving);
     ctx.fillStyle = 'rgba(255,20,147,0.5)';
     ctx.fillRect(runner.x - 7, runner.y + 13, 14, 2);
 
