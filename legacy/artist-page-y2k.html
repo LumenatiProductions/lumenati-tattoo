@@ -887,21 +887,21 @@
 <div id="jd-game-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.3);max-width:95vw;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;background:linear-gradient(180deg,#FF1493 0%,#c8006e 100%);height:24px;">
-      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">breakout.exe — JD's Arcade</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">sk8_or_die.exe — JD's Arcade</span>
       <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#fff;cursor:pointer;padding:0 4px;" onclick="document.getElementById('jd-game-overlay').style.display='none';window.skateRunning=false;clearInterval(window.skateInt);window.skateInt=null;">✕</span>
     </div>
     <div style="padding:4px;background:#ece9d8;">
-      <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;border:1px solid;border-color:#808080 #fff #fff #808080;background:#000;"></canvas>
+      <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;max-width:100%;height:auto;touch-action:none;border:1px solid;border-color:#808080 #fff #fff #808080;background:#000;"></canvas>
     </div>
     <div style="padding:4px 8px;background:#ece9d8;border-top:1px solid #aca899;font-family:Tahoma,sans-serif;font-size:10px;color:#444;display:flex;justify-content:space-between;">
-      <span>Score: <span id="jd-br-score">0</span></span>
-      <span>Lives: <span id="jd-br-lives">3</span></span>
-      <span>SPACE to ollie</span>
+      <span><span id="jd-stat-a">Score</span>: <span id="jd-br-score">0</span></span>
+      <span><span id="jd-stat-b">Lives</span>: <span id="jd-br-lives">3</span></span>
+      <span id="jd-game-hint">SPACE to ollie</span>
     </div>
   </div>
 </div>
 
-<script>
+<script id="jd-arcade-game">
 (function() {
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
@@ -922,17 +922,28 @@
     } catch(e) {}
   }
   function sfxJump() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(600, 0.1, 'square', 0.1);}, 50); }
+  function sfxFlip() { playSfx(700, 0.06, 'square', 0.1); setTimeout(function(){playSfx(950, 0.08, 'square', 0.1);}, 50); }
   function sfxCollect() { playSfx(800, 0.08, 'square', 0.1); setTimeout(function(){playSfx(1200, 0.1, 'square', 0.1);}, 60); }
+  function sfxCombo(n) { playSfx(600 + n * 150, 0.1, 'square', 0.12); }
   function sfxHit() { playSfx(150, 0.3, 'sawtooth', 0.15); }
   function sfxGrind() { playSfx(200, 0.05, 'sawtooth', 0.06); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
   // Game state
-  var score, lives, speed, frame, gameOver, started;
-  var player, ground, obstacles, collectibles, rails, particles, buildings;
-  var GRAVITY = 0.6;
+  var mode = 'ready'; // ready | play | over
+  var score, lives, speed, frame, dist;
+  var player, obstacles, collectibles, rails, particles, buildings, popups;
+  var combo, comboTimer, shake;
+  var GRAVITY = 0.5;
   var GROUND_Y = 270;
   var scrollX = 0;
+  var holdingJump = false, coyote = 0, jumpBuffer = 0, flipped = false;
+
+  var best = 0;
+  try { best = parseInt(localStorage.getItem('lumenati-arcade-skate') || '0', 10) || 0; } catch(e) {}
+  function saveBest() {
+    if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-skate', String(best)); } catch(e) {} }
+  }
 
   // Colors
   var ORANGE = '#FF1493';
@@ -945,25 +956,18 @@
   var SKY_BOT = '#2d1b69';
 
   function init() {
-    if(window.skateInt){clearInterval(window.skateInt);window.skateInt=null;}
-    score = 0; lives = 3; speed = 4; frame = 0; gameOver = false; started = true;
-    scrollX = 0;
+    if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
+    score = 0; lives = 3; speed = 4; frame = 0; dist = 0; mode = 'ready';
+    scrollX = 0; combo = 1; comboTimer = 0; shake = 0;
+    holdingJump = false; coyote = 0; jumpBuffer = 0; flipped = false;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
-    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0 };
-    obstacles = [];
-    collectibles = [];
-    rails = [];
-    particles = [];
-    buildings = [];
-    // Seed initial buildings
-    for (var i = 0; i < 10; i++) {
-      buildings.push(makeBuilding(i * 80));
-    }
-    // Seed initial obstacles/collectibles
+    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, squash: 0 };
+    obstacles = []; collectibles = []; rails = []; particles = []; buildings = []; popups = [];
+    for (var i = 0; i < 10; i++) buildings.push(makeBuilding(i * 80));
     spawnInitial();
     window.skateRunning = true;
-    if(!window.skateInt){window.skateInt=setInterval(loop,16);}
+    startLoop();
   }
 
   function makeBuilding(x) {
@@ -973,26 +977,19 @@
   }
 
   function spawnInitial() {
-    for (var i = 0; i < 5; i++) {
-      var sx = 300 + i * 150 + Math.random() * 80;
-      spawnAt(sx);
-    }
+    for (var i = 0; i < 5; i++) spawnAt(300 + i * 150 + Math.random() * 80);
   }
 
   function spawnAt(sx) {
     var r = Math.random();
     if (r < 0.45) {
-      // Obstacle
       var types = ['hydrant', 'trashcan', 'cone'];
-      var type = types[Math.floor(Math.random() * types.length)];
-      obstacles.push(makeObstacle(type, sx));
+      obstacles.push(makeObstacle(types[Math.floor(Math.random() * types.length)], sx));
     } else if (r < 0.75) {
-      // Collectible (tattoo machine)
       var cy = GROUND_Y - 40 - Math.random() * 30;
       collectibles.push({ x: sx, y: cy, w: 12, h: 16, collected: false });
     } else {
-      // Grind rail
-      var rw = 60 + Math.random() * 40;
+      var rw = 60 + Math.random() * 50;
       var ry = GROUND_Y - 30 - Math.random() * 20;
       rails.push({ x: sx, y: ry, w: rw, scored: false });
     }
@@ -1017,45 +1014,93 @@
     }
   }
 
-  function jump() {
-    if (gameOver) return;
-    if (player.onGround || player.grinding) {
-      player.vy = -10;
+  function addPopup(x, y, text, color) {
+    popups.push({ x: x, y: y, text: text, color: color, life: 45 });
+  }
+
+  function trick(base, x, y, label) {
+    var pts = base * combo;
+    score += pts;
+    document.getElementById('jd-br-score').textContent = score;
+    addPopup(x, y, '+' + pts + (combo > 1 ? ' x' + combo : ''), combo > 1 ? YELLOW : '#fff');
+    if (combo < 5) combo++;
+    comboTimer = 150;
+    if (combo > 2) sfxCombo(combo);
+  }
+
+  // ── Input: hold to ollie higher, tap again mid-air to kickflip ──
+  function press() {
+    if (mode === 'over') { init(); mode = 'play'; return; }
+    if (mode === 'ready') { mode = 'play'; }
+    holdingJump = true;
+    jumpBuffer = 7;
+  }
+  function release() {
+    holdingJump = false;
+    // Cut the jump short for a low ollie
+    if (mode === 'play' && !player.onGround && !player.grinding && player.vy < -3.5) player.vy = -3.5;
+  }
+
+  function tryJump() {
+    if (player.onGround || player.grinding || coyote > 0) {
+      player.vy = -9.2;
       player.onGround = false;
+      coyote = 0;
+      jumpBuffer = 0;
+      flipped = false;
       sfxJump();
-      if (player.grinding) {
-        player.grinding = false;
-        player.grindRail = null;
-      }
+      if (player.grinding) { player.grinding = false; player.grindRail = null; }
+    } else if (!flipped && jumpBuffer > 0 && player.vy > -8) {
+      // Kickflip: one extra pop mid-air
+      flipped = true;
+      jumpBuffer = 0;
+      player.flipT = 24;
+      player.vy = Math.min(player.vy, -5.5);
+      sfxFlip();
+      trick(15, player.x + player.w / 2, player.y - 8, 'kickflip');
     }
   }
 
-  // Input
   document.addEventListener('keydown', function(e) {
     if (!window.skateRunning) return;
-    if (e.code === 'Space' || e.key === ' ') {
+    if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
       e.preventDefault();
-      jump();
+      if (e.repeat) return;
+      press();
     }
   });
-  canvas.addEventListener('click', function() {
-    if (gameOver) { init(); return; }
-    jump();
+  document.addEventListener('keyup', function(e) {
+    if (!window.skateRunning) return;
+    if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') release();
   });
-  canvas.addEventListener('touchstart', function(e) {
-    e.preventDefault();
-    if (gameOver) { init(); return; }
-    jump();
-  }, { passive: false });
+  canvas.addEventListener('mousedown', function(e) { e.preventDefault(); press(); });
+  document.addEventListener('mouseup', function() { release(); });
+  canvas.addEventListener('touchstart', function(e) { e.preventDefault(); press(); }, { passive: false });
+  canvas.addEventListener('touchend', function(e) { e.preventDefault(); release(); }, { passive: false });
 
   function update() {
     frame++;
+    dist += speed;
     scrollX += speed;
+    speed = Math.min(8.5, 4 + dist / 1500);
 
+    // Distance drip: the longer you ride, the more it counts
+    if (frame % 30 === 0) {
+      score += 1;
+      document.getElementById('jd-br-score').textContent = score;
+    }
 
-    // Player physics
+    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 1; }
+    if (shake > 0) shake *= 0.85;
+    if (player.squash > 0) player.squash *= 0.8;
+    if (player.flipT > 0) player.flipT--;
+    if (coyote > 0) coyote--;
+    if (jumpBuffer > 0) { jumpBuffer--; tryJump(); }
+
+    // Player physics — floatier while holding the button on the way up
     if (!player.grinding) {
-      player.vy += GRAVITY;
+      var g = (holdingJump && player.vy < 0) ? 0.32 : GRAVITY;
+      player.vy += g;
       player.y += player.vy;
     }
 
@@ -1064,52 +1109,50 @@
       player.y = GROUND_Y - player.h;
       player.vy = 0;
       if (!player.onGround) {
-        // Landing particles
         spawnParticles(player.x + player.w / 2, GROUND_Y, ORANGE, 4);
+        player.squash = 6;
       }
       player.onGround = true;
       player.grinding = false;
       player.grindRail = null;
+      flipped = false;
     }
 
-    // Invincibility timer
     if (player.invincible > 0) player.invincible--;
 
-    // Rail grinding
+    // Rail grinding — magnet snap when falling onto a rail
     if (!player.onGround && player.vy > 0) {
       for (var i = 0; i < rails.length; i++) {
         var rail = rails[i];
         var rx = rail.x - scrollX;
         if (player.x + player.w > rx && player.x < rx + rail.w) {
           var railTop = rail.y;
-          if (player.y + player.h >= railTop && player.y + player.h <= railTop + 8) {
+          if (player.y + player.h >= railTop - 4 && player.y + player.h <= railTop + 10) {
             player.y = railTop - player.h;
             player.vy = 0;
             player.grinding = true;
             player.grindRail = rail;
+            flipped = false;
             if (!rail.scored) {
               rail.scored = true;
-              score += 25;
-              document.getElementById('jd-br-score').textContent = score;
+              trick(25, player.x + player.w / 2, railTop - 12, 'grind');
               spawnParticles(player.x + player.w / 2, railTop, CYAN, 8);
             }
-            // Continuous grind sparks + sfx
             if (frame % 6 === 0) sfxGrind();
-            if (frame % 3 === 0) {
-              spawnParticles(player.x + player.w / 2, railTop + 2, YELLOW, 1);
-            }
+            if (frame % 3 === 0) spawnParticles(player.x + player.w / 2, railTop + 2, YELLOW, 1);
             break;
           }
         }
       }
     }
 
-    // Check if player fell off rail
+    // Fell off the end of a rail — grant coyote frames for a late ollie
     if (player.grinding && player.grindRail) {
       var grx = player.grindRail.x - scrollX;
       if (player.x > grx + player.grindRail.w || player.x + player.w < grx) {
         player.grinding = false;
         player.grindRail = null;
+        coyote = 6;
       }
     }
 
@@ -1119,17 +1162,19 @@
       var ox = ob.x - scrollX;
       if (ox < -50) { obstacles.splice(i, 1); continue; }
       if (player.invincible > 0) continue;
-      // Collision check
       if (player.x + player.w - 4 > ox && player.x + 4 < ox + ob.w &&
           player.y + player.h > ob.y && player.y < ob.y + ob.h) {
         lives--;
         sfxHit();
         document.getElementById('jd-br-lives').textContent = lives;
         player.invincible = 90;
+        combo = 1; comboTimer = 0;
+        shake = 8;
         spawnParticles(ox + ob.w / 2, ob.y, '#FF0000', 10);
         obstacles.splice(i, 1);
         if (lives <= 0) {
-          gameOver = true;
+          mode = 'over';
+          saveBest();
           sfxGameOver();
           return;
         }
@@ -1152,11 +1197,9 @@
       }
     }
 
-    // Remove off-screen rails
     for (var i = rails.length - 1; i >= 0; i--) {
-      if (rails[i].x - scrollX < -120) rails.splice(i, 1);
+      if (rails[i].x - scrollX < -140) rails.splice(i, 1);
     }
-    // Remove collected collectibles off screen
     for (var i = collectibles.length - 1; i >= 0; i--) {
       if (collectibles[i].collected && collectibles[i].x - scrollX < -50) collectibles.splice(i, 1);
     }
@@ -1171,38 +1214,39 @@
       spawnAt(furthest);
     }
 
-    // Spawn buildings
     var lastB = buildings[buildings.length - 1];
     while (lastB.x - scrollX * 0.3 < W + 100) {
       var nb = makeBuilding(lastB.x + lastB.w + 5 + Math.random() * 15);
       buildings.push(nb);
       lastB = nb;
     }
-    // Remove old buildings
     while (buildings.length > 0 && buildings[0].x + buildings[0].w - scrollX * 0.3 < -50) {
       buildings.shift();
     }
 
-    // Update particles
+    // Particles + popups
     for (var i = particles.length - 1; i >= 0; i--) {
       var p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.15;
-      p.life--;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
       if (p.life <= 0) particles.splice(i, 1);
+    }
+    for (var i = popups.length - 1; i >= 0; i--) {
+      popups[i].y -= 0.6; popups[i].life--;
+      if (popups[i].life <= 0) popups.splice(i, 1);
     }
   }
 
   function draw() {
-    // Sky gradient
+    ctx.save();
+    if (shake > 0.5) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
     var grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, SKY_TOP);
     grad.addColorStop(1, SKY_BOT);
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(-8, -8, W + 16, H + 16);
 
-    // Stars
+    // Stars + moon
     ctx.fillStyle = '#fff';
     for (var i = 0; i < 30; i++) {
       var sx = ((i * 137 + 50) % W + W) % W;
@@ -1210,6 +1254,10 @@
       var twinkle = Math.sin(frame * 0.05 + i) > 0.5 ? 2 : 1;
       ctx.fillRect(sx, sy, twinkle, twinkle);
     }
+    ctx.fillStyle = '#f4f0d8';
+    ctx.beginPath(); ctx.arc(340, 46, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = SKY_TOP;
+    ctx.beginPath(); ctx.arc(345, 42, 12, 0, Math.PI * 2); ctx.fill();
 
     // Buildings (parallax)
     for (var i = 0; i < buildings.length; i++) {
@@ -1219,7 +1267,6 @@
       var by = GROUND_Y - b.h;
       ctx.fillStyle = b.color;
       ctx.fillRect(bx, by, b.w, b.h);
-      // Windows
       ctx.fillStyle = (Math.sin(frame * 0.02 + i) > 0) ? '#FFFF66' : '#333';
       for (var wy = by + 6; wy < GROUND_Y - 10; wy += 12) {
         for (var wx = bx + 5; wx < bx + b.w - 5; wx += 10) {
@@ -1228,13 +1275,11 @@
       }
     }
 
-    // Ground - sidewalk
+    // Ground
     ctx.fillStyle = '#555';
-    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-    // Sidewalk lines
+    ctx.fillRect(-8, GROUND_Y, W + 16, H - GROUND_Y + 8);
     ctx.fillStyle = '#666';
-    ctx.fillRect(0, GROUND_Y, W, 2);
-    // Dashes
+    ctx.fillRect(-8, GROUND_Y, W + 16, 2);
     ctx.fillStyle = '#777';
     for (var i = 0; i < 20; i++) {
       var dx = (i * 40 - (scrollX % 40) + 800) % 800 - 400 + W;
@@ -1242,24 +1287,20 @@
       ctx.fillRect(dx, GROUND_Y + 15, 20, 2);
     }
 
-    // Grind rails
+    // Rails
     for (var i = 0; i < rails.length; i++) {
       var rail = rails[i];
       var rx = rail.x - scrollX;
       if (rx > W + 10 || rx + rail.w < -10) continue;
-      // Rail posts
       ctx.fillStyle = '#888';
       ctx.fillRect(rx + 2, rail.y, 3, GROUND_Y - rail.y);
       ctx.fillRect(rx + rail.w - 5, rail.y, 3, GROUND_Y - rail.y);
-      // Rail bar
       ctx.fillStyle = rail.scored ? CYAN : '#ccc';
       ctx.fillRect(rx, rail.y, rail.w, 3);
-      // Highlight
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillRect(rx, rail.y, rail.w, 1);
     }
 
-    // Obstacles
     for (var i = 0; i < obstacles.length; i++) {
       var ob = obstacles[i];
       var ox = ob.x - scrollX;
@@ -1267,19 +1308,16 @@
       drawObstacle(ob, ox);
     }
 
-    // Collectibles (tattoo machines)
     for (var i = 0; i < collectibles.length; i++) {
       var col = collectibles[i];
       if (col.collected) continue;
       var cx = col.x - scrollX;
       if (cx > W + 10 || cx + col.w < -10) continue;
-      drawTattooMachine(cx, col.y);
+      drawTattooMachine(cx, col.y + Math.sin(frame * 0.08 + col.x) * 2);
     }
 
-    // Player (skateboarder)
     drawPlayer();
 
-    // Particles
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
       ctx.globalAlpha = p.life / 30;
@@ -1288,16 +1326,35 @@
     }
     ctx.globalAlpha = 1;
 
-    // Score display on canvas
+    // Score popups
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    for (var i = 0; i < popups.length; i++) {
+      var pu = popups[i];
+      ctx.globalAlpha = Math.min(1, pu.life / 20);
+      ctx.fillStyle = pu.color;
+      ctx.fillText(pu.text, pu.x, pu.y);
+    }
+    ctx.globalAlpha = 1;
+
+    // HUD
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SCORE: ' + score, 8, 14);
+    ctx.fillStyle = '#9aa';
+    ctx.fillText('BEST: ' + Math.max(best, score), 8, 26);
+    if (combo > 1 && comboTimer > 0) {
+      ctx.fillStyle = YELLOW;
+      ctx.textAlign = 'right';
+      ctx.fillText('COMBO x' + combo, W - 8, 14);
+      ctx.fillStyle = 'rgba(255,215,0,0.5)';
+      ctx.fillRect(W - 8 - 40, 18, 40 * (comboTimer / 150), 3);
+    }
 
-    // Game over screen
-    if (gameOver) {
+    if (mode === 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillRect(-8, -8, W + 16, H + 16);
       ctx.fillStyle = ORANGE;
       ctx.font = 'bold 28px monospace';
       ctx.textAlign = 'center';
@@ -1305,128 +1362,141 @@
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 18px monospace';
       ctx.fillText('Score: ' + score, W / 2, H / 2 + 5);
-      ctx.fillStyle = YELLOW;
+      ctx.fillStyle = score >= best && score > 0 ? YELLOW : '#9aa';
       ctx.font = '12px monospace';
-      ctx.fillText('Click to play again', W / 2, H / 2 + 35);
+      ctx.fillText(score >= best && score > 0 ? 'NEW BEST!' : 'Best: ' + best, W / 2, H / 2 + 25);
+      ctx.fillStyle = YELLOW;
+      ctx.fillText('SPACE or TAP to ride again', W / 2, H / 2 + 48);
     }
 
-    // Start screen
-    if (!started) {
+    if (mode === 'ready') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillRect(-8, -8, W + 16, H + 16);
       ctx.fillStyle = ORANGE;
       ctx.font = 'bold 22px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('SK8 OR DIE', W / 2, H / 2 - 30);
+      ctx.fillText('SK8 OR DIE', W / 2, H / 2 - 42);
       ctx.fillStyle = '#fff';
       ctx.font = '12px monospace';
-      ctx.fillText('SPACE or TAP to ollie', W / 2, H / 2 + 10);
-      ctx.fillStyle = YELLOW;
-      ctx.fillText('Collect tattoo machines +10pts', W / 2, H / 2 + 30);
+      ctx.fillText('HOLD SPACE or TAP to ollie', W / 2, H / 2 - 8);
+      ctx.fillText('Tap again mid-air to kickflip', W / 2, H / 2 + 10);
       ctx.fillStyle = CYAN;
-      ctx.fillText('Grind rails +25pts', W / 2, H / 2 + 48);
+      ctx.fillText('Grind rails, chain tricks for combos', W / 2, H / 2 + 28);
+      ctx.fillStyle = YELLOW;
+      ctx.fillText('Machines +10 // Best: ' + best, W / 2, H / 2 + 46);
     }
+
+    ctx.restore();
   }
 
   function drawPlayer() {
     var px = player.x, py = player.y;
     var blink = player.invincible > 0 && Math.floor(frame / 4) % 2 === 0;
-    if (blink) return; // flash when invincible
+    if (blink) return;
 
-    // Skateboard (board)
+    var squash = player.squash || 0;
+    var lean = player.grinding ? 0 : Math.max(-0.25, Math.min(0.25, player.vy * 0.02));
+
+    ctx.save();
+    ctx.translate(px + player.w / 2, py + player.h / 2 + squash / 2);
+    ctx.rotate(lean);
+    ctx.translate(-(player.w / 2), -(player.h / 2));
+
+    // Skateboard — spins during a kickflip
+    ctx.save();
+    ctx.translate(10, 17);
+    if (player.flipT > 0) ctx.rotate((1 - player.flipT / 24) * Math.PI * 2);
     ctx.fillStyle = '#8B4513';
-    ctx.fillRect(px - 2, py + 16, 24, 3);
-    // Wheels
+    ctx.fillRect(-12, -1, 24, 3);
     ctx.fillStyle = YELLOW;
-    ctx.fillRect(px, py + 19, 4, 3);
-    ctx.fillRect(px + 16, py + 19, 4, 3);
+    ctx.fillRect(-10, 2, 4, 3);
+    ctx.fillRect(6, 2, 4, 3);
+    ctx.restore();
 
-    // Body (stick figure style with rectangles)
+    // Body
     ctx.fillStyle = ORANGE;
-    // Torso
-    ctx.fillRect(px + 8, py + 4, 4, 10);
-    // Head
-    ctx.fillRect(px + 6, py, 8, 6);
-    // Arms
+    ctx.fillRect(8, 4 + squash, 4, 10 - squash);
+    ctx.fillRect(6, 0 + squash, 8, 6);
     if (player.onGround || player.grinding) {
-      ctx.fillRect(px + 4, py + 6, 4, 3);
-      ctx.fillRect(px + 12, py + 6, 4, 3);
+      ctx.fillRect(4, 6 + squash, 4, 3);
+      ctx.fillRect(12, 6 + squash, 4, 3);
     } else {
-      // Arms up while jumping
-      ctx.fillRect(px + 3, py + 2, 4, 3);
-      ctx.fillRect(px + 13, py + 2, 4, 3);
+      ctx.fillRect(3, 2, 4, 3);
+      ctx.fillRect(13, 2, 4, 3);
     }
-    // Legs
-    ctx.fillRect(px + 6, py + 13, 3, 4);
-    ctx.fillRect(px + 11, py + 13, 3, 4);
+    ctx.fillRect(6, 13, 3, 4);
+    ctx.fillRect(11, 13, 3, 4);
 
-    // Hat/cap detail
     ctx.fillStyle = PINK;
-    ctx.fillRect(px + 5, py, 10, 2);
-
-    // Eye
+    ctx.fillRect(5, 0 + squash, 10, 2);
     ctx.fillStyle = '#fff';
-    ctx.fillRect(px + 11, py + 2, 2, 2);
+    ctx.fillRect(11, 2 + squash, 2, 2);
+
+    ctx.restore();
   }
 
   function drawObstacle(ob, ox) {
     if (ob.type === 'hydrant') {
-      // Fire hydrant
       ctx.fillStyle = '#FF3333';
       ctx.fillRect(ox + 2, ob.y + 4, 8, 14);
       ctx.fillRect(ox, ob.y + 6, 12, 4);
       ctx.fillRect(ox + 3, ob.y, 6, 5);
-      // Cap
       ctx.fillStyle = '#CC0000';
       ctx.fillRect(ox + 4, ob.y, 4, 2);
     } else if (ob.type === 'trashcan') {
-      // Trash can
       ctx.fillStyle = '#777';
       ctx.fillRect(ox + 1, ob.y + 3, 14, 19);
       ctx.fillStyle = '#999';
       ctx.fillRect(ox, ob.y, 16, 4);
-      // Lines
       ctx.fillStyle = '#666';
       ctx.fillRect(ox + 1, ob.y + 10, 14, 1);
       ctx.fillRect(ox + 1, ob.y + 16, 14, 1);
     } else if (ob.type === 'cone') {
-      // Traffic cone
       ctx.fillStyle = YELLOW;
       ctx.fillRect(ox + 1, ob.y + 10, 10, 4);
       ctx.fillRect(ox + 3, ob.y + 5, 6, 5);
       ctx.fillRect(ox + 4, ob.y, 4, 5);
-      // Stripes
       ctx.fillStyle = '#fff';
       ctx.fillRect(ox + 2, ob.y + 7, 8, 2);
     }
   }
 
   function drawTattooMachine(cx, cy) {
-    // Tattoo machine body
     ctx.fillStyle = PURPLE;
     ctx.fillRect(cx, cy + 2, 10, 10);
-    // Grip
     ctx.fillStyle = '#8B5CF6';
     ctx.fillRect(cx + 2, cy + 12, 6, 4);
-    // Needle
     ctx.fillStyle = '#ccc';
     ctx.fillRect(cx + 4, cy + 16, 2, 4);
-    // Top coils
     ctx.fillStyle = PINK;
     ctx.fillRect(cx + 1, cy, 3, 3);
     ctx.fillRect(cx + 6, cy, 3, 3);
-    // Bobbing glow
     if (Math.sin(frame * 0.1) > 0) {
       ctx.fillStyle = 'rgba(155, 89, 182, 0.3)';
       ctx.fillRect(cx - 2, cy - 2, 16, 24);
     }
   }
 
-  function loop() {
-    if (!window.skateRunning) return;
-    if (started && !gameOver) update();
+  // ── Fixed-step loop on requestAnimationFrame (smooth on any refresh rate) ──
+  var rafId = null, lastT = 0, acc = 0;
+  function startLoop() {
+    if (rafId === null) {
+      lastT = 0; acc = 0;
+      rafId = requestAnimationFrame(loop);
+    }
+  }
+  function loop(t) {
+    if (!window.skateRunning) { rafId = null; return; }
+    if (!lastT) lastT = t;
+    acc += Math.min(100, t - lastT);
+    lastT = t;
+    while (acc >= 16.67) {
+      if (mode === 'play') update();
+      else frame++;
+      acc -= 16.67;
+    }
     draw();
-    
+    rafId = requestAnimationFrame(loop);
   }
 
   // Start when overlay opens
@@ -1438,33 +1508,32 @@
 })();
 </script>
 <script>
-// Icon click handlers
-document.getElementById('jd-games-icon').addEventListener('click', function() {
-  document.getElementById('jd-game-overlay').style.display = 'flex';
-});
-document.getElementById('jd-skate-icon').addEventListener('click', function() {
-  document.getElementById('jd-video-overlay').style.display = 'flex';
-});
-// Mobile buttons
-var mobGame = document.getElementById('jd-mob-game');
-var mobSkate = document.getElementById('jd-mob-skate');
-if (mobGame) mobGame.addEventListener('click', function(e) { e.preventDefault(); document.getElementById('jd-game-overlay').style.display = 'flex'; });
-if (mobSkate) mobSkate.addEventListener('click', function(e) { e.preventDefault(); document.getElementById('jd-video-overlay').style.display = 'flex'; });
-// Unmute via Vimeo postMessage API
-var jdMuted = true;
-document.getElementById('jd-unmute-btn').addEventListener('click', function() {
-  var iframe = document.getElementById('jd-vimeo');
-  var btn = document.getElementById('jd-unmute-btn');
-  if (jdMuted) {
-    iframe.contentWindow.postMessage('{"method":"setVolume","value":1}', '*');
-    btn.textContent = 'Mute';
-    jdMuted = false;
-  } else {
-    iframe.contentWindow.postMessage('{"method":"setVolume","value":0}', '*');
-    btn.textContent = 'Unmute';
-    jdMuted = true;
+// Icon + button wiring — null-safe: a room only has the windows its artist picked
+(function() {
+  function show(id) { var el = document.getElementById(id); if (el) el.style.display = 'flex'; }
+  function wire(id, overlayId) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function(e) { e.preventDefault(); show(overlayId); });
   }
-});
+  wire('jd-games-icon', 'jd-game-overlay');
+  wire('jd-mob-game', 'jd-game-overlay');
+  wire('jd-skate-icon', 'jd-video-overlay');
+  wire('jd-mob-skate', 'jd-video-overlay');
+
+  // Unmute: Vimeo iframe via postMessage, uploaded <video> directly
+  var btn = document.getElementById('jd-unmute-btn');
+  if (btn) {
+    var muted = true;
+    btn.addEventListener('click', function() {
+      var iframe = document.getElementById('jd-vimeo');
+      var vid = document.getElementById('jd-room-video');
+      muted = !muted;
+      if (iframe) iframe.contentWindow.postMessage('{"method":"setVolume","value":' + (muted ? 0 : 1) + '}', '*');
+      if (vid) vid.muted = muted;
+      btn.textContent = muted ? 'Unmute' : 'Mute';
+    });
+  }
+})();
 </script>
 
 <script>
