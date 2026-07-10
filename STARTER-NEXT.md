@@ -13,10 +13,19 @@ Core principle: NO front desk — artists run their own world from the app.
 Square is historical only; never flag its data quirks.
 
 ## State of THE ARCADE (built 2026-07-10, all committed + pushed)
-- 6 playable games, each play-verified in Chrome on JD's real room page:
-  improved skate (kickflips, combos, saved best) lives in the template;
-  Ink Snake / Flash Breaker / Sterile! / Needle Pong / Walk-In live in
-  `legacy/games/*.js` as drop-in IIFEs sharing the same Win98 window shell.
+- 9 playable games, each play-verified in Chrome on real room pages.
+  Skate (levels: pigeons/ink spills/stacks, ink shield) in the template;
+  Ink Snake / Flash Breaker / Sterile! / Needle Pong / Walk-In plus the
+  second wave — Steady Hand (trace-the-stencil flagship), Shop Rush
+  (front-of-house dash), Flash Match (pairs dealt from the room's own
+  portfolio images) — live in `legacy/games/*.js` as drop-in IIFEs
+  sharing the same Win98 window shell (600px chunky-pixel canvas). Every
+  game has a level/wave/night/session ladder and self-sets its status-bar
+  hint + labels at init.
+- Demo rooms live for Scott's play-through (artists arcade-demo-*,
+  inactive, OVERNIGHT-style disposable): snake, bricks, shooter, pong,
+  frogger, steady, shoprush, flashmatch. SWEEP THEM when Scott is done
+  playing (artists + room_content rows, service key).
 - Renderer (`lib/admin/render-room.ts`, GAME_CATALOG): swaps the picked
   game's IIFE + exe title + hint into the shell; uploaded video swaps JD's
   Vimeo iframe for a <video> in the same WMP chrome. NULL fields = today's
