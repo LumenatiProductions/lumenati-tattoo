@@ -48,7 +48,8 @@
     return 'rgb(' + r + ',' + g + ',' + b + ')';
   }
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, lives, level, frame, flashT, bannerT, bannerText;
   var paddle, ball, bricks, particles;
   var keyL = false, keyR = false;
@@ -93,7 +94,7 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; lives = 3; level = 1; frame = 0; flashT = 0; mode = 'ready';
+    score = 0; lives = 3; level = 1; frame = 0; flashT = 0; mode = 'intro'; introT = 0;
     bannerT = 0; bannerText = '';
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
@@ -209,6 +210,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
     launch();
@@ -241,7 +243,72 @@
     paddle.x = Math.max(0, Math.min(W - paddle.w, canvasX(e.touches[0].clientX) - paddle.w / 2));
   }, { passive: false });
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#100a18'; ctx.fillRect(0, 0, W, H);
+    slam('FLASH BREAKER', 104, 24, YELLOW);
+    var rowCols = [PINK, '#FF8A00', YELLOW, LIME, CYAN, '#b8c4d0', PINK, YELLOW];
+    for (var i = 0; i < 8; i++) {
+      var lt = Math.max(0, Math.min(1, (t2 - 30 - i * 5) / 14));
+      if (lt <= 0) continue;
+      var byy = 170 - (1 - lt) * (1 - lt) * 190;
+      ctx.fillStyle = rowCols[i];
+      ctx.fillRect(38 + i * 42, byy, 38, 13);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(38 + i * 42, byy, 38, 2);
+    }
+    var bxp = 40 + Math.abs(((t2 * 3.6) % 640) - 320);
+    var byp = 226 + Math.sin(t2 * 0.14) * 22;
+    ctx.fillStyle = PINK;
+    ctx.beginPath(); ctx.arc(bxp, byp, 5, 0, Math.PI * 2); ctx.fill();
+    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('BREAK THE WHOLE BOOK', W / 2, 262); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     ctx.fillStyle = '#100a18';
     ctx.fillRect(0, 0, W, H);
 
@@ -370,7 +437,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();

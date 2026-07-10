@@ -29,7 +29,8 @@
 
   var GCOLS = 8, GROWS = 3, GW = 24, GH = 16, GSX = 38, GSY = 26;
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, lives, wave, frame, bannerT;
   var player, bullets, ebullets, germs, gx, gy, gdir, ufo, particles, invuln, shootCd, touching;
   var keyL = false, keyR = false, keyFire = false;
@@ -55,7 +56,7 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; lives = 3; wave = 1; frame = 0; bannerT = 0; mode = 'ready';
+    score = 0; lives = 3; wave = 1; frame = 0; bannerT = 0; mode = 'intro'; introT = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     player = { x: W / 2, y: 288, w: 22, h: 18 };
@@ -241,6 +242,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
@@ -306,7 +308,74 @@
     ctx.fillRect(x + 15, y + 6 + wob, 2, 2);
   }
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#060a14'; ctx.fillRect(0, 0, W, H);
+    for (var i = 0; i < 3; i++) {
+      var gx2 = W / 2 - 70 + i * 70;
+      var gy2 = Math.min(64, 12 + t2 * 0.8) + Math.sin(t2 * 0.15 + i * 2) * 4;
+      ctx.fillStyle = [PURPLE, '#2ecc71', CYAN][i];
+      ctx.beginPath(); ctx.arc(gx2, gy2, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillRect(gx2 - 5, gy2 - 4, 4, 4); ctx.fillRect(gx2 + 2, gy2 - 4, 4, 4);
+      ctx.fillStyle = '#000'; ctx.fillRect(gx2 - 4, gy2 - 3, 2, 2); ctx.fillRect(gx2 + 3, gy2 - 3, 2, 2);
+    }
+    slam('STERILE!', 150, 32, CYAN);
+    var py2 = Math.max(240, 300 - t2 * 1.4);
+    ctx.fillStyle = '#ccc'; ctx.fillRect(W / 2 - 1, py2 - 12, 2, 6);
+    ctx.fillStyle = PURPLE; ctx.fillRect(W / 2 - 6, py2 - 6, 12, 12);
+    ctx.fillStyle = PINK; ctx.fillRect(W / 2 - 8, py2 - 8, 4, 4); ctx.fillRect(W / 2 + 4, py2 - 8, 4, 4);
+    if (t2 > 90) {
+      var shotY = 230 - ((t2 - 90) * 4) % 160;
+      ctx.fillStyle = '#eee'; ctx.fillRect(W / 2 - 1, shotY, 2, 8);
+    }
+    if (t2 > 130) { ctx.fillStyle = '#2ecc71'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('KEEP THE TRAY CLEAN', W / 2, 190); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     ctx.fillStyle = '#060a14';
     ctx.fillRect(0, 0, W, H);
 
@@ -435,7 +504,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();

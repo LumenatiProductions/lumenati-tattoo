@@ -33,7 +33,8 @@
   var BENCH = [{ x: 46, y: 110 }, { x: 46, y: 152 }, { x: 46, y: 194 }, { x: 46, y: 236 }];
   var CHAIRS = [{ x: 322, y: 92 }, { x: 322, y: 172 }, { x: 322, y: 252 }];
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, hearts, day, frame, served, servedTarget;
   var runner, clients, chairs, spawnT, bannerT, bannerText, particles;
 
@@ -50,7 +51,7 @@
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; hearts = 3; day = 1; frame = 0; served = 0; servedTarget = 5;
-    mode = 'ready'; bannerT = 0; bannerText = ''; particles = [];
+    mode = 'intro'; introT = 0; bannerT = 0; bannerText = ''; particles = [];
     runner = { x: 200, y: 170, tx: null, ty: null, kx: 0, ky: 0, lead: null };
     clients = [];
     chairs = CHAIRS.map(function(c) { return { x: c.x, y: c.y, state: 'free', t: 0, client: null }; });
@@ -221,6 +222,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
@@ -274,7 +276,79 @@
     }
   }
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#241a20'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#2e2028';
+    for (var fy = 150; fy < H; fy += 24) ctx.fillRect(0, fy, W, 12);
+    ctx.fillStyle = '#3a2a34'; ctx.fillRect(14, 150, 34, 40);
+    ctx.fillStyle = LIME; ctx.font = '8px monospace'; ctx.textAlign = 'center'; ctx.fillText('OPEN', 31, 174);
+    for (var i = 0; i < 3; i++) {
+      var wx2 = -20 + Math.max(0, t2 - 20 - i * 26) * 2.4;
+      if (wx2 <= -20) continue;
+      wx2 = Math.min(wx2, 330);
+      var wy2 = 210 + i * 26;
+      drawPerson(40 + wx2 * ((wy2 - 160) / 200), wy2, SKINS[i % SKINS.length], SHIRTS[i % SHIRTS.length], HAIRS[i % HAIRS.length], false);
+    }
+    var stampT = Math.max(0, Math.min(1, (t2 - 26) / 22));
+    if (stampT > 0) {
+      var fs = 60 - stampT * 32;
+      ctx.globalAlpha = stampT;
+      ctx.fillStyle = PINK;
+      ctx.font = 'bold ' + Math.round(fs) + 'px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SHOP RUSH', W / 2, 110);
+      ctx.globalAlpha = 1;
+    }
+    if (t2 > 90 && Math.floor(t2 / 14) % 2 === 0) { ctx.fillStyle = YELLOW; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.fillText('$', W / 2 + 120, 190); }
+    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('NOBODY WALKS OUT', W / 2, 140); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     // Shop floor
     ctx.fillStyle = '#241a20';
     ctx.fillRect(0, 0, W, H);
@@ -444,7 +518,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();

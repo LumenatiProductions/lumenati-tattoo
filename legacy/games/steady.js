@@ -29,7 +29,8 @@
   var NAMES = ['SIMPLE SCRIPT', 'WAVY BANNER', 'FINE LINE', 'FREEHAND CURVES', 'THE SHAKY CLIENT'];
   var NEEDLE_X = 120;
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, trust, level, frame;
   var path, pathLen, sx, speed, tol, needleY, pointerY, keyU, keyD;
   var record, offStreak, combo, comboT, grace;
@@ -67,7 +68,7 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; trust = 3; level = 1; frame = 0; mode = 'ready';
+    score = 0; trust = 3; level = 1; frame = 0; mode = 'intro'; introT = 0;
     combo = 1; comboT = 0; grace = 0; bannerT = 0; bannerText = ''; doneAcc = null;
     particles = []; keyU = false; keyD = false;
     document.getElementById('jd-br-score').textContent = '0';
@@ -200,6 +201,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
@@ -231,7 +233,78 @@
   }, { passive: false });
   canvas.addEventListener('touchend', function(e) { e.preventDefault(); pointerY = null; }, { passive: false });
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#14101c'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = SKINS[0]; ctx.fillRect(0, 150, W, 120);
+    var reach = Math.min(W, t2 * 2.8);
+    for (var x2 = 0; x2 < reach; x2 += 3) {
+      var lyy = 210 + Math.sin(x2 * 0.02) * 22 + Math.sin(x2 * 0.055) * 9;
+      if (Math.floor(x2 / 6) % 2 === 0) { ctx.fillStyle = STENCIL; ctx.fillRect(x2, lyy - 1, 2, 2); }
+    }
+    var inkReach = Math.max(0, Math.min(W, (t2 - 34) * 2.8));
+    for (var x3 = 0; x3 < inkReach; x3 += 1) {
+      var iyy = 210 + Math.sin(x3 * 0.02) * 22 + Math.sin(x3 * 0.055) * 9;
+      ctx.fillStyle = '#1c1418'; ctx.fillRect(x3, iyy - 1.5, 1.6, 3);
+    }
+    if (inkReach > 0 && inkReach < W) {
+      var nyy = 210 + Math.sin(inkReach * 0.02) * 22 + Math.sin(inkReach * 0.055) * 9;
+      var vib = (Math.random() - 0.5) * 1.6;
+      ctx.fillStyle = '#ccc'; ctx.fillRect(inkReach - 1, nyy - 14 + vib, 2, 12);
+      ctx.fillStyle = '#9b59b6'; ctx.fillRect(inkReach - 6, nyy - 34 + vib, 12, 22);
+      ctx.fillStyle = PINK; ctx.fillRect(inkReach - 8, nyy - 38 + vib, 4, 6); ctx.fillRect(inkReach + 4, nyy - 38 + vib, 4, 6);
+    }
+    ctx.globalAlpha = Math.min(1, t2 / 40);
+    slam('STEADY HAND', 96, 28, STENCIL);
+    ctx.globalAlpha = 1;
+    if (t2 > 130) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('EVERY LINE COUNTS', W / 2, 126); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     var skin = SKINS[(level - 1) % SKINS.length];
 
     // Room behind
@@ -393,7 +466,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();

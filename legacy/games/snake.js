@@ -25,7 +25,8 @@
 
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, lives, frame, snake, dir, turns, food, bonus, bonusT, eaten, stepEvery, respawnT, flashT;
   var blots, level, bannerT;
 
@@ -38,7 +39,7 @@
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = 3; frame = 0; eaten = 0; stepEvery = 9;
-    bonus = null; bonusT = 0; respawnT = 0; flashT = 0; mode = 'ready';
+    bonus = null; bonusT = 0; respawnT = 0; flashT = 0; mode = 'intro'; introT = 0;
     blots = []; level = 1; bannerT = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
@@ -155,6 +156,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
@@ -192,7 +194,72 @@
   }, { passive: false });
   canvas.addEventListener('click', function() { start(); });
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#0b1210'; ctx.fillRect(0, 0, W, H);
+    slam('INK SNAKE', 110, 32, LIME);
+    var hx = -40 + t2 * 3.2;
+    for (var i = 0; i < 10; i++) {
+      var seg = hx - i * 18;
+      if (seg < -20) continue;
+      var syy = 210 + Math.sin((seg) * 0.03) * 26;
+      ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - i * 0.08).toFixed(2) + ')';
+      ctx.fillRect(seg - 8, syy - 8, 16, 16);
+    }
+    var dxp = 300, dyp = 210 + Math.sin(300 * 0.03) * 26;
+    if (hx < dxp - 10) {
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(dxp, dyp + 2, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(dxp, dyp - 8); ctx.lineTo(dxp + 5, dyp); ctx.lineTo(dxp - 5, dyp); ctx.fill();
+    }
+    if (t2 > 130) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('DRINK EVERY DROP', W / 2, 150); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     ctx.fillStyle = '#0b1210';
     ctx.fillRect(0, 0, W, H);
     // Faint checkerboard
@@ -334,7 +401,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();

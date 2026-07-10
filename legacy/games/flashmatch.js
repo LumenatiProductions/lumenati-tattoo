@@ -33,7 +33,8 @@
   // drawn as outlined pixel art so every card reads bold on the paper.
   var DOODLES = ['heart', 'swallow', 'anchor', 'rose', 'dagger', 'skull', 'star', 'horseshoe'];
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, lives, level, frame;
   var cards, first, second, missT, timer, timerMax, streak, bannerT, bannerText, faces;
 
@@ -76,7 +77,7 @@
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = 3; level = 1; frame = 0; streak = 0;
-    mode = 'ready'; bannerT = 0; bannerText = '';
+    mode = 'intro'; introT = 0; bannerT = 0; bannerText = '';
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     collectFaces();
@@ -161,6 +162,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
@@ -369,7 +371,70 @@
     ctx.strokeRect(xx + 0.5, y + 0.5, w - 1, CHH - 1);
   }
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#14101c'; ctx.fillRect(0, 0, W, H);
+    var ids = ['heart', 'swallow', 'anchor', 'rose'];
+    for (var i = 0; i < 4; i++) {
+      var fx2 = 44 + i * 82, fy2 = 150;
+      var flipT2 = Math.max(0, Math.min(1, (t2 - 16 - i * 14) / 18));
+      var wq = 70 * Math.abs(flipT2 < 0.5 ? 1 - flipT2 * 2 : flipT2 * 2 - 1);
+      var open2 = flipT2 >= 0.5;
+      ctx.fillStyle = open2 ? '#efe9dc' : '#2a1a2e';
+      ctx.fillRect(fx2 + (70 - wq) / 2, fy2, wq, 52);
+      ctx.strokeStyle = open2 ? '#14121a' : 'rgba(255,20,147,0.5)';
+      ctx.strokeRect(fx2 + (70 - wq) / 2 + 0.5, fy2 + 0.5, Math.max(1, wq - 1), 51);
+      if (open2 && flipT2 > 0.85) drawDoodle(ids[i], fx2, fy2, 70, 52);
+    }
+    slam('FLASH MATCH', 100, 28, CYAN);
+    if (t2 > 130) { ctx.fillStyle = YELLOW; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('KNOW YOUR FLASH', W / 2, 126); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     ctx.fillStyle = '#14101c';
     ctx.fillRect(0, 0, W, H);
 
@@ -464,7 +529,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();

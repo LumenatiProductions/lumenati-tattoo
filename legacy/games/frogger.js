@@ -32,7 +32,8 @@
   var LANE_DIRS = { 1: 1, 2: -1, 3: 1, 5: -1, 6: 1 };
   var CAR_COLORS = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
 
-  var mode = 'ready'; // ready | play | over
+  var mode = 'intro'; // intro | ready | play | over
+  var introT = 0;
   var score, lives, wave, frame;
   var player, lanes, doors, invuln, hopT;
   var patience, patienceMax, amb, bannerT, bannerText, bestRow;
@@ -78,7 +79,7 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; lives = 3; wave = 1; frame = 0; invuln = 0; mode = 'ready';
+    score = 0; lives = 3; wave = 1; frame = 0; invuln = 0; mode = 'intro'; introT = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     doors = [false, false, false];
@@ -210,6 +211,7 @@
 
   // ── Input ──
   function start() {
+    if (mode === 'intro') { mode = 'ready'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
@@ -276,7 +278,73 @@
     ctx.fillRect(dir > 0 ? x + w - 3 : x, y + 12, 3, 4);
   }
 
+  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  function drawIntro() {
+    var t = introT;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, W, H);
+    if (t < 70) {
+      if (t < 14) {
+        var lw = (t / 14) * W;
+        ctx.fillStyle = '#cfe8ff';
+        ctx.fillRect((W - lw) / 2, H / 2 - 1, lw, 2);
+      } else {
+        if (Math.sin(t * 1.9) > -0.5 || t > 38) {
+          ctx.fillStyle = '#FF1493';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('LUMENATI', W / 2, H / 2 - 6);
+          ctx.fillStyle = '#d8dde4';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('A  R  C  A  D  E', W / 2, H / 2 + 14);
+        }
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      for (var sy = 0; sy < H; sy += 3) ctx.fillRect(0, sy, W, 1);
+      return;
+    }
+    var t2 = t - 70;
+    function slam(title, y, size, color) {
+      ctx.textAlign = 'center';
+      var tw = size * 0.68;
+      for (var i = 0; i < title.length; i++) {
+        var lt = Math.max(0, Math.min(1, (t2 - i * 6) / 16));
+        if (lt <= 0) continue;
+        ctx.font = 'bold ' + size + 'px monospace';
+        ctx.fillStyle = color;
+        ctx.fillText(title[i], W / 2 - title.length * tw / 2 + i * tw + tw / 2, y - (1 - lt) * (1 - lt) * 160);
+      }
+    }
+    ctx.fillStyle = '#1c1c24'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#3c3c46'; ctx.fillRect(0, 150, W, 30); ctx.fillRect(0, 280, W, 40);
+    var c1 = (t2 * 5.4) % (W + 160) - 80;
+    var c2 = W + 80 - (t2 * 4.2) % (W + 160);
+    ctx.fillStyle = '#e74c3c'; ctx.fillRect(c1, 196, 60, 20);
+    ctx.fillStyle = '#111'; ctx.fillRect(c1 + 5, 214, 10, 4); ctx.fillRect(c1 + 45, 214, 10, 4);
+    ctx.fillStyle = '#3498db'; ctx.fillRect(c2, 236, 56, 20);
+    ctx.fillStyle = '#111'; ctx.fillRect(c2 + 5, 254, 10, 4); ctx.fillRect(c2 + 41, 254, 10, 4);
+    var hopRow = Math.min(3, Math.floor(t2 / 45));
+    var hopB = Math.abs(Math.sin(t2 * 0.14)) * 4;
+    var cyy = 296 - hopRow * 42 - hopB;
+    ctx.fillStyle = PINK; ctx.fillRect(W / 2 - 6, cyy - 16, 12, 4);
+    ctx.fillStyle = '#f0c8a0'; ctx.fillRect(W / 2 - 5, cyy - 13, 10, 7);
+    ctx.fillStyle = '#222'; ctx.fillRect(W / 2 - 6, cyy - 5, 12, 12);
+    ctx.fillStyle = '#fff'; ctx.fillRect(W / 2 + 2, cyy - 3, 6, 8);
+    var neonOn = Math.random() > 0.12 || t2 > 60;
+    if (neonOn) slam('WALK-IN', 96, 34, LIME);
+    if (t2 > 130) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('GET THEM TO THE CHAIR', W / 2, 126); }
+    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+      ctx.fillStyle = '#9aa';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
+  }
+
   function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
     // Road base
     ctx.fillStyle = '#1c1c24';
     ctx.fillRect(0, 0, W, H);
@@ -478,7 +546,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else frame++;
+      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
       acc -= 16.67;
     }
     draw();
