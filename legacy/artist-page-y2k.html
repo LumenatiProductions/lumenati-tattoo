@@ -1643,6 +1643,12 @@
     ctx.beginPath(); ctx.arc(348, 40, 12, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#1a0a2e';
     ctx.beginPath(); ctx.arc(352, 36, 10, 0, Math.PI * 2); ctx.fill();
+    // The Front Range behind downtown
+    for (var x4 = 0; x4 < W; x4 += 6) {
+      var rmy2 = 150 - Math.sin(x4 * 0.012) * 16 - Math.sin(x4 * 0.032) * 8;
+      ctx.fillStyle = 'rgba(46,38,72,0.6)';
+      ctx.fillRect(x4, rmy2, 6, 232 - rmy2);
+    }
     for (var i = 0; i < 8; i++) {
       var bx3 = i * 54 - 10, bh3 = 46 + (i * 37) % 60;
       ctx.fillStyle = 'rgba(30,26,56,0.9)';
@@ -1650,7 +1656,42 @@
       ctx.fillStyle = 'rgba(255,255,120,0.35)';
       for (var wy3 = 240 - bh3; wy3 < 222; wy3 += 11) ctx.fillRect(bx3 + 6 + (i % 3) * 9, wy3, 3, 4);
     }
+    // The cash register + clocktower say where we are
+    ctx.fillStyle = '#2c2850';
+    ctx.fillRect(296, 116, 40, 116);
+    ctx.beginPath();
+    ctx.moveTo(296, 116);
+    ctx.quadraticCurveTo(304, 88, 336, 100);
+    ctx.lineTo(336, 116);
+    ctx.fill();
+    ctx.fillStyle = Math.floor(t2 / 24) % 2 === 0 ? '#ff4b4b' : '#c22e2e';
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('DENVER', 300, 112);
+    ctx.fillStyle = 'rgba(255,255,150,0.4)';
+    for (var wy4 = 124; wy4 < 224; wy4 += 11) {
+      for (var wx4 = 300; wx4 < 332; wx4 += 9) ctx.fillRect(wx4, wy4, 4, 5);
+    }
+    ctx.fillStyle = '#2a2444';
+    ctx.fillRect(12, 140, 16, 92);
+    ctx.beginPath();
+    ctx.moveTo(10, 140); ctx.lineTo(20, 122); ctx.lineTo(30, 140);
+    ctx.fill();
+    ctx.fillStyle = '#ffd889';
+    ctx.beginPath(); ctx.arc(20, 154, 6, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#555'; ctx.fillRect(0, 232, W, 88);
+    // The blue bear watches the session
+    ctx.fillStyle = '#2a6ee8';
+    ctx.fillRect(354, 192, 24, 34);
+    ctx.fillRect(357, 176, 19, 17);
+    ctx.fillRect(357, 172, 6, 5);
+    ctx.fillRect(369, 172, 6, 5);
+    ctx.fillRect(350, 181, 8, 8);
+    ctx.fillRect(348, 192, 6, 18);
+    ctx.fillRect(355, 226, 9, 6);
+    ctx.fillRect(368, 226, 9, 6);
+    ctx.fillStyle = '#14121a';
+    ctx.fillRect(358, 180, 2, 2);
     ctx.fillStyle = '#888';
     ctx.fillRect(46, 226, 3, 6); ctx.fillRect(226, 226, 3, 6);
     ctx.fillStyle = '#ccc'; ctx.fillRect(40, 224, 200, 3);
@@ -1786,41 +1827,73 @@
     }
 
     if (sky.scene === 'city') {
+      // The Rockies sit behind everything, even downtown
+      for (var x = -8; x < W + 8; x += 6) {
+        var rmx = (x + scrollX * 0.04);
+        var rmy = GROUND_Y - 128 - Math.sin(rmx * 0.008) * 22 - Math.sin(rmx * 0.021) * 10;
+        ctx.fillStyle = 'rgba(46,38,72,0.55)';
+        ctx.fillRect(x, rmy, 6, GROUND_Y - rmy);
+      }
       // Far skyline for depth
-      ctx.fillStyle = 'rgba(20,16,34,0.35)';
+      ctx.fillStyle = 'rgba(20,16,34,0.5)';
       for (var i = 0; i < 9; i++) {
         var fx = ((i * 150 + 40 - scrollX * 0.12) % (W + 200) + W + 200) % (W + 200) - 100;
         var fh = 60 + ((i * 53) % 70);
         ctx.fillRect(fx, GROUND_Y - fh - 26, 46 + (i * 31) % 40, fh + 26);
       }
       // Denver landmarks ride the middle distance: the cash register
-      // building and the D&F clocktower
+      // tower (with its DENVER rooftop sign), the D&F clocktower
       var lmBase = ((-scrollX * 0.2) % 760 + 760) % 760 - 180;
       for (var rep2 = 0; rep2 < 2; rep2++) {
         var lx = lmBase + rep2 * 760;
-        ctx.fillStyle = '#232042';
-        ctx.fillRect(lx, GROUND_Y - 148, 44, 148);
+        ctx.fillStyle = '#2c2850';
+        ctx.fillRect(lx, GROUND_Y - 168, 48, 168);
         ctx.beginPath();
-        ctx.moveTo(lx, GROUND_Y - 148);
-        ctx.quadraticCurveTo(lx + 8, GROUND_Y - 178, lx + 44, GROUND_Y - 166);
-        ctx.lineTo(lx + 44, GROUND_Y - 148);
+        ctx.moveTo(lx, GROUND_Y - 168);
+        ctx.quadraticCurveTo(lx + 10, GROUND_Y - 204, lx + 48, GROUND_Y - 188);
+        ctx.lineTo(lx + 48, GROUND_Y - 168);
         ctx.fill();
+        ctx.fillStyle = Math.floor(frame / 40) % 2 === 0 ? '#ff3030' : '#701010';
+        ctx.fillRect(lx + 8, GROUND_Y - 206, 3, 3);
+        ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? '#ff4b4b' : '#c22e2e';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('DENVER', lx + 6, GROUND_Y - 172);
         ctx.fillStyle = sky.lights ? 'rgba(255,255,150,0.5)' : 'rgba(30,44,60,0.8)';
-        for (var wy = GROUND_Y - 138; wy < GROUND_Y - 12; wy += 12) {
-          for (var wx = lx + 5; wx < lx + 40; wx += 9) ctx.fillRect(wx, wy, 4, 5);
+        for (var wy = GROUND_Y - 158; wy < GROUND_Y - 12; wy += 12) {
+          for (var wx = lx + 5; wx < lx + 44; wx += 9) ctx.fillRect(wx, wy, 4, 5);
         }
         var tx = lx + 210;
         ctx.fillStyle = '#2a2444';
-        ctx.fillRect(tx, GROUND_Y - 120, 18, 120);
+        ctx.fillRect(tx, GROUND_Y - 138, 20, 138);
         ctx.beginPath();
-        ctx.moveTo(tx - 2, GROUND_Y - 120);
-        ctx.lineTo(tx + 9, GROUND_Y - 140);
-        ctx.lineTo(tx + 20, GROUND_Y - 120);
+        ctx.moveTo(tx - 2, GROUND_Y - 138);
+        ctx.lineTo(tx + 10, GROUND_Y - 160);
+        ctx.lineTo(tx + 22, GROUND_Y - 138);
         ctx.fill();
-        ctx.fillStyle = '#f4f0d8';
-        ctx.beginPath(); ctx.arc(tx + 9, GROUND_Y - 106, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = sky.lights ? '#ffd889' : '#f4f0d8';
+        ctx.beginPath(); ctx.arc(tx + 10, GROUND_Y - 122, 8, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#2a2444';
-        ctx.fillRect(tx + 8, GROUND_Y - 110, 2, 5);
+        ctx.fillRect(tx + 9, GROUND_Y - 128, 2, 7);
+        ctx.fillRect(tx + 10, GROUND_Y - 122, 5, 2);
+        // The big blue bear, peering at a storefront
+        var bbBase = ((-scrollX * 0.3) % 1100 + 1100) % 1100 - 260;
+        var bx4 = bbBase + rep2 * 1100 + 420;
+        if (bx4 > -60 && bx4 < W + 60) {
+          ctx.fillStyle = '#2a6ee8';
+          ctx.fillRect(bx4, GROUND_Y - 40, 24, 34);
+          ctx.fillRect(bx4 + 3, GROUND_Y - 56, 19, 17);
+          ctx.fillRect(bx4 + 3, GROUND_Y - 60, 6, 5);
+          ctx.fillRect(bx4 + 15, GROUND_Y - 60, 6, 5);
+          ctx.fillRect(bx4 + 19, GROUND_Y - 51, 8, 8);
+          ctx.fillRect(bx4 + 21, GROUND_Y - 40, 6, 18);
+          ctx.fillRect(bx4 + 1, GROUND_Y - 6, 9, 6);
+          ctx.fillRect(bx4 + 14, GROUND_Y - 6, 9, 6);
+          ctx.fillStyle = '#1e54c0';
+          ctx.fillRect(bx4 + 24, GROUND_Y - 50, 3, 6);
+          ctx.fillStyle = '#14121a';
+          ctx.fillRect(bx4 + 17, GROUND_Y - 52, 2, 2);
+        }
       }
       // Near buildings (parallax)
       for (var i = 0; i < buildings.length; i++) {
