@@ -410,7 +410,7 @@
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('W/S, ARROWS, MOUSE or DRAG to move // first to 5 wins the match', W / 2, H - 42);
-    ctx.fillText('run the ladder: Scratcher, Apprentice, Resident, Shop Boss, The Machine', W / 2, H - 29);
+    ctx.fillText('the ladder: Scratcher, Apprentice, Resident, The Machine', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';

@@ -480,7 +480,7 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or TAP a direction to hop // open door +100, all 3 chairs +250', W / 2, H - 42);
+    ctx.fillText('ARROWS or TAP to hop // door +100, all 3 chairs +250', W / 2, H - 42);
     ctx.fillText('beat their cold feet, dodge the ambulance // nights get meaner', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
