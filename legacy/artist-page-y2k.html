@@ -1225,7 +1225,8 @@
       level = nl;
       bannerT = 110;
       bannerText = 'LEVEL ' + level + ': ' + LOCALES[(level - 1) % LOCALES.length].name;
-      say('level-up');
+      var YEAHS = ['yeah-dude', 'gnarly', 'so-sick', 'radical', 'shred-it'];
+      say(YEAHS[Math.floor(Math.random() * YEAHS.length)]);
       sfxCombo(4);
       spawnParticles(player.x + player.w / 2, player.y, YELLOW, 14);
     }
@@ -1657,17 +1658,17 @@
       for (var wy3 = 240 - bh3; wy3 < 222; wy3 += 11) ctx.fillRect(bx3 + 6 + (i % 3) * 9, wy3, 3, 4);
     }
     // The cash register + clocktower say where we are
-    ctx.fillStyle = '#2c2850';
+    ctx.fillStyle = '#4c4880';
     ctx.fillRect(296, 116, 40, 116);
     ctx.beginPath();
     ctx.moveTo(296, 116);
     ctx.quadraticCurveTo(304, 88, 336, 100);
     ctx.lineTo(336, 116);
     ctx.fill();
-    ctx.fillStyle = Math.floor(t2 / 24) % 2 === 0 ? '#ff4b4b' : '#c22e2e';
-    ctx.font = 'bold 7px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('DENVER', 300, 112);
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(296, 116, 3, 116);
+    ctx.fillStyle = Math.floor(t2 / 24) % 2 === 0 ? '#ff3030' : '#701010';
+    ctx.fillRect(303, 86, 3, 3);
     ctx.fillStyle = 'rgba(255,255,150,0.4)';
     for (var wy4 = 124; wy4 < 224; wy4 += 11) {
       for (var wx4 = 300; wx4 < 332; wx4 += 9) ctx.fillRect(wx4, wy4, 4, 5);
@@ -1846,23 +1847,39 @@
       var lmBase = ((-scrollX * 0.2) % 760 + 760) % 760 - 180;
       for (var rep2 = 0; rep2 < 2; rep2++) {
         var lx = lmBase + rep2 * 760;
-        ctx.fillStyle = '#2c2850';
+        ctx.fillStyle = '#4c4880';
         ctx.fillRect(lx, GROUND_Y - 168, 48, 168);
         ctx.beginPath();
         ctx.moveTo(lx, GROUND_Y - 168);
         ctx.quadraticCurveTo(lx + 10, GROUND_Y - 204, lx + 48, GROUND_Y - 188);
         ctx.lineTo(lx + 48, GROUND_Y - 168);
         ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.14)';
+        ctx.fillRect(lx, GROUND_Y - 168, 4, 168);
         ctx.fillStyle = Math.floor(frame / 40) % 2 === 0 ? '#ff3030' : '#701010';
         ctx.fillRect(lx + 8, GROUND_Y - 206, 3, 3);
-        ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? '#ff4b4b' : '#c22e2e';
-        ctx.font = 'bold 8px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('DENVER', lx + 6, GROUND_Y - 172);
-        ctx.fillStyle = sky.lights ? 'rgba(255,255,150,0.5)' : 'rgba(30,44,60,0.8)';
+        ctx.fillStyle = sky.lights ? 'rgba(255,255,150,0.55)' : 'rgba(40,54,80,0.9)';
         for (var wy = GROUND_Y - 158; wy < GROUND_Y - 12; wy += 12) {
           for (var wx = lx + 5; wx < lx + 44; wx += 9) ctx.fillRect(wx, wy, 4, 5);
         }
+        // Union Station: low stone facade under the glowing orange sign
+        var ux = lx + 400;
+        ctx.fillStyle = '#5a5470';
+        ctx.fillRect(ux, GROUND_Y - 52, 96, 52);
+        ctx.fillRect(ux + 34, GROUND_Y - 66, 28, 14);
+        ctx.fillStyle = sky.lights ? '#ffd889' : '#3a3450';
+        for (var ax = ux + 8; ax < ux + 90; ax += 16) {
+          ctx.beginPath();
+          ctx.arc(ax + 4, GROUND_Y - 26, 5, Math.PI, 0);
+          ctx.fill();
+          ctx.fillRect(ax, GROUND_Y - 26, 9, 20);
+        }
+        ctx.fillStyle = Math.floor(frame / 34) % 2 === 0 ? '#ff7a1c' : '#c25a10';
+        ctx.fillRect(ux + 30, GROUND_Y - 78, 36, 9);
+        ctx.fillStyle = '#14121a';
+        ctx.fillRect(ux + 33, GROUND_Y - 76, 30, 5);
+        ctx.fillStyle = Math.floor(frame / 34) % 2 === 0 ? '#ffb066' : '#e08030';
+        for (var dx2 = ux + 35; dx2 < ux + 62; dx2 += 4) ctx.fillRect(dx2, GROUND_Y - 75, 2, 3);
         var tx = lx + 210;
         ctx.fillStyle = '#2a2444';
         ctx.fillRect(tx, GROUND_Y - 138, 20, 138);
