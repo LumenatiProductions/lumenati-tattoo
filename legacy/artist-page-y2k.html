@@ -967,6 +967,13 @@
   // The attract screen gets a driving punk loop — hype, not a dirge.
   var MENU_SONG = { root: 130.81, bass: [0,0,12,0, 5,5,17,5, 7,7,19,7, 5,5,17,5], lead: [12,-1,12,15, -1,19,-1,17, 19,-1,19,22, 19,17,15,12] };
   var musicStep = -1, musicFrame = 0, jingleT = 0;
+  var transT = 0, transCanvas = null, transCtx = null;
+  try {
+    transCanvas = document.createElement('canvas');
+    transCanvas.width = W;
+    transCanvas.height = H;
+    transCtx = transCanvas.getContext ? transCanvas.getContext('2d') : null;
+  } catch (e) { transCtx = null; }
   function musicTick() {
     if (jingleT > 0) { jingleT--; return; }
     var menu = mode !== 'play';
@@ -1236,6 +1243,13 @@
       level = nl;
       bannerT = 110;
       bannerText = 'LEVEL ' + level + ': ' + LOCALES[(level - 1) % LOCALES.length].name;
+      if (transCtx) {
+        try {
+          transCtx.clearRect(0, 0, W, H);
+          transCtx.drawImage(canvas, 0, 0);
+          transT = 55;
+        } catch (e) {}
+      }
       lingoCd = 0;
       sayLingo();
       sfxCombo(4);
@@ -1856,9 +1870,9 @@
       }
       // Denver landmarks ride the middle distance: the cash register
       // tower (with its DENVER rooftop sign), the D&F clocktower
-      var lmBase = ((-scrollX * 0.2) % 760 + 760) % 760 - 180;
-      for (var rep2 = 0; rep2 < 2; rep2++) {
-        var lx = lmBase + rep2 * 760;
+      var lmBase = ((-scrollX * 0.2) % 420 + 420) % 420 - 100;
+      for (var rep2 = 0; rep2 < 3; rep2++) {
+        var lx = lmBase + rep2 * 420;
         ctx.fillStyle = '#4c4880';
         ctx.fillRect(lx, GROUND_Y - 168, 48, 168);
         ctx.beginPath();
@@ -1875,7 +1889,7 @@
           for (var wx = lx + 5; wx < lx + 44; wx += 9) ctx.fillRect(wx, wy, 4, 5);
         }
         // Union Station: low stone facade under the glowing orange sign
-        var ux = lx + 400;
+        var ux = lx + 250;
         ctx.fillStyle = '#5a5470';
         ctx.fillRect(ux, GROUND_Y - 52, 96, 52);
         ctx.fillRect(ux + 34, GROUND_Y - 66, 28, 14);
@@ -1892,7 +1906,7 @@
         ctx.fillRect(ux + 33, GROUND_Y - 76, 30, 5);
         ctx.fillStyle = Math.floor(frame / 34) % 2 === 0 ? '#ffb066' : '#e08030';
         for (var dx2 = ux + 35; dx2 < ux + 62; dx2 += 4) ctx.fillRect(dx2, GROUND_Y - 75, 2, 3);
-        var tx = lx + 210;
+        var tx = lx + 160;
         ctx.fillStyle = '#2a2444';
         ctx.fillRect(tx, GROUND_Y - 138, 20, 138);
         ctx.beginPath();
@@ -1906,8 +1920,8 @@
         ctx.fillRect(tx + 9, GROUND_Y - 128, 2, 7);
         ctx.fillRect(tx + 10, GROUND_Y - 122, 5, 2);
         // The big blue bear, peering at a storefront
-        var bbBase = ((-scrollX * 0.3) % 1100 + 1100) % 1100 - 260;
-        var bx4 = bbBase + rep2 * 1100 + 420;
+        var bbBase = ((-scrollX * 0.3) % 640 + 640) % 640 - 120;
+        var bx4 = bbBase + rep2 * 640 + 200;
         if (bx4 > -60 && bx4 < W + 60) {
           ctx.fillStyle = '#2a6ee8';
           ctx.fillRect(bx4, GROUND_Y - 40, 24, 34);
@@ -2100,6 +2114,24 @@
       ctx.fillText(pu.text, pu.x, pu.y);
     }
     ctx.globalAlpha = 1;
+
+    // Level transition: the old town rolls up and away
+    if (transT > 0 && transCtx) {
+      transT--;
+      var tp = 1 - transT / 55;
+      var tyy = -(tp * tp) * (H + 26);
+      try { ctx.drawImage(transCanvas, 0, tyy); } catch (e) { transT = 0; }
+      var rollG = ctx.createLinearGradient(0, tyy + H, 0, tyy + H + 15);
+      rollG.addColorStop(0, 'rgba(238,238,244,0.95)');
+      rollG.addColorStop(0.5, 'rgba(150,150,162,0.95)');
+      rollG.addColorStop(1, 'rgba(58,58,70,0.95)');
+      ctx.fillStyle = rollG;
+      ctx.fillRect(0, tyy + H, W, 15);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(0, tyy + H + 3, W, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(0, tyy + H + 15, W, 7);
+    }
 
     // HUD
     ctx.fillStyle = '#fff';
