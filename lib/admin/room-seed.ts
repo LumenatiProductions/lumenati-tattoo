@@ -47,6 +47,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     ],
     stickers: null,
     posters: null,
+    gameId: null,
+    videoUrl: null,
   },
   elaine: {
     artistId: "elaine",
@@ -60,6 +62,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     portfolio: [pf("el-f1", "/legacy-assets/sqsp-034.jpg", "fine line")],
     stickers: null,
     posters: null,
+    gameId: null,
+    videoUrl: null,
   },
   shorty: {
     artistId: "shorty",
@@ -73,6 +77,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     portfolio: [],
     stickers: null,
     posters: null,
+    gameId: null,
+    videoUrl: null,
   },
   kalypso: {
     artistId: "kalypso",
@@ -86,6 +92,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     portfolio: [],
     stickers: null,
     posters: null,
+    gameId: null,
+    videoUrl: null,
   },
   sam: {
     artistId: "sam",
@@ -102,6 +110,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     ],
     stickers: null,
     posters: null,
+    gameId: null,
+    videoUrl: null,
   },
   moonie: {
     artistId: "moonie",
@@ -115,6 +125,8 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     portfolio: [],
     stickers: null,
     posters: null,
+    gameId: null,
+    videoUrl: null,
   },
 };
 

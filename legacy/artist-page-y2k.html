@@ -1510,7 +1510,7 @@
 <script>
 // Icon + button wiring — null-safe: a room only has the windows its artist picked
 (function() {
-  function show(id) { var el = document.getElementById(id); if (el) el.style.display = 'flex'; }
+  function show(id) { var el = document.getElementById(id); if (el) { el.style.display = 'flex'; var v = el.querySelector('video'); if (v) v.play(); } }
   function wire(id, overlayId) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('click', function(e) { e.preventDefault(); show(overlayId); });

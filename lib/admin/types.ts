@@ -117,4 +117,8 @@ export interface RoomContent {
   stickers: string[] | null;
   /** The artist's own wall posters; null = not chosen yet. */
   posters: { id: string; src: string }[] | null;
+  /** Arcade game id (see GAME_CATALOG in render-room.ts); null = JD keeps skate, others have none. */
+  gameId: string | null;
+  /** The artist's uploaded room video; null = JD keeps his Vimeo clip, others have none. */
+  videoUrl: string | null;
 }

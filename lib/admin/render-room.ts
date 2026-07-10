@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { readLegacyBlock } from "@/lib/legacy";
 import type { RoomContent } from "./types";
 
@@ -29,6 +31,23 @@ export const STICKER_CATALOG = [
 
 // The five designed sticker spots and four poster spots — positions are part
 // of the room's look; picks fill them in order.
+// The arcade catalog — every artist picks one game for their room. The skate
+// game lives in the template (JD's default); the rest live in legacy/games/
+// as drop-in IIFEs that share the template's window shell. The app's picker
+// mirrors id + label.
+export const GAME_CATALOG = [
+  { id: "skate", label: "Skate", exe: "sk8_or_die.exe", hint: "SPACE to ollie" },
+  { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer" },
+  { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows or drag to move" },
+  { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires" },
+  { id: "pong", label: "Needle Pong", exe: "needlepong.exe", hint: "W/S or drag to move", statA: "You", statB: "CPU" },
+  { id: "frogger", label: "Walk-In", exe: "walkin.exe", hint: "Arrows or tap to hop" },
+] as const;
+
+function readGameScript(id: string): string {
+  return readFileSync(path.join(process.cwd(), "legacy", "games", `${id}.js`), "utf8").trimEnd();
+}
+
 const STICKER_SLOTS = [
   "top:6%;right:6%;transform:rotate(-12deg);width:120px",
   "top:45%;left:2%;transform:rotate(15deg);width:100px",
@@ -127,22 +146,73 @@ export function renderRoomHtml(
     `<span>${content.portfolio.length} objects</span>`,
   );
 
-  // ── Strip JD-only extras for everyone else ──
-  if (!isJd) {
-    // Video player + skate game (contiguous: comment through the game script)
-    html = html.replace(/<!-- Hidden Video Player[\s\S]*?<\/script>/, "");
-    // Desktop game/skate icons
-    html = html.replace(
-      /<div class="br-icon"[^>]*id="jd-games-icon">[\s\S]*?<span class="br-icon-label">Games<\/span>\s*<\/div>/,
-      "",
-    );
+  // ── Arcade + video: every room gets what its artist picked ──
+  // NULL keeps today's behavior: JD's room ships the skate game + his Vimeo
+  // clip, everyone else has neither window.
+  const game =
+    content.gameId && GAME_CATALOG.some((g) => g.id === content.gameId)
+      ? content.gameId
+      : isJd
+        ? "skate"
+        : null;
+  const hasVideo = !!content.videoUrl || isJd;
+
+  // Video first: its strip regex needs the game block's comment as a boundary.
+  if (!hasVideo) {
+    html = html.replace(/<!-- Hidden Video Player[\s\S]*?(?=<!-- Hidden Game -->)/, "");
     html = html.replace(
       /<div class="br-icon"[^>]*id="jd-skate-icon">[\s\S]*?<span class="br-icon-label">Skate<\/span>\s*<\/div>/,
       "",
     );
-    // Mobile game/skate buttons
-    html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-game">[\s\S]*?<\/a>\s*/, "");
     html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-skate">[\s\S]*?<\/a>\s*/, "");
+  } else if (content.videoUrl) {
+    // An uploaded clip replaces the Vimeo iframe inside the same WMP chrome.
+    const file = `${handle.replace(/[^A-Za-z0-9]+/g, "_") || "room"}_edit.avi`;
+    html = html.replace("Windows Media Player — jd_skate_edit.avi", `Windows Media Player — ${esc(file)}`);
+    html = html.replace("Playing - jd_skate_edit.avi", `Playing - ${esc(file)}`);
+    html = html.replace(
+      /<iframe id="jd-vimeo"[\s\S]*?<\/iframe>/,
+      () =>
+        `<video id="jd-room-video" src="${escAttr(content.videoUrl!)}" autoplay loop muted playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;"></video>`,
+    );
+    // The close button resets the iframe; a <video> just pauses.
+    html = html.replace(
+      "document.getElementById('jd-video-overlay').style.display='none';document.getElementById('jd-vimeo').src=document.getElementById('jd-vimeo').src;",
+      "document.getElementById('jd-video-overlay').style.display='none';var v=document.getElementById('jd-room-video');if(v)v.pause();",
+    );
+    if (!isJd) {
+      html = html.replace('<span class="br-icon-label">Skate</span>', '<span class="br-icon-label">Video</span>');
+      html = html.replace(/(id="jd-mob-skate">)Skate Vid(<\/a>)/, "$1Video$2");
+    }
+  }
+
+  if (!game) {
+    html = html.replace(/<!-- Hidden Game -->[\s\S]*?<\/script>/, "");
+    html = html.replace(
+      /<div class="br-icon"[^>]*id="jd-games-icon">[\s\S]*?<span class="br-icon-label">Games<\/span>\s*<\/div>/,
+      "",
+    );
+    html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-game">[\s\S]*?<\/a>\s*/, "");
+  } else {
+    if (!isJd) html = html.replace("JD's Arcade", `${esc(firstName)}'s Arcade`);
+    if (game !== "skate") {
+      const g = GAME_CATALOG.find((x) => x.id === game)!;
+      const src = readGameScript(game);
+      html = html.replace(
+        /<script id="jd-arcade-game">[\s\S]*?<\/script>/,
+        () => `<script id="jd-arcade-game">\n${src}\n</script>`,
+      );
+      html = html.replace("sk8_or_die.exe", g.exe);
+      html = html.replace(
+        '<span id="jd-game-hint">SPACE to ollie</span>',
+        `<span id="jd-game-hint">${esc(g.hint)}</span>`,
+      );
+      if ("statA" in g) {
+        html = html.replace('<span id="jd-stat-a">Score</span>', `<span id="jd-stat-a">${esc(g.statA)}</span>`);
+        html = html.replace('<span id="jd-stat-b">Lives</span>', `<span id="jd-stat-b">${esc(g.statB)}</span>`);
+        html = html.replace('<span id="jd-br-lives">3</span>', '<span id="jd-br-lives">0</span>');
+      }
+    }
   }
 
   // ── Stickers: chosen catalog set into the five designed wall slots ──
