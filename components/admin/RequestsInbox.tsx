@@ -108,7 +108,7 @@ export default function RequestsInbox() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">{q.name}</span>
-                    <Badge tone="brand">{artist?.name ?? "Any artist"}</Badge>
+                    <Badge tone="brand">{artist?.name ?? "Up for grabs"}</Badge>
                     <span className="text-[11px] text-white/50">{ago(q.created_at)}</span>
                   </div>
                   <div className="mt-1 text-sm text-white/85">{q.idea}</div>

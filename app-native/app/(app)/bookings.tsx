@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
@@ -21,7 +21,7 @@ import { ActionPill, Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
 import { uid } from "@/lib/ids";
-import { apiPost } from "@/lib/appApi";
+import { apiPatch, apiPost } from "@/lib/appApi";
 import { findClash } from "@/lib/clash";
 
 type Booking = {
@@ -433,6 +433,7 @@ export default function Bookings() {
             </View>
           </Card>
         )}
+        {myArtistId && !preview && <UpForGrabs myArtistId={myArtistId} onBooked={load} />}
         <View style={{ marginBottom: 12 }}>
           <Button label={adding ? "Cancel" : "New booking"} tone={adding || freed ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
         </View>
@@ -752,8 +753,193 @@ function NewBooking({
   );
 }
 
+
+// ── Up for grabs ──────────────────────────────────────────────────────────
+// "No preference" website requests land in a shared pool; any artist can grab
+// one from here (first tap wins — the DB guard makes the race safe), toss it
+// back, or book it on the spot. Booking rides the same API the desk uses, so
+// the client + deposit link flow is identical.
+
+type GrabRow = {
+  id: string;
+  name: string;
+  idea: string;
+  placement: string;
+  size: string;
+  availability: string;
+  artist_id: string | null;
+  created_at: string;
+  reference_urls: string[] | null;
+};
+
+const grabAgo = (iso: string) => {
+  const h = Math.round((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  if (h < 1) return "just now";
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+};
+
+function UpForGrabs({ myArtistId, onBooked }: { myArtistId: string; onBooked: () => void }) {
+  const [pool, setPool] = useState<GrabRow[]>([]);
+  const [mine, setMine] = useState<GrabRow[]>([]);
+  const [note, setNote] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [date, setDate] = useState(todayKey());
+  const [time, setTime] = useState("12:00");
+  const [deposit, setDeposit] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from("booking_requests")
+      .select("id, name, idea, placement, size, availability, artist_id, created_at, reference_urls")
+      .eq("status", "pending")
+      .or(`artist_id.is.null,artist_id.eq.${myArtistId}`)
+      .order("created_at", { ascending: true });
+    const rows = (data ?? []) as GrabRow[];
+    setPool(rows.filter((r) => !r.artist_id));
+    setMine(rows.filter((r) => r.artist_id === myArtistId));
+  }, [myArtistId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const grab = async (id: string) => {
+    setNote(null);
+    const { data, error } = await supabase
+      .from("booking_requests")
+      .update({ artist_id: myArtistId })
+      .eq("id", id)
+      .is("artist_id", null)
+      .eq("status", "pending")
+      .select("id");
+    if (error) setNote(error.message);
+    else if (!data?.length) setNote("Someone beat you to that one.");
+    load();
+  };
+
+  const tossBack = async (id: string) => {
+    setNote(null);
+    setOpenId(null);
+    await supabase.from("booking_requests").update({ artist_id: null }).eq("id", id).eq("artist_id", myArtistId);
+    load();
+  };
+
+  const book = async (id: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+      setNote("Date YYYY-MM-DD and time HH:MM.");
+      return;
+    }
+    setBusy(true);
+    setNote(null);
+    const startsAt = new Date(`${date}T${time}:00`).toISOString();
+    const clash = await findClash(myArtistId, startsAt, null);
+    if (clash) {
+      setBusy(false);
+      setNote(`You already have a booking at ${clock(clash)}. Pick another time.`);
+      return;
+    }
+    const r = await apiPatch<{
+      depositLink: { url: string; sent: boolean; via?: string; reason?: string } | null;
+    }>("/api/bookings/request", {
+      id,
+      action: "accept",
+      startsAt,
+      depositCents: Math.round((Number(deposit) || 0) * 100),
+    });
+    setBusy(false);
+    if (!r.ok) {
+      setNote(r.error ?? "Could not book it.");
+      return;
+    }
+    const link = r.data?.depositLink;
+    setNote(
+      link
+        ? link.sent
+          ? `Booked — deposit link ${link.via === "sms" ? "texted" : "emailed"} to the client.`
+          : "Booked — the deposit link couldn't be sent; the desk can pass it along."
+        : "Booked.",
+    );
+    setOpenId(null);
+    load();
+    onBooked();
+  };
+
+  if (!pool.length && !mine.length && !note) return null;
+
+  const details = (q: GrabRow) =>
+    [q.placement && `Placement: ${q.placement}`, q.size && `Size: ${q.size}`, q.availability && `Avail: ${q.availability}`]
+      .filter(Boolean)
+      .join(" · ");
+
+  const refs = (q: GrabRow) =>
+    Array.isArray(q.reference_urls) && q.reference_urls.length ? (
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+        {q.reference_urls.map((u, i) => (
+          <Image key={i} source={{ uri: u }} style={{ width: 56, height: 56, borderRadius: 8, backgroundColor: "#1a1a22" }} />
+        ))}
+      </View>
+    ) : null;
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      {note && <Text style={note.startsWith("Booked") ? styles.grabGood : styles.err}>{note}</Text>}
+      {mine.length > 0 && (
+        <>
+          <Text style={[styles.section, { marginTop: 4 }]}>Yours to book</Text>
+          {mine.map((q) => (
+            <Card key={q.id} style={{ marginBottom: 10 }}>
+              <Text style={styles.who}>
+                {q.name} <Text style={styles.dep}>{grabAgo(q.created_at)}</Text>
+              </Text>
+              <Text style={styles.sub}>{q.idea}</Text>
+              {!!details(q) && <Text style={styles.dep}>{details(q)}</Text>}
+              {refs(q)}
+              {openId === q.id ? (
+                <View style={{ marginTop: 12 }}>
+                  <DateTimeField date={date} time={time} onDate={setDate} onTime={setTime} />
+                  <LabeledInput label="Deposit ($, optional)" value={deposit} onChange={setDeposit} keyboardType="numeric" placeholder="0" />
+                  <Button label={busy ? "Booking…" : "Book it"} onPress={() => book(q.id)} disabled={busy} />
+                  <View style={{ marginTop: 8 }}>
+                    <Button label="Never mind" tone="ghost" onPress={() => setOpenId(null)} disabled={busy} />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.actions}>
+                  <ActionPill label="Book it" onPress={() => setOpenId(q.id)} />
+                  <ActionPill label="Toss back" onPress={() => tossBack(q.id)} />
+                </View>
+              )}
+            </Card>
+          ))}
+        </>
+      )}
+      {pool.length > 0 && (
+        <>
+          <Text style={[styles.section, { marginTop: 4 }]}>Up for grabs</Text>
+          {pool.map((q) => (
+            <Card key={q.id} style={{ marginBottom: 10 }}>
+              <Text style={styles.who}>
+                {q.name} <Text style={styles.dep}>{grabAgo(q.created_at)}</Text>
+              </Text>
+              <Text style={styles.sub}>{q.idea}</Text>
+              {!!details(q) && <Text style={styles.dep}>{details(q)}</Text>}
+              {refs(q)}
+              <View style={styles.actions}>
+                <ActionPill label="Grab it" onPress={() => grab(q.id)} />
+              </View>
+            </Card>
+          ))}
+        </>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   err: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  grabGood: { color: theme.good, fontSize: 13, marginBottom: 10 },
   freedCard: { marginBottom: 12, borderColor: "rgba(52,211,153,0.4)" },
   freedTitle: { color: theme.good, fontSize: 16, fontWeight: "700" },
   freedSub: { color: theme.textDim, fontSize: 13, marginTop: 3 },

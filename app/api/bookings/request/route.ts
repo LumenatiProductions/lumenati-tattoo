@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveStaff } from "@/lib/api-auth";
 import { isSmsConfigured, looksLikePhone, normalizePhone, sendSms } from "@/lib/sms";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured } from "@/lib/stripe/client";
@@ -15,31 +15,13 @@ export const dynamic = "force-dynamic";
 //   POST  — public: the /request form submits here (service-role write; no
 //           session). Honeypot + length limits + a per-contact hourly cap keep
 //           drive-by spam out without a captcha.
-//   GET   — staff: list requests for the Bookings page inbox.
-//   PATCH — staff: decline, or accept (find-or-create the client, create the
-//           booking with source=web_request, stamp the request).
-
-const STAFF = ["owner"] as const;
-
-async function staff() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, shop_id")
-    .eq("email", user.email!)
-    .maybeSingle();
-  return {
-    supabase,
-    user,
-    role: profile?.role ?? null,
-    shopId: (profile?.shop_id as string | null) ?? null,
-  };
-}
-const isStaff = (r: string | null) => !!r && STAFF.includes(r as (typeof STAFF)[number]);
+//   GET   — admin: the full inbox. Artists: their own requests + the
+//           up-for-grabs pool (unclaimed, pending).
+//   PATCH — decline or accept (find-or-create the client, create the booking
+//           with source=web_request, stamp the request). Admin works any
+//           request; an artist works only requests already grabbed by or
+//           aimed at them (grabbing itself happens straight on the table —
+//           first tap wins).
 const isMissingTable = (msg: string) => /relation .* does not exist|42P01/i.test(msg);
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 
@@ -134,27 +116,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Could not save your request — try again." }, { status: 500 });
   }
 
-  // Ping the desk (and the asked-for artist) — best-effort, never blocks.
+  // Ping people — best-effort, never blocks. A no-preference request is up
+  // for grabs, so every artist's phone buzzes; first grab wins.
   await pushEvent(
     admin,
-    { roles: ["owner"], artistId, shopId },
-    "New booking request",
+    artistId ? { roles: ["owner"], artistId, shopId } : { roles: ["owner", "artist"], shopId },
+    artistId ? "New booking request" : "Up for grabs",
     `${name}: ${idea.slice(0, 90)}`,
   );
 
   return NextResponse.json({ ok: true });
 }
 
-export async function GET() {
-  const { supabase, user, role } = await staff();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!isStaff(role)) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+export async function GET(req: Request) {
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const { data, error } = await supabase
+  let q = ctx.db
     .from("booking_requests")
     .select("*")
+    .eq("shop_id", ctx.shopId)
     .order("created_at", { ascending: false })
     .limit(200);
+  if (ctx.role !== "owner") {
+    if (!ctx.artistId) return NextResponse.json({ configured: true, requests: [] });
+    // Mirror the RLS shape: theirs, or unclaimed pool.
+    q = q.or(`artist_id.eq.${ctx.artistId},and(artist_id.is.null,status.eq.pending)`);
+  }
+  const { data, error } = await q;
   if (error) {
     if (isMissingTable(error.message)) return NextResponse.json({ configured: false, requests: [] });
     return NextResponse.json({ error: error.message, requests: [] }, { status: 500 });
@@ -163,9 +152,11 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const { supabase, user, role, shopId } = await staff();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!isStaff(role) || !shopId) return NextResponse.json({ error: "Staff only" }, { status: 403 });
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: "Not configured." }, { status: 503 });
+  const { shopId } = ctx;
 
   const b = (await req.json().catch(() => ({}))) as {
     id?: string;
@@ -178,18 +169,24 @@ export async function PATCH(req: Request) {
   };
   if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const { data: reqRow } = await supabase.from("booking_requests").select("*").eq("id", b.id).maybeSingle();
+  const { data: reqRow } = await admin.from("booking_requests").select("*").eq("id", b.id).maybeSingle();
   if (!reqRow || reqRow.shop_id !== shopId) {
     return NextResponse.json({ error: "Request not found" }, { status: 404 });
+  }
+  // Artists work only what's theirs — grabbed from the pool or aimed at them.
+  if (ctx.role !== "owner" && (!ctx.artistId || reqRow.artist_id !== ctx.artistId)) {
+    return NextResponse.json({ error: "Grab it first — this one isn't yours." }, { status: 403 });
   }
   if (reqRow.status !== "pending") {
     return NextResponse.json({ error: `Already ${reqRow.status}.` }, { status: 409 });
   }
+  // An artist books themselves; only the admin can hand it elsewhere.
+  if (ctx.role !== "owner") b.artistId = ctx.artistId;
 
-  const stamp = { handled_by: user.email ?? null, handled_at: new Date().toISOString() };
+  const stamp = { handled_by: ctx.email ?? null, handled_at: new Date().toISOString() };
 
   if (b.action === "decline") {
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("booking_requests")
       .update({ status: "declined", ...stamp })
       .eq("id", b.id)
@@ -205,19 +202,20 @@ export async function PATCH(req: Request) {
     // Find-or-create the client: match email first, then phone.
     let clientId: string | null = null;
     if (reqRow.email) {
-      const { data: c } = await supabase.from("clients").select("id").eq("email", reqRow.email).maybeSingle();
+      const { data: c } = await admin.from("clients").select("id").eq("email", reqRow.email).eq("shop_id", shopId).maybeSingle();
       clientId = c?.id ?? null;
     }
     if (!clientId && reqRow.phone) {
-      const { data: c } = await supabase.from("clients").select("id").eq("phone", reqRow.phone).maybeSingle();
+      const { data: c } = await admin.from("clients").select("id").eq("phone", reqRow.phone).eq("shop_id", shopId).maybeSingle();
       clientId = c?.id ?? null;
     }
     if (!clientId) {
       const [first, ...rest] = (reqRow.name as string).split(/\s+/);
-      const { data: c, error: cErr } = await supabase
+      const { data: c, error: cErr } = await admin
         .from("clients")
         .insert({
           id: `cl-${randomUUID()}`,
+          shop_id: shopId,
           first_name: first || reqRow.name,
           last_name: rest.join(" "),
           email: reqRow.email,
@@ -232,10 +230,11 @@ export async function PATCH(req: Request) {
     }
 
     const deposit = Math.max(0, Math.round(b.depositCents ?? 0));
-    const { data: booking, error: bErr } = await supabase
+    const { data: booking, error: bErr } = await admin
       .from("bookings")
       .insert({
         id: `bk-${randomUUID()}`,
+        shop_id: shopId,
         client_id: clientId,
         artist_id: b.artistId ?? reqRow.artist_id ?? null,
         starts_at: b.startsAt,
@@ -261,7 +260,7 @@ export async function PATCH(req: Request) {
       .single();
     if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("booking_requests")
       .update({ status: "accepted", booking_id: booking.id, ...stamp })
       .eq("id", b.id)
@@ -274,8 +273,7 @@ export async function PATCH(req: Request) {
     // still returns the URL so the desk can pass it along by hand.
     let depositLink: { url: string; sent: boolean; via?: string; reason?: string } | null = null;
     if (deposit >= 50 && isStripeConfigured) {
-      const admin = createAdminClient();
-      if (admin) {
+      {
         const link = await createPaymentLink(admin, {
           bookingId: booking.id,
           clientId,

@@ -41,3 +41,20 @@ export async function apiPost<T = unknown>(
     return { ok: false, error: e instanceof Error ? e.message : "Network error" };
   }
 }
+
+export async function apiPatch<T = unknown>(
+  path: string,
+  body?: unknown,
+): Promise<{ ok: boolean; data?: T; error?: string }> {
+  try {
+    const r = await fetch(`${BASE}${path}`, {
+      method: "PATCH",
+      headers: await authHeaders(),
+      body: JSON.stringify(body ?? {}),
+    });
+    const d = await r.json().catch(() => ({}));
+    return r.ok ? { ok: true, data: d as T } : { ok: false, error: d.error || `Request failed (${r.status})` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+  }
+}
