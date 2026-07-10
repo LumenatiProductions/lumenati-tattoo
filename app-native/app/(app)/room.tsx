@@ -42,6 +42,18 @@ const STICKERS: { id: string; src: string }[] = [
   { id: "stars", src: "/legacy-assets/sqsp-030.png" },
 ];
 
+// Mirrors GAME_CATALOG in lib/admin/render-room.ts — keep the ids in sync.
+// "none" = classic: JD keeps his skate game, everyone else has no arcade.
+const GAMES: { id: string; label: string }[] = [
+  { id: "none", label: "None" },
+  { id: "skate", label: "Skate" },
+  { id: "snake", label: "Ink Snake" },
+  { id: "bricks", label: "Flash Breaker" },
+  { id: "shooter", label: "Sterile!" },
+  { id: "pong", label: "Needle Pong" },
+  { id: "frogger", label: "Walk-In" },
+];
+
 type Polaroid = { id: string; src: string; caption: string };
 type Poster = { id: string; src: string };
 type PortfolioItem = { id: string; src: string; alt: string };
@@ -57,6 +69,8 @@ type Room = {
   portfolio: PortfolioItem[];
   stickers: string[] | null;
   posters: Poster[] | null;
+  game_id: string | null;
+  video_url: string | null;
 };
 
 type RosterArtist = { id: string; name: string; slug: string };
@@ -93,17 +107,31 @@ export default function MyRoom() {
     })();
   }, [email, isOwner, preview]);
 
-  // Load the selected artist's room whenever the pick changes.
+  // Load the selected artist's room whenever the pick changes. select("*")
+  // so the arcade fields are optional: until the game_id/video_url migration
+  // runs, those sections simply don't render and saves don't touch them.
+  const [arcadeReady, setArcadeReady] = useState(false);
   useEffect(() => {
     (async () => {
       if (!artistId) return;
       setRoom(null);
       const { data: r } = await supabase
         .from("room_content")
-        .select("artist_id, tagline, bio, ig_handle, song_id, accent_color, profile_photo, polaroids, portfolio, stickers, posters")
+        .select("*")
         .eq("artist_id", artistId)
         .maybeSingle();
-      if (r) setRoom({ ...(r as Room), polaroids: (r.polaroids as Polaroid[]) ?? [], portfolio: (r.portfolio as PortfolioItem[]) ?? [], stickers: (r.stickers as string[] | null) ?? null, posters: (r.posters as Poster[] | null) ?? null });
+      if (r) {
+        setArcadeReady((r as Record<string, unknown>).game_id !== undefined);
+        setRoom({
+          ...(r as Room),
+          polaroids: (r.polaroids as Polaroid[]) ?? [],
+          portfolio: (r.portfolio as PortfolioItem[]) ?? [],
+          stickers: (r.stickers as string[] | null) ?? null,
+          posters: (r.posters as Poster[] | null) ?? null,
+          game_id: (r.game_id as string | null) ?? null,
+          video_url: (r.video_url as string | null) ?? null,
+        });
+      }
     })();
   }, [artistId]);
 
@@ -129,11 +157,12 @@ export default function MyRoom() {
         portfolio: room.portfolio,
         stickers: room.stickers,
         posters: room.posters,
+        ...(arcadeReady ? { game_id: room.game_id, video_url: room.video_url } : {}),
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
     setMsg(error ? error.message : "Saved — your room is live.");
-  }, [room]);
+  }, [room, arcadeReady]);
 
   // Pick from the library and land it in the public room-photos bucket.
   // Square-crops for the profile shot; galleries keep the framing as shot.
@@ -174,6 +203,46 @@ export default function MyRoom() {
     },
     [room],
   );
+
+  // Room video: an mp4/mov clip that plays inside the room's media player
+  // window. Same public bucket as photos, capped so rooms stay quick.
+  const pickVideo = useCallback(async () => {
+    if (!room) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["videos"] });
+    if (res.canceled || !res.assets[0]) return;
+    const asset = res.assets[0];
+    const ext = (asset.fileName?.split(".").pop() ?? "mp4").toLowerCase();
+    if (!["mp4", "mov"].includes(ext)) {
+      setMsg("Use an mp4 or mov clip.");
+      return;
+    }
+    if (asset.fileSize && asset.fileSize > 60 * 1024 * 1024) {
+      setMsg("That clip is over 60MB — trim it down and try again.");
+      return;
+    }
+    setSaving(true);
+    setMsg(null);
+    try {
+      const path = `${room.artist_id}/video-${Date.now()}.${ext}`;
+      const file = await fetch(asset.uri);
+      const blob = await file.arrayBuffer();
+      const { error } = await supabase.storage.from("room-photos").upload(path, blob, {
+        contentType: asset.mimeType ?? (ext === "mov" ? "video/quicktime" : "video/mp4"),
+        upsert: false,
+      });
+      if (error) {
+        setMsg(`Upload failed: ${error.message}`);
+        return;
+      }
+      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
+      set("video_url", data.publicUrl);
+      setMsg("Video uploaded — tap Save to put it in your room.");
+    } catch {
+      setMsg("Could not read that video.");
+    } finally {
+      setSaving(false);
+    }
+  }, [room]);
 
   const pickPhoto = useCallback(async () => {
     const url = await uploadFromLibrary(true);
@@ -318,6 +387,53 @@ export default function MyRoom() {
                 ))}
               </View>
             </Card>
+
+            {arcadeReady && (
+              <>
+                <SectionTitle>Arcade game</SectionTitle>
+                <Card>
+                  <Text style={styles.note}>
+                    The game on your room's desktop — visitors actually play it.
+                    {room.game_id === null ? " (None picked yet, so your room stays classic.)" : ""}
+                  </Text>
+                  <View style={{ marginTop: 8 }}>
+                    <Chips
+                      value={room.game_id ?? "none"}
+                      options={GAMES.map((g) => g.id)}
+                      display={(id) => GAMES.find((g) => g.id === id)?.label ?? id}
+                      onChange={(id) => set("game_id", id === "none" ? null : id)}
+                    />
+                  </View>
+                </Card>
+
+                <SectionTitle>Room video</SectionTitle>
+                <Card>
+                  <Text style={styles.note}>
+                    {room.video_url
+                      ? "Your clip plays in the room's media player window."
+                      : "Drop a clip into your room's media player window (mp4 or mov, under 60MB)."}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Button label={room.video_url ? "Replace video" : "Add a video"} tone="ghost" onPress={pickVideo} disabled={saving} />
+                    </View>
+                    {room.video_url ? (
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          label="Remove"
+                          tone="ghost"
+                          onPress={() => {
+                            set("video_url", null);
+                            setMsg("Video removed — tap Save to make it official.");
+                          }}
+                          disabled={saving}
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                </Card>
+              </>
+            )}
 
             <SectionTitle>Stickers</SectionTitle>
             <Card>
