@@ -24,22 +24,32 @@
   function sfxWin() { playSfx(600, 0.12, 'square', 0.12); setTimeout(function(){playSfx(800, 0.12, 'square', 0.12);}, 110); setTimeout(function(){playSfx(1100, 0.2, 'square', 0.12);}, 220); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
-  var PINK = '#FF1493', CYAN = '#00FFFF', YELLOW = '#FFD700';
-  var WIN_AT = 7, PW = 8, PH = 56;
+  var PINK = '#FF1493', CYAN = '#00FFFF', YELLOW = '#FFD700', LIME = '#7FFF00';
+  var WIN_AT = 5, PW = 8, PH = 56;
+
+  // The shop ladder: beat one to face the next. Speed up, wobble down.
+  var OPPONENTS = [
+    { name: 'SCRATCHER', v: 2.5, wob: 14 },
+    { name: 'APPRENTICE', v: 3.0, wob: 11 },
+    { name: 'RESIDENT', v: 3.5, wob: 8 },
+    { name: 'SHOP BOSS', v: 4.0, wob: 5 },
+    { name: 'THE MACHINE', v: 4.7, wob: 1.5 },
+  ];
 
   var mode = 'ready'; // ready | play | over
-  var frame, you, cpu, ball, serveT, rally, trail, won;
+  var frame, you, cpu, ball, serveT, rally, trail, won, tier, bannerT, bannerText;
   var keyU = false, keyD = false;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-pong') || '0', 10) || 0; } catch(e) {}
-  function saveBest() {
-    if (you.score > best) { best = you.score; try { localStorage.setItem('lumenati-arcade-pong', String(best)); } catch(e) {} }
+  function saveBest(beaten) {
+    if (beaten > best) { best = beaten; try { localStorage.setItem('lumenati-arcade-pong', String(best)); } catch(e) {} }
   }
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     frame = 0; mode = 'ready'; rally = 0; won = false;
+    tier = 0; bannerT = 0; bannerText = '';
     you = { y: H / 2 - PH / 2, score: 0 };
     cpu = { y: H / 2 - PH / 2, score: 0 };
     trail = [];
@@ -47,7 +57,7 @@
     document.getElementById('jd-br-lives').textContent = '0';
     serve(Math.random() < 0.5 ? 1 : -1);
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'W/S, mouse or drag // first to 7';
+    if (hintEl) hintEl.textContent = 'W/S, mouse or drag // first to 5';
     var statA = document.getElementById('jd-stat-a');
     if (statA) statA.textContent = 'You';
     var statB = document.getElementById('jd-stat-b');
@@ -70,11 +80,30 @@
     document.getElementById('jd-br-score').textContent = you.score;
     document.getElementById('jd-br-lives').textContent = cpu.score;
     if (scorer === you) sfxScore(); else sfxLose();
-    if (you.score >= WIN_AT || cpu.score >= WIN_AT) {
-      won = you.score >= WIN_AT;
+    if (you.score >= WIN_AT) {
+      if (tier >= OPPONENTS.length - 1) {
+        // Cleared the whole shop
+        won = true;
+        mode = 'over';
+        saveBest(OPPONENTS.length);
+        sfxWin();
+        return;
+      }
+      bannerT = 110;
+      bannerText = OPPONENTS[tier].name + ' TAPPED OUT';
+      tier++;
+      you.score = 0; cpu.score = 0;
+      document.getElementById('jd-br-score').textContent = '0';
+      document.getElementById('jd-br-lives').textContent = '0';
+      sfxWin();
+      serve(1);
+      return;
+    }
+    if (cpu.score >= WIN_AT) {
+      won = false;
       mode = 'over';
-      saveBest();
-      if (won) sfxWin(); else sfxGameOver();
+      saveBest(tier);
+      sfxGameOver();
       return;
     }
     serve(scorer === you ? -1 : 1);
@@ -88,14 +117,16 @@
     if (keyD) you.y += 5;
     you.y = Math.max(18, Math.min(H - PH - 4, you.y));
 
-    // CPU: chases the ball with a speed cap and a lazy drift when safe
+    // CPU: the current opponent chases with their own speed and wobble
+    var opp = OPPONENTS[tier];
     var target = ball.vx > 0 ? ball.y - PH / 2 : H / 2 - PH / 2;
-    target += Math.sin(frame * 0.05) * 10; // human wobble
-    var maxV = 2.8 + Math.min(1.6, rally * 0.12);
+    target += Math.sin(frame * 0.05) * opp.wob;
+    var maxV = opp.v + Math.min(1.2, rally * 0.08);
     var dv = target - cpu.y;
     cpu.y += Math.max(-maxV, Math.min(maxV, dv));
     cpu.y = Math.max(18, Math.min(H - PH - 4, cpu.y));
 
+    if (bannerT > 0) bannerT--;
     if (serveT > 0) { serveT--; return; }
 
     ball.x += ball.vx;
@@ -223,23 +254,40 @@
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('FIRST TO ' + WIN_AT, 8, 11);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = CYAN;
+    ctx.fillText('VS ' + OPPONENTS[tier].name + ' (' + (tier + 1) + '/' + OPPONENTS.length + ')', W / 2, 11);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST RUN: ' + Math.max(best, you.score), W - 8, 11);
+    ctx.fillText('BEST: ' + best + '/' + OPPONENTS.length + ' BEAT', W - 8, 11);
+    if (bannerT > 0 && mode === 'play') {
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = LIME;
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(bannerText, W / 2, H / 2 - 44);
+      ctx.font = 'bold 12px monospace';
+      ctx.fillStyle = CYAN;
+      ctx.fillText('NEXT UP: ' + OPPONENTS[tier].name, W / 2, H / 2 - 26);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
 
     if (mode === 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = won ? '#7FFF00' : PINK;
-      ctx.font = 'bold 28px monospace';
+      ctx.fillStyle = won ? LIME : PINK;
+      ctx.font = 'bold 26px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(won ? 'YOU WIN' : 'CPU WINS', W / 2, H / 2 - 30);
+      ctx.fillText(won ? 'SHOP CHAMPION' : OPPONENTS[tier].name + ' WINS', W / 2, H / 2 - 34);
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 18px monospace';
-      ctx.fillText(you.score + ' - ' + cpu.score, W / 2, H / 2 + 5);
+      ctx.font = 'bold 16px monospace';
+      ctx.fillText(won ? 'You ran the whole ladder' : 'Beat ' + tier + ' of ' + OPPONENTS.length, W / 2, H / 2 - 6);
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText(you.score + ' - ' + cpu.score, W / 2, H / 2 + 16);
       ctx.fillStyle = YELLOW;
       ctx.font = '12px monospace';
-      ctx.fillText('SPACE or TAP for a rematch', W / 2, H / 2 + 35);
+      ctx.fillText('SPACE or TAP to start over', W / 2, H / 2 + 42);
     }
 
     if (mode === 'ready') {
@@ -253,10 +301,10 @@
       ctx.font = '12px monospace';
       ctx.fillText('W/S, ARROWS, MOUSE or DRAG', W / 2, H / 2 - 8);
       ctx.fillStyle = CYAN;
-      ctx.fillText('First to ' + WIN_AT + ' takes the chair', W / 2, H / 2 + 10);
-      ctx.fillText('The ball picks up speed every rally', W / 2, H / 2 + 28);
+      ctx.fillText('Run the shop ladder: 5 opponents', W / 2, H / 2 + 10);
+      ctx.fillText('Scratcher first, The Machine last', W / 2, H / 2 + 28);
       ctx.fillStyle = YELLOW;
-      ctx.fillText('Best run: ' + best, W / 2, H / 2 + 46);
+      ctx.fillText('First to ' + WIN_AT + ' each match // Best: ' + best + '/' + OPPONENTS.length, W / 2, H / 2 + 46);
     }
   }
 

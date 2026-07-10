@@ -21,6 +21,7 @@
   function sfxDoor() { playSfx(700, 0.1, 'square', 0.12); setTimeout(function(){playSfx(1000, 0.12, 'square', 0.12);}, 90); }
   function sfxWave() { playSfx(700, 0.1, 'square', 0.12); setTimeout(function(){playSfx(950, 0.1, 'square', 0.12);}, 100); setTimeout(function(){playSfx(1250, 0.15, 'square', 0.12);}, 200); }
   function sfxHit() { playSfx(150, 0.3, 'sawtooth', 0.15); }
+  function sfxSiren() { playSfx(900, 0.18, 'square', 0.1); setTimeout(function(){playSfx(650, 0.18, 'square', 0.1);}, 180); setTimeout(function(){playSfx(900, 0.18, 'square', 0.1);}, 360); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF';
@@ -28,11 +29,13 @@
   // Rows top to bottom: 0 shop, 1-3 traffic, 4 median, 5-6 traffic, 7 start
   var ROW_Y = [0, 40, 80, 120, 160, 200, 240, 280];
   var DOOR_COLS = [2, 5, 8];
+  var LANE_DIRS = { 1: 1, 2: -1, 3: 1, 5: -1, 6: 1 };
   var CAR_COLORS = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
 
   var mode = 'ready'; // ready | play | over
   var score, lives, wave, frame;
   var player, lanes, doors, invuln, hopT;
+  var patience, patienceMax, amb, bannerT, bannerText, bestRow;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-frogger') || '0', 10) || 0; } catch(e) {}
@@ -41,7 +44,7 @@
   }
 
   function makeLanes() {
-    // {row, dir, speed, cars: [{x}], w}
+    // {row, dir, speed, cars: [{x}], w} — later nights squeeze in extra cars
     var defs = [
       { row: 1, dir: 1,  speed: 1.5, n: 2, w: 64 },
       { row: 2, dir: -1, speed: 2.2, n: 3, w: 52 },
@@ -52,9 +55,13 @@
     lanes = [];
     for (var i = 0; i < defs.length; i++) {
       var d = defs[i];
+      var n = d.n;
+      if (wave >= 2 && d.n === 2) n++;
+      if (wave >= 4 && d.n === 3) n++;
+      n = Math.min(4, n);
       var cars = [];
-      var spacing = (W + d.w + 60) / d.n;
-      for (var j = 0; j < d.n; j++) {
+      var spacing = (W + d.w + 60) / n;
+      for (var j = 0; j < n; j++) {
         cars.push({ x: j * spacing + Math.random() * 40, color: CAR_COLORS[(i * 2 + j) % CAR_COLORS.length] });
       }
       lanes.push({ row: d.row, dir: d.dir, speed: d.speed, w: d.w, cars: cars });
@@ -64,6 +71,9 @@
   function resetPlayer() {
     player = { col: 4, row: 7 };
     hopT = 0;
+    bestRow = 7;
+    patienceMax = Math.max(480, 720 - (wave - 1) * 60);
+    patience = patienceMax;
   }
 
   function init() {
@@ -72,6 +82,7 @@
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     doors = [false, false, false];
+    amb = null; bannerT = 0; bannerText = '';
     makeLanes();
     resetPlayer();
     var hintEl = document.getElementById('jd-game-hint');
@@ -111,6 +122,10 @@
           document.getElementById('jd-br-score').textContent = score;
           doors = [false, false, false];
           wave++;
+          bannerT = 100;
+          bannerText = 'NIGHT ' + wave;
+          makeLanes();
+          amb = null;
           sfxWave();
         }
         resetPlayer();
@@ -120,6 +135,11 @@
     if (nr < 1) return;
     player.col = nc;
     player.row = nr;
+    if (nr < bestRow) {
+      bestRow = nr;
+      score += 10;
+      document.getElementById('jd-br-score').textContent = score;
+    }
     hopT = 6;
     sfxHop();
   }
@@ -128,6 +148,40 @@
     frame++;
     if (invuln > 0) invuln--;
     if (hopT > 0) hopT--;
+    if (bannerT > 0) bannerT--;
+
+    // The client is only patient for so long
+    if (invuln === 0) patience--;
+    if (patience <= 0) {
+      bannerT = 70;
+      bannerText = 'COLD FEET!';
+      die();
+      return;
+    }
+
+    // Ambulance: night 2+, a warning flash then a streak down one lane
+    if (wave >= 2 && !amb && frame % 540 === 200) {
+      var laneRows = [1, 2, 3, 5, 6];
+      var row = laneRows[Math.floor(Math.random() * laneRows.length)];
+      var dir = LANE_DIRS[row];
+      amb = { row: row, dir: dir, x: dir > 0 ? -90 : W + 90, warnT: 55 };
+      sfxSiren();
+    }
+    if (amb) {
+      if (amb.warnT > 0) {
+        amb.warnT--;
+      } else {
+        amb.x += amb.dir * 6.5;
+        if (amb.x < -120 || amb.x > W + 120) amb = null;
+        if (amb && invuln === 0 && amb.row === player.row) {
+          var apx = player.col * CELL + 13;
+          if (apx + 14 > amb.x && apx < amb.x + 70) {
+            die();
+            return;
+          }
+        }
+      }
+    }
 
     var mult = 1 + (wave - 1) * 0.18;
     for (var i = 0; i < lanes.length; i++) {
@@ -277,12 +331,52 @@
       }
     }
 
+    // Median decoration: the shop's flash rack
+    ctx.fillStyle = '#2a2a34';
+    ctx.fillRect(8, ROW_Y[4] + 8, 60, 24);
+    for (var i = 0; i < 4; i++) {
+      ctx.fillStyle = [PINK, YELLOW, CYAN, LIME][i];
+      ctx.fillRect(12 + i * 14, ROW_Y[4] + 11, 10, 13);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(15 + i * 14, ROW_Y[4] + 14, 4, 5);
+    }
+    ctx.fillStyle = '#9aa';
+    ctx.font = '7px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('FLASH $40', 12, ROW_Y[4] + 38);
+
+    // Ambulance warning: the lane flashes before it streaks through
+    if (amb && amb.warnT > 0 && Math.floor(frame / 5) % 2 === 0) {
+      ctx.fillStyle = 'rgba(255,40,40,0.18)';
+      ctx.fillRect(0, ROW_Y[amb.row], W, CELL);
+      ctx.fillStyle = '#ff4444';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = amb.dir > 0 ? 'left' : 'right';
+      ctx.fillText('!!', amb.dir > 0 ? 4 : W - 4, ROW_Y[amb.row] + 24);
+    }
+
     // Cars
     for (var i = 0; i < lanes.length; i++) {
       var ln = lanes[i];
       for (var j = 0; j < ln.cars.length; j++) {
         drawCar(ln.cars[j].x, ROW_Y[ln.row], ln.w, ln.cars[j].color, ln.dir);
       }
+    }
+
+    // Ambulance
+    if (amb && amb.warnT === 0) {
+      var ay = ROW_Y[amb.row];
+      ctx.fillStyle = '#f4f4f4';
+      ctx.fillRect(amb.x, ay + 6, 70, 24);
+      ctx.fillStyle = '#dd2222';
+      ctx.fillRect(amb.x, ay + 16, 70, 5);
+      ctx.fillStyle = '#bde';
+      ctx.fillRect(amb.dir > 0 ? amb.x + 50 : amb.x + 6, ay + 9, 14, 8);
+      ctx.fillStyle = Math.floor(frame / 4) % 2 === 0 ? '#ff2222' : '#2266ff';
+      ctx.fillRect(amb.x + 30, ay + 2, 10, 5);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(amb.x + 6, ay + 28, 12, 5);
+      ctx.fillRect(amb.x + 52, ay + 28, 12, 5);
     }
 
     // Player: the walk-in client (pink-haired, clutching a flash printout)
@@ -313,6 +407,23 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = YELLOW;
     ctx.fillText('NIGHT ' + wave, W - 8, 12);
+    // Client patience: the walk-in walks if you dawdle
+    if (mode === 'play') {
+      var pr = Math.max(0, patience / patienceMax);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(W / 2 - 40, 5, 80, 5);
+      ctx.fillStyle = pr > 0.35 ? LIME : (Math.floor(frame / 6) % 2 === 0 ? '#ff4444' : '#992222');
+      ctx.fillRect(W / 2 - 40, 5, 80 * pr, 5);
+    }
+    if (bannerT > 0 && mode === 'play') {
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = bannerText === 'COLD FEET!' ? '#ff4444' : LIME;
+      ctx.font = 'bold 24px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(bannerText, W / 2, H / 2 - 30);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
 
     if (mode === 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -345,8 +456,10 @@
       ctx.fillText('Get the client through an OPEN door +100', W / 2, H / 2 + 10);
       ctx.fillStyle = CYAN;
       ctx.fillText('Fill all 3 chairs to survive the night +250', W / 2, H / 2 + 28);
+      ctx.fillStyle = '#ff4444';
+      ctx.fillText('Beat their cold feet // dodge the ambulance', W / 2, H / 2 + 46);
       ctx.fillStyle = YELLOW;
-      ctx.fillText('Best: ' + best, W / 2, H / 2 + 46);
+      ctx.fillText('Nights get meaner // Best: ' + best, W / 2, H / 2 + 64);
     }
   }
 

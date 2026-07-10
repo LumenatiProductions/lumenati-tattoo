@@ -27,6 +27,7 @@
 
   var mode = 'ready'; // ready | play | over
   var score, lives, frame, snake, dir, turns, food, bonus, bonusT, eaten, stepEvery, respawnT, flashT;
+  var blots, level, bannerT;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-snake') || '0', 10) || 0; } catch(e) {}
@@ -38,6 +39,7 @@
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = 3; frame = 0; eaten = 0; stepEvery = 9;
     bonus = null; bonusT = 0; respawnT = 0; flashT = 0; mode = 'ready';
+    blots = []; level = 1; bannerT = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     resetSnake();
@@ -56,9 +58,24 @@
 
   function cellFree(x, y) {
     for (var i = 0; i < snake.length; i++) if (snake[i].x === x && snake[i].y === y) return false;
+    for (var i = 0; i < blots.length; i++) if (blots[i].x === x && blots[i].y === y) return false;
     if (food && food.x === x && food.y === y) return false;
     if (bonus && bonus.x === x && bonus.y === y) return false;
     return true;
+  }
+
+  // Dried ink blots: level hazards that stain the board
+  function addBlots(n) {
+    var head = snake[0];
+    for (var k = 0; k < n && blots.length < 10; k++) {
+      var tries = 0, x, y;
+      do {
+        x = Math.floor(Math.random() * COLS);
+        y = Math.floor(Math.random() * ROWS);
+        tries++;
+      } while ((!cellFree(x, y) || Math.abs(x - head.x) + Math.abs(y - head.y) < 5) && tries < 300);
+      if (tries < 300) blots.push({ x: x, y: y, r: Math.random() * 6.28 });
+    }
   }
 
   function randFree() {
@@ -99,12 +116,22 @@
     for (var i = 0; i < snake.length - 1; i++) {
       if (snake[i].x === head.x && snake[i].y === head.y) { die(); return; }
     }
+    for (var i = 0; i < blots.length; i++) {
+      if (blots[i].x === head.x && blots[i].y === head.y) { die(); return; }
+    }
     snake.unshift(head);
     if (food && head.x === food.x && head.y === food.y) {
       score += 10; eaten++;
       document.getElementById('jd-br-score').textContent = score;
       sfxEat();
       stepEvery = Math.max(5, 9 - Math.floor(eaten / 4));
+      var nl = 1 + Math.floor(eaten / 6);
+      if (nl > level) {
+        level = nl;
+        bannerT = 80;
+        addBlots(2);
+        sfxBonus();
+      }
       if (eaten % 5 === 0 && !bonus) { bonus = randFree(); bonusT = 300; }
       placeFood();
     } else if (bonus && head.x === bonus.x && head.y === bonus.y) {
@@ -120,6 +147,7 @@
   function update() {
     frame++;
     if (flashT > 0) flashT--;
+    if (bannerT > 0) bannerT--;
     if (respawnT > 0) { respawnT--; return; }
     if (bonus) { bonusT--; if (bonusT <= 0) bonus = null; }
     if (frame % stepEvery === 0) step();
@@ -197,6 +225,18 @@
       ctx.fillRect(bx + 6, by, 3, 3);
     }
 
+    // Dried ink blots
+    for (var i = 0; i < blots.length; i++) {
+      var bl = blots[i];
+      var bx = bl.x * CELL + 10, by = bl.y * CELL + 10;
+      ctx.fillStyle = '#3b1230';
+      ctx.beginPath(); ctx.arc(bx, by, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx + Math.cos(bl.r) * 6, by + Math.sin(bl.r) * 6, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx - Math.cos(bl.r) * 5, by - Math.sin(bl.r) * 7, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#57204a';
+      ctx.fillRect(bx - 2, by - 2, 3, 3);
+    }
+
     // Snake: a trail of ink
     var blink = respawnT > 0 && Math.floor(frame / 4) % 2 === 0;
     if (!blink) {
@@ -228,6 +268,18 @@
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 8, 26);
+    ctx.fillStyle = LIME;
+    ctx.textAlign = 'right';
+    ctx.fillText('LEVEL ' + level, W - 8, 14);
+    if (bannerT > 0 && mode === 'play') {
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = LIME;
+      ctx.font = 'bold 24px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('LEVEL ' + level, W / 2, H / 2 - 30);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
 
     if (mode === 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -260,8 +312,10 @@
       ctx.fillText('Drink ink drops +10, grow long', W / 2, H / 2 + 10);
       ctx.fillStyle = PURPLE;
       ctx.fillText('Grab the machine before it fades +50', W / 2, H / 2 + 28);
+      ctx.fillStyle = '#a86';
+      ctx.fillText('Levels dry ink blots onto the board', W / 2, H / 2 + 46);
       ctx.fillStyle = YELLOW;
-      ctx.fillText('Best: ' + best, W / 2, H / 2 + 46);
+      ctx.fillText('Best: ' + best, W / 2, H / 2 + 64);
     }
   }
 

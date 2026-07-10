@@ -891,7 +891,7 @@
       <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#fff;cursor:pointer;padding:0 4px;" onclick="document.getElementById('jd-game-overlay').style.display='none';window.skateRunning=false;clearInterval(window.skateInt);window.skateInt=null;">✕</span>
     </div>
     <div style="padding:4px;background:#ece9d8;">
-      <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;max-width:100%;height:auto;touch-action:none;border:1px solid;border-color:#808080 #fff #fff #808080;background:#000;"></canvas>
+      <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;width:600px;max-width:100%;height:auto;image-rendering:pixelated;touch-action:none;border:1px solid;border-color:#808080 #fff #fff #808080;background:#000;"></canvas>
     </div>
     <div style="padding:4px 8px;background:#ece9d8;border-top:1px solid #aca899;font-family:Tahoma,sans-serif;font-size:10px;color:#444;display:flex;justify-content:space-between;">
       <span><span id="jd-stat-a">Score</span>: <span id="jd-br-score">0</span></span>
@@ -932,6 +932,7 @@
   // Game state
   var mode = 'ready'; // ready | play | over
   var score, lives, speed, frame, dist;
+  var level, bannerT, bannerText, shieldT;
   var player, obstacles, collectibles, rails, particles, buildings, popups;
   var combo, comboTimer, shake;
   var GRAVITY = 0.5;
@@ -958,6 +959,7 @@
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = 3; speed = 4; frame = 0; dist = 0; mode = 'ready';
+    level = 1; bannerT = 0; bannerText = ''; shieldT = 0;
     scrollX = 0; combo = 1; comboTimer = 0; shake = 0;
     holdingJump = false; coyote = 0; jumpBuffer = 0; flipped = false;
     document.getElementById('jd-br-score').textContent = '0';
@@ -986,10 +988,13 @@
     var r = Math.random();
     if (r < 0.45) {
       var types = ['hydrant', 'trashcan', 'cone'];
+      if (level >= 2) types.push('pigeon');
+      if (level >= 3) types.push('spill', 'spill');
+      if (level >= 4) types.push('stack');
       obstacles.push(makeObstacle(types[Math.floor(Math.random() * types.length)], sx));
     } else if (r < 0.75) {
       var cy = GROUND_Y - 40 - Math.random() * 30;
-      collectibles.push({ x: sx, y: cy, w: 12, h: 16, collected: false });
+      collectibles.push({ x: sx, y: cy, w: 12, h: 16, collected: false, gold: Math.random() < 0.08 });
     } else {
       var rw = 60 + Math.random() * 50;
       var ry = GROUND_Y - 30 - Math.random() * 20;
@@ -998,9 +1003,12 @@
   }
 
   function makeObstacle(type, x) {
-    if (type === 'hydrant') return { type: 'hydrant', x: x, y: GROUND_Y - 18, w: 12, h: 18, color: '#FF3333' };
-    if (type === 'trashcan') return { type: 'trashcan', x: x, y: GROUND_Y - 22, w: 16, h: 22, color: '#888' };
-    return { type: 'cone', x: x, y: GROUND_Y - 14, w: 12, h: 14, color: YELLOW };
+    if (type === 'hydrant') return { type: 'hydrant', x: x, y: GROUND_Y - 18, w: 12, h: 18 };
+    if (type === 'trashcan') return { type: 'trashcan', x: x, y: GROUND_Y - 22, w: 16, h: 22 };
+    if (type === 'pigeon') return { type: 'pigeon', x: x, y: GROUND_Y - 52, w: 14, h: 10 };
+    if (type === 'spill') return { type: 'spill', x: x, y: GROUND_Y - 4, w: 34, h: 4 };
+    if (type === 'stack') return { type: 'stack', x: x, y: GROUND_Y - 40, w: 16, h: 40 };
+    return { type: 'cone', x: x, y: GROUND_Y - 14, w: 12, h: 14 };
   }
 
   function spawnParticles(x, y, color, count) {
@@ -1084,7 +1092,17 @@
     frame++;
     dist += speed;
     scrollX += speed;
-    speed = Math.min(8.5, 4 + dist / 1500);
+    var nl = 1 + Math.floor(dist / 4000);
+    if (nl > level) {
+      level = nl;
+      bannerT = 90;
+      bannerText = 'LEVEL ' + level;
+      sfxCombo(4);
+      spawnParticles(player.x + player.w / 2, player.y, YELLOW, 14);
+    }
+    speed = Math.min(9, 3.6 + level * 0.55 + dist / 9000);
+    if (bannerT > 0) bannerT--;
+    if (shieldT > 0) shieldT--;
 
     // Distance drip: the longer you ride, the more it counts
     if (frame % 30 === 0) {
@@ -1161,9 +1179,14 @@
     // Obstacle collision
     for (var i = obstacles.length - 1; i >= 0; i--) {
       var ob = obstacles[i];
+      if (ob.type === 'pigeon') {
+        ob.x -= 1.1;
+        ob.y = GROUND_Y - 52 + Math.sin(frame * 0.12 + i) * 5;
+      }
       var ox = ob.x - scrollX;
-      if (ox < -50) { obstacles.splice(i, 1); continue; }
-      if (player.invincible > 0) continue;
+      if (ox < -60) { obstacles.splice(i, 1); continue; }
+      if (player.invincible > 0 || shieldT > 0) continue;
+      if (ob.type === 'spill' && !player.onGround) continue;
       if (player.x + player.w - 4 > ox && player.x + 4 < ox + ob.w &&
           player.y + player.h > ob.y && player.y < ob.y + ob.h) {
         lives--;
@@ -1192,10 +1215,16 @@
       if (player.x + player.w > cx && player.x < cx + col.w &&
           player.y + player.h > col.y && player.y < col.y + col.h) {
         col.collected = true;
-        score += 10;
+        score += col.gold ? 25 : 10;
+        if (col.gold) {
+          shieldT = 300;
+          bannerT = 60;
+          bannerText = 'INK SHIELD!';
+          addPopup(cx + col.w / 2, col.y - 6, 'INK SHIELD', YELLOW);
+        }
         sfxCollect();
         document.getElementById('jd-br-score').textContent = score;
-        spawnParticles(cx + col.w / 2, col.y + col.h / 2, LIME, 10);
+        spawnParticles(cx + col.w / 2, col.y + col.h / 2, col.gold ? YELLOW : LIME, 12);
       }
     }
 
@@ -1315,7 +1344,7 @@
       if (col.collected) continue;
       var cx = col.x - scrollX;
       if (cx > W + 10 || cx + col.w < -10) continue;
-      drawTattooMachine(cx, col.y + Math.sin(frame * 0.08 + col.x) * 2);
+      drawTattooMachine(cx, col.y + Math.sin(frame * 0.08 + col.x) * 2, col.gold);
     }
 
     drawPlayer();
@@ -1346,6 +1375,24 @@
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 8, 26);
+    ctx.fillStyle = LIME;
+    ctx.textAlign = 'center';
+    ctx.fillText('LEVEL ' + level, W / 2, 14);
+    if (shieldT > 0) {
+      ctx.fillStyle = YELLOW;
+      ctx.fillText('SHIELD', W / 2, 26);
+      ctx.fillStyle = 'rgba(255,215,0,0.5)';
+      ctx.fillRect(W / 2 - 20, 30, 40 * (shieldT / 300), 3);
+    }
+    if (bannerT > 0 && mode === 'play') {
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = bannerText === 'INK SHIELD!' ? YELLOW : LIME;
+      ctx.font = 'bold 24px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(bannerText, W / 2, H / 2 - 40);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
     if (combo > 1 && comboTimer > 0) {
       ctx.fillStyle = YELLOW;
       ctx.textAlign = 'right';
@@ -1385,7 +1432,9 @@
       ctx.fillStyle = CYAN;
       ctx.fillText('Grind rails, chain tricks for combos', W / 2, H / 2 + 28);
       ctx.fillStyle = YELLOW;
-      ctx.fillText('Machines +10 // Best: ' + best, W / 2, H / 2 + 46);
+      ctx.fillText('Levels bring pigeons, ink spills + stacks', W / 2, H / 2 + 46);
+      ctx.fillStyle = '#9aa';
+      ctx.fillText('Gold machine = ink shield // Best: ' + best, W / 2, H / 2 + 64);
     }
 
     ctx.restore();
@@ -1395,6 +1444,12 @@
     var px = player.x, py = player.y;
     var blink = player.invincible > 0 && Math.floor(frame / 4) % 2 === 0;
     if (blink) return;
+    if (shieldT > 0) {
+      ctx.fillStyle = 'rgba(255,215,0,' + (shieldT < 60 && Math.floor(frame / 4) % 2 === 0 ? 0.08 : 0.22) + ')';
+      ctx.beginPath();
+      ctx.arc(px + player.w / 2, py + player.h / 2, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     var squash = player.squash || 0;
     var lean = player.grinding ? 0 : Math.max(-0.25, Math.min(0.25, player.vy * 0.02));
@@ -1438,6 +1493,46 @@
   }
 
   function drawObstacle(ob, ox) {
+    if (ob.type === 'pigeon') {
+      var flap = Math.sin(frame * 0.35) > 0;
+      ctx.fillStyle = '#a8b0c0';
+      ctx.fillRect(ox + 3, ob.y + 2, 9, 6);
+      ctx.fillStyle = '#8890a0';
+      ctx.fillRect(ox + (flap ? 2 : 4), ob.y + (flap ? -2 : 4), 7, 3);
+      ctx.fillStyle = '#a8b0c0';
+      ctx.fillRect(ox + 11, ob.y, 4, 4);
+      ctx.fillStyle = '#FF8A00';
+      ctx.fillRect(ox + 15, ob.y + 1, 2, 2);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(ox + 13, ob.y + 1, 1, 1);
+      return;
+    }
+    if (ob.type === 'spill') {
+      ctx.fillStyle = 'rgba(200,0,110,0.85)';
+      ctx.beginPath();
+      ctx.ellipse(ox + ob.w / 2, GROUND_Y - 1, ob.w / 2, 3.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(ox + 6, GROUND_Y - 3, 6, 1);
+      if (Math.floor(frame / 20) % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,20,147,0.5)';
+        ctx.fillRect(ox + ob.w / 2 - 1, GROUND_Y - 8, 2, 2);
+      }
+      return;
+    }
+    if (ob.type === 'stack') {
+      ctx.fillStyle = '#777';
+      ctx.fillRect(ox + 1, ob.y + 21, 14, 19);
+      ctx.fillStyle = '#999';
+      ctx.fillRect(ox, ob.y + 18, 16, 4);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(ox + 1, ob.y + 28, 14, 1);
+      ctx.fillStyle = '#7a7a7a';
+      ctx.fillRect(ox + 2, ob.y + 3, 13, 16);
+      ctx.fillStyle = '#9a9a9a';
+      ctx.fillRect(ox + 1, ob.y, 15, 4);
+      return;
+    }
     if (ob.type === 'hydrant') {
       ctx.fillStyle = '#FF3333';
       ctx.fillRect(ox + 2, ob.y + 4, 8, 14);
@@ -1463,18 +1558,18 @@
     }
   }
 
-  function drawTattooMachine(cx, cy) {
-    ctx.fillStyle = PURPLE;
+  function drawTattooMachine(cx, cy, gold) {
+    ctx.fillStyle = gold ? YELLOW : PURPLE;
     ctx.fillRect(cx, cy + 2, 10, 10);
-    ctx.fillStyle = '#8B5CF6';
+    ctx.fillStyle = gold ? '#c89b00' : '#8B5CF6';
     ctx.fillRect(cx + 2, cy + 12, 6, 4);
     ctx.fillStyle = '#ccc';
     ctx.fillRect(cx + 4, cy + 16, 2, 4);
-    ctx.fillStyle = PINK;
+    ctx.fillStyle = gold ? '#fff' : PINK;
     ctx.fillRect(cx + 1, cy, 3, 3);
     ctx.fillRect(cx + 6, cy, 3, 3);
-    if (Math.sin(frame * 0.1) > 0) {
-      ctx.fillStyle = 'rgba(155, 89, 182, 0.3)';
+    if (Math.sin(frame * 0.1) > 0 || gold) {
+      ctx.fillStyle = gold ? 'rgba(255,215,0,0.35)' : 'rgba(155, 89, 182, 0.3)';
       ctx.fillRect(cx - 2, cy - 2, 16, 24);
     }
   }

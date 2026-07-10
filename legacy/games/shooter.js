@@ -30,7 +30,7 @@
   var GCOLS = 8, GROWS = 3, GW = 24, GH = 16, GSX = 38, GSY = 26;
 
   var mode = 'ready'; // ready | play | over
-  var score, lives, wave, frame;
+  var score, lives, wave, frame, bannerT;
   var player, bullets, ebullets, germs, gx, gy, gdir, ufo, particles, invuln, shootCd, touching;
   var keyL = false, keyR = false, keyFire = false;
 
@@ -42,15 +42,20 @@
 
   function buildWave() {
     germs = [];
+    // Wave 2+: the top row grows armored super-germs that take two hits
+    var armoredRows = wave >= 4 ? 2 : wave >= 2 ? 1 : 0;
     for (var r = 0; r < GROWS; r++) {
-      for (var c = 0; c < GCOLS; c++) germs.push({ c: c, r: r, alive: true, wob: Math.random() * 6.28 });
+      for (var c = 0; c < GCOLS; c++) {
+        var hp = r < armoredRows ? 2 : 1;
+        germs.push({ c: c, r: r, alive: true, hp: hp, maxHp: hp, wob: Math.random() * 6.28 });
+      }
     }
     gx = 30; gy = 34; gdir = 1;
   }
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; lives = 3; wave = 1; frame = 0; mode = 'ready';
+    score = 0; lives = 3; wave = 1; frame = 0; bannerT = 0; mode = 'ready';
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     player = { x: W / 2, y: 288, w: 22, h: 18 };
@@ -174,12 +179,19 @@
         if (!g.alive) continue;
         var x = germX(g), y = germY(g);
         if (b.x > x && b.x < x + GW && b.y > y && b.y < y + GH) {
-          g.alive = false;
           hit = true;
-          score += (GROWS - g.r) * 10;
-          document.getElementById('jd-br-score').textContent = score;
-          sfxPop(GROWS - g.r);
-          spawnParticles(x + GW / 2, y + GH / 2, ROW_COLOR[g.r], 8);
+          g.hp--;
+          if (g.hp <= 0) {
+            g.alive = false;
+            score += (GROWS - g.r) * 10 + (g.maxHp === 2 ? 20 : 0);
+            document.getElementById('jd-br-score').textContent = score;
+            sfxPop(GROWS - g.r);
+            spawnParticles(x + GW / 2, y + GH / 2, ROW_COLOR[g.r], 8);
+          } else {
+            g.flashT = 8;
+            sfxPop(0);
+            spawnParticles(b.x, b.y, '#fff', 4);
+          }
           break;
         }
       }
@@ -216,7 +228,9 @@
       sfxWave();
       buildWave();
       ebullets = [];
+      bannerT = 90;
     }
+    if (bannerT > 0) bannerT--;
 
     for (var i = particles.length - 1; i >= 0; i--) {
       var p = particles[i];
@@ -267,7 +281,14 @@
   function drawGerm(g) {
     var x = germX(g), y = germY(g);
     var wob = Math.sin(frame * 0.15 + g.wob) * 1.5;
-    ctx.fillStyle = ROW_COLOR[g.r];
+    if (g.flashT) { g.flashT--; }
+    if (g.maxHp === 2 && g.hp === 2) {
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.beginPath();
+      ctx.arc(x + GW / 2, y + GH / 2 + wob, 11, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = g.flashT ? '#fff' : ROW_COLOR[g.r];
     ctx.beginPath();
     ctx.arc(x + GW / 2, y + GH / 2 + wob, 8, 0, Math.PI * 2);
     ctx.fill();
@@ -352,6 +373,15 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = YELLOW;
     ctx.fillText('WAVE ' + wave, W - 8, 12);
+    if (bannerT > 0 && mode === 'play') {
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = CYAN;
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('WAVE ' + wave + ' — SCRUB IN', W / 2, H / 2 - 40);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
 
     if (mode === 'over') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -383,8 +413,10 @@
       ctx.fillText('On phones: drag to move, autofire', W / 2, H / 2 + 10);
       ctx.fillStyle = '#2ecc71';
       ctx.fillText('Zap the germs before they reach the tray', W / 2, H / 2 + 28);
+      ctx.fillStyle = PURPLE;
+      ctx.fillText('Later waves grow armored super-germs', W / 2, H / 2 + 46);
       ctx.fillStyle = YELLOW;
-      ctx.fillText('Best: ' + best, W / 2, H / 2 + 46);
+      ctx.fillText('Best: ' + best, W / 2, H / 2 + 64);
     }
   }
 

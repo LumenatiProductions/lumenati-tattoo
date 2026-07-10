@@ -25,13 +25,31 @@
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
-  var ROW_COLORS = [PINK, '#FF8A00', YELLOW, LIME, CYAN];
 
-  var COLS = 8, ROWS = 5, BW = 46, BH = 14, BGAP = 3, BTOP = 40;
+  var COLS = 8, BW = 46, BH = 14, BGAP = 3, BTOP = 36;
   var BLEFT = (W - (COLS * BW + (COLS - 1) * BGAP)) / 2;
 
+  // Every sheet is a flash design; break it off the wall tile by tile.
+  var DESIGNS = [
+    { name: 'HEART', color: '#FF1493', rows: [
+      '.XX..XX.', 'XXXXXXXX', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '...XX...'] },
+    { name: 'SKULL', color: '#e8e4d8', rows: [
+      '..XXXX..', '.XXXXXX.', '.X.XX.X.', '.XXXXXX.', '..XXXX..', '..X..X..'] },
+    { name: 'BOLT', color: '#FFD700', rows: [
+      '....XXX.', '...XXX..', '.XXXXXX.', '..XXX...', '.XXX....', '.XX.....'] },
+    { name: 'STAR', color: '#00FFFF', rows: [
+      '...XX...', '..XXXX..', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '.XX..XX.'] },
+    { name: 'DAGGER', color: '#b8c4d0', rows: [
+      '...XX...', '.XXXXXX.', '...XX...', '...XX...', '...XX...', '....X...'] },
+  ];
+  function shade(hex, f) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = Math.round(((n >> 16) & 255) * f), g = Math.round(((n >> 8) & 255) * f), b = Math.round((n & 255) * f);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
   var mode = 'ready'; // ready | play | over
-  var score, lives, level, frame, flashT;
+  var score, lives, level, frame, flashT, bannerT, bannerText;
   var paddle, ball, bricks, particles;
   var keyL = false, keyR = false;
 
@@ -41,13 +59,21 @@
     if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-bricks', String(best)); } catch(e) {} }
   }
 
+  function design() { return DESIGNS[(level - 1) % DESIGNS.length]; }
+
   function buildBricks() {
     bricks = [];
-    for (var r = 0; r < ROWS; r++) {
+    var d = design();
+    // Second time around the book, every tile takes two hits
+    var hp = level > DESIGNS.length ? 2 : 1;
+    for (var r = 0; r < d.rows.length; r++) {
       for (var c = 0; c < COLS; c++) {
-        // Higher levels harden the top rows into 2-hit tiles
-        var hp = (level >= 2 && r < Math.min(3, level - 1)) ? 2 : 1;
-        bricks.push({ x: BLEFT + c * (BW + BGAP), y: BTOP + r * (BH + BGAP), row: r, hp: hp });
+        if (d.rows[r][c] !== 'X') continue;
+        bricks.push({
+          x: BLEFT + c * (BW + BGAP), y: BTOP + r * (BH + BGAP),
+          row: r, hp: hp, maxHp: hp,
+          color: shade(d.color, 1 - r * 0.08),
+        });
       }
     }
   }
@@ -68,6 +94,7 @@
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = 3; level = 1; frame = 0; flashT = 0; mode = 'ready';
+    bannerT = 0; bannerText = '';
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     paddle = { x: W / 2 - 30, y: 298, w: 60, h: 8 };
@@ -140,8 +167,8 @@
           b.hp--;
           sfxBrick(b.row);
           if (b.hp <= 0) {
-            score += b.row < 2 ? 20 : 10;
-            spawnParticles(ball.x, ball.y, ROW_COLORS[b.row], 8);
+            score += b.maxHp === 2 ? 20 : 10;
+            spawnParticles(ball.x, ball.y, b.color, 8);
             bricks.splice(i, 1);
           } else {
             score += 5;
@@ -158,6 +185,8 @@
         sfxLevel();
         buildBricks();
         serve();
+        bannerT = 90;
+        bannerText = 'SHEET ' + level + ': ' + design().name;
       }
 
       // Dropped it
@@ -220,18 +249,17 @@
     ctx.fillStyle = '#2a2438';
     ctx.fillRect(0, 16, W, 2);
 
-    // Bricks: flash-sheet tiles
+    // Bricks: the flash design, tile by tile
     for (var i = 0; i < bricks.length; i++) {
       var b = bricks[i];
-      ctx.fillStyle = ROW_COLORS[b.row];
-      ctx.globalAlpha = b.hp === 2 ? 1 : (b.hp === 1 && level >= 2 && b.row < Math.min(3, level - 1)) ? 0.55 : 1;
+      ctx.fillStyle = b.color;
+      ctx.globalAlpha = b.maxHp === 2 && b.hp === 1 ? 0.5 : 1;
       ctx.fillRect(b.x, b.y, BW, BH);
       ctx.globalAlpha = 1;
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
       ctx.fillRect(b.x, b.y, BW, 2);
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.fillRect(b.x, b.y + BH - 2, BW, 2);
-      // Tiny flash doodle: a star dot
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(b.x + BW / 2 - 1, b.y + BH / 2 - 1, 2, 2);
     }
@@ -272,7 +300,17 @@
     ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
     ctx.textAlign = 'right';
     ctx.fillStyle = YELLOW;
-    ctx.fillText('SHEET ' + level, W - 8, 12);
+    ctx.fillText('SHEET ' + level + ': ' + design().name, W - 8, 12);
+    if (bannerT > 0 && mode === 'play') {
+      bannerT--;
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = design().color;
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(bannerText, W / 2, H / 2 - 40);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
 
     if (ball.stuck && mode === 'play') {
       ctx.fillStyle = '#9aa';
@@ -309,9 +347,9 @@
       ctx.font = '12px monospace';
       ctx.fillText('ARROWS / MOUSE / DRAG to move', W / 2, H / 2 - 8);
       ctx.fillStyle = PINK;
-      ctx.fillText('Smash the flash sheet off the wall', W / 2, H / 2 + 10);
+      ctx.fillText('Break the flash designs off the wall', W / 2, H / 2 + 10);
       ctx.fillStyle = CYAN;
-      ctx.fillText('Top rows pay double', W / 2, H / 2 + 28);
+      ctx.fillText('Heart, skull, bolt, star, dagger...', W / 2, H / 2 + 28);
       ctx.fillStyle = YELLOW;
       ctx.fillText('Best: ' + best, W / 2, H / 2 + 46);
     }
