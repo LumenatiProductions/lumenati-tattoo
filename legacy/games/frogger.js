@@ -70,6 +70,7 @@
     if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
     if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
     if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+    if (musicStep % 2 === 1) playSfx(1900, 0.014, 'square', 0.011);
   }
   function deathJingle() {
     jingleT = 110;
@@ -529,22 +530,50 @@
     }
     ctx.fillStyle = '#1c1c24'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#3c3c46'; ctx.fillRect(0, 150, W, 30); ctx.fillRect(0, 280, W, 40);
+    var ambT = 92;
     var c1 = (t2 * 5.4) % (W + 160) - 80;
     var c2 = W + 80 - (t2 * 4.2) % (W + 160);
     ctx.fillStyle = '#e74c3c'; ctx.fillRect(c1, 196, 60, 20);
     ctx.fillStyle = '#111'; ctx.fillRect(c1 + 5, 214, 10, 4); ctx.fillRect(c1 + 45, 214, 10, 4);
     ctx.fillStyle = '#3498db'; ctx.fillRect(c2, 236, 56, 20);
     ctx.fillStyle = '#111'; ctx.fillRect(c2 + 5, 254, 10, 4); ctx.fillRect(c2 + 41, 254, 10, 4);
-    var hopRow = Math.min(3, Math.floor(t2 / 45));
-    var hopB = Math.abs(Math.sin(t2 * 0.14)) * 4;
+    // the client hops until the siren makes them freeze
+    var hopRow = t2 < ambT ? Math.min(2, Math.floor(t2 / 42)) : t2 < ambT + 34 ? 2 : Math.min(4, 2 + Math.floor((t2 - ambT - 34) / 40));
+    var frozen = t2 >= ambT - 6 && t2 < ambT + 34;
+    var hopB = frozen ? 0 : Math.abs(Math.sin(t2 * 0.14)) * 4;
+    var shake = frozen ? (Math.random() - 0.5) * 2 : 0;
     var cyy = 296 - hopRow * 42 - hopB;
-    ctx.fillStyle = PINK; ctx.fillRect(W / 2 - 6, cyy - 16, 12, 4);
-    ctx.fillStyle = '#f0c8a0'; ctx.fillRect(W / 2 - 5, cyy - 13, 10, 7);
-    ctx.fillStyle = '#222'; ctx.fillRect(W / 2 - 6, cyy - 5, 12, 12);
-    ctx.fillStyle = '#fff'; ctx.fillRect(W / 2 + 2, cyy - 3, 6, 8);
+    // siren warning + the streak, one lane above the frozen client
+    if (t2 >= ambT - 14 && t2 < ambT) {
+      if (Math.floor(t2 / 3) % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,60,60,0.2)';
+        ctx.fillRect(0, 176, W, 24);
+      }
+    }
+    if (t2 >= ambT && t2 < ambT + 30) {
+      var ax = -100 + (t2 - ambT) * 22;
+      ctx.fillStyle = '#f4f4f4';
+      ctx.fillRect(ax, 178, 74, 22);
+      ctx.fillStyle = '#dd2222';
+      ctx.fillRect(ax, 188, 74, 5);
+      ctx.fillStyle = Math.floor(t2 / 2) % 2 === 0 ? '#ff2222' : '#2266ff';
+      ctx.fillRect(ax + 32, 174, 10, 5);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(ax - 30, 186, 24, 2);
+    }
+    ctx.fillStyle = PINK; ctx.fillRect(W / 2 - 6 + shake, cyy - 16, 12, 4);
+    ctx.fillStyle = '#f0c8a0'; ctx.fillRect(W / 2 - 5 + shake, cyy - 13, 10, 7);
+    ctx.fillStyle = '#222'; ctx.fillRect(W / 2 - 6 + shake, cyy - 5, 12, 12);
+    ctx.fillStyle = '#fff'; ctx.fillRect(W / 2 + 2 + shake, cyy - 3, 6, 8);
+    if (frozen && Math.floor(t2 / 6) % 2 === 0) {
+      ctx.fillStyle = '#ff4444';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('!!', W / 2 + 16, cyy - 20);
+    }
     var neonOn = Math.random() > 0.12 || t2 > 60;
-    if (neonOn) slam('WALK-IN', 96, 34, LIME);
-    if (t2 > 130) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('GET THEM TO THE CHAIR', W / 2, 126); }
+    if (neonOn) slam('WALK-IN', 92, 34, LIME);
+    if (t2 > 150) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('GET THEM TO THE CHAIR', W / 2, 122); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, H - 58, W, 58);
     ctx.fillStyle = '#cfd6dd';

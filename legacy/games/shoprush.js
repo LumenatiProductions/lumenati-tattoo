@@ -105,6 +105,7 @@
     if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
     if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
     if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+    if (musicStep % 4 === 2) playSfx(2400, 0.012, 'square', 0.01);
   }
   function deathJingle() {
     jingleT = 110;
@@ -567,14 +568,45 @@
     ctx.fillStyle = '#241a20'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#2e2028';
     for (var fy = 150; fy < H; fy += 24) ctx.fillRect(0, fy, W, 12);
-    ctx.fillStyle = '#3a2a34'; ctx.fillRect(14, 150, 34, 40);
-    ctx.fillStyle = LIME; ctx.font = '8px monospace'; ctx.textAlign = 'center'; ctx.fillText('OPEN', 31, 174);
+    // the door bursts open
+    var doorSwing = Math.max(0, Math.min(1, (t2 - 8) / 8));
+    ctx.fillStyle = '#3a2a34';
+    ctx.fillRect(14, 150, 34, 40);
+    ctx.fillStyle = '#241a20';
+    ctx.fillRect(16, 152, 30, 36);
+    ctx.fillStyle = '#5c4250';
+    ctx.save();
+    ctx.translate(16, 170);
+    ctx.rotate(-doorSwing * 1.1);
+    ctx.fillRect(0, -18, 4, 36);
+    ctx.restore();
+    if (t2 === 12) sfxBell();
+    if (t2 > 10 && t2 < 40 && Math.floor(t2 / 5) % 2 === 0) {
+      ctx.fillStyle = YELLOW;
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('DING!', 50, 148);
+    }
+    // the rush pours in
     for (var i = 0; i < 3; i++) {
-      var wx2 = -20 + Math.max(0, t2 - 20 - i * 26) * 2.4;
-      if (wx2 <= -20) continue;
-      wx2 = Math.min(wx2, 330);
-      var wy2 = 210 + i * 26;
-      drawPerson(40 + wx2 * ((wy2 - 160) / 200), wy2, SKINS[i % SKINS.length], SHIRTS[i % SHIRTS.length], HAIRS[i % HAIRS.length], false);
+      var wx2 = Math.max(0, t2 - 14 - i * 16) * 3.2;
+      if (wx2 <= 0) continue;
+      wx2 = Math.min(wx2, 240 + i * 30);
+      var wy2 = 200 + i * 28;
+      drawPerson(30 + wx2, wy2, SKINS[i % SKINS.length], SHIRTS[i % SHIRTS.length], HAIRS[i % HAIRS.length], false, wx2 < 240 + i * 30);
+      if (wx2 < 100 && t2 % 3 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(24 + wx2 - 8, wy2 + 12, 3, 2);
+      }
+    }
+    // cash rains once the shop is rolling
+    if (t2 > 90) {
+      for (var i = 0; i < 6; i++) {
+        var dy2 = ((t2 * 2 + i * 47) % 140);
+        ctx.fillStyle = 'rgba(255,215,0,' + (0.5 - dy2 / 300).toFixed(2) + ')';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('$', 250 + (i * 23) % 120, 60 + dy2);
+      }
     }
     var stampT = Math.max(0, Math.min(1, (t2 - 26) / 22));
     if (stampT > 0) {
@@ -586,8 +618,7 @@
       ctx.fillText('SHOP RUSH', W / 2, 110);
       ctx.globalAlpha = 1;
     }
-    if (t2 > 90 && Math.floor(t2 / 14) % 2 === 0) { ctx.fillStyle = YELLOW; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.fillText('$', W / 2 + 120, 190); }
-    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('NOBODY WALKS OUT', W / 2, 140); }
+    if (t2 > 150) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('NOBODY WALKS OUT', W / 2, 140); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, H - 58, W, 58);
     ctx.fillStyle = '#cfd6dd';

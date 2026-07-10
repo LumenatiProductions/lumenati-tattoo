@@ -18,7 +18,7 @@
       o.start(); o.stop(c.currentTime + dur);
     } catch(e) {}
   }
-  function sfxEat() { playSfx(700, 0.07, 'square', 0.1); setTimeout(function(){playSfx(1000, 0.08, 'square', 0.1);}, 50); }
+  function sfxEat() { playSfx(70, 0.06, 'sawtooth', 0.09); playSfx(700, 0.07, 'square', 0.1); setTimeout(function(){playSfx(1000, 0.08, 'square', 0.1);}, 50); }
   function sfxBonus() { playSfx(900, 0.08, 'square', 0.12); setTimeout(function(){playSfx(1200, 0.08, 'square', 0.12);}, 70); setTimeout(function(){playSfx(1500, 0.12, 'square', 0.12);}, 140); }
   function sfxDie() { playSfx(200, 0.25, 'sawtooth', 0.15); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
@@ -564,6 +564,10 @@
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(0, 0, W, 4); ctx.fillRect(0, H - 4, W, 4);
     ctx.fillRect(0, 0, 4, H); ctx.fillRect(W - 4, 0, 4, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('LUMENATI TATTOO', W - 8, H - 8);
 
     if (frenzyT > 0) {
       ctx.fillStyle = 'rgba(255,99,71,' + (0.03 + Math.abs(Math.sin(frame * 0.1)) * 0.04).toFixed(3) + ')';

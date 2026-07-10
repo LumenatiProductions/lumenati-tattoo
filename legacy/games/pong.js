@@ -458,23 +458,56 @@
     }
     ctx.fillStyle = '#0a0a14'; ctx.fillRect(0, 0, W, H);
     for (var yy2 = 20; yy2 < H; yy2 += 16) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(W / 2 - 1, yy2, 2, 8); }
-    var period = 110;
-    var ph = (t2 % period) / period;
-    var bxp = 30 + (ph < 0.5 ? ph * 2 : (1 - ph) * 2) * (W - 60);
-    var byp = 200 + Math.sin(t2 * 0.05) * 30;
-    ctx.fillStyle = PINK; ctx.fillRect(14, byp - 28, 8, 56);
-    ctx.fillStyle = CYAN; ctx.fillRect(W - 22, byp - 28, 8, 56);
-    for (var i = 1; i < 6; i++) {
-      ctx.globalAlpha = 0.4 - i * 0.06;
+    // rally hits, each faster, each leaving a stain
+    var hits = [16, 52, 82, 104, 118];
+    var seg = 0;
+    while (seg < hits.length - 1 && t2 > hits[seg + 1]) seg++;
+    var splatT = 126;
+    for (var i = 1; i <= seg && t2 <= splatT + 24; i++) {
+      ctx.globalAlpha = 0.2;
       ctx.fillStyle = PINK;
-      ctx.fillRect(bxp - (ph < 0.5 ? i * 7 : -i * 7), byp - 2, 4, 4);
+      var stx = i % 2 === 1 ? 26 : W - 26;
+      ctx.beginPath(); ctx.arc(stx, 150 + i * 22, 6 + i * 2, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = PINK;
-    ctx.beginPath(); ctx.arc(bxp, byp, 6, 0, Math.PI * 2); ctx.fill();
-    var flash = (t2 % period) < 8 || (t2 % period) > period / 2 - 4 && (t2 % period) < period / 2 + 4;
-    slam('NEEDLE PONG', 110, 28, flash ? '#fff' : PINK);
-    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('RUN THE SHOP LADDER', W / 2, 140); }
+    var byy = 200 + Math.sin(t2 * 0.07) * 34;
+    if (t2 <= splatT) {
+      var t0 = hits[Math.min(seg, hits.length - 1)], t1 = hits[Math.min(seg + 1, hits.length - 1)];
+      var pp = t1 > t0 ? Math.max(0, Math.min(1, (t2 - t0) / (t1 - t0))) : 1;
+      var bxx = seg % 2 === 0 ? 34 + pp * (W - 68) : W - 34 - pp * (W - 68);
+      if (t2 > hits[hits.length - 1]) bxx = W / 2 + (t2 - hits[hits.length - 1]) * 2;
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(bxx, byy, 6, 0, Math.PI * 2); ctx.fill();
+    }
+    // machines track the volley
+    ctx.fillStyle = PINK; ctx.fillRect(16, byy - 26, 8, 52);
+    ctx.fillStyle = '#2e2e38'; ctx.fillRect(5, byy - 12, 10, 24);
+    ctx.fillStyle = '#b87333';
+    ctx.beginPath(); ctx.arc(10, byy - 5, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(10, byy + 5, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = CYAN; ctx.fillRect(W - 24, byy - 26, 8, 52);
+    ctx.fillStyle = '#2e2e38'; ctx.fillRect(W - 15, byy - 12, 10, 24);
+    ctx.fillStyle = '#b87333';
+    ctx.beginPath(); ctx.arc(W - 10, byy - 5, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W - 10, byy + 5, 4, 0, Math.PI * 2); ctx.fill();
+    // the last return comes straight at the camera
+    if (t2 > splatT && t2 < splatT + 16) {
+      var gr = (t2 - splatT) / 16;
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(W / 2, 160, 6 + gr * gr * 420, 0, Math.PI * 2); ctx.fill();
+    }
+    if (t2 >= splatT + 16) {
+      var wash = Math.max(0, 1 - (t2 - splatT - 16) / 40);
+      ctx.fillStyle = 'rgba(255,20,147,' + (0.15 + wash * 0.85).toFixed(2) + ')';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 30px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('NEEDLE PONG', W / 2, 118);
+    } else {
+      slam('NEEDLE PONG', 110, 28, PINK);
+    }
+    if (t2 > 165) { ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('RUN THE SHOP LADDER', W / 2, 146); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, H - 58, W, 58);
     ctx.fillStyle = '#cfd6dd';
@@ -500,10 +533,18 @@
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0, 0, W, H);
 
-    // Court
+    // Court: a stencil sheet taped to the table
     ctx.fillStyle = '#2a2a3e';
     ctx.fillRect(0, 14, W, 2);
     ctx.fillRect(0, H - 2, W, 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(0, 30, W, 1);
+    ctx.fillRect(0, H - 18, W, 1);
+    ctx.fillStyle = 'rgba(235,230,210,0.14)';
+    ctx.fillRect(2, 18, 22, 8);
+    ctx.fillRect(W - 24, 18, 22, 8);
+    ctx.fillRect(2, H - 26, 22, 8);
+    ctx.fillRect(W - 24, H - 26, 22, 8);
     for (var y = 20; y < H; y += 16) {
       ctx.fillStyle = 'rgba(255,255,255,' + (0.12 + Math.abs(Math.sin(frame * 0.03 + y * 0.05)) * 0.08).toFixed(2) + ')';
       ctx.fillRect(W / 2 - 1, y, 2, 8);

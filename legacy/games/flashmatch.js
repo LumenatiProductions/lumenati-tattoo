@@ -407,6 +407,12 @@
       }
       ctx.fillStyle = 'rgba(255,255,255,0.25)';
       ctx.fillRect(xx, y, w, 2);
+      if (w > 50) {
+        ctx.fillStyle = 'rgba(255,20,147,0.55)';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('LT', xx + w / 2, y + CHH / 2 + 4);
+      }
     } else {
       ctx.fillStyle = c.state === 'matched' ? '#1b2a1b' : '#efe9dc';
       ctx.fillRect(xx, y, w, CHH);

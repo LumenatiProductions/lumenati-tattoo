@@ -623,22 +623,53 @@
       }
     }
     ctx.fillStyle = '#100a18'; ctx.fillRect(0, 0, W, H);
-    slam('FLASH BREAKER', 104, 24, YELLOW);
-    var rowCols = [PINK, '#FF8A00', YELLOW, LIME, CYAN, '#b8c4d0', PINK, YELLOW];
-    for (var i = 0; i < 8; i++) {
-      var lt = Math.max(0, Math.min(1, (t2 - 30 - i * 5) / 14));
-      if (lt <= 0) continue;
-      var byy = 170 - (1 - lt) * (1 - lt) * 190;
-      ctx.fillStyle = rowCols[i];
-      ctx.fillRect(38 + i * 42, byy, 38, 13);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(38 + i * 42, byy, 38, 2);
+    slam('FLASH BREAKER', 96, 24, YELLOW);
+    var rowCols = [PINK, '#FF8A00', YELLOW, LIME, CYAN, '#b8c4d0', PINK, YELLOW, LIME, CYAN];
+    var impactT = 96;
+    // the wall assembles brick by brick
+    for (var i = 0; i < 10; i++) {
+      for (var r2 = 0; r2 < 2; r2++) {
+        var lt2 = Math.max(0, Math.min(1, (t2 - 14 - i * 4 - r2 * 12) / 12));
+        if (lt2 <= 0) continue;
+        var bx5 = 12 + i * 38, by5 = (150 + r2 * 15) - (1 - lt2) * (1 - lt2) * 170;
+        var smashed = t2 > impactT && Math.abs(bx5 + 17 - 200) < 62;
+        if (smashed) continue;
+        ctx.fillStyle = rowCols[(i + r2) % rowCols.length];
+        ctx.fillRect(bx5, by5, 34, 12);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(bx5, by5, 34, 2);
+      }
     }
-    var bxp = 40 + Math.abs(((t2 * 3.6) % 640) - 320);
-    var byp = 226 + Math.sin(t2 * 0.14) * 22;
-    ctx.fillStyle = PINK;
-    ctx.beginPath(); ctx.arc(bxp, byp, 5, 0, Math.PI * 2); ctx.fill();
-    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('BREAK THE WHOLE BOOK', W / 2, 246); }
+    // the ball drops, smashes through, shards everywhere
+    if (t2 > 68) {
+      var byp, bxp = 200;
+      if (t2 <= impactT) {
+        var fp = (t2 - 68) / (impactT - 68);
+        byp = -10 + fp * fp * 165;
+      } else {
+        byp = 155 + Math.abs(Math.sin((t2 - impactT) * 0.09)) * 70;
+      }
+      ctx.fillStyle = 'rgba(255,20,147,0.3)';
+      ctx.fillRect(bxp - 2, byp - 16, 4, 12);
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(bxp, byp, 6, 0, Math.PI * 2); ctx.fill();
+    }
+    if (t2 > impactT && t2 < impactT + 26) {
+      var sp2 = t2 - impactT;
+      if (sp2 < 5) {
+        ctx.fillStyle = 'rgba(255,255,255,' + ((5 - sp2) * 0.12).toFixed(2) + ')';
+        ctx.fillRect(0, 0, W, H);
+      }
+      for (var k = 0; k < 14; k++) {
+        var ang2 = (k / 14) * Math.PI * 2;
+        var dist2 = sp2 * (2 + (k % 3));
+        ctx.fillStyle = rowCols[k % rowCols.length];
+        ctx.globalAlpha = Math.max(0, 1 - sp2 / 26);
+        ctx.fillRect(200 + Math.cos(ang2) * dist2, 158 + Math.sin(ang2) * dist2 + sp2 * sp2 * 0.05, 4, 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('BREAK THE WHOLE BOOK', W / 2, 250); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, H - 58, W, 58);
     ctx.fillStyle = '#cfd6dd';

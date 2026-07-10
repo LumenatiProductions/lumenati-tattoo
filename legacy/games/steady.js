@@ -86,8 +86,7 @@
     if (b >= 0) playSfx(song.root * Math.pow(2, b / 12), 0.12, 'triangle', 0.045);
     var l = song.lead[musicStep];
     if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
-    if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
-    if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+    if (musicStep % 8 === 0) playSfx(65, 0.1, 'sawtooth', 0.022);
   }
   function deathJingle() {
     jingleT = 110;

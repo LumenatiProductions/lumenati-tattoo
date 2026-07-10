@@ -68,7 +68,7 @@
     if (b >= 0) playSfx(song.root * Math.pow(2, b / 12), 0.12, 'triangle', 0.045);
     var l = song.lead[musicStep];
     if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
-    if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
+    if (musicStep % 2 === 0) playSfx(60, 0.07, 'sawtooth', 0.038);
     if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
   }
   function deathJingle() {
@@ -686,24 +686,55 @@
       }
     }
     ctx.fillStyle = '#060a14'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,255,255,0.03)';
+    for (var gy2 = 20; gy2 < H; gy2 += 20) ctx.fillRect(0, gy2, W, 1);
+    var beamT = 118;
+    var vaporized = t2 > beamT + 8;
     for (var i = 0; i < 3; i++) {
-      var gx2 = W / 2 - 70 + i * 70;
-      var gy2 = Math.min(64, 12 + t2 * 0.8) + Math.sin(t2 * 0.15 + i * 2) * 4;
+      if (i === 1 && vaporized) continue;
+      var gx3 = W / 2 - 70 + i * 70;
+      var flee = vaporized && i !== 1 ? (t2 - beamT - 8) * 1.6 : 0;
+      var gy3 = Math.min(64, 12 + t2 * 0.8) + Math.sin(t2 * 0.15 + i * 2) * 4 - flee;
       ctx.fillStyle = [PURPLE, '#2ecc71', CYAN][i];
-      ctx.beginPath(); ctx.arc(gx2, gy2, 11, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.fillRect(gx2 - 5, gy2 - 4, 4, 4); ctx.fillRect(gx2 + 2, gy2 - 4, 4, 4);
-      ctx.fillStyle = '#000'; ctx.fillRect(gx2 - 4, gy2 - 3, 2, 2); ctx.fillRect(gx2 + 3, gy2 - 3, 2, 2);
+      ctx.beginPath(); ctx.arc(gx3 + (vaporized ? (i - 1) * flee * 0.4 : 0), gy3, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(gx3 - 5, gy3 - 4, 4, 4); ctx.fillRect(gx3 + 2, gy3 - 4, 4, 4);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(gx3 - 4, gy3 - 3, 2, 2); ctx.fillRect(gx3 + 3, gy3 - 3, 2, 2);
     }
-    slam('STERILE!', 150, 32, CYAN);
-    var py2 = Math.max(240, 300 - t2 * 1.4);
-    ctx.fillStyle = '#ccc'; ctx.fillRect(W / 2 - 1, py2 - 12, 2, 6);
-    ctx.fillStyle = PURPLE; ctx.fillRect(W / 2 - 6, py2 - 6, 12, 12);
-    ctx.fillStyle = PINK; ctx.fillRect(W / 2 - 8, py2 - 8, 4, 4); ctx.fillRect(W / 2 + 4, py2 - 8, 4, 4);
-    if (t2 > 90) {
-      var shotY = 230 - ((t2 - 90) * 4) % 160;
-      ctx.fillStyle = '#eee'; ctx.fillRect(W / 2 - 1, shotY, 2, 8);
+    // monitor readout title
+    var typed = Math.max(0, Math.min(8, Math.floor((t2 - 10) / 6)));
+    ctx.font = 'bold 32px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = CYAN;
+    var shown = 'STERILE!'.slice(0, typed);
+    if (typed < 8 && Math.floor(t2 / 8) % 2 === 0) shown += '_';
+    ctx.fillText(shown, W / 2, 150);
+    // the machine rises and charges
+    var py3 = Math.max(240, 300 - t2 * 1.4);
+    if (t2 > 70 && t2 <= beamT) {
+      var chg = (t2 - 70) / (beamT - 70);
+      ctx.fillStyle = 'rgba(0,255,255,' + (0.25 + Math.sin(t2 * 0.8) * 0.15).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(W / 2, py3 - 16, 2 + chg * 9, 0, Math.PI * 2); ctx.fill();
     }
-    if (t2 > 130) { ctx.fillStyle = '#2ecc71'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('KEEP THE TRAY CLEAN', W / 2, 190); }
+    if (t2 > beamT && t2 <= beamT + 8) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillRect(W / 2 - 3, 40, 6, py3 - 56);
+      ctx.fillStyle = 'rgba(0,255,255,0.5)';
+      ctx.fillRect(W / 2 - 7, 40, 14, py3 - 56);
+    }
+    if (vaporized && t2 < beamT + 30) {
+      var vr = (t2 - beamT - 8) * 3;
+      ctx.strokeStyle = '#2ecc71';
+      ctx.globalAlpha = Math.max(0, 1 - (t2 - beamT - 8) / 22);
+      ctx.beginPath(); ctx.arc(W / 2, 60, vr, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W / 2, 60, vr * 0.6, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = '#ccc'; ctx.fillRect(W / 2 - 1, py3 - 12, 2, 6);
+    ctx.fillStyle = PURPLE; ctx.fillRect(W / 2 - 6, py3 - 6, 12, 12);
+    ctx.fillStyle = PINK; ctx.fillRect(W / 2 - 8, py3 - 8, 4, 4); ctx.fillRect(W / 2 + 4, py3 - 8, 4, 4);
+    if (t2 > 150) { ctx.fillStyle = '#2ecc71'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('KEEP THE TRAY CLEAN', W / 2, 186); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, H - 58, W, 58);
     ctx.fillStyle = '#cfd6dd';
