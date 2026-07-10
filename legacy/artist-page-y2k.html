@@ -940,7 +940,7 @@
   var GROUND_Y = 270;
   var scrollX = 0;
   var holdingJump = false, coyote = 0, jumpBuffer = 0, flipped = false;
-  var usedHeel = false, usedShove = false, usedImp = false;
+  var usedHeel = false, usedShove = false, usedImp = false, usedBack = false, lastUpTap = -99;
   var upHeld = false, downHeld = false, grabT = 0, grabTotal = 0, wasGrabbing = false;
   var manualT = 0, wasManual = false, grindTilt = 0, usedNose = false, usedFive = false;
 
@@ -1011,13 +1011,13 @@
     level = 1; bannerT = 0; bannerText = ''; shieldT = 0;
     scrollX = 0; combo = 1; comboTimer = 0; shake = 0;
     holdingJump = false; coyote = 0; jumpBuffer = 0; flipped = false;
-    usedHeel = false; usedShove = false; usedImp = false;
+    usedHeel = false; usedShove = false; usedImp = false; usedBack = false; lastUpTap = -99;
     upHeld = false; downHeld = false; grabT = 0; grabTotal = 0; wasGrabbing = false;
     manualT = 0; wasManual = false; grindTilt = 0; usedNose = false; usedFive = false;
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
-    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, squash: 0 };
+    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0 };
     obstacles = []; collectibles = []; rails = []; particles = []; buildings = []; popups = [];
     for (var i = 0; i < 10; i++) buildings.push(makeBuilding(i * 80));
     spawnInitial();
@@ -1051,7 +1051,7 @@
       var kind = k < 0.06 ? 'horseshoe' : k < 0.16 ? 'eagle' : k < 0.32 ? 'skull' : k < 0.55 ? 'heart' : k < 0.78 ? 'bolt' : 'star';
       collectibles.push({ x: sx, y: cy, w: 14, h: 14, collected: false, kind: kind });
     } else {
-      var rw = 60 + Math.random() * 50;
+      var rw = Math.random() < 0.32 ? 150 + Math.random() * 90 : 60 + Math.random() * 50;
       var ry = GROUND_Y - 30 - Math.random() * 20;
       rails.push({ x: sx, y: ry, w: rw, scored: false });
     }
@@ -1162,6 +1162,16 @@
       }
     } else if (e.code === 'ArrowUp' || e.code === 'KeyW') {
       e.preventDefault();
+      if (!e.repeat) {
+        if (airborne() && frame - lastUpTap < 18 && !usedBack) {
+          usedBack = true;
+          player.backT = 36;
+          player.vy = Math.min(player.vy, -7);
+          sfxFlip();
+          trick(40, player.x + player.w / 2, player.y - 10, 'BACKFLIP');
+        }
+        lastUpTap = frame;
+      }
       upHeld = true;
     } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
       e.preventDefault();
@@ -1217,6 +1227,10 @@
     if (player.heelT > 0) player.heelT--;
     if (player.shoveT > 0) player.shoveT--;
     if (player.impT > 0) player.impT--;
+    if (player.backT > 0) {
+      player.backT--;
+      if (frame % 2 === 0) spawnParticles(player.x + player.w / 2, player.y + player.h / 2, CYAN, 1);
+    }
     if (coyote > 0) coyote--;
     if (jumpBuffer > 0) { jumpBuffer--; tryJump(); }
 
@@ -1238,14 +1252,15 @@
       player.onGround = true;
       player.grinding = false;
       player.grindRail = null;
-      flipped = false; usedHeel = false; usedShove = false; usedImp = false;
+      player.backT = 0;
+      flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
       grindTilt = 0; usedNose = false; usedFive = false;
     }
 
     if (player.invincible > 0) player.invincible--;
 
     // Melon grab: style points tick while held; the total commits on landing
-    var grabbing = upHeld && !player.onGround && !player.grinding;
+    var grabbing = upHeld && !player.onGround && !player.grinding && player.backT === 0;
     if (grabbing) {
       grabT++;
       if (grabT % 8 === 0) {
@@ -1305,6 +1320,17 @@
             break;
           }
         }
+      }
+    }
+
+    // Locked into a grind: sparks, buzz, and style points the whole way
+    if (player.grinding) {
+      if (frame % 6 === 0) sfxGrind();
+      if (frame % 3 === 0) spawnParticles(player.x + player.w / 2, player.y + player.h + 2, YELLOW, 1);
+      if (frame % 12 === 0) {
+        score += combo;
+        document.getElementById('jd-br-score').textContent = score;
+        comboT = 240;
       }
     }
 
@@ -2010,7 +2036,8 @@
 
     ctx.save();
     ctx.translate(px + player.w / 2, py + player.h / 2 + squash / 2);
-    ctx.rotate(lean);
+    if (player.backT > 0) ctx.rotate(-(1 - player.backT / 36) * Math.PI * 2);
+    else ctx.rotate(lean);
     ctx.translate(-(player.w / 2), -(player.h / 2));
 
     var air = !player.onGround && !player.grinding;
