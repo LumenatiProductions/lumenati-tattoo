@@ -36,13 +36,15 @@ export const STICKER_CATALOG = [
 // as drop-in IIFEs that share the template's window shell. The app's picker
 // mirrors id + label.
 export const GAME_CATALOG = [
-  { id: "skate", label: "Skate", exe: "sk8_or_die.exe", hint: "SPACE to ollie" },
-  { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer" },
-  { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows or drag to move" },
-  { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires" },
-  { id: "pong", label: "Needle Pong", exe: "needlepong.exe", hint: "W/S or drag to move", statA: "You", statB: "CPU" },
-  { id: "frogger", label: "Walk-In", exe: "walkin.exe", hint: "Arrows or tap to hop" },
+  { id: "skate", label: "Skate", exe: "sk8_or_die.exe", hint: "SPACE to ollie // tap mid-air to kickflip" },
+  { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer // machine +50" },
+  { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows, mouse or drag // SPACE launches" },
+  { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires // drag on phones" },
+  { id: "pong", label: "Needle Pong", exe: "needlepong.exe", hint: "W/S, mouse or drag // first to 7", statA: "You", statB: "CPU" },
+  { id: "frogger", label: "Walk-In", exe: "walkin.exe", hint: "Arrows or tap to hop // fill all 3 chairs" },
 ] as const;
+// Each game also writes its hint (and pong its You/CPU labels) into the
+// status bar at init, so the shell is right even before the renderer swap.
 
 function readGameScript(id: string): string {
   return readFileSync(path.join(process.cwd(), "legacy", "games", `${id}.js`), "utf8").trimEnd();
@@ -167,7 +169,9 @@ export function renderRoomHtml(
     html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-skate">[\s\S]*?<\/a>\s*/, "");
   } else if (content.videoUrl) {
     // An uploaded clip replaces the Vimeo iframe inside the same WMP chrome.
-    const file = `${handle.replace(/[^A-Za-z0-9]+/g, "_") || "room"}_edit.avi`;
+    // The artist's title becomes the era-true filename; handle is the fallback.
+    const slug = (content.videoTitle ?? "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+    const file = slug ? `${slug}.avi` : `${handle.replace(/[^A-Za-z0-9]+/g, "_") || "room"}_edit.avi`;
     html = html.replace("Windows Media Player — jd_skate_edit.avi", `Windows Media Player — ${esc(file)}`);
     html = html.replace("Playing - jd_skate_edit.avi", `Playing - ${esc(file)}`);
     html = html.replace(
@@ -204,7 +208,7 @@ export function renderRoomHtml(
       );
       html = html.replace("sk8_or_die.exe", g.exe);
       html = html.replace(
-        '<span id="jd-game-hint">SPACE to ollie</span>',
+        `<span id="jd-game-hint">${GAME_CATALOG[0].hint}</span>`,
         `<span id="jd-game-hint">${esc(g.hint)}</span>`,
       );
       if ("statA" in g) {

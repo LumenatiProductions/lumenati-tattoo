@@ -71,6 +71,7 @@ type Room = {
   posters: Poster[] | null;
   game_id: string | null;
   video_url: string | null;
+  video_title: string | null;
 };
 
 type RosterArtist = { id: string; name: string; slug: string };
@@ -111,6 +112,7 @@ export default function MyRoom() {
   // so the arcade fields are optional: until the game_id/video_url migration
   // runs, those sections simply don't render and saves don't touch them.
   const [arcadeReady, setArcadeReady] = useState(false);
+  const [titleReady, setTitleReady] = useState(false);
   useEffect(() => {
     (async () => {
       if (!artistId) return;
@@ -122,6 +124,7 @@ export default function MyRoom() {
         .maybeSingle();
       if (r) {
         setArcadeReady((r as Record<string, unknown>).game_id !== undefined);
+        setTitleReady((r as Record<string, unknown>).video_title !== undefined);
         setRoom({
           ...(r as Room),
           polaroids: (r.polaroids as Polaroid[]) ?? [],
@@ -130,6 +133,7 @@ export default function MyRoom() {
           posters: (r.posters as Poster[] | null) ?? null,
           game_id: (r.game_id as string | null) ?? null,
           video_url: (r.video_url as string | null) ?? null,
+          video_title: (r.video_title as string | null) ?? null,
         });
       }
     })();
@@ -158,11 +162,12 @@ export default function MyRoom() {
         stickers: room.stickers,
         posters: room.posters,
         ...(arcadeReady ? { game_id: room.game_id, video_url: room.video_url } : {}),
+        ...(titleReady ? { video_title: room.video_title?.trim() || null } : {}),
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
     setMsg(error ? error.message : "Saved — your room is live.");
-  }, [room, arcadeReady]);
+  }, [room, arcadeReady, titleReady]);
 
   // Pick from the library and land it in the public room-photos bucket.
   // Square-crops for the profile shot; galleries keep the framing as shot.
@@ -408,12 +413,20 @@ export default function MyRoom() {
 
                 <SectionTitle>Room video</SectionTitle>
                 <Card>
-                  <Text style={styles.note}>
+                  <Text style={[styles.note, { marginBottom: 12 }]}>
                     {room.video_url
                       ? "Your clip plays in the room's media player window."
                       : "Drop a clip into your room's media player window (mp4 or mov, under 60MB)."}
                   </Text>
-                  <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                  {room.video_url && titleReady ? (
+                    <LabeledInput
+                      label="Video title"
+                      value={room.video_title ?? ""}
+                      onChange={(v) => set("video_title", v)}
+                      placeholder="my shop tour"
+                    />
+                  ) : null}
+                  <View style={{ flexDirection: "row", gap: 10 }}>
                     <View style={{ flex: 1 }}>
                       <Button label={room.video_url ? "Replace video" : "Add a video"} tone="ghost" onPress={pickVideo} disabled={saving} />
                     </View>
@@ -424,6 +437,7 @@ export default function MyRoom() {
                           tone="ghost"
                           onPress={() => {
                             set("video_url", null);
+                            set("video_title", null);
                             setMsg("Video removed — tap Save to make it official.");
                           }}
                           disabled={saving}
@@ -467,7 +481,7 @@ export default function MyRoom() {
 
             <SectionTitle>Wall posters</SectionTitle>
             <Card>
-              <Text style={styles.note}>
+              <Text style={[styles.note, { marginBottom: 12 }]}>
                 Up to four, taped to your walls in the designed spots.{room.posters === null ? " (Using the classic set until you add your own.)" : ""}
               </Text>
               <PhotoGrid
@@ -482,7 +496,7 @@ export default function MyRoom() {
 
             <SectionTitle>Polaroids</SectionTitle>
             <Card>
-              <Text style={styles.note}>The snapshots taped around your room — you, the crew, the shop life.</Text>
+              <Text style={[styles.note, { marginBottom: 12 }]}>The snapshots taped around your room — you, the crew, the shop life.</Text>
               <PhotoGrid
                 items={room.polaroids.map((p) => ({ id: p.id, src: p.src, text: p.caption }))}
                 textLabel="Caption"
@@ -497,7 +511,7 @@ export default function MyRoom() {
 
             <SectionTitle>Portfolio</SectionTitle>
             <Card>
-              <Text style={styles.note}>Your work, in the order the world sees it. Healed-shot approvals land here too.</Text>
+              <Text style={[styles.note, { marginBottom: 12 }]}>Your work, in the order the world sees it. Healed-shot approvals land here too.</Text>
               <PhotoGrid
                 items={room.portfolio.map((w) => ({ id: w.id, src: w.src, text: w.alt }))}
                 textLabel="Describe the piece"
@@ -509,12 +523,15 @@ export default function MyRoom() {
             </Card>
 
             <SectionTitle>Flash wall</SectionTitle>
-            <Card>
-              <Text style={styles.note}>
-                Pinned straight to the public flash wall — no save needed. Mark a piece claimed the moment someone grabs it.
+            <Card style={{ borderColor: "rgba(255,20,147,0.45)", borderWidth: 1.5, backgroundColor: "rgba(255,20,147,0.05)" }}>
+              <Text style={{ color: "#FF1493", fontWeight: "700", fontSize: 13.5, lineHeight: 19, marginBottom: 4 }}>
+                Live the second you pin it — no save needed.
+              </Text>
+              <Text style={[styles.note, { marginBottom: 12 }]}>
+                Your flash on the shop's public wall. Mark a piece claimed the moment someone grabs it.
               </Text>
               {flash.length === 0 ? (
-                <Text style={styles.note}>Nothing pinned yet.</Text>
+                <Text style={[styles.note, { marginBottom: 12 }]}>Nothing pinned yet.</Text>
               ) : (
                 <View style={{ gap: 12, marginBottom: 12 }}>
                   {flash.map((f) => (
@@ -586,7 +603,7 @@ function PhotoGrid({
   onRemove: (id: string) => void;
   onMove: (id: string, dir: -1 | 1) => void;
 }) {
-  if (items.length === 0) return <Text style={styles.note}>Nothing here yet.</Text>;
+  if (items.length === 0) return <Text style={[styles.note, { marginBottom: 12 }]}>Nothing here yet.</Text>;
   return (
     <View style={{ gap: 12, marginBottom: 12 }}>
       {items.map((it, i) => (

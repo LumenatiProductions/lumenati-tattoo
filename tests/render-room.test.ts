@@ -19,6 +19,7 @@ const room = (over: Partial<RoomContent>): RoomContent => ({
   posters: null,
   gameId: null,
   videoUrl: null,
+  videoTitle: null,
   ...over,
 });
 
@@ -54,7 +55,7 @@ describe("arcade + video picks", () => {
     expect(html).toContain("INK SNAKE");
     expect(html).not.toContain("SK8 OR DIE");
     expect(html).toContain("inksnake.exe — Test's Arcade");
-    expect(html).toContain('<span id="jd-game-hint">Arrows or swipe to steer</span>');
+    expect(html).toContain('<span id="jd-game-hint">Arrows or swipe to steer // machine +50</span>');
     expect(html).toContain('id="jd-games-icon"');
     expect(html).toContain('id="jd-mob-game"');
     // No video picked: the video window stays gone
@@ -89,6 +90,17 @@ describe("arcade + video picks", () => {
     expect(html).toContain('id="jd-mob-skate">Video</a>');
     // No game picked: the arcade stays gone
     expect(html).not.toContain('<script id="jd-arcade-game">');
+  });
+
+  it("a video title becomes the media player filename", () => {
+    const url = "https://example.supabase.co/storage/room-photos/test/video-1.mp4";
+    const html = renderRoomHtml(
+      room({ videoUrl: url, videoTitle: "My Shop Tour!" }),
+      "Test Artist",
+      false,
+    );
+    expect(html).toContain("Windows Media Player — my_shop_tour.avi");
+    expect(html).toContain("Playing - my_shop_tour.avi");
   });
 
   it("JD's own upload replaces his Vimeo default but keeps his Skate labels", () => {

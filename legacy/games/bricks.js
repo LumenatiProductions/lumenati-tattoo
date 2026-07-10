@@ -74,6 +74,8 @@
     particles = [];
     buildBricks();
     serve();
+    var hintEl = document.getElementById('jd-game-hint');
+    if (hintEl) hintEl.textContent = 'Arrows, mouse or drag // SPACE launches';
     window.skateRunning = true;
     startLoop();
   }

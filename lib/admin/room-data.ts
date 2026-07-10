@@ -17,6 +17,7 @@ type Row = {
   posters: RoomContent["posters"];
   game_id: string | null;
   video_url: string | null;
+  video_title: string | null;
 };
 
 const rowToContent = (r: Row): RoomContent => ({
@@ -33,6 +34,7 @@ const rowToContent = (r: Row): RoomContent => ({
   posters: r.posters ?? null,
   gameId: r.game_id ?? null,
   videoUrl: r.video_url ?? null,
+  videoTitle: r.video_title ?? null,
 });
 
 const contentToRow = (c: RoomContent): Row => ({
@@ -49,6 +51,7 @@ const contentToRow = (c: RoomContent): Row => ({
   posters: c.posters,
   game_id: c.gameId,
   video_url: c.videoUrl,
+  video_title: c.videoTitle,
 });
 
 /** All rooms keyed by artistId. Supabase when configured, else the mock seed. */
@@ -78,6 +81,7 @@ function emptyRoom(artistId: string): RoomContent {
     posters: null,
     gameId: null,
     videoUrl: null,
+    videoTitle: null,
   };
 }
 

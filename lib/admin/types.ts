@@ -121,4 +121,6 @@ export interface RoomContent {
   gameId: string | null;
   /** The artist's uploaded room video; null = JD keeps his Vimeo clip, others have none. */
   videoUrl: string | null;
+  /** Title for the room video; becomes the media player window's filename. */
+  videoTitle: string | null;
 }

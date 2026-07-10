@@ -57,6 +57,8 @@
     bullets = []; ebullets = []; particles = []; ufo = null;
     invuln = 0; shootCd = 0; touching = false;
     buildWave();
+    var hintEl = document.getElementById('jd-game-hint');
+    if (hintEl) hintEl.textContent = 'Arrows move, SPACE fires // drag on phones';
     window.skateRunning = true;
     startLoop();
   }

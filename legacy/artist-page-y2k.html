@@ -896,7 +896,7 @@
     <div style="padding:4px 8px;background:#ece9d8;border-top:1px solid #aca899;font-family:Tahoma,sans-serif;font-size:10px;color:#444;display:flex;justify-content:space-between;">
       <span><span id="jd-stat-a">Score</span>: <span id="jd-br-score">0</span></span>
       <span><span id="jd-stat-b">Lives</span>: <span id="jd-br-lives">3</span></span>
-      <span id="jd-game-hint">SPACE to ollie</span>
+      <span id="jd-game-hint">SPACE to ollie // tap mid-air to kickflip</span>
     </div>
   </div>
 </div>
@@ -966,6 +966,8 @@
     obstacles = []; collectibles = []; rails = []; particles = []; buildings = []; popups = [];
     for (var i = 0; i < 10; i++) buildings.push(makeBuilding(i * 80));
     spawnInitial();
+    var hintEl = document.getElementById('jd-game-hint');
+    if (hintEl) hintEl.textContent = 'SPACE to ollie // tap mid-air to kickflip';
     window.skateRunning = true;
     startLoop();
   }

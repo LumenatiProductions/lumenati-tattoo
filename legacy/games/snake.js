@@ -42,6 +42,8 @@
     document.getElementById('jd-br-lives').textContent = '3';
     resetSnake();
     placeFood();
+    var hintEl = document.getElementById('jd-game-hint');
+    if (hintEl) hintEl.textContent = 'Arrows or swipe to steer // machine +50';
     window.skateRunning = true;
     startLoop();
   }

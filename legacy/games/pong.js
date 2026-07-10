@@ -46,6 +46,12 @@
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '0';
     serve(Math.random() < 0.5 ? 1 : -1);
+    var hintEl = document.getElementById('jd-game-hint');
+    if (hintEl) hintEl.textContent = 'W/S, mouse or drag // first to 7';
+    var statA = document.getElementById('jd-stat-a');
+    if (statA) statA.textContent = 'You';
+    var statB = document.getElementById('jd-stat-b');
+    if (statB) statB.textContent = 'CPU';
     window.skateRunning = true;
     startLoop();
   }
