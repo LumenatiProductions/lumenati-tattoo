@@ -81,21 +81,32 @@
 
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
 
-  var COLS = 8, BW = 46, BH = 14, BGAP = 3, BTOP = 36;
+  var COLS = 12, BW = 30, BH = 11, BGAP = 2, BTOP = 34;
   var BLEFT = (W - (COLS * BW + (COLS - 1) * BGAP)) / 2;
 
   // Every sheet is a flash design; break it off the wall tile by tile.
   var DESIGNS = [
     { name: 'HEART', color: '#FF1493', rows: [
-      '.XX..XX.', 'XXXXXXXX', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '...XX...'] },
+      '.XXX....XXX.', 'XXXXX..XXXXX', 'XXXXXXXXXXXX', 'XXXXXXXXXXXX',
+      '.XXXXXXXXXX.', '..XXXXXXXX..', '....XXXX....', '.....XX.....'] },
     { name: 'SKULL', color: '#e8e4d8', rows: [
-      '..XXXX..', '.XXXXXX.', '.X.XX.X.', '.XXXXXX.', '..XXXX..', '..X..X..'] },
+      '..XXXXXXXX..', '.XXXXXXXXXX.', '.XXXXXXXXXX.', '.XX.XXXX.XX.',
+      '.XX.XXXX.XX.', '..XXX..XXX..', '..XXXXXXXX..', '...X.XX.X...'] },
     { name: 'BOLT', color: '#FFD700', rows: [
-      '....XXX.', '...XXX..', '.XXXXXX.', '..XXX...', '.XXX....', '.XX.....'] },
+      '......XXXX..', '.....XXXX...', '....XXXX....', '..XXXXXXXX..',
+      '.....XXX....', '....XXX.....', '...XXX......', '..XXX.......'] },
     { name: 'STAR', color: '#00FFFF', rows: [
-      '...XX...', '..XXXX..', 'XXXXXXXX', '.XXXXXX.', '..XXXX..', '.XX..XX.'] },
+      '.....XX.....', '....XXXX....', 'XXXXXXXXXXXX', '.XXXXXXXXXX.',
+      '..XXXXXXXX..', '..XXX..XXX..', '.XXX....XXX.', '.XX......XX.'] },
     { name: 'DAGGER', color: '#b8c4d0', rows: [
-      '...XX...', '.XXXXXX.', '...XX...', '...XX...', '...XX...', '....X...'] },
+      '.....XX.....', '....XXXX....', '..XXXXXXXX..', '.....XX.....',
+      '.....XX.....', '.....XX.....', '.....XX.....', '......X.....'] },
+    { name: 'ANCHOR', color: '#2d6cdf', rows: [
+      '.....XX.....', '....XXXX....', '.....XX.....', '..XXXXXXXX..',
+      '.....XX.....', '.X...XX...X.', '.XX..XX..XX.', '..XXXXXXXX..'] },
+    { name: 'ROSE', color: '#e8283c', rows: [
+      '...XXXXXX...', '..XXX.XXXX..', '..XX.XX.XX..', '..XXX.XXXX..',
+      '...XXXXXX...', '.X...XX...X.', '.XXX.XX.XXX.', '.....XX.....'] },
   ];
   function shade(hex, f) {
     var n = parseInt(hex.slice(1), 16);
@@ -106,7 +117,8 @@
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
   var score, lives, level, frame, flashT, bannerT, bannerText;
-  var paddle, ball, bricks, particles, trail, paddleFlash;
+  var paddle, balls, bricks, particles, trail, paddleFlash;
+  var drops, lasers, wideT, laserT, laserCd, popups;
   var keyL = false, keyR = false;
 
   var best = 0;
@@ -134,17 +146,104 @@
     }
   }
 
+  function makeBall() {
+    return { x: paddle.x + paddle.w / 2, y: paddle.y - 6, vx: 0, vy: 0, r: 4, stuck: true };
+  }
+
   function serve() {
-    ball = { x: paddle.x + paddle.w / 2, y: paddle.y - 6, vx: 0, vy: 0, r: 4, stuck: true };
+    balls = [makeBall()];
   }
 
   function launch() {
-    if (!ball.stuck) return;
-    ball.stuck = false;
-    var sp = 3.6 + (level - 1) * 0.4;
-    var a = -Math.PI / 3 + Math.random() * (Math.PI / 6);
-    ball.vx = Math.cos(a) * sp * (Math.random() < 0.5 ? 1 : -1);
-    ball.vy = -Math.abs(Math.sin(a) * sp);
+    var sp = 3.6 + Math.min(3, (level - 1) * 0.35);
+    for (var i = 0; i < balls.length; i++) {
+      if (!balls[i].stuck) continue;
+      balls[i].stuck = false;
+      var a = -Math.PI / 3 + Math.random() * (Math.PI / 6);
+      balls[i].vx = Math.cos(a) * sp * (Math.random() < 0.5 ? 1 : -1);
+      balls[i].vy = -Math.abs(Math.sin(a) * sp);
+    }
+  }
+
+  function addPopup(x, y, text, color) {
+    popups.push({ x: x, y: y, text: text, color: color, life: 45 });
+  }
+
+  // ── Capsules: the good stuff falls out of broken bricks ──
+  function maybeDrop(x, y) {
+    if (Math.random() > 0.16) return;
+    var r = Math.random();
+    var kind = r < 0.25 ? 'multi' : r < 0.5 ? 'wide' : r < 0.7 ? 'slow' : r < 0.9 ? 'laser' : 'life';
+    drops.push({ x: x, y: y, vy: 1.5, kind: kind });
+  }
+
+  function applyDrop(kind) {
+    if (kind === 'multi') {
+      var flying = [];
+      for (var i = 0; i < balls.length; i++) if (!balls[i].stuck) flying.push(balls[i]);
+      var src = flying.length ? flying : balls;
+      var added = 0;
+      for (var i = 0; i < src.length && balls.length < 6 && added < 2; i++) {
+        var b0 = src[i];
+        var sp0 = Math.max(3.2, Math.hypot(b0.vx, b0.vy)) || 3.6;
+        for (var k = -1; k <= 1 && balls.length < 6 && added < 2; k += 2) {
+          var ang = Math.atan2(b0.vy || -1, b0.vx || 0.4) + k * 0.5;
+          balls.push({ x: b0.x, y: b0.y, vx: Math.cos(ang) * sp0, vy: Math.sin(ang) * sp0, r: 4, stuck: false });
+          added++;
+        }
+      }
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'MULTIBALL!', PINK);
+      sfxLevel();
+    } else if (kind === 'wide') {
+      wideT = 1200;
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'WIDE!', CYAN);
+      sfxPaddle();
+    } else if (kind === 'slow') {
+      for (var i = 0; i < balls.length; i++) {
+        if (balls[i].stuck) continue;
+        balls[i].vx *= 0.72; balls[i].vy *= 0.72;
+        var mn = Math.hypot(balls[i].vx, balls[i].vy);
+        if (mn < 2.4 && mn > 0) { balls[i].vx *= 2.4 / mn; balls[i].vy *= 2.4 / mn; }
+      }
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'SLOW-MO', LIME);
+      sfxWall();
+    } else if (kind === 'laser') {
+      laserT = 800;
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'LASERS!', YELLOW);
+      sfxLevel();
+    } else {
+      if (lives < 5) {
+        lives++;
+        document.getElementById('jd-br-lives').textContent = lives;
+      }
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, '+1 LIFE', '#7FFF00');
+      sfxLevel();
+    }
+  }
+
+  function fireLaser() {
+    if (laserT <= 0 || laserCd > 0) return;
+    laserCd = 13;
+    lasers.push({ x: paddle.x + 5, y: paddle.y - 4 });
+    lasers.push({ x: paddle.x + paddle.w - 5, y: paddle.y - 4 });
+    playSfx(1200, 0.05, 'square', 0.08);
+  }
+
+  // A brick takes a hit from anything; returns true when it broke
+  function damageBrick(i, hx, hy) {
+    var b = bricks[i];
+    b.hp--;
+    sfxBrick(b.row);
+    if (b.hp <= 0) {
+      score += b.maxHp === 2 ? 20 : 10;
+      spawnParticles(hx, hy, b.color, 8);
+      maybeDrop(b.x + BW / 2, b.y + BH / 2);
+      bricks.splice(i, 1);
+    } else {
+      score += 5;
+      spawnParticles(hx, hy, '#fff', 4);
+    }
+    document.getElementById('jd-br-score').textContent = score;
   }
 
   function init() {
@@ -155,6 +254,7 @@
     document.getElementById('jd-br-lives').textContent = '3';
     paddle = { x: W / 2 - 30, y: 298, w: 60, h: 8 };
     particles = []; trail = []; paddleFlash = 0;
+    drops = []; lasers = []; wideT = 0; laserT = 0; laserCd = 0; popups = [];
     buildBricks();
     serve();
     var hintEl = document.getElementById('jd-game-hint');
@@ -188,27 +288,34 @@
     if (keyR) paddle.x += 6;
     paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
 
-    if (ball.stuck) {
-      ball.x = paddle.x + paddle.w / 2;
-      ball.y = paddle.y - 6;
-    } else {
+    if (wideT > 0) wideT--;
+    if (laserT > 0) laserT--;
+    if (laserCd > 0) laserCd--;
+    paddle.w = wideT > 0 ? 92 : 60;
+
+    // Balls in flight
+    for (var bi = balls.length - 1; bi >= 0; bi--) {
+      var ball = balls[bi];
+      if (ball.stuck) {
+        ball.x = paddle.x + paddle.w / 2;
+        ball.y = paddle.y - 6;
+        continue;
+      }
       ball.x += ball.vx;
       ball.y += ball.vy;
       trail.push({ x: ball.x, y: ball.y });
-      if (trail.length > 7) trail.shift();
+      if (trail.length > 14) trail.shift();
 
-      // Walls
       if (ball.x < ball.r) { ball.x = ball.r; ball.vx = Math.abs(ball.vx); sfxWall(); }
       if (ball.x > W - ball.r) { ball.x = W - ball.r; ball.vx = -Math.abs(ball.vx); sfxWall(); }
-      if (ball.y < ball.r + 18) { ball.y = ball.r + 18; ball.vy = Math.abs(ball.vy); sfxWall(); }
+      if (ball.y < ball.r + 16) { ball.y = ball.r + 16; ball.vy = Math.abs(ball.vy); sfxWall(); }
 
-      // Paddle
       if (ball.vy > 0 && ball.y + ball.r >= paddle.y && ball.y + ball.r <= paddle.y + paddle.h + 6 &&
           ball.x >= paddle.x - ball.r && ball.x <= paddle.x + paddle.w + ball.r) {
         var rel = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
         rel = Math.max(-1, Math.min(1, rel));
         var sp = Math.min(8, Math.hypot(ball.vx, ball.vy) * 1.02);
-        var ang = rel * (Math.PI / 3); // up to 60 degrees of english
+        var ang = rel * (Math.PI / 3);
         ball.vx = Math.sin(ang) * sp;
         ball.vy = -Math.abs(Math.cos(ang) * sp);
         ball.y = paddle.y - ball.r;
@@ -216,51 +323,81 @@
         sfxPaddle();
       }
 
-      // Bricks
       for (var i = 0; i < bricks.length; i++) {
         var b = bricks[i];
         if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + BW &&
             ball.y + ball.r > b.y && ball.y - ball.r < b.y + BH) {
-          // Reflect on the shallower penetration axis
           var overX = Math.min(ball.x + ball.r - b.x, b.x + BW - (ball.x - ball.r));
           var overY = Math.min(ball.y + ball.r - b.y, b.y + BH - (ball.y - ball.r));
           if (overX < overY) ball.vx = ball.x < b.x + BW / 2 ? -Math.abs(ball.vx) : Math.abs(ball.vx);
           else ball.vy = ball.y < b.y + BH / 2 ? -Math.abs(ball.vy) : Math.abs(ball.vy);
-          b.hp--;
-          sfxBrick(b.row);
-          if (b.hp <= 0) {
-            score += b.maxHp === 2 ? 20 : 10;
-            spawnParticles(ball.x, ball.y, b.color, 8);
-            bricks.splice(i, 1);
-          } else {
-            score += 5;
-            spawnParticles(ball.x, ball.y, '#fff', 4);
-          }
-          document.getElementById('jd-br-score').textContent = score;
+          damageBrick(i, ball.x, ball.y);
           break;
         }
       }
 
-      // Cleared the sheet
-      if (bricks.length === 0) {
-        level++;
-        sfxLevel();
-        buildBricks();
-        serve();
-        bannerT = 90;
-        bannerText = 'SHEET ' + level + ': ' + design().name;
-        sayCallout(['bricks-c1', 'bricks-c2', 'bricks-c3'][level % 3]);
-      }
+      if (ball.y > H + 10) balls.splice(bi, 1);
+    }
 
-      // Dropped it
-      if (ball.y > H + 10) {
-        lives--;
-        document.getElementById('jd-br-lives').textContent = lives;
-        flashT = 12;
-        sfxLose();
-        if (lives <= 0) { enterBoard(score); saveBest(); deathJingle(); return; }
-        serve();
+    // Lasers chew upward
+    for (var li = lasers.length - 1; li >= 0; li--) {
+      var lz = lasers[li];
+      lz.y -= 7;
+      var gone = lz.y < 14;
+      for (var i = 0; i < bricks.length && !gone; i++) {
+        var b = bricks[i];
+        if (lz.x > b.x && lz.x < b.x + BW && lz.y > b.y && lz.y < b.y + BH) {
+          damageBrick(i, lz.x, lz.y);
+          gone = true;
+        }
       }
+      if (gone) lasers.splice(li, 1);
+    }
+
+    // Capsules fall toward the paddle
+    for (var di = drops.length - 1; di >= 0; di--) {
+      var d = drops[di];
+      d.y += d.vy;
+      d.vy = Math.min(2.6, d.vy + 0.02);
+      if (d.y > paddle.y - 8 && d.y < paddle.y + paddle.h + 8 && d.x > paddle.x - 8 && d.x < paddle.x + paddle.w + 8) {
+        applyDrop(d.kind);
+        drops.splice(di, 1);
+      } else if (d.y > H + 12) {
+        drops.splice(di, 1);
+      }
+    }
+
+    // Cleared the sheet
+    if (bricks.length === 0) {
+      level++;
+      sfxLevel();
+      buildBricks();
+      drops = []; lasers = [];
+      serve();
+      bannerT = 90;
+      bannerText = 'SHEET ' + level + ': ' + design().name;
+      sayCallout(['bricks-c1', 'bricks-c2', 'bricks-c3'][level % 3]);
+    }
+
+    // Every ball dropped
+    if (balls.length === 0) {
+      lives--;
+      document.getElementById('jd-br-lives').textContent = lives;
+      flashT = 12;
+      sfxLose();
+      wideT = 0; laserT = 0; drops = []; lasers = [];
+      if (lives <= 0) {
+        enterBoard(score);
+        saveBest();
+        deathJingle();
+        return;
+      }
+      serve();
+    }
+
+    for (var i = popups.length - 1; i >= 0; i--) {
+      popups[i].y -= 0.5; popups[i].life--;
+      if (popups[i].life <= 0) popups.splice(i, 1);
     }
 
     for (var i = particles.length - 1; i >= 0; i--) {
@@ -275,6 +412,7 @@
     if (mode === 'intro') { mode = 'play'; return; }
     if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
+    fireLaser();
     launch();
   }
   document.addEventListener('keydown', function(e) {
@@ -506,8 +644,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS, MOUSE or DRAG to move // SPACE or TAP launches', W / 2, H - 42);
-    ctx.fillText('break every flash design in the book // top designs pay double', W / 2, H - 29);
+    ctx.fillText('ARROWS, MOUSE or DRAG // SPACE launches and fires lasers', W / 2, H - 42);
+    ctx.fillText('catch capsules: Multi, Wide, Slow, Laser, +Life', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -563,17 +701,39 @@
       ctx.fillRect(paddle.x - 4, paddle.y - 4, paddle.w + 8, paddle.h + 8);
     }
 
-    // Ball trail + ink drop
+    // Trails + every ball in flight
     for (var i = 0; i < trail.length; i++) {
-      ctx.globalAlpha = (i / trail.length) * 0.35;
+      ctx.globalAlpha = (i / trail.length) * 0.3;
       ctx.fillStyle = PINK;
       ctx.fillRect(trail[i].x - 2, trail[i].y - 2, 4, 4);
     }
     ctx.globalAlpha = 1;
-    ctx.fillStyle = PINK;
-    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(ball.x - 1, ball.y - 2, 2, 2);
+    for (var i = 0; i < balls.length; i++) {
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(balls[i].x, balls[i].y, balls[i].r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(balls[i].x - 1, balls[i].y - 2, 2, 2);
+    }
+
+    // Falling capsules
+    for (var i = 0; i < drops.length; i++) {
+      var d = drops[i];
+      var dc = d.kind === 'multi' ? PINK : d.kind === 'wide' ? CYAN : d.kind === 'slow' ? LIME : d.kind === 'laser' ? YELLOW : '#7FFF00';
+      ctx.fillStyle = '#efe9dc';
+      ctx.fillRect(d.x - 8, d.y - 5, 16, 10);
+      ctx.fillStyle = dc;
+      ctx.fillRect(d.x - 8, d.y - 5, 16, 4);
+      ctx.fillStyle = '#14121a';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(d.kind === 'life' ? '+' : d.kind.charAt(0).toUpperCase(), d.x, d.y + 4);
+    }
+
+    // Laser needles
+    ctx.fillStyle = YELLOW;
+    for (var i = 0; i < lasers.length; i++) {
+      ctx.fillRect(lasers[i].x - 1, lasers[i].y - 6, 2, 8);
+    }
 
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
@@ -609,11 +769,30 @@
       ctx.font = 'bold 10px monospace';
     }
 
-    if (ball.stuck && mode === 'play') {
+    var anyStuck = false;
+    for (var i = 0; i < balls.length; i++) if (balls[i].stuck) anyStuck = true;
+    if (anyStuck && mode === 'play') {
       ctx.fillStyle = '#9aa';
       ctx.font = '11px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('SPACE or TAP to launch', W / 2, H / 2 + 40);
+    }
+
+    // Popups + active gear
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    for (var i = 0; i < popups.length; i++) {
+      ctx.globalAlpha = Math.min(1, popups[i].life / 18);
+      ctx.fillStyle = popups[i].color;
+      ctx.fillText(popups[i].text, popups[i].x, popups[i].y);
+    }
+    ctx.globalAlpha = 1;
+    if (mode === 'play' && (wideT > 0 || laserT > 0)) {
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'left';
+      var gx2 = 8;
+      if (wideT > 0) { ctx.fillStyle = CYAN; ctx.fillText('WIDE ' + Math.ceil(wideT / 60), gx2, 26); gx2 += 52; }
+      if (laserT > 0) { ctx.fillStyle = YELLOW; ctx.fillText('LASER ' + Math.ceil(laserT / 60), gx2, 26); }
     }
 
     if (mode === 'enter') drawInitials();

@@ -638,19 +638,26 @@
       }
     }
 
-    // Median decoration: the shop's flash rack
-    ctx.fillStyle = '#2a2a34';
-    ctx.fillRect(8, ROW_Y[4] + 8, 60, 24);
-    for (var i = 0; i < 4; i++) {
-      ctx.fillStyle = [PINK, YELLOW, CYAN, LIME][i];
-      ctx.fillRect(12 + i * 14, ROW_Y[4] + 11, 10, 13);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.fillRect(15 + i * 14, ROW_Y[4] + 14, 4, 5);
+    // Median street furniture: newspaper boxes and a hydrant
+    var boxes = [['#2d6cdf', 10], ['#e8283c', 32]];
+    for (var i = 0; i < boxes.length; i++) {
+      var bxx = boxes[i][1];
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(bxx + 8, ROW_Y[4] + 33, 9, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = boxes[i][0];
+      ctx.fillRect(bxx, ROW_Y[4] + 10, 16, 22);
+      ctx.fillStyle = '#cfd6dd';
+      ctx.fillRect(bxx + 2, ROW_Y[4] + 13, 12, 8);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(bxx + 2, ROW_Y[4] + 24, 12, 2);
+      ctx.fillRect(bxx + 12, ROW_Y[4] + 22, 3, 1);
     }
-    ctx.fillStyle = '#9aa';
-    ctx.font = '7px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('FLASH $40', 12, ROW_Y[4] + 38);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(66, ROW_Y[4] + 33, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e8283c';
+    ctx.fillRect(62, ROW_Y[4] + 18, 8, 14);
+    ctx.fillRect(59, ROW_Y[4] + 22, 14, 4);
+    ctx.fillRect(64, ROW_Y[4] + 14, 4, 5);
 
     // Ambulance warning: the lane flashes before it streaks through
     if (amb && amb.warnT > 0 && Math.floor(frame / 5) % 2 === 0) {

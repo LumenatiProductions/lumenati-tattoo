@@ -93,7 +93,7 @@
 
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
-  var frame, you, cpu, ball, serveT, rally, trail, won, tier, bannerT, bannerText, scoreFlash;
+  var frame, you, cpu, ball, serveT, rally, trail, won, tier, bannerT, bannerText, scoreFlash, stains;
   var keyU = false, keyD = false;
 
   var best = 0;
@@ -108,7 +108,7 @@
     tier = 0; bannerT = 0; bannerText = '';
     you = { y: H / 2 - PH / 2, score: 0 };
     cpu = { y: H / 2 - PH / 2, score: 0 };
-    trail = []; scoreFlash = 0;
+    trail = []; scoreFlash = 0; stains = [];
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '0';
     serve(Math.random() < 0.5 ? 1 : -1);
@@ -131,9 +131,16 @@
     trail = [];
   }
 
+  function addStain(x, y, r) {
+    stains.push({ x: x + (Math.random() - 0.5) * 4, y: y + (Math.random() - 0.5) * 4, r: r + Math.random() * 3, a: 0.16 + Math.random() * 0.08 });
+    if (stains.length > 70) stains.shift();
+  }
+
   function point(scorer) {
     if (rally >= 8) sayCallout('pong-c1');
     scoreFlash = 14;
+    addStain(ball.x < 0 ? 6 : W - 6, ball.y, 9);
+    addStain(ball.x < 0 ? 12 : W - 12, ball.y + 6, 5);
     scorer.score++;
     document.getElementById('jd-br-score').textContent = you.score;
     document.getElementById('jd-br-lives').textContent = cpu.score;
@@ -198,8 +205,8 @@
     if (trail.length > 6) trail.shift();
 
     // Walls
-    if (ball.y < ball.r + 16) { ball.y = ball.r + 16; ball.vy = Math.abs(ball.vy); sfxWall(); }
-    if (ball.y > H - ball.r - 2) { ball.y = H - ball.r - 2; ball.vy = -Math.abs(ball.vy); sfxWall(); }
+    if (ball.y < ball.r + 16) { ball.y = ball.r + 16; ball.vy = Math.abs(ball.vy); addStain(ball.x, 18, 3); sfxWall(); }
+    if (ball.y > H - ball.r - 2) { ball.y = H - ball.r - 2; ball.vy = -Math.abs(ball.vy); addStain(ball.x, H - 4, 3); sfxWall(); }
 
     // Your paddle (left)
     var yx = 16;
@@ -218,7 +225,9 @@
       ball.vx = -Math.abs(ball.vx);
     }
 
+    function addStainAt(x, y, r) { addStain(x, y, r); }
     function bounce(py) {
+      addStain(ball.x, ball.y, 4);
       var rel = (ball.y - (py + PH / 2)) / (PH / 2);
       rel = Math.max(-1, Math.min(1, rel));
       var sp = Math.min(9, Math.hypot(ball.vx, ball.vy) * 1.05 + 0.1);
@@ -471,7 +480,7 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('W/S, ARROWS, MOUSE or DRAG to move // first to 5 wins the match', W / 2, H - 42);
+    ctx.fillText('Your machine vs theirs // W/S, MOUSE or DRAG // first to 5', W / 2, H - 42);
     ctx.fillText('the ladder: Scratcher, Apprentice, Resident, The Machine', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
@@ -512,15 +521,52 @@
     ctx.fillStyle = 'rgba(0,255,255,0.5)';
     ctx.fillText(cpu.score, W / 2 + 50, 52);
 
-    // Paddles
-    ctx.fillStyle = PINK;
-    ctx.fillRect(16, you.y, PW, PH);
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillRect(16, you.y, 2, PH);
-    ctx.fillStyle = CYAN;
-    ctx.fillRect(W - 16 - PW, cpu.y, PW, PH);
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillRect(W - 16 - 2, cpu.y, 2, PH);
+    // Ink stains: the table remembers every rally
+    for (var i = 0; i < stains.length; i++) {
+      ctx.globalAlpha = stains[i].a;
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(stains[i].x, stains[i].y, stains[i].r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Paddles are tattoo machines: coils, frame, and the needle bar you rally with
+    function drawMachine(px2, py2, color, flip) {
+      var dx3 = flip ? -1 : 1;
+      ctx.fillStyle = color;
+      ctx.fillRect(px2, py2, PW, PH);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillRect(flip ? px2 + PW - 2 : px2, py2, 2, PH);
+      var bx3 = px2 + (flip ? PW + 2 : -12);
+      ctx.fillStyle = '#2e2e38';
+      ctx.fillRect(bx3, py2 + PH / 2 - 12, 10, 24);
+      ctx.fillStyle = '#b87333';
+      ctx.beginPath(); ctx.arc(bx3 + 5, py2 + PH / 2 - 5, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx3 + 5, py2 + PH / 2 + 5, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#14121a';
+      ctx.fillRect(bx3 + 2, py2 + PH / 2 - 6, 6, 1);
+      ctx.fillRect(bx3 + 2, py2 + PH / 2 + 4, 6, 1);
+      ctx.fillStyle = '#9aa2ae';
+      ctx.fillRect(bx3 + (flip ? -4 : 10), py2 + PH / 2 - 1, 4, 2);
+    }
+    drawMachine(16, you.y, PINK, false);
+    drawMachine(W - 16 - PW, cpu.y, CYAN, true);
+
+    // Every point inks a piece on your sheet
+    for (var i = 0; i < you.score; i++) {
+      var hx2 = W / 2 - 78 + i * 12;
+      ctx.fillStyle = PINK;
+      ctx.fillRect(hx2, 60, 3, 3); ctx.fillRect(hx2 + 4, 60, 3, 3);
+      ctx.fillRect(hx2, 63, 7, 3); ctx.fillRect(hx2 + 2, 66, 3, 2);
+    }
+    for (var i = 0; i < cpu.score; i++) {
+      var sx2 = W / 2 + 26 + i * 12;
+      ctx.fillStyle = CYAN;
+      ctx.fillRect(sx2, 60, 7, 5);
+      ctx.fillStyle = '#0a0a14';
+      ctx.fillRect(sx2 + 1, 61, 2, 2); ctx.fillRect(sx2 + 4, 61, 2, 2);
+      ctx.fillStyle = CYAN;
+      ctx.fillRect(sx2 + 1, 66, 5, 2);
+    }
 
     // Ball trail + ink-drop ball
     for (var i = 0; i < trail.length; i++) {

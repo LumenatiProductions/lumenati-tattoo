@@ -88,6 +88,7 @@
   var introT = 0;
   var score, lives, wave, frame, bannerT;
   var player, bullets, ebullets, germs, gx, gy, gdir, ufo, particles, invuln, shootCd, touching, rings, muzzle;
+  var drops, divers, boss, spreadT, rapidT, pierceT, diverT, popups;
   var keyL = false, keyR = false, keyFire = false;
 
   var best = 0;
@@ -107,6 +108,32 @@
       }
     }
     gx = 30; gy = 34; gdir = 1;
+    divers = [];
+    // Every fourth wave the MOTHER GERM descends
+    if (wave % 4 === 0) {
+      boss = { x: W / 2, y: 44, hp: 8 + wave, maxHp: 8 + wave, dir: 1, fireT: 0 };
+      for (var i = germs.length - 1; i >= 0; i--) if (germs[i].r === 0) germs[i].alive = false;
+    } else {
+      boss = null;
+    }
+  }
+
+  function addPopup(x, y, text, color) {
+    popups.push({ x: x, y: y, text: text, color: color, life: 45 });
+  }
+
+  function maybeWeapon(x, y) {
+    if (Math.random() > 0.11) return;
+    var r = Math.random();
+    var kind = r < 0.34 ? 'spread' : r < 0.67 ? 'rapid' : 'pierce';
+    drops.push({ x: x, y: y, kind: kind });
+  }
+
+  function applyWeapon(kind) {
+    if (kind === 'spread') { spreadT = 720; addPopup(player.x, player.y - 24, 'SPREAD SHOT', CYAN); }
+    else if (kind === 'rapid') { rapidT = 720; addPopup(player.x, player.y - 24, 'RAPID FIRE', YELLOW); }
+    else { pierceT = 600; addPopup(player.x, player.y - 24, 'PIERCING', PINK); }
+    sfxWave();
   }
 
   function init() {
@@ -116,6 +143,7 @@
     document.getElementById('jd-br-lives').textContent = '3';
     player = { x: W / 2, y: 288, w: 22, h: 18 };
     bullets = []; ebullets = []; particles = []; ufo = null; rings = []; muzzle = 0;
+    drops = []; divers = []; boss = null; spreadT = 0; rapidT = 0; pierceT = 0; diverT = 0; popups = [];
     invuln = 0; shootCd = 0; touching = false;
     buildWave();
     var hintEl = document.getElementById('jd-game-hint');
@@ -147,9 +175,15 @@
   }
 
   function shoot() {
-    if (shootCd > 0 || bullets.length >= 3) return;
-    bullets.push({ x: player.x, y: player.y - 12 });
-    shootCd = 12;
+    if (shootCd > 0 || bullets.length >= (spreadT > 0 ? 9 : 4)) return;
+    if (spreadT > 0) {
+      bullets.push({ x: player.x, y: player.y - 12, vx: -1.3, hits: 0 });
+      bullets.push({ x: player.x, y: player.y - 12, vx: 0, hits: 0 });
+      bullets.push({ x: player.x, y: player.y - 12, vx: 1.3, hits: 0 });
+    } else {
+      bullets.push({ x: player.x, y: player.y - 12, vx: 0, hits: 0 });
+    }
+    shootCd = rapidT > 0 ? 6 : 12;
     muzzle = 3;
     sfxShoot();
   }
@@ -170,6 +204,66 @@
     if (calloutCd > 0) calloutCd--;
     if (shootCd > 0) shootCd--;
     if (invuln > 0) invuln--;
+    if (spreadT > 0) spreadT--;
+    if (rapidT > 0) rapidT--;
+    if (pierceT > 0) pierceT--;
+    for (var i = popups.length - 1; i >= 0; i--) {
+      popups[i].y -= 0.5; popups[i].life--;
+      if (popups[i].life <= 0) popups.splice(i, 1);
+    }
+
+    // Divers: from wave 3, germs break formation and kamikaze
+    if (wave >= 3) {
+      diverT++;
+      var needD = Math.max(140, 260 - wave * 12);
+      if (diverT > needD) {
+        diverT = 0;
+        var alive2 = [];
+        for (var i = 0; i < germs.length; i++) if (germs[i].alive) alive2.push(germs[i]);
+        if (alive2.length > 2) {
+          var g2 = alive2[Math.floor(Math.random() * alive2.length)];
+          g2.alive = false;
+          divers.push({ x: germX(g2) + GW / 2, y: germY(g2) + GH / 2, r: g2.r, vy: 2.2 + wave * 0.15 });
+        }
+      }
+    }
+    for (var i = divers.length - 1; i >= 0; i--) {
+      var dv = divers[i];
+      dv.y += dv.vy;
+      dv.x += (player.x - dv.x) * 0.012;
+      if (dv.y > H + 14) { divers.splice(i, 1); continue; }
+      if (invuln === 0 && Math.abs(dv.x - player.x) < 13 && Math.abs(dv.y - player.y) < 13) {
+        divers.splice(i, 1);
+        loseLife();
+        if (mode !== 'play') return;
+      }
+    }
+
+    // The mother germ
+    if (boss) {
+      boss.x += boss.dir * (0.8 + wave * 0.06);
+      if (boss.x < 40) boss.dir = 1;
+      if (boss.x > W - 40) boss.dir = -1;
+      boss.fireT++;
+      if (boss.fireT > Math.max(34, 60 - wave * 2)) {
+        boss.fireT = 0;
+        for (var k = -1; k <= 1; k++) {
+          ebullets.push({ x: boss.x + k * 8, y: boss.y + 14, vy: 2.6 + wave * 0.15, vx: k * 0.7 });
+        }
+      }
+    }
+
+    // Weapon vials drift down
+    for (var i = drops.length - 1; i >= 0; i--) {
+      var d = drops[i];
+      d.y = (d.y || 0) + 1.6;
+      if (Math.abs(d.x - player.x) < 16 && Math.abs(d.y - player.y) < 14) {
+        applyWeapon(d.kind);
+        drops.splice(i, 1);
+      } else if (d.y > H + 12) {
+        drops.splice(i, 1);
+      }
+    }
 
     // Player
     if (keyL) player.x -= 4;
@@ -221,7 +315,7 @@
     }
 
     // UFO: a fat bacteria blob drifting across the top
-    if (!ufo && frame % 700 === 400) ufo = { x: -30, v: 1.6 };
+    if (!ufo && !boss && frame % 700 === 400) ufo = { x: -30, v: 1.6 };
     if (ufo) {
       ufo.x += ufo.v;
       if (ufo.x > W + 30) ufo = null;
@@ -231,8 +325,40 @@
     for (var i = bullets.length - 1; i >= 0; i--) {
       var b = bullets[i];
       b.y -= 6;
-      if (b.y < 14) { bullets.splice(i, 1); continue; }
+      b.x += b.vx || 0;
+      if (b.y < 14 || b.x < 0 || b.x > W) { bullets.splice(i, 1); continue; }
       var hit = false;
+      // divers are worth extra
+      for (var j = divers.length - 1; j >= 0; j--) {
+        var dv = divers[j];
+        if (Math.abs(b.x - dv.x) < 11 && Math.abs(b.y - dv.y) < 11) {
+          divers.splice(j, 1);
+          hit = true;
+          score += 25;
+          document.getElementById('jd-br-score').textContent = score;
+          rings.push({ x: dv.x, y: dv.y, r: 4, life: 14, c: PINK });
+          sfxPop(2);
+          break;
+        }
+      }
+      if (!hit && boss && Math.abs(b.x - boss.x) < 18 && Math.abs(b.y - boss.y) < 14) {
+        boss.hp--;
+        hit = true;
+        boss.flashT = 6;
+        sfxPop(1);
+        if (boss.hp <= 0) {
+          score += 200;
+          document.getElementById('jd-br-score').textContent = score;
+          addPopup(boss.x, boss.y, 'MOTHER GERM +200', YELLOW);
+          rings.push({ x: boss.x, y: boss.y, r: 8, life: 22, c: YELLOW });
+          rings.push({ x: boss.x, y: boss.y, r: 2, life: 26, c: PINK });
+          drops.push({ x: boss.x - 14, y: boss.y, kind: 'spread' });
+          drops.push({ x: boss.x + 14, y: boss.y, kind: 'rapid' });
+          spawnParticles(boss.x, boss.y, YELLOW, 20);
+          boss = null;
+          sayCallout('shooter-c3');
+        }
+      }
       for (var j = 0; j < germs.length; j++) {
         var g = germs[j];
         if (!g.alive) continue;
@@ -247,6 +373,7 @@
             sfxPop(GROWS - g.r);
             rings.push({ x: x + GW / 2, y: y + GH / 2, r: 4, life: 14, c: ROW_COLOR[g.r] });
             spawnParticles(x + GW / 2, y + GH / 2, ROW_COLOR[g.r], 8);
+            maybeWeapon(x + GW / 2, y + GH / 2);
           } else {
             g.flashT = 8;
             sfxPop(0);
@@ -265,13 +392,17 @@
         ufo = null;
         hit = true;
       }
-      if (hit) bullets.splice(i, 1);
+      if (hit) {
+        b.hits = (b.hits || 0) + 1;
+        if (pierceT <= 0 || b.hits >= 3) bullets.splice(i, 1);
+      }
     }
 
     // Enemy ooze
     for (var i = ebullets.length - 1; i >= 0; i--) {
       var e = ebullets[i];
       e.y += e.vy;
+      e.x += e.vx || 0;
       if (e.y > H + 10) { ebullets.splice(i, 1); continue; }
       if (invuln === 0 &&
           e.x > player.x - player.w / 2 && e.x < player.x + player.w / 2 &&
@@ -283,7 +414,7 @@
     }
 
     // Wave cleared
-    if (alive === 0) {
+    if (alive === 0 && !boss) {
       wave++;
       score += 100;
       document.getElementById('jd-br-score').textContent = score;
@@ -578,8 +709,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS move, SPACE fires // on phones: drag to move, autofire', W / 2, H - 42);
-    ctx.fillText('zap germs before they reach the tray // armored ones take two hits', W / 2, H - 29);
+    ctx.fillText('ARROWS move, SPACE fires // catch vials: Spread, Rapid, Pierce', W / 2, H - 42);
+    ctx.fillText('divers kamikaze from wave 3 // the MOTHER GERM comes every 4th', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -620,6 +751,53 @@
     }
 
     for (var i = 0; i < germs.length; i++) if (germs[i].alive) drawGerm(germs[i]);
+
+    // Divers scream in with a wake
+    for (var i = 0; i < divers.length; i++) {
+      var dv = divers[i];
+      ctx.fillStyle = 'rgba(255,20,147,0.25)';
+      ctx.fillRect(dv.x - 2, dv.y - 14, 4, 10);
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(dv.x, dv.y, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(dv.x - 4, dv.y - 3, 3, 3);
+      ctx.fillRect(dv.x + 1, dv.y - 3, 3, 3);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(dv.x - 3, dv.y - 2, 2, 2);
+      ctx.fillRect(dv.x + 2, dv.y - 2, 2, 2);
+    }
+
+    // The mother germ + her health
+    if (boss) {
+      if (boss.flashT) boss.flashT--;
+      var bwob = Math.sin(frame * 0.1) * 3;
+      ctx.fillStyle = boss.flashT ? '#fff' : PURPLE;
+      ctx.beginPath(); ctx.arc(boss.x, boss.y + bwob, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(boss.x - 12, boss.y + bwob + 6, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(boss.x + 12, boss.y + bwob + 6, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(boss.x - 8, boss.y + bwob - 6, 5, 5);
+      ctx.fillRect(boss.x + 3, boss.y + bwob - 6, 5, 5);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(boss.x - 6, boss.y + bwob - 4, 3, 3);
+      ctx.fillRect(boss.x + 5, boss.y + bwob - 4, 3, 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(boss.x - 20, boss.y + bwob - 28, 40, 4);
+      ctx.fillStyle = PINK;
+      ctx.fillRect(boss.x - 20, boss.y + bwob - 28, 40 * (boss.hp / boss.maxHp), 4);
+    }
+
+    // Weapon vials
+    for (var i = 0; i < drops.length; i++) {
+      var d = drops[i];
+      var dc = d.kind === 'spread' ? CYAN : d.kind === 'rapid' ? YELLOW : PINK;
+      ctx.fillStyle = '#e8e4d8';
+      ctx.fillRect(d.x - 5, d.y - 7, 10, 14);
+      ctx.fillStyle = dc;
+      ctx.fillRect(d.x - 5, d.y - 1, 10, 8);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(d.x - 3, d.y - 9, 6, 3);
+    }
 
     // Ooze
     ctx.fillStyle = '#2ecc71';
@@ -670,6 +848,16 @@
     }
     ctx.globalAlpha = 1;
 
+    // Popups
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    for (var i = 0; i < popups.length; i++) {
+      ctx.globalAlpha = Math.min(1, popups[i].life / 18);
+      ctx.fillStyle = popups[i].color;
+      ctx.fillText(popups[i].text, popups[i].x, popups[i].y);
+    }
+    ctx.globalAlpha = 1;
+
     // HUD
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px monospace';
@@ -677,6 +865,13 @@
     ctx.fillText('SCORE: ' + score, 8, 12);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
+    if (mode === 'play' && (spreadT > 0 || rapidT > 0 || pierceT > 0)) {
+      ctx.font = 'bold 9px monospace';
+      var wx2 = 8;
+      if (spreadT > 0) { ctx.fillStyle = CYAN; ctx.fillText('SPREAD ' + Math.ceil(spreadT / 60), wx2, 24); wx2 += 62; }
+      if (rapidT > 0) { ctx.fillStyle = YELLOW; ctx.fillText('RAPID ' + Math.ceil(rapidT / 60), wx2, 24); wx2 += 56; }
+      if (pierceT > 0) { ctx.fillStyle = PINK; ctx.fillText('PIERCE ' + Math.ceil(pierceT / 60), wx2, 24); }
+    }
     ctx.textAlign = 'right';
     ctx.fillStyle = YELLOW;
     ctx.fillText('WAVE ' + wave, W - 8, 12);

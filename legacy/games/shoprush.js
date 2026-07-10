@@ -17,7 +17,42 @@
       o.start(); o.stop(c.currentTime + dur);
     } catch(e) {}
   }
-  function sfxBell() { playSfx(1100, 0.1, 'square', 0.1); setTimeout(function(){playSfx(1400, 0.12, 'square', 0.08);}, 90); }
+  function sfxBell() { playSfx(1568, 0.22, 'sine', 0.16); setTimeout(function(){playSfx(1319, 0.3, 'sine', 0.12);}, 110); }
+  // Shop ambience: machines hum while chairs are busy, plus a soft murmur
+  var humOsc = null, humGain = null, murmurSrc = null, murmurGain = null;
+  function setAmbience(busyCount, crowd) {
+    try {
+      var c = getSfx();
+      if (!humOsc) {
+        humOsc = c.createOscillator();
+        humGain = c.createGain();
+        humOsc.type = 'sawtooth';
+        humOsc.frequency.value = 62;
+        humGain.gain.value = 0;
+        humOsc.connect(humGain);
+        humGain.connect(c.destination);
+        humOsc.start();
+        var len = c.sampleRate * 2;
+        var buf = c.createBuffer(1, len, c.sampleRate);
+        var data = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+        murmurSrc = c.createBufferSource();
+        murmurSrc.buffer = buf;
+        murmurSrc.loop = true;
+        var lp = c.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 340;
+        murmurGain = c.createGain();
+        murmurGain.gain.value = 0;
+        murmurSrc.connect(lp);
+        lp.connect(murmurGain);
+        murmurGain.connect(c.destination);
+        murmurSrc.start();
+      }
+      humGain.gain.setTargetAtTime(Math.min(0.022, busyCount * 0.009), c.currentTime, 0.15);
+      murmurGain.gain.setTargetAtTime(Math.min(0.016, crowd * 0.005), c.currentTime, 0.3);
+    } catch (e) {}
+  }
   function sfxSeat() { playSfx(600, 0.08, 'square', 0.1); setTimeout(function(){playSfx(800, 0.1, 'square', 0.1);}, 70); }
   function sfxCash() { playSfx(900, 0.06, 'square', 0.11); setTimeout(function(){playSfx(1200, 0.06, 'square', 0.11);}, 60); setTimeout(function(){playSfx(1500, 0.1, 'square', 0.11);}, 120); }
   function sfxStorm() { playSfx(240, 0.2, 'sawtooth', 0.14); setTimeout(function(){playSfx(160, 0.28, 'sawtooth', 0.14);}, 160); }
@@ -156,6 +191,7 @@
     document.getElementById('jd-br-lives').textContent = hearts;
     sfxStorm();
     if (hearts <= 0) {
+      setAmbience(0, 0);
       enterBoard(score);
       saveBest();
       deathJingle();
@@ -167,6 +203,9 @@
     musicTick();
     if (calloutCd > 0) calloutCd--;
     if (bannerT > 0) bannerT--;
+    var busyN = 0;
+    for (var i = 0; i < chairs.length; i++) if (chairs[i].state === 'busy') busyN++;
+    setAmbience(busyN, clients.length);
 
     // Runner: keys beat taps
     if (runner.kx !== 0 || runner.ky !== 0) {
@@ -595,13 +634,32 @@
       for (var bx2 = (by2 % 20 === 4 ? 0 : 14); bx2 < W; bx2 += 28) ctx.fillRect(bx2, by2, 12, 1);
     }
     for (var i = 0; i < 4; i++) {
-      var fsx = 64 + i * 84;
+      var fsx = 84 + i * 72;
+      ctx.fillStyle = '#3a2a20';
+      ctx.fillRect(fsx - 2, 8, 26, 24);
       ctx.fillStyle = '#efe9dc';
-      ctx.fillRect(fsx, 8, 22, 28);
-      ctx.fillStyle = ['#d81e3c', '#2d6cdf', '#2e8b4a', '#f2c14e'][i];
-      ctx.fillRect(fsx + 6, 14, 10, 10);
-      ctx.fillStyle = '#14121a';
-      ctx.fillRect(fsx + 8, 26, 6, 5);
+      ctx.fillRect(fsx, 10, 22, 20);
+      if (i === 0) { // heart
+        ctx.fillStyle = '#d81e3c';
+        ctx.fillRect(fsx + 6, 14, 4, 4); ctx.fillRect(fsx + 12, 14, 4, 4);
+        ctx.fillRect(fsx + 6, 17, 10, 4); ctx.fillRect(fsx + 9, 21, 4, 3);
+      } else if (i === 1) { // anchor
+        ctx.fillStyle = '#2d6cdf';
+        ctx.fillRect(fsx + 10, 12, 2, 12);
+        ctx.fillRect(fsx + 6, 15, 10, 2);
+        ctx.fillRect(fsx + 5, 22, 4, 2); ctx.fillRect(fsx + 13, 22, 4, 2);
+      } else if (i === 2) { // bolt
+        ctx.fillStyle = '#f2c14e';
+        ctx.fillRect(fsx + 11, 12, 4, 5);
+        ctx.fillRect(fsx + 8, 16, 6, 4);
+        ctx.fillRect(fsx + 6, 20, 4, 5);
+      } else { // skull
+        ctx.fillStyle = '#ccd2d8';
+        ctx.fillRect(fsx + 7, 13, 9, 7);
+        ctx.fillRect(fsx + 9, 20, 5, 4);
+        ctx.fillStyle = '#14121a';
+        ctx.fillRect(fsx + 9, 15, 2, 2); ctx.fillRect(fsx + 13, 15, 2, 2);
+      }
     }
     // Neon sign with a real glow
     ctx.font = 'bold 12px monospace';
@@ -671,9 +729,13 @@
       var bob = ch.state === 'busy' ? Math.sin(frame * 0.3 + i) * 2 : 0;
       drawPerson(ch.x + 30, ch.y + bob, SKINS[i % SKINS.length], '#1c1418', i === 0 ? PINK : HAIRS[i % HAIRS.length], false, false);
       if (ch.state === 'busy') {
-        // machine arm + progress
+        // machine arm + ink sparks + progress
         ctx.fillStyle = '#9b59b6';
         ctx.fillRect(ch.x + 18, ch.y - 4 + bob, 8, 5);
+        if (frame % 5 === 0) {
+          ctx.fillStyle = '#1c1418';
+          ctx.fillRect(ch.x + 14 + Math.random() * 6, ch.y + Math.random() * 4, 2, 2);
+        }
         ctx.fillStyle = 'rgba(255,255,255,0.25)';
         ctx.fillRect(ch.x - 18, ch.y - 32, 66, 4);
         ctx.fillStyle = CYAN;
@@ -696,6 +758,10 @@
       if (c.state === 'inchair') continue;
       drawPerson(c.x, c.y, c.skin, c.shirt, c.hair, c.state === 'waiting', c.state !== 'waiting');
       if (c.state === 'waiting') {
+        if ((frame + c.seat * 17) % 90 < 6) {
+          ctx.fillStyle = '#223';
+          ctx.fillRect(c.x - 5, c.y + 11, 4, 2);
+        }
         var pr = c.patience / c.pmax;
         ctx.fillStyle = 'rgba(255,255,255,0.25)';
         ctx.fillRect(c.x - 10, c.y - 24, 20, 3);
@@ -764,7 +830,7 @@
     }
   }
   function loop(t) {
-    if (!window.skateRunning) { rafId = null; return; }
+    if (!window.skateRunning) { rafId = null; setAmbience(0, 0); return; }
     if (!lastT) lastT = t;
     acc += Math.min(100, t - lastT);
     lastT = t;

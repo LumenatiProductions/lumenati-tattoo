@@ -18,6 +18,25 @@
     } catch(e) {}
   }
   function sfxBuzz() { playSfx(90 + Math.random() * 25, 0.06, 'sawtooth', 0.045); }
+  // The machine hums for real: a continuous sawtooth that opens while inking
+  var buzzOsc = null, buzzGain = null;
+  function setBuzz(level) {
+    try {
+      var c = getSfx();
+      if (!buzzOsc) {
+        buzzOsc = c.createOscillator();
+        buzzGain = c.createGain();
+        buzzOsc.type = 'sawtooth';
+        buzzOsc.frequency.value = 58;
+        buzzGain.gain.value = 0;
+        buzzOsc.connect(buzzGain);
+        buzzGain.connect(c.destination);
+        buzzOsc.start();
+      }
+      buzzGain.gain.setTargetAtTime(level, c.currentTime, 0.06);
+      if (level > 0) buzzOsc.frequency.setValueAtTime(55 + Math.random() * 8, c.currentTime);
+    } catch (e) {}
+  }
   function sfxWince() { playSfx(300, 0.12, 'square', 0.13); setTimeout(function(){playSfx(200, 0.2, 'sawtooth', 0.13);}, 100); }
   function sfxDone() { playSfx(700, 0.1, 'square', 0.12); setTimeout(function(){playSfx(950, 0.1, 'square', 0.12);}, 100); setTimeout(function(){playSfx(1250, 0.15, 'square', 0.12);}, 200); }
   function sfxFlinchWarn() { playSfx(1200, 0.07, 'square', 0.1); setTimeout(function(){playSfx(1200, 0.07, 'square', 0.1);}, 110); }
@@ -191,6 +210,9 @@
       }
     }
 
+    var onNow = record[Math.floor(sx + NEEDLE_X) - 1];
+    setBuzz(mode === 'play' && onNow && onNow.good ? 0.028 : 0);
+
     // Advance the needle along the design, judging every column crossed
     var newSx = sx + speed;
     for (var wx = Math.ceil(sx + NEEDLE_X); wx < newSx + NEEDLE_X; wx++) {
@@ -204,7 +226,6 @@
           document.getElementById('jd-br-score').textContent = score;
           spawnParticles(NEEDLE_X, needleY + 4, '#1a1a1a', 1);
         }
-        if (wx % 16 === 0) sfxBuzz();
         if (wx % 90 === 0 && combo < 5) { combo++; comboT = 999; }
         comboT = 240;
       } else {
@@ -219,6 +240,7 @@
           sayCallout('steady-c3');
           offStreak = 0;
           if (trust <= 0) {
+            setBuzz(0);
             enterBoard(score);
             saveBest();
             deathJingle();
@@ -584,24 +606,49 @@
       ctx.fillText('! FLINCH !', W / 2, 52);
     }
 
-    // Cable sways from the machine up to the power supply
+    // Power supply on the cart, clip cord swaying down to the machine
+    ctx.fillStyle = '#23202c';
+    ctx.fillRect(4, 6, 40, 22);
+    ctx.fillStyle = '#14121a';
+    ctx.fillRect(8, 10, 12, 12);
+    ctx.strokeStyle = '#9aa2ae';
+    ctx.beginPath(); ctx.arc(14, 16, 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14, 16); ctx.lineTo(16, 12); ctx.stroke();
+    var onAir = record[Math.floor(sx + NEEDLE_X) - 1];
+    ctx.fillStyle = onAir && onAir.good ? '#7FFF00' : '#442222';
+    ctx.fillRect(26, 12, 4, 4);
+    ctx.fillStyle = '#9aa';
+    ctx.font = '6px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('PWR', 25, 25);
     var vib = (Math.random() - 0.5) * 1.6;
     ctx.strokeStyle = '#3a3440';
     ctx.beginPath();
-    ctx.moveTo(NEEDLE_X, needleY - 34 + vib);
-    ctx.quadraticCurveTo(NEEDLE_X - 40 + Math.sin(frame * 0.04) * 8, needleY - 90, 10, 8);
+    ctx.moveTo(NEEDLE_X - 2, needleY - 30 + vib);
+    ctx.quadraticCurveTo(NEEDLE_X - 50 + Math.sin(frame * 0.04) * 8, needleY - 80, 24, 28);
     ctx.stroke();
     var on = record[Math.floor(sx + NEEDLE_X) - 1];
     var inking = on && on.good;
-    ctx.fillStyle = '#ccc';
-    ctx.fillRect(NEEDLE_X - 1, needleY - 14 + vib, 2, 12);
-    ctx.fillStyle = '#9b59b6';
-    ctx.fillRect(NEEDLE_X - 6, needleY - 34 + vib, 12, 22);
-    ctx.fillStyle = PINK;
-    ctx.fillRect(NEEDLE_X - 8, needleY - 38 + vib, 4, 6);
-    ctx.fillRect(NEEDLE_X + 4, needleY - 38 + vib, 4, 6);
+    // A real coil machine: steel frame, copper coils, grip taper, needle bar
+    ctx.fillStyle = '#2e2e38';
+    ctx.fillRect(NEEDLE_X - 7, needleY - 34 + vib, 14, 6);
+    ctx.fillRect(NEEDLE_X - 7, needleY - 34 + vib, 5, 16);
+    ctx.fillStyle = '#b87333';
+    ctx.beginPath(); ctx.arc(NEEDLE_X + 2, needleY - 24 + vib, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(NEEDLE_X + 2, needleY - 15 + vib, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#14121a';
+    ctx.fillRect(NEEDLE_X - 2, needleY - 25 + vib, 8, 1);
+    ctx.fillRect(NEEDLE_X - 2, needleY - 16 + vib, 8, 1);
+    ctx.fillStyle = '#9aa2ae';
+    ctx.fillRect(NEEDLE_X - 6, needleY - 36 + vib, 12, 3);
+    ctx.beginPath();
+    ctx.moveTo(NEEDLE_X - 3, needleY - 10 + vib);
+    ctx.lineTo(NEEDLE_X + 3, needleY - 10 + vib);
+    ctx.lineTo(NEEDLE_X + 1.5, needleY - 2);
+    ctx.lineTo(NEEDLE_X - 1.5, needleY - 2);
+    ctx.fill();
     ctx.fillStyle = inking ? '#1c1418' : '#cc2222';
-    ctx.fillRect(NEEDLE_X - 1, needleY - 2, 2, 3);
+    ctx.fillRect(NEEDLE_X - 0.5, needleY - 3, 1.5, 4);
 
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
@@ -665,7 +712,7 @@
     }
   }
   function loop(t) {
-    if (!window.skateRunning) { rafId = null; return; }
+    if (!window.skateRunning) { rafId = null; setBuzz(0); return; }
     if (!lastT) lastT = t;
     acc += Math.min(100, t - lastT);
     lastT = t;
