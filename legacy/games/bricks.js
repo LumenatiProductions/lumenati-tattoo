@@ -196,7 +196,7 @@
         document.getElementById('jd-br-lives').textContent = lives;
         flashT = 12;
         sfxLose();
-        if (lives <= 0) { mode = 'over'; saveBest(); sfxGameOver(); return; }
+        if (lives <= 0) { enterBoard(score); saveBest(); sfxGameOver(); return; }
         serve();
       }
     }
@@ -210,8 +210,9 @@
 
   // ── Input ──
   function start() {
-    if (mode === 'intro') { mode = 'ready'; return; }
-    if (mode === 'over') { init(); mode = 'play'; return; }
+    if (mode === 'intro') { mode = 'play'; return; }
+    if (mode === 'enter') drawInitials();
+    if (mode === 'over') drawBoard();
     if (mode === 'ready') mode = 'play';
     launch();
   }
@@ -242,6 +243,147 @@
     e.preventDefault();
     paddle.x = Math.max(0, Math.min(W - paddle.w, canvasX(e.touches[0].clientX) - paddle.w / 2));
   }, { passive: false });
+
+  // ── Shop leaderboard: top 5 on this machine, signed with three initials ──
+  var BOARD_KEY = 'lumenati-arcade-bricks-board';
+  var board = [];
+  try { board = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]') || []; } catch (e) {}
+  var initials = ['A', 'A', 'A'];
+  try {
+    var lastN = localStorage.getItem('lumenati-arcade-initials');
+    if (lastN && lastN.length === 3) initials = lastN.split('');
+  } catch (e) {}
+  var initSlot = 0, boardIdx = -1, finalScore = 0;
+  var LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  function fmtBoard(v) { return String(v); }
+
+  function enterBoard(v) {
+    finalScore = v;
+    boardIdx = -1;
+    initSlot = 0;
+    mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
+  }
+
+  function commitInitials() {
+    var name = initials.join('');
+    try { localStorage.setItem('lumenati-arcade-initials', name); } catch (e) {}
+    board.push({ n: name, s: finalScore });
+    board.sort(function(a, b) { return b.s - a.s; });
+    board = board.slice(0, 5);
+    boardIdx = -1;
+    for (var i = 0; i < board.length; i++) {
+      if (boardIdx === -1 && board[i].s === finalScore && board[i].n === name) boardIdx = i;
+    }
+    try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); } catch (e) {}
+    mode = 'over';
+  }
+
+  function cycleInit(dir) {
+    initials[initSlot] = LETTERS[(LETTERS.indexOf(initials[initSlot]) + dir + 26) % 26];
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (!window.skateRunning || mode !== 'enter') return;
+    e.preventDefault();
+    if (/^Key[A-Z]$/.test(e.code)) {
+      initials[initSlot] = e.code.charAt(3);
+      if (initSlot < 2) initSlot++;
+    } else if (e.code === 'ArrowUp') cycleInit(1);
+    else if (e.code === 'ArrowDown') cycleInit(-1);
+    else if (e.code === 'ArrowLeft') initSlot = Math.max(0, initSlot - 1);
+    else if (e.code === 'ArrowRight') initSlot = Math.min(2, initSlot + 1);
+    else if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) {
+      if (initSlot < 2) initSlot++;
+      else commitInitials();
+    } else if (e.code === 'Backspace') initSlot = Math.max(0, initSlot - 1);
+  });
+  function enterTap(clientX, clientY) {
+    var r = canvas.getBoundingClientRect();
+    var x = (clientX - r.left) * (W / r.width), y = (clientY - r.top) * (H / r.height);
+    if (x > W / 2 - 50 && x < W / 2 + 50 && y > 224 && y < 258) { commitInitials(); return; }
+    if (y < 132 || y > 214) return;
+    initSlot = x < W / 2 - 20 ? 0 : x > W / 2 + 20 ? 2 : 1;
+    if (y < 174) cycleInit(1); else cycleInit(-1);
+  }
+  canvas.addEventListener('click', function(e) { if (mode === 'enter') enterTap(e.clientX, e.clientY); });
+  canvas.addEventListener('touchstart', function(e) {
+    if (mode === 'enter') { e.preventDefault(); enterTap(e.touches[0].clientX, e.touches[0].clientY); }
+  }, { passive: false });
+
+  function drawInitials() {
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = YELLOW;
+    ctx.font = 'bold 18px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('HIGH SCORE!', W / 2, 70);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText(fmtBoard(finalScore), W / 2, 94);
+    ctx.fillStyle = '#9aa';
+    ctx.font = '10px monospace';
+    ctx.fillText('SIGN THE WALL', W / 2, 118);
+    for (var i = 0; i < 3; i++) {
+      var x = W / 2 + (i - 1) * 40;
+      var active = i === initSlot;
+      if (active) {
+        ctx.fillStyle = PINK;
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('\u25b2', x, 146);
+        ctx.fillText('\u25bc', x, 208);
+      }
+      ctx.fillStyle = active && Math.floor(frame / 8) % 2 === 0 ? PINK : '#fff';
+      ctx.font = 'bold 30px monospace';
+      ctx.fillText(initials[i], x, 184);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(x - 12, 190, 24, 2);
+    }
+    ctx.fillStyle = PINK;
+    ctx.fillRect(W / 2 - 40, 226, 80, 26);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('OK', W / 2, 243);
+    ctx.fillStyle = '#9aa';
+    ctx.font = '9px monospace';
+    ctx.fillText('TYPE or ARROWS // SPACE confirms', W / 2, 274);
+  }
+
+  function drawBoard() {
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = PINK;
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', W / 2, 58);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('Score: ' + fmtBoard(finalScore), W / 2, 84);
+    ctx.fillStyle = CYAN;
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('SHOP LEADERBOARD', W / 2, 116);
+    ctx.font = 'bold 13px monospace';
+    for (var i = 0; i < 5; i++) {
+      var ly = 140 + i * 24;
+      var e2 = board[i];
+      var mine = i === boardIdx;
+      ctx.fillStyle = mine ? YELLOW : (e2 ? '#fff' : 'rgba(255,255,255,0.25)');
+      ctx.textAlign = 'left';
+      ctx.fillText((i + 1) + '.', 100, ly);
+      ctx.fillText(e2 ? e2.n : '---', 134, ly);
+      ctx.textAlign = 'right';
+      ctx.fillText(e2 ? fmtBoard(e2.s) : '-', 300, ly);
+      if (mine && Math.floor(frame / 10) % 2 === 0) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = PINK;
+        ctx.fillText('\u25b8', 84, ly);
+      }
+    }
+    ctx.fillStyle = YELLOW;
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('SPACE or TAP to break again', W / 2, 286);
+  }
 
   // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
   function drawIntro() {
@@ -296,12 +438,22 @@
     var byp = 226 + Math.sin(t2 * 0.14) * 22;
     ctx.fillStyle = PINK;
     ctx.beginPath(); ctx.arc(bxp, byp, 5, 0, Math.PI * 2); ctx.fill();
-    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('BREAK THE WHOLE BOOK', W / 2, 262); }
-    if (t2 > 60 && Math.floor(t2 / 25) % 2 === 0) {
+    if (t2 > 130) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('BREAK THE WHOLE BOOK', W / 2, 246); }
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, H - 58, W, 58);
+    ctx.fillStyle = '#cfd6dd';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ARROWS, MOUSE or DRAG to move // SPACE or TAP launches', W / 2, H - 42);
+    ctx.fillText('break every flash design in the book // top designs pay double', W / 2, H - 29);
+    if (Math.floor(t / 22) % 2 === 0) {
+      ctx.fillStyle = YELLOW;
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('PRESS SPACE OR TAP TO START', W / 2, H - 10);
+    } else {
       ctx.fillStyle = '#9aa';
-      ctx.font = '9px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('TAP OR SPACE TO SKIP', W / 2, H - 8);
+      ctx.font = '10px monospace';
+      ctx.fillText('BEST: ' + best, W / 2, H - 10);
     }
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
@@ -403,23 +555,7 @@
       ctx.fillText('SPACE or TAP to break again', W / 2, H / 2 + 48);
     }
 
-    if (mode === 'ready') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = YELLOW;
-      ctx.font = 'bold 22px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('FLASH BREAKER', W / 2, H / 2 - 42);
-      ctx.fillStyle = '#fff';
-      ctx.font = '12px monospace';
-      ctx.fillText('ARROWS / MOUSE / DRAG to move', W / 2, H / 2 - 8);
-      ctx.fillStyle = PINK;
-      ctx.fillText('Break the flash designs off the wall', W / 2, H / 2 + 10);
-      ctx.fillStyle = CYAN;
-      ctx.fillText('Heart, skull, bolt, star, dagger...', W / 2, H / 2 + 28);
-      ctx.fillStyle = YELLOW;
-      ctx.fillText('Best: ' + best, W / 2, H / 2 + 46);
-    }
+
   }
 
   // Fixed-step loop on requestAnimationFrame
@@ -437,7 +573,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; if (mode === 'intro' && ++introT > 285) mode = 'ready'; }
+      else { frame++; if (mode === 'intro' && ++introT > 285) introT = 70; }
       acc -= 16.67;
     }
     draw();
