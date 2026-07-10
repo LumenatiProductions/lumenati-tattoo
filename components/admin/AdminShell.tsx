@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS, ASSIGNABLE_ROLES } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
@@ -70,7 +71,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { role, setRole, asArtistId, setAsArtistId, canPreview, email } = useRole();
   const { artists } = useArtists();
   const pathname = usePathname();
@@ -87,7 +88,7 @@ function Sidebar() {
   };
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-white/10 bg-white/6">
+    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-white/10 bg-white/6">
       <div className="px-5 py-4">
         <LumenatiLogo bg="dark" className="w-16" />
         <div className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-white/55">
@@ -111,7 +112,7 @@ function Sidebar() {
                     key={n.href}
                     href={n.soon ? "#" : n.href}
                     aria-disabled={n.soon}
-                    onClick={n.soon ? (e) => e.preventDefault() : undefined}
+                    onClick={n.soon ? (e) => e.preventDefault() : onNavigate}
                     tabIndex={n.soon ? -1 : undefined}
                     className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
                       active
@@ -192,6 +193,47 @@ function Sidebar() {
   );
 }
 
+
+// Desktop: permanent sidebar rail. Phone: sticky top bar + slide-over drawer
+// (same Sidebar, so preview-as / logout ride along).
+function ShellFrame({ children }: { children: React.ReactNode }) {
+  const [navOpen, setNavOpen] = useState(false);
+  return (
+    <div className="admin-wash flex min-h-screen text-ink antialiased">
+      <div className="cc-desktop-rail">
+        <Sidebar />
+      </div>
+      <div className="cc-col">
+        <header className="cc-mobile-bar">
+          <div className="flex items-center gap-3">
+            <LumenatiLogo bg="dark" className="w-12" />
+            <span className="text-[10px] font-medium uppercase tracking-widest text-white/55">
+              Command Center
+            </span>
+          </div>
+          <button
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            className="rounded-lg border border-white/12 px-3 py-1.5 text-sm text-white/85"
+          >
+            Menu
+          </button>
+        </header>
+        <main className="cc-main flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+      </div>
+      {navOpen && (
+        <div className="cc-drawer">
+          <div className="cc-drawer-panel">
+            <Sidebar onNavigate={() => setNavOpen(false)} />
+          </div>
+          <button aria-label="Close menu" onClick={() => setNavOpen(false)} className="cc-drawer-backdrop" />
+        </div>
+      )}
+      <BugReporter />
+    </div>
+  );
+}
+
 export default function AdminShell({
   realRole,
   realArtistId,
@@ -219,11 +261,7 @@ export default function AdminShell({
                  <InventoryProvider>
                   <FollowupsProvider>
                    <CashProvider>
-                    <div className="admin-wash flex min-h-screen text-ink antialiased">
-                      <Sidebar />
-                      <main className="flex-1 overflow-x-hidden px-8 py-7">{children}</main>
-                      <BugReporter />
-                    </div>
+                    <ShellFrame>{children}</ShellFrame>
                    </CashProvider>
                   </FollowupsProvider>
                  </InventoryProvider>

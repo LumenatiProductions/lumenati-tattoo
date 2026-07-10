@@ -53,3 +53,16 @@
 .inp {
   color-scheme: dark;
 }
+
+/* ── Phone widths ── the Command Center is desktop-first, but it must work
+   from a pocket. Below lg the sidebar is a drawer (AdminShell) and wide
+   tables scroll sideways inside their card instead of stretching the page. */
+@media (max-width: 1023px) {
+  .admin-wash table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}

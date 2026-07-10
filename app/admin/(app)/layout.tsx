@@ -1,4 +1,5 @@
 import "../admin.css";
+import "../phone.css";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminShell from "@/components/admin/AdminShell";

@@ -1,0 +1,62 @@
+/* Phone widths — the Command Center is desktop-first, but it must work from
+   a pocket. Below lg (1024px) the sidebar becomes a drawer behind a sticky
+   top bar (AdminShell), and wide tables scroll sideways inside their card
+   instead of stretching the page. Plain CSS on purpose: responsive Tailwind
+   variants new to the admin never existed in the compiled sheet, so the
+   shell's breakpoint behavior lives here where it always compiles. */
+
+.cc-col {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.cc-mobile-bar {
+  display: none;
+}
+
+.cc-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+}
+.cc-drawer-panel {
+  height: 100%;
+  background: #0a0a11;
+}
+.cc-drawer-backdrop {
+  height: 100%;
+  flex: 1;
+  border: 0;
+  background: rgb(0 0 0 / 0.6);
+}
+
+@media (max-width: 1023px) {
+  .cc-desktop-rail {
+    display: none;
+  }
+  .cc-mobile-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgb(255 255 255 / 0.1);
+    background: rgb(10 10 17 / 0.92);
+    padding: 12px 16px;
+    backdrop-filter: blur(8px);
+  }
+  .cc-main {
+    padding: 20px 16px;
+  }
+  .admin-wash table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
