@@ -52,6 +52,9 @@ const GAMES: { id: string; label: string }[] = [
   { id: "shooter", label: "Sterile!" },
   { id: "pong", label: "Needle Pong" },
   { id: "frogger", label: "Walk-In" },
+  { id: "steady", label: "Steady Hand" },
+  { id: "shoprush", label: "Shop Rush" },
+  { id: "flashmatch", label: "Flash Match" },
 ];
 
 type Polaroid = { id: string; src: string; caption: string };

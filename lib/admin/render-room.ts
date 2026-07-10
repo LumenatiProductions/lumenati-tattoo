@@ -40,8 +40,11 @@ export const GAME_CATALOG = [
   { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer // machine +50" },
   { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows, mouse or drag // SPACE launches" },
   { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires // drag on phones" },
-  { id: "pong", label: "Needle Pong", exe: "needlepong.exe", hint: "W/S, mouse or drag // first to 5", statA: "You", statB: "CPU" },
+  { id: "pong", label: "Needle Pong", exe: "needlepong.exe", hint: "W/S, mouse or drag // first to 5", statA: "You", statB: "CPU", livesInit: "0" },
   { id: "frogger", label: "Walk-In", exe: "walkin.exe", hint: "Arrows or tap to hop // fill all 3 chairs" },
+  { id: "steady", label: "Steady Hand", exe: "steadyhand.exe", hint: "Up/Down or drag // stay on the stencil", statB: "Trust" },
+  { id: "shoprush", label: "Shop Rush", exe: "shoprush.exe", hint: "Arrows or tap to run // seat, then collect", statA: "Cash", statB: "Rep" },
+  { id: "flashmatch", label: "Flash Match", exe: "flashmatch.exe", hint: "Tap a card, or arrows + SPACE // find the pairs" },
 ] as const;
 // Each game also writes its hint (and pong its You/CPU labels) into the
 // status bar at init, so the shell is right even before the renderer swap.
@@ -213,8 +216,12 @@ export function renderRoomHtml(
       );
       if ("statA" in g) {
         html = html.replace('<span id="jd-stat-a">Score</span>', `<span id="jd-stat-a">${esc(g.statA)}</span>`);
+      }
+      if ("statB" in g) {
         html = html.replace('<span id="jd-stat-b">Lives</span>', `<span id="jd-stat-b">${esc(g.statB)}</span>`);
-        html = html.replace('<span id="jd-br-lives">3</span>', '<span id="jd-br-lives">0</span>');
+      }
+      if ("livesInit" in g) {
+        html = html.replace('<span id="jd-br-lives">3</span>', `<span id="jd-br-lives">${esc(g.livesInit)}</span>`);
       }
     }
   }
