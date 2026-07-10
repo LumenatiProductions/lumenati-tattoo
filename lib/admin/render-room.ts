@@ -36,7 +36,7 @@ export const STICKER_CATALOG = [
 // as drop-in IIFEs that share the template's window shell. The app's picker
 // mirrors id + label.
 export const GAME_CATALOG = [
-  { id: "skate", label: "Skate", exe: "sk8_or_die.exe", hint: "SPACE ollie // arrows: tricks + manual" },
+  { id: "skate", label: "Ink or Die", exe: "ink_or_die.exe", hint: "SPACE ollie // arrows: tricks + manual" },
   { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer // machine +50" },
   { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows, mouse or drag // SPACE launches" },
   { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires // drag on phones" },
@@ -210,7 +210,7 @@ export function renderRoomHtml(
         /<script id="jd-arcade-game">[\s\S]*?<\/script>/,
         () => `<script id="jd-arcade-game">\n${src}\n</script>`,
       );
-      html = html.replace("sk8_or_die.exe", g.exe);
+      html = html.replace(GAME_CATALOG[0].exe, g.exe);
       html = html.replace(
         `<span id="jd-game-hint">${GAME_CATALOG[0].hint}</span>`,
         `<span id="jd-game-hint">${esc(g.hint)}</span>`,

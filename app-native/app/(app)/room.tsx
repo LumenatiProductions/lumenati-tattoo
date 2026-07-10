@@ -46,7 +46,7 @@ const STICKERS: { id: string; src: string }[] = [
 // "none" = classic: JD keeps his skate game, everyone else has no arcade.
 const GAMES: { id: string; label: string }[] = [
   { id: "none", label: "None" },
-  { id: "skate", label: "Skate" },
+  { id: "skate", label: "Ink or Die" },
   { id: "snake", label: "Ink Snake" },
   { id: "bricks", label: "Flash Breaker" },
   { id: "shooter", label: "Sterile!" },

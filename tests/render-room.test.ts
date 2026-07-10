@@ -27,8 +27,8 @@ describe("arcade + video picks", () => {
   it("JD with NULL picks keeps his baked-in skate game and Vimeo clip", () => {
     const html = renderRoomHtml(room({ artistId: "jd", igHandle: "jd.pruitt" }), "J.D. Pruitt", true);
     expect(html).toContain('<script id="jd-arcade-game">');
-    expect(html).toContain("SK8 OR DIE");
-    expect(html).toContain("sk8_or_die.exe — JD's Arcade");
+    expect(html).toContain("INK OR DIE");
+    expect(html).toContain("ink_or_die.exe — JD's Arcade");
     expect(html).toContain('id="jd-vimeo"');
     expect(html).toContain("jd_skate_edit.avi");
     expect(html).toContain('id="jd-games-icon"');
@@ -53,7 +53,7 @@ describe("arcade + video picks", () => {
     const html = renderRoomHtml(room({ gameId: "snake" }), "Test Artist", false);
     expect(html).toContain('<script id="jd-arcade-game">');
     expect(html).toContain("INK SNAKE");
-    expect(html).not.toContain("SK8 OR DIE");
+    expect(html).not.toContain("INK OR DIE");
     expect(html).toContain("inksnake.exe — Test's Arcade");
     expect(html).toContain('<span id="jd-game-hint">Arrows or swipe to steer // machine +50</span>');
     expect(html).toContain('id="jd-games-icon"');
