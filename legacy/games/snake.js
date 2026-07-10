@@ -25,10 +25,52 @@
 
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
 
+  // ── Chiptune: slinky grooves per level, a driving attract loop ──
+  var SONGS = [
+    { root: 110.00, bass: [0,-1,0,3, -1,3,5,-1, 0,-1,0,3, 7,-1,5,3],   lead: [12,-1,15,-1, 17,15,-1,12, -1,15,17,19, -1,17,15,-1] },
+    { root: 123.47, bass: [0,0,-1,5, 3,-1,3,7, 0,0,-1,5, 8,-1,7,5],    lead: [15,-1,12,15, -1,17,19,-1, 15,-1,12,15, 22,-1,19,17] },
+    { root: 98.00,  bass: [0,3,0,5, 0,3,0,7, 0,3,0,5, 10,8,7,5],      lead: [19,-1,17,-1, 15,-1,12,-1, 19,-1,17,15, -1,12,-1,-1] },
+  ];
+  var MENU_SONG = { root: 146.83, bass: [0,0,12,0, 5,5,17,5, 7,7,19,7, 5,5,17,5], lead: [12,-1,12,15, -1,19,-1,17, 19,-1,19,22, 19,17,15,12] };
+  var musicStep = -1, musicFrame = 0, jingleT = 0;
+  function musicTick() {
+    if (jingleT > 0) { jingleT--; return; }
+    var menu = mode !== 'play';
+    var stepFrames = menu ? 13 : Math.max(9, 15 - level);
+    musicFrame++;
+    if (musicFrame < stepFrames) return;
+    musicFrame = 0;
+    musicStep = (musicStep + 1) % 16;
+    var song = menu ? MENU_SONG : SONGS[(level - 1) % SONGS.length];
+    var b = song.bass[musicStep];
+    if (b >= 0) playSfx(song.root * Math.pow(2, b / 12), 0.12, 'triangle', 0.045);
+    var l = song.lead[musicStep];
+    if (l >= 0) playSfx(song.root * 2 * Math.pow(2, l / 12), 0.08, 'square', 0.026);
+    if (musicStep % 4 === 0) playSfx(65, 0.08, 'sawtooth', 0.04);
+    if (musicStep % 8 === 4) playSfx(210, 0.04, 'sawtooth', 0.026);
+    if (menu && musicStep % 2 === 1) playSfx(1900, 0.015, 'square', 0.012);
+  }
+  function deathJingle() {
+    jingleT = 110;
+    var seq = [[392, 0], [370, 150], [330, 300], [294, 450], [262, 620], [196, 830], [131, 1120]];
+    for (var i = 0; i < seq.length; i++) (function(n, d, last) {
+      setTimeout(function() { playSfx(n, last ? 0.6 : 0.18, 'square', 0.085); }, d);
+    })(seq[i][0], seq[i][1], i === seq.length - 1);
+  }
+
+  // Every level re-inks the parlor floor
+  var BOARDS = [
+    { bg: '#0b1210', chk: 'rgba(127,255,0,0.028)', accent: '#7FFF00' },
+    { bg: '#0a0e18', chk: 'rgba(0,255,255,0.03)',  accent: '#00FFFF' },
+    { bg: '#140a18', chk: 'rgba(176,38,255,0.035)', accent: '#B026FF' },
+    { bg: '#160a0c', chk: 'rgba(255,99,71,0.03)',  accent: '#FF6347' },
+  ];
+
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
   var score, lives, frame, snake, dir, turns, food, bonus, bonusT, eaten, stepEvery, respawnT, flashT;
   var blots, level, bannerT;
+  var eatStreak, lastEat, popups;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-snake') || '0', 10) || 0; } catch(e) {}
@@ -41,6 +83,8 @@
     score = 0; lives = 3; frame = 0; eaten = 0; stepEvery = 9;
     bonus = null; bonusT = 0; respawnT = 0; flashT = 0; mode = 'intro'; introT = 0;
     blots = []; level = 1; bannerT = 0;
+    eatStreak = 0; lastEat = -999; popups = [];
+    musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     resetSnake();
@@ -102,7 +146,7 @@
     if (lives <= 0) {
       enterBoard(score);
       saveBest();
-      sfxGameOver();
+      deathJingle();
     } else {
       sfxDie();
       resetSnake();
@@ -122,8 +166,12 @@
     }
     snake.unshift(head);
     if (food && head.x === food.x && head.y === food.y) {
-      score += 10; eaten++;
+      eatStreak = frame - lastEat < 110 ? Math.min(5, eatStreak + 1) : 1;
+      lastEat = frame;
+      var pts = 10 * eatStreak;
+      score += pts; eaten++;
       document.getElementById('jd-br-score').textContent = score;
+      popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: '+' + pts + (eatStreak > 1 ? ' x' + eatStreak : ''), color: eatStreak > 1 ? YELLOW : '#fff', life: 40 });
       sfxEat();
       stepEvery = Math.max(5, 9 - Math.floor(eaten / 4));
       var nl = 1 + Math.floor(eaten / 6);
@@ -138,6 +186,7 @@
     } else if (bonus && head.x === bonus.x && head.y === bonus.y) {
       score += 50;
       document.getElementById('jd-br-score').textContent = score;
+      popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: 'MACHINE +50', color: PURPLE, life: 45 });
       sfxBonus();
       bonus = null; bonusT = 0;
     } else {
@@ -147,8 +196,13 @@
 
   function update() {
     frame++;
+    musicTick();
     if (flashT > 0) flashT--;
     if (bannerT > 0) bannerT--;
+    for (var i = popups.length - 1; i >= 0; i--) {
+      popups[i].y -= 0.5; popups[i].life--;
+      if (popups[i].life <= 0) popups.splice(i, 1);
+    }
     if (respawnT > 0) { respawnT--; return; }
     if (bonus) { bonusT--; if (bonusT <= 0) bonus = null; }
     if (frame % stepEvery === 0) step();
@@ -373,22 +427,49 @@
       }
     }
     ctx.fillStyle = '#0b1210'; ctx.fillRect(0, 0, W, H);
-    slam('INK SNAKE', 110, 32, LIME);
+    slam('INK SNAKE', 104, 32, LIME);
+    // the drop runs for its life until the snap
+    var catchT = 122;
     var hx = -40 + t2 * 3.2;
-    for (var i = 0; i < 10; i++) {
-      var seg = hx - i * 18;
+    var dxp = Math.min(320, 240 + t2 * 0.9);
+    var caught = t2 >= catchT;
+    var segs = caught ? 14 : 10;
+    for (var i = 0; i < segs; i++) {
+      var seg = hx - i * 17;
       if (seg < -20) continue;
-      var syy = 210 + Math.sin((seg) * 0.03) * 26;
-      ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - i * 0.08).toFixed(2) + ')';
-      ctx.fillRect(seg - 8, syy - 8, 16, 16);
+      var syy = 208 + Math.sin(seg * 0.03) * 24;
+      var rr = i === 0 ? 10 : 9 - (i / segs) * 3;
+      ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - (i / segs) * 0.55).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(seg, syy, rr, 0, Math.PI * 2); ctx.fill();
+      if (i > 0 && i % 2 === 0) {
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath(); ctx.arc(seg, syy, rr * 0.45, 0, Math.PI * 2); ctx.fill();
+      }
     }
-    var dxp = 300, dyp = 210 + Math.sin(300 * 0.03) * 26;
-    if (hx < dxp - 10) {
+    var hyy = 208 + Math.sin(hx * 0.03) * 24;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(hx + 2, hyy - 6, 3, 3);
+    if (!caught) {
+      // fleeing drop with panic wobble + the tongue reaching for it
+      var dyp = 208 + Math.sin(dxp * 0.03) * 24 + Math.sin(t2 * 0.6) * 3;
       ctx.fillStyle = PINK;
       ctx.beginPath(); ctx.arc(dxp, dyp + 2, 6, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.moveTo(dxp, dyp - 8); ctx.lineTo(dxp + 5, dyp); ctx.lineTo(dxp - 5, dyp); ctx.fill();
+      if (t2 % 40 < 14) {
+        ctx.fillStyle = '#e8283c';
+        ctx.fillRect(hx + 10, hyy - 1, 8, 2);
+        ctx.fillRect(hx + 18, hyy - 3, 2, 2);
+        ctx.fillRect(hx + 18, hyy + 1, 2, 2);
+      }
+    } else if (t2 < catchT + 14) {
+      ctx.fillStyle = 'rgba(255,255,255,' + ((catchT + 14 - t2) * 0.04).toFixed(2) + ')';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = YELLOW;
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SNAP! +50', Math.min(320, hx), hyy - 24);
     }
-    if (t2 > 130) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('DRINK EVERY DROP', W / 2, 150); }
+    if (t2 > 140) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('DRINK EVERY DROP // FEAST FOR STREAKS', W / 2, 146); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, H - 58, W, 58);
     ctx.fillStyle = '#cfd6dd';
@@ -411,22 +492,29 @@
 
   function draw() {
     if (mode === 'intro') { drawIntro(); return; }
-    ctx.fillStyle = '#0b1210';
+    var board = BOARDS[(level - 1) % BOARDS.length];
+    ctx.fillStyle = board.bg;
     ctx.fillRect(0, 0, W, H);
-    // Faint checkerboard
-    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    // Parlor floor tiles in this level's ink
+    ctx.fillStyle = board.chk;
     for (var y = 0; y < ROWS; y++) {
       for (var x = (y % 2); x < COLS; x += 2) ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
     }
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, 0, W, 4); ctx.fillRect(0, H - 4, W, 4);
+    ctx.fillRect(0, 0, 4, H); ctx.fillRect(W - 4, 0, 4, H);
 
-    // Food: an ink drop
+    // Food: a fat ink drop with a pulsing ripple
     if (food) {
       var fx = food.x * CELL + 10, fy = food.y * CELL + 10;
+      var pulse = 7 + Math.sin(frame * 0.12) * 2;
+      ctx.strokeStyle = 'rgba(255,20,147,' + (0.4 - Math.sin(frame * 0.12) * 0.2).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(fx, fy + 1, pulse + 3, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = PINK;
-      ctx.beginPath(); ctx.arc(fx, fy + 2, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(fx, fy - 7); ctx.lineTo(fx + 4, fy); ctx.lineTo(fx - 4, fy); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(fx - 2, fy, 2, 2);
+      ctx.beginPath(); ctx.arc(fx, fy + 2, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(fx, fy - 8); ctx.lineTo(fx + 5, fy); ctx.lineTo(fx - 5, fy); ctx.fill();
+      ctx.fillStyle = '#ffb0cf';
+      ctx.beginPath(); ctx.arc(fx - 2, fy, 1.7, 0, Math.PI * 2); ctx.fill();
     }
 
     // Bonus: a tattoo machine, blinking as it expires
@@ -455,22 +543,36 @@
       ctx.fillRect(bx - 2, by - 2, 3, 3);
     }
 
-    // Snake: a trail of ink
+    // Snake: a rounded, scaled ink serpent
     var blink = respawnT > 0 && Math.floor(frame / 4) % 2 === 0;
     if (!blink) {
       for (var i = snake.length - 1; i >= 0; i--) {
-        var s = snake[i];
+        var seg = snake[i];
         var t = i / Math.max(1, snake.length - 1);
-        ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - t * 0.6).toFixed(2) + ')';
-        var pad = i === 0 ? 1 : 2;
-        ctx.fillRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad * 2, CELL - pad * 2);
+        var sx2 = seg.x * CELL + 10, sy2 = seg.y * CELL + 10;
+        var r2 = i === 0 ? 9 : 8 - t * 2.5;
+        ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - t * 0.55).toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(sx2, sy2, r2, 0, Math.PI * 2); ctx.fill();
+        if (i > 0 && i % 2 === 0) {
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.beginPath(); ctx.arc(sx2, sy2, r2 * 0.45, 0, Math.PI * 2); ctx.fill();
+        }
       }
-      // Eyes on the head: two dots ahead of center, set perpendicular to travel
+      // Head: eyes set perpendicular to travel + a flicking tongue
       var h = snake[0];
       var hx = h.x * CELL + 10, hy = h.y * CELL + 10;
-      ctx.fillStyle = '#0b1210';
-      ctx.fillRect(hx + dir.x * 4 + dir.y * 4 - 1, hy + dir.y * 4 + dir.x * 4 - 1, 3, 3);
-      ctx.fillRect(hx + dir.x * 4 - dir.y * 4 - 1, hy + dir.y * 4 - dir.x * 4 - 1, 3, 3);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(hx + dir.x * 3 + dir.y * 4 - 1, hy + dir.y * 3 + dir.x * 4 - 1, 3, 3);
+      ctx.fillRect(hx + dir.x * 3 - dir.y * 4 - 1, hy + dir.y * 3 - dir.x * 4 - 1, 3, 3);
+      ctx.fillStyle = '#14121a';
+      ctx.fillRect(hx + dir.x * 4 + dir.y * 4, hy + dir.y * 4 + dir.x * 4, 2, 2);
+      ctx.fillRect(hx + dir.x * 4 - dir.y * 4, hy + dir.y * 4 - dir.x * 4, 2, 2);
+      if (frame % 50 < 12) {
+        ctx.fillStyle = '#e8283c';
+        ctx.fillRect(hx + dir.x * 9 - 1, hy + dir.y * 9 - 1, 2 + Math.abs(dir.x) * 4, 2 + Math.abs(dir.y) * 4);
+        ctx.fillRect(hx + dir.x * 13 + dir.y * 2 - 1, hy + dir.y * 13 + dir.x * 2 - 1, 2, 2);
+        ctx.fillRect(hx + dir.x * 13 - dir.y * 2 - 1, hy + dir.y * 13 - dir.x * 2 - 1, 2, 2);
+      }
     }
 
     // Hit flash
@@ -479,6 +581,17 @@
       ctx.fillRect(0, 0, W, H);
     }
 
+    // Score popups
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    for (var i = 0; i < popups.length; i++) {
+      var pu = popups[i];
+      ctx.globalAlpha = Math.min(1, pu.life / 18);
+      ctx.fillStyle = pu.color;
+      ctx.fillText(pu.text, pu.x, pu.y);
+    }
+    ctx.globalAlpha = 1;
+
     // HUD
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px monospace';
@@ -486,15 +599,19 @@
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 8, 26);
-    ctx.fillStyle = LIME;
+    ctx.fillStyle = board.accent;
     ctx.textAlign = 'right';
     ctx.fillText('LEVEL ' + level, W - 8, 14);
+    if (eatStreak > 1 && frame - lastEat < 110 && mode === 'play') {
+      ctx.fillStyle = YELLOW;
+      ctx.fillText('FEAST x' + eatStreak, W - 8, 26);
+    }
     if (bannerT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
-      ctx.fillStyle = LIME;
+      ctx.fillStyle = board.accent;
       ctx.font = 'bold 24px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('LEVEL ' + level, W / 2, H / 2 - 30);
+      ctx.fillText('LEVEL ' + level + ' — FRESH INK', W / 2, H / 2 - 30);
       ctx.globalAlpha = 1;
       ctx.font = 'bold 10px monospace';
     }
@@ -520,7 +637,7 @@
     lastT = t;
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
       acc -= 16.67;
     }
     draw();
