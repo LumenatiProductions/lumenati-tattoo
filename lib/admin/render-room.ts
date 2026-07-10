@@ -73,6 +73,7 @@ export function renderRoomHtml(
   content: RoomContent,
   name: string,
   isJd: boolean,
+  flashSrcs: string[] = [],
 ): string {
   let html = readLegacyBlock("artist-page-y2k.html");
   const firstName = name.split(" ")[0];
@@ -262,6 +263,11 @@ export function renderRoomHtml(
 
   // The Winamp widget (site-wide bundle) starts on the artist's actual pick.
   html += `\n<script>window.__ROOM_SONG_ID__=${JSON.stringify(content.songId)};</script>`;
+
+  // Flash Match deals its cards from the artist's flash wall.
+  if (game === "flashmatch") {
+    html += `\n<script>window.__ROOM_FLASH__=${JSON.stringify(flashSrcs.slice(0, 8)).replace(/</g, "\\u003c")};</script>`;
+  }
 
   return html;
 }

@@ -29,8 +29,9 @@
   var GX = (W - (COLS * CW + (COLS - 1) * GAP)) / 2;
   var GY = 42;
 
-  // Built-in flash doodles, used when the room doesn't have 8 images to deal
-  var DOODLES = ['heart', 'skull', 'bolt', 'star', 'dagger', 'eight', 'drop', 'machine'];
+  // Built-in flash: the American-traditional canon (Sailor Jerry staples),
+  // drawn as outlined pixel art so every card reads bold on the paper.
+  var DOODLES = ['heart', 'swallow', 'anchor', 'rose', 'dagger', 'skull', 'star', 'horseshoe'];
 
   var mode = 'ready'; // ready | play | over
   var score, lives, level, frame;
@@ -42,18 +43,16 @@
     if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-flashmatch', String(best)); } catch(e) {} }
   }
 
-  // Deal the artist's own work onto the cards: grab up to 8 images already on
-  // the room page (portfolio, polaroids, posters); doodles fill any gaps.
+  // Deal the artist's flash wall onto the cards: the page hands the piece
+  // urls over via window.__ROOM_FLASH__; classic tattoo doodles fill the gaps
+  // (an empty wall means a full sheet of them).
   function collectFaces() {
     faces = [];
-    var seen = {};
-    var imgs = document.querySelectorAll('.br-portfolio-grid img, .bedroom-polaroid img, .bedroom-wall-poster img');
-    for (var i = 0; i < imgs.length && faces.length < 8; i++) {
-      var src = imgs[i].getAttribute('src');
-      if (!src || seen[src]) continue;
-      seen[src] = true;
+    var srcs = (window.__ROOM_FLASH__ || []).slice(0, 8);
+    for (var i = 0; i < srcs.length; i++) {
       var im = new Image();
-      im.src = src;
+      im.crossOrigin = 'anonymous';
+      im.src = srcs[i];
       faces.push({ type: 'img', img: im });
     }
     for (var i = 0; faces.length < 8; i++) faces.push({ type: 'doodle', id: DOODLES[i % DOODLES.length] });
@@ -200,40 +199,128 @@
     pick(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: false });
 
+  // 16x12 sprites, 3px pixels, traditional palette: bold black outlines,
+  // red/gold/green/blue fills, aged-bone greys (never white-on-white).
+  var PAL = { K: '#14121a', R: '#d81e3c', r: '#8c1024', Y: '#f2c14e', G: '#2e8b4a', B: '#2d6cdf', O: '#e8731c', P: '#ff6aa2', S: '#ccd2d8', W: '#d8dde4' };
+  var SPRITES = {
+    heart: [
+      '...KKK....KKK...',
+      '..KRRRK..KRRRK..',
+      '.KRRRRRKKRRRRRK.',
+      '.KRRRRRRRRRRRRK.',
+      'KKKKKKKKKKKKKKKK',
+      'KYYYYYYYYYYYYYYK',
+      'KKKKKKKKKKKKKKKK',
+      '.KRRRRRRRRRRRRK.',
+      '..KRRRRRRRRRRK..',
+      '...KRRRRRRRRK...',
+      '.....KRRRRK.....',
+      '.......KK.......'],
+    swallow: [
+      '..K.......KK....',
+      '.KBK.....KBBK...',
+      '.KBBK...KBBBBK..',
+      '..KBBK.KBBKBBKO.',
+      '..KBBBKBBBBBBOK.',
+      '...KBBBBBRRRBK..',
+      '....KBBBRRRK....',
+      '...KKBBBRRK.....',
+      '..KBBKKBBK......',
+      '.KBK...KK.......',
+      '.KK.............',
+      '................'],
+    anchor: [
+      '......KKKK......',
+      '......KYYK......',
+      '......KYYK......',
+      '.......KK.......',
+      '...KKKKKKKKKK...',
+      '.......KK.......',
+      '.......KK.......',
+      '.K.....KK.....K.',
+      'KBK....KK....KBK',
+      'KBK....KK....KBK',
+      '.KBK...KK...KBK.',
+      '..KBBKKKKKKBBK..'],
+    rose: [
+      '....KKKKK.......',
+      '...KRRRRRK......',
+      '..KRPKKKRRK.....',
+      '..KRKRRPKRK.....',
+      '..KRRKKRRRK.....',
+      '...KRRRRRK......',
+      '.GK.KKKKK.KG....',
+      'GGGK..K..KGGG...',
+      '.GG...K....GG...',
+      '......K.........',
+      '.....K..........',
+      '.....K..........'],
+    dagger: [
+      '.....KKKKK......',
+      '.....KYKYK......',
+      '.....KYKYK......',
+      '..KKKKKKKKKKK...',
+      '.....KWWWK......',
+      '.....KWWWK......',
+      '......KWWK......',
+      '......KWWK......',
+      '.......KWK......',
+      '.......KWK......',
+      '.......KK.......',
+      '........K.......'],
+    skull: [
+      '....KKKKKKKK....',
+      '...KSSSSSSSSK...',
+      '..KSSSSSSSSSSK..',
+      '..KSKKSSSSKKSK..',
+      '..KSKKSSSSKKSK..',
+      '..KSSSSKKSSSSK..',
+      '...KSSSKKSSSK...',
+      '...KKSSSSSSKK...',
+      '....KSKSKSK.....',
+      '....KSKSKSK.....',
+      '....KKKKKKK.....',
+      '................'],
+    star: [
+      '.......KK.......',
+      '......KRrK......',
+      '.....KRRrrK.....',
+      'KKKKKRRRrrrKKKKK',
+      '.KrrrRRRrrRRRK..',
+      '..KrrRRRrrRRK...',
+      '...KrrRRrrRK....',
+      '...KrRRKKrrRK...',
+      '..KrRRK..KrrRK..',
+      '..KRRK....KrrK..',
+      '..KKK.....KKK...',
+      '................'],
+    horseshoe: [
+      '...KKKKKKKK.....',
+      '..KYYYYYYYYK....',
+      '.KYYKYYYYKYYK...',
+      '.KYK......KYK...',
+      'KYYK......KYYK..',
+      'KYK........KYK..',
+      'KYK........KYK..',
+      'KYK........KYK..',
+      'KYYK......KYYK..',
+      '.KYK......KYK...',
+      '.KKK......KKK...',
+      '................'],
+  };
+
   function drawDoodle(id, x, y, w, h) {
-    var cx = x + w / 2, cy = y + h / 2;
-    ctx.fillStyle = ['heart', 'drop'].indexOf(id) !== -1 ? PINK : id === 'bolt' ? YELLOW : id === 'star' ? CYAN : id === 'machine' ? PURPLE : id === 'eight' ? '#eee' : '#e8e4d8';
-    if (id === 'heart') {
-      ctx.fillRect(cx - 12, cy - 10, 9, 9); ctx.fillRect(cx + 3, cy - 10, 9, 9);
-      ctx.fillRect(cx - 12, cy - 4, 24, 9); ctx.fillRect(cx - 7, cy + 5, 14, 6); ctx.fillRect(cx - 3, cy + 11, 6, 4);
-    } else if (id === 'skull') {
-      ctx.fillRect(cx - 10, cy - 12, 20, 14);
-      ctx.fillRect(cx - 6, cy + 2, 12, 6);
-      ctx.fillStyle = '#14101c';
-      ctx.fillRect(cx - 7, cy - 7, 5, 5); ctx.fillRect(cx + 2, cy - 7, 5, 5);
-    } else if (id === 'bolt') {
-      ctx.fillRect(cx + 1, cy - 14, 8, 10); ctx.fillRect(cx - 5, cy - 6, 12, 8); ctx.fillRect(cx - 9, cy + 2, 8, 10);
-    } else if (id === 'star') {
-      ctx.fillRect(cx - 2, cy - 14, 4, 28); ctx.fillRect(cx - 14, cy - 2, 28, 4);
-      ctx.fillRect(cx - 8, cy - 8, 16, 16);
-    } else if (id === 'dagger') {
-      ctx.fillRect(cx - 2, cy - 14, 4, 20); ctx.fillRect(cx - 9, cy - 2, 18, 4); ctx.fillRect(cx - 1, cy + 8, 2, 6);
-    } else if (id === 'eight') {
-      ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#14101c';
-      ctx.beginPath(); ctx.arc(cx, cy - 3, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#eee';
-      ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
-      ctx.fillText('8', cx, cy);
-    } else if (id === 'drop') {
-      ctx.beginPath(); ctx.arc(cx, cy + 3, 9, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(cx, cy - 13); ctx.lineTo(cx + 7, cy); ctx.lineTo(cx - 7, cy); ctx.fill();
-    } else { // machine
-      ctx.fillRect(cx - 8, cy - 10, 16, 14);
-      ctx.fillStyle = PINK;
-      ctx.fillRect(cx - 10, cy - 13, 6, 5); ctx.fillRect(cx + 4, cy - 13, 6, 5);
-      ctx.fillStyle = '#ccc';
-      ctx.fillRect(cx - 1, cy + 4, 2, 8);
+    var g = SPRITES[id];
+    if (!g) return;
+    var px = 3;
+    var ox = x + (w - 16 * px) / 2, oy = y + (h - 12 * px) / 2;
+    for (var r = 0; r < g.length; r++) {
+      for (var c = 0; c < g[r].length; c++) {
+        var ch = g[r][c];
+        if (ch === '.') continue;
+        ctx.fillStyle = PAL[ch] || PAL.K;
+        ctx.fillRect(ox + c * px, oy + r * px, px, px);
+      }
     }
   }
 
@@ -278,7 +365,7 @@
         }
       }
     }
-    ctx.strokeStyle = c.state === 'matched' ? LIME : 'rgba(255,255,255,0.3)';
+    ctx.strokeStyle = c.state === 'matched' ? LIME : c.state === 'up' ? '#14121a' : 'rgba(255,255,255,0.3)';
     ctx.strokeRect(xx + 0.5, y + 0.5, w - 1, CHH - 1);
   }
 
@@ -353,7 +440,7 @@
       ctx.fillText('FLASH MATCH', W / 2, H / 2 - 46);
       ctx.fillStyle = '#fff';
       ctx.font = '12px monospace';
-      ctx.fillText('Find the pairs in this room\'s flash', W / 2, H / 2 - 12);
+      ctx.fillText('Match the pairs off the flash wall', W / 2, H / 2 - 12);
       ctx.fillText('TAP a card, or ARROWS + SPACE', W / 2, H / 2 + 6);
       ctx.fillStyle = YELLOW;
       ctx.fillText('Streaks pay triple // beat the clock', W / 2, H / 2 + 24);

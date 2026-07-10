@@ -35,6 +35,19 @@ async function fetchLivePromo(artistId: string) {
 const prettyDay = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+// Flash Match deals its cards from the artist's flash wall (newest first).
+async function fetchFlashSrcs(artistId: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("flash_pieces")
+    .select("src")
+    .eq("artist_id", artistId)
+    .order("created_at", { ascending: false })
+    .limit(8);
+  return ((data ?? []) as { src: string }[]).map((r) => r.src);
+}
+
 export default async function ArtistRoomPage({
   params,
 }: {
@@ -45,7 +58,8 @@ export default async function ArtistRoomPage({
   if (!artist) notFound();
 
   const [content, promo] = await Promise.all([fetchRoom(artist.id), fetchLivePromo(artist.id)]);
-  const html = renderRoomHtml(content, artist.name, !!artist.roomExtras);
+  const flashSrcs = content.gameId === "flashmatch" ? await fetchFlashSrcs(artist.id) : [];
+  const html = renderRoomHtml(content, artist.name, !!artist.roomExtras, flashSrcs);
   return (
     <>
       {promo && (

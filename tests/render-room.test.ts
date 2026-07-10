@@ -111,6 +111,18 @@ describe("arcade + video picks", () => {
     expect(html).toContain('<span class="br-icon-label">Skate</span>');
   });
 
+  it("flash match gets the artist's flash wall handed into the page", () => {
+    const html = renderRoomHtml(room({ gameId: "flashmatch" }), "Test Artist", false, [
+      "https://example.supabase.co/storage/flash/a.png",
+      "/legacy-assets/sqsp-003.jpg",
+    ]);
+    expect(html).toContain("window.__ROOM_FLASH__=");
+    expect(html).toContain("https://example.supabase.co/storage/flash/a.png");
+    // Other games do not carry the flash payload
+    const other = renderRoomHtml(room({ gameId: "snake" }), "Test Artist", false, ["https://x/y.png"]);
+    expect(other).not.toContain("window.__ROOM_FLASH__");
+  });
+
   it("an unknown game id falls back to NULL behavior", () => {
     const html = renderRoomHtml(room({ gameId: "doom" }), "Test Artist", false);
     expect(html).not.toContain('<script id="jd-arcade-game">');
