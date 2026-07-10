@@ -9,14 +9,13 @@ import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 export default function RentPage() {
   const { invoices, loading, outstandingCents, collectedCents, overdue } = useRent();
 
-  const unpaid = invoices.filter((i) => !i.paid).sort((a, b) => (a.dueDate || "") < (b.dueDate || "") ? -1 : 1);
   const paid = invoices.filter((i) => i.paid);
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Booth Rent</h1>
-        <p className="text-sm text-white/65">Live from Square invoices. Who&apos;s paid, who&apos;s behind.</p>
+        <p className="text-sm text-white/65">Who&apos;s paid, who&apos;s behind.</p>
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -27,39 +26,6 @@ export default function RentPage() {
       </div>
 
       <InHouseRent />
-
-      <SectionTitle>Outstanding</SectionTitle>
-      <Card className="mb-5">
-        {loading ? (
-          <div className="px-4 py-6 text-center text-sm text-white/55">Loading from Square…</div>
-        ) : unpaid.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm text-white/55">All rent is paid.</div>
-        ) : (
-          <div className="divide-y divide-white/8">
-            {unpaid.map((i) => (
-              <div key={i.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <div className="text-sm font-medium">{i.name}</div>
-                  <div className="text-xs text-white/60">
-                    {i.title}
-                    {i.dueDate && ` · due ${i.dueDate}`}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="tnum text-sm font-semibold">{fmt(i.amountCents)}</span>
-                  {i.overdue ? (
-                    <Badge tone="bad">overdue</Badge>
-                  ) : i.status === "SCHEDULED" ? (
-                    <Badge>scheduled</Badge>
-                  ) : (
-                    <Badge tone="warn">unpaid</Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
 
       {paid.length > 0 && (
         <>
@@ -88,7 +54,7 @@ export default function RentPage() {
 
 // In-house invoices (rent-invoices-schema.sql): generated monthly, paid via
 // our own Stripe links, marked paid by the webhook. This is the cutover path
-// off Square invoices; the Square panels above keep working until then.
+// off our own Stripe links; the stats above read the same table.
 function InHouseRent() {
   type Invoice = {
     id: string;
@@ -167,7 +133,7 @@ function InHouseRent() {
           </button>
         }
       >
-        In-house invoices <span className="font-normal text-white/50">· the off-Square path</span>
+        Invoices <span className="font-normal text-white/50">· generated monthly, paid by link or in cash</span>
       </SectionTitle>
       {msg && (
         <div className="mb-3 rounded-lg border border-white/10 bg-white/6 px-3 py-2 text-xs text-white/75 shadow-sm">{msg}</div>
@@ -176,7 +142,7 @@ function InHouseRent() {
         {!configured ? (
           <div className="px-4 py-4 text-xs text-white/60">
             Run <code className="font-mono">supabase/rent-invoices-schema.sql</code> in Supabase, then
-            Generate creates this month&apos;s invoices with pay links — rent without Square.
+            Generate creates this month&apos;s invoices with pay links.
           </div>
         ) : visible.length === 0 ? (
           <div className="px-4 py-5 text-center text-sm text-white/55">
