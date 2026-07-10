@@ -148,6 +148,7 @@ function runGame(id, src, opts = {}) {
     if (!board.length) throw new Error(`score ${scoreAtDeath} died but leaderboard is empty`);
     if (!board.some((e) => e.n === "SCO")) throw new Error("initials SCO not on the board");
   }
+  if (h.sandbox.__arcadeError) throw new Error("arcade error swallowed by resilience layer: " + h.sandbox.__arcadeError.split("\n")[0]);
   return { store: h.store, boardKey, scoreAtDeath, spans: h.spans };
 }
 
@@ -179,6 +180,7 @@ try {
     step(1);
     if (h.spans["jd-br-lives"].textContent === "0") { h.key("Space"); h.key("Space", true); }
   }
+  if (h.sandbox.__arcadeError) throw new Error("arcade error: " + h.sandbox.__arcadeError.split("\n")[0]);
   console.log("PASS skate-tour   all four Colorado locales drew without error");
 } catch (e) {
   failed++;

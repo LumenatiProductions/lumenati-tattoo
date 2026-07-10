@@ -814,12 +814,18 @@
     if (!lastT) lastT = t;
     acc += Math.min(100, t - lastT);
     lastT = t;
+    try {
     while (acc >= 16.67) {
       if (mode === 'play') update();
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
       acc -= 16.67;
     }
     draw();
+    } catch (err) {
+      window.__arcadeError = String((err && err.stack) || err);
+      acc = 0;
+      try { console.error('arcade error', err); } catch (e2) {}
+    }
     rafId = requestAnimationFrame(loop);
   }
 
