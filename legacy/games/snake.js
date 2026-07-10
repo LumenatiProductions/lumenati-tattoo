@@ -23,6 +23,24 @@
   function sfxDie() { playSfx(200, 0.25, 'sawtooth', 0.15); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
+
+  // Announcer: tiny mp3 one-liners; rooms work fine without them
+  var VOICE_CACHE = {};
+  function say(name, delay) {
+    try {
+      setTimeout(function() {
+        try {
+          if (!VOICE_CACHE[name]) {
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3');
+            VOICE_CACHE[name].volume = 0.5;
+          }
+          VOICE_CACHE[name].currentTime = 0;
+          VOICE_CACHE[name].play().catch(function() {});
+        } catch (e) {}
+      }, delay || 0);
+    } catch (e) {}
+  }
+
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
 
   // ── Chiptune: slinky grooves per level, a driving attract loop ──
@@ -31,12 +49,12 @@
     { root: 123.47, bass: [0,0,-1,5, 3,-1,3,7, 0,0,-1,5, 8,-1,7,5],    lead: [15,-1,12,15, -1,17,19,-1, 15,-1,12,15, 22,-1,19,17] },
     { root: 98.00,  bass: [0,3,0,5, 0,3,0,7, 0,3,0,5, 10,8,7,5],      lead: [19,-1,17,-1, 15,-1,12,-1, 19,-1,17,15, -1,12,-1,-1] },
   ];
-  var MENU_SONG = { root: 146.83, bass: [0,0,12,0, 5,5,17,5, 7,7,19,7, 5,5,17,5], lead: [12,-1,12,15, -1,19,-1,17, 19,-1,19,22, 19,17,15,12] };
+  var MENU_SONG = { root: 155.56, bass: [0,-1,3,-1, 5,-1,3,-1, 7,-1,5,-1, 3,-1,0,-1], lead: [12,15,-1,17, -1,15,12,-1, 15,17,19,-1, 17,-1,15,12] };
   var musicStep = -1, musicFrame = 0, jingleT = 0;
   function musicTick() {
     if (jingleT > 0) { jingleT--; return; }
     var menu = mode !== 'play';
-    var stepFrames = menu ? 13 : Math.max(9, 15 - level);
+    var stepFrames = menu ? 11 : Math.max(9, 15 - level);
     musicFrame++;
     if (musicFrame < stepFrames) return;
     musicFrame = 0;
@@ -70,7 +88,7 @@
   var introT = 0;
   var score, lives, frame, snake, dir, turns, food, bonus, bonusT, eaten, stepEvery, respawnT, flashT;
   var blots, level, bannerT;
-  var eatStreak, lastEat, popups;
+  var eatStreak, lastEat, popups, frenzyT;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-snake') || '0', 10) || 0; } catch(e) {}
@@ -83,7 +101,7 @@
     score = 0; lives = 3; frame = 0; eaten = 0; stepEvery = 9;
     bonus = null; bonusT = 0; respawnT = 0; flashT = 0; mode = 'intro'; introT = 0;
     blots = []; level = 1; bannerT = 0;
-    eatStreak = 0; lastEat = -999; popups = [];
+    eatStreak = 0; lastEat = -999; popups = []; frenzyT = 0;
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
@@ -119,7 +137,7 @@
         y = Math.floor(Math.random() * ROWS);
         tries++;
       } while ((!cellFree(x, y) || Math.abs(x - head.x) + Math.abs(y - head.y) < 5) && tries < 300);
-      if (tries < 300) blots.push({ x: x, y: y, r: Math.random() * 6.28 });
+      if (tries < 300) blots.push({ x: x, y: y, r: Math.random() * 6.28, born: frame });
     }
   }
 
@@ -130,7 +148,31 @@
     return {x:x, y:y};
   }
 
-  function placeFood() { food = randFree(); }
+  function placeFood() {
+    food = randFree();
+    food.live = eaten > 0 && eaten % 4 === 3;
+  }
+
+  // The live one scurries: one hop away from the head every few beats
+  function fleeStep() {
+    if (!food || !food.live) return;
+    var opts = [[1,0],[-1,0],[0,1],[0,-1]];
+    var bx = food.x, by = food.y, bd = -1;
+    for (var i = 0; i < opts.length; i++) {
+      var nx = food.x + opts[i][0], ny = food.y + opts[i][1];
+      if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+      var blocked = false;
+      for (var j = 0; j < snake.length; j++) if (snake[j].x === nx && snake[j].y === ny) blocked = true;
+      for (var j = 0; j < blots.length; j++) if (blots[j].x === nx && blots[j].y === ny) blocked = true;
+      if (bonus && bonus.x === nx && bonus.y === ny) blocked = true;
+      if (blocked) continue;
+      var d = Math.abs(nx - snake[0].x) + Math.abs(ny - snake[0].y);
+      if (d > bd) { bd = d; bx = nx; by = ny; }
+    }
+    // only run when the snake is closing in
+    var cur = Math.abs(food.x - snake[0].x) + Math.abs(food.y - snake[0].y);
+    if (cur < 7 && bd > cur) { food.x = bx; food.y = by; }
+  }
 
   function turn(nx, ny) {
     var last = turns.length ? turns[turns.length - 1] : dir;
@@ -168,10 +210,16 @@
     if (food && head.x === food.x && head.y === food.y) {
       eatStreak = frame - lastEat < 110 ? Math.min(5, eatStreak + 1) : 1;
       lastEat = frame;
-      var pts = 10 * eatStreak;
+      var wasLive = food.live;
+      var pts = (wasLive ? 30 : 10 * eatStreak) * (frenzyT > 0 ? 2 : 1);
       score += pts; eaten++;
       document.getElementById('jd-br-score').textContent = score;
-      popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: '+' + pts + (eatStreak > 1 ? ' x' + eatStreak : ''), color: eatStreak > 1 ? YELLOW : '#fff', life: 40 });
+      popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: (wasLive ? 'CAUGHT +' : '+') + pts + (!wasLive && eatStreak > 1 ? ' x' + eatStreak : ''), color: wasLive ? PINK : eatStreak > 1 ? YELLOW : '#fff', life: 40 });
+      if (eatStreak === 5 && frenzyT <= 0) {
+        frenzyT = 600;
+        popups.push({ x: head.x * CELL + 10, y: head.y * CELL - 14, text: 'FRENZY! 2X', color: '#FF6347', life: 60 });
+        sfxBonus();
+      }
       sfxEat();
       stepEvery = Math.max(5, 9 - Math.floor(eaten / 4));
       var nl = 1 + Math.floor(eaten / 6);
@@ -179,6 +227,7 @@
         level = nl;
         bannerT = 80;
         addBlots(2);
+      say('level-up');
         sfxBonus();
       }
       if (eaten % 5 === 0 && !bonus) { bonus = randFree(); bonusT = 300; }
@@ -199,6 +248,8 @@
     musicTick();
     if (flashT > 0) flashT--;
     if (bannerT > 0) bannerT--;
+    if (frenzyT > 0) frenzyT--;
+    if (frame % (stepEvery * 3) === 0 && respawnT === 0) fleeStep();
     for (var i = popups.length - 1; i >= 0; i--) {
       popups[i].y -= 0.5; popups[i].life--;
       if (popups[i].life <= 0) popups.splice(i, 1);
@@ -267,6 +318,7 @@
     boardIdx = -1;
     initSlot = 0;
     mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
+    say(mode === 'enter' ? 'high-score' : 'game-over', 350);
   }
 
   function commitInitials() {
@@ -475,8 +527,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or SWIPE to steer // drops +10, fading machine +50', W / 2, H - 42);
-    ctx.fillText('levels dry ink blots onto the board - do not touch them', W / 2, H - 29);
+    ctx.fillText('ARROWS or SWIPE to steer // catch the live ones +30', W / 2, H - 42);
+    ctx.fillText('feast fast: x5 streak ignites FRENZY // avoid the X blots', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -504,17 +556,34 @@
     ctx.fillRect(0, 0, W, 4); ctx.fillRect(0, H - 4, W, 4);
     ctx.fillRect(0, 0, 4, H); ctx.fillRect(W - 4, 0, 4, H);
 
-    // Food: a fat ink drop with a pulsing ripple
+    if (frenzyT > 0) {
+      ctx.fillStyle = 'rgba(255,99,71,' + (0.03 + Math.abs(Math.sin(frame * 0.1)) * 0.04).toFixed(3) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Food: a fat ink drop — the live ones jitter and sprout legs
     if (food) {
       var fx = food.x * CELL + 10, fy = food.y * CELL + 10;
+      if (food.live) { fx += Math.sin(frame * 0.5) * 1.5; fy += Math.cos(frame * 0.7) * 1; }
       var pulse = 7 + Math.sin(frame * 0.12) * 2;
       ctx.strokeStyle = 'rgba(255,20,147,' + (0.4 - Math.sin(frame * 0.12) * 0.2).toFixed(2) + ')';
       ctx.beginPath(); ctx.arc(fx, fy + 1, pulse + 3, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = PINK;
       ctx.beginPath(); ctx.arc(fx, fy + 2, 6, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.moveTo(fx, fy - 8); ctx.lineTo(fx + 5, fy); ctx.lineTo(fx - 5, fy); ctx.fill();
-      ctx.fillStyle = '#ffb0cf';
-      ctx.beginPath(); ctx.arc(fx - 2, fy, 1.7, 0, Math.PI * 2); ctx.fill();
+      if (food.live) {
+        ctx.strokeStyle = PINK;
+        ctx.beginPath();
+        ctx.moveTo(fx - 5, fy + 5); ctx.lineTo(fx - 8, fy + 8 + Math.sin(frame * 0.6) * 2);
+        ctx.moveTo(fx + 5, fy + 5); ctx.lineTo(fx + 8, fy + 8 - Math.sin(frame * 0.6) * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(fx - 3, fy - 1, 2, 2);
+        ctx.fillRect(fx + 1, fy - 1, 2, 2);
+      } else {
+        ctx.fillStyle = '#ffb0cf';
+        ctx.beginPath(); ctx.arc(fx - 2, fy, 1.7, 0, Math.PI * 2); ctx.fill();
+      }
     }
 
     // Bonus: a tattoo machine, blinking as it expires
@@ -531,16 +600,30 @@
       ctx.fillRect(bx + 6, by, 3, 3);
     }
 
-    // Dried ink blots
+    // Dried ink blots: marked hazards with a loud spawn warning
     for (var i = 0; i < blots.length; i++) {
       var bl = blots[i];
       var bx = bl.x * CELL + 10, by = bl.y * CELL + 10;
-      ctx.fillStyle = '#3b1230';
+      var age = frame - (bl.born || 0);
+      if (age < 70) {
+        // newborn blot: expanding warning ring so it never sneaks in
+        var wr = 12 - (age / 70) * 3;
+        ctx.strokeStyle = Math.floor(frame / 5) % 2 === 0 ? '#ff5040' : 'rgba(255,80,64,0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(bx, by, wr, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+      ctx.fillStyle = '#2a0c22';
       ctx.beginPath(); ctx.arc(bx, by, 7, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(bx + Math.cos(bl.r) * 6, by + Math.sin(bl.r) * 6, 3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(bx - Math.cos(bl.r) * 5, by - Math.sin(bl.r) * 7, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#57204a';
-      ctx.fillRect(bx - 2, by - 2, 3, 3);
+      ctx.strokeStyle = 'rgba(255,80,64,0.85)';
+      ctx.beginPath(); ctx.arc(bx, by, 8, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ff5040';
+      ctx.beginPath();
+      ctx.moveTo(bx - 3, by - 3); ctx.lineTo(bx + 3, by + 3);
+      ctx.moveTo(bx + 3, by - 3); ctx.lineTo(bx - 3, by + 3);
+      ctx.stroke();
     }
 
     // Snake: a rounded, scaled ink serpent
@@ -602,7 +685,10 @@
     ctx.fillStyle = board.accent;
     ctx.textAlign = 'right';
     ctx.fillText('LEVEL ' + level, W - 8, 14);
-    if (eatStreak > 1 && frame - lastEat < 110 && mode === 'play') {
+    if (frenzyT > 0 && mode === 'play') {
+      ctx.fillStyle = '#FF6347';
+      ctx.fillText('FRENZY 2X ' + Math.ceil(frenzyT / 60), W - 8, 26);
+    } else if (eatStreak > 1 && frame - lastEat < 110 && mode === 'play') {
       ctx.fillStyle = YELLOW;
       ctx.fillText('FEAST x' + eatStreak, W - 8, 26);
     }
@@ -645,7 +731,7 @@
   }
 
   var obs = new MutationObserver(function() {
-    if (document.getElementById('jd-game-overlay').style.display === 'flex') init();
+    if (document.getElementById('jd-game-overlay').style.display === 'flex') { init(); say('title-snake', 700); }
   });
   var overlay = document.getElementById('jd-game-overlay');
   if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['style'] });

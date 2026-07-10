@@ -996,6 +996,24 @@
   ];
 
   // Colors
+
+  // Announcer: tiny mp3 one-liners; rooms work fine without them
+  var VOICE_CACHE = {};
+  function say(name, delay) {
+    try {
+      setTimeout(function() {
+        try {
+          if (!VOICE_CACHE[name]) {
+            VOICE_CACHE[name] = new Audio('/audio/arcade/' + name + '.mp3');
+            VOICE_CACHE[name].volume = 0.5;
+          }
+          VOICE_CACHE[name].currentTime = 0;
+          VOICE_CACHE[name].play().catch(function() {});
+        } catch (e) {}
+      }, delay || 0);
+    } catch (e) {}
+  }
+
   var ORANGE = '#FF1493';
   var PINK = '#FF1493';
   var LIME = '#7FFF00';
@@ -1207,6 +1225,7 @@
       level = nl;
       bannerT = 110;
       bannerText = 'LEVEL ' + level + ': ' + LOCALES[(level - 1) % LOCALES.length].name;
+      say('level-up');
       sfxCombo(4);
       spawnParticles(player.x + player.w / 2, player.y, YELLOW, 14);
     }
@@ -1457,6 +1476,7 @@
     boardIdx = -1;
     initSlot = 0;
     mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
+    say(mode === 'enter' ? 'high-score' : 'game-over', 350);
   }
 
   function commitInitials() {
@@ -2259,7 +2279,7 @@
 
   // Start when overlay opens
   var obs = new MutationObserver(function() {
-    if (document.getElementById('jd-game-overlay').style.display === 'flex') init();
+    if (document.getElementById('jd-game-overlay').style.display === 'flex') { init(); say('title-skate', 700); }
   });
   var overlay = document.getElementById('jd-game-overlay');
   if (overlay) obs.observe(overlay, { attributes: true, attributeFilter: ['style'] });
