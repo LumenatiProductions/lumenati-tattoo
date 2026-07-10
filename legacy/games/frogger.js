@@ -136,9 +136,10 @@
         if (ln.dir > 0 && car.x > W + 40) car.x = -ln.w - 40;
         if (ln.dir < 0 && car.x < -ln.w - 40) car.x = W + 40;
       }
-      // Collision on the player's row
+      // Collision on the player's row — hitbox matches the drawn sprite, a
+      // touch forgiving, so near-misses feel like near-misses
       if (invuln === 0 && ln.row === player.row) {
-        var px = player.col * CELL + 6, pw = CELL - 12;
+        var px = player.col * CELL + 13, pw = 14;
         var py = ROW_Y[player.row] + 6;
         for (var j = 0; j < ln.cars.length; j++) {
           var car = ln.cars[j];
