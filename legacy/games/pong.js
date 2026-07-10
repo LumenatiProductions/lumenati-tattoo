@@ -175,8 +175,7 @@
   // ── Input ──
   function start() {
     if (mode === 'intro') { mode = 'play'; return; }
-    if (mode === 'enter') drawInitials();
-    if (mode === 'over') drawBoard();
+    if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
   document.addEventListener('keydown', function(e) {
@@ -494,22 +493,8 @@
       ctx.font = 'bold 10px monospace';
     }
 
-    if (mode === 'over') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = won ? LIME : PINK;
-      ctx.font = 'bold 26px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(won ? 'SHOP CHAMPION' : OPPONENTS[tier].name + ' WINS', W / 2, H / 2 - 34);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 16px monospace';
-      ctx.fillText(won ? 'You ran the whole ladder' : 'Beat ' + tier + ' of ' + OPPONENTS.length, W / 2, H / 2 - 6);
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText(you.score + ' - ' + cpu.score, W / 2, H / 2 + 16);
-      ctx.fillStyle = YELLOW;
-      ctx.font = '12px monospace';
-      ctx.fillText('SPACE or TAP to start over', W / 2, H / 2 + 42);
-    }
+    if (mode === 'enter') drawInitials();
+    if (mode === 'over') drawBoard();
 
 
   }

@@ -212,8 +212,7 @@
   // ── Input ──
   function start() {
     if (mode === 'intro') { mode = 'play'; return; }
-    if (mode === 'enter') drawInitials();
-    if (mode === 'over') drawBoard();
+    if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
   var KEYS = {
@@ -645,22 +644,8 @@
       ctx.font = 'bold 10px monospace';
     }
 
-    if (mode === 'over') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = PINK;
-      ctx.font = 'bold 28px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', W / 2, H / 2 - 30);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 18px monospace';
-      ctx.fillText('Score: ' + score, W / 2, H / 2 + 5);
-      ctx.fillStyle = score >= best && score > 0 ? YELLOW : '#9aa';
-      ctx.font = '12px monospace';
-      ctx.fillText(score >= best && score > 0 ? 'NEW BEST!' : 'Best: ' + best, W / 2, H / 2 + 25);
-      ctx.fillStyle = YELLOW;
-      ctx.fillText('SPACE or TAP to cross again', W / 2, H / 2 + 48);
-    }
+    if (mode === 'enter') drawInitials();
+    if (mode === 'over') drawBoard();
 
 
   }

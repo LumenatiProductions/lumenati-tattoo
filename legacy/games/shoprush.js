@@ -223,8 +223,7 @@
   // ── Input ──
   function start() {
     if (mode === 'intro') { mode = 'play'; return; }
-    if (mode === 'enter') drawInitials();
-    if (mode === 'over') drawBoard();
+    if (mode === 'over') { init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
   var KEYS = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0], KeyW: [0,-1], KeyS: [0,1], KeyA: [-1,0], KeyD: [1,0] };
@@ -617,22 +616,8 @@
       ctx.font = 'bold 10px monospace';
     }
 
-    if (mode === 'over') {
-      ctx.fillStyle = 'rgba(0,0,0,0.72)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = PINK;
-      ctx.font = 'bold 26px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('BAD REVIEWS', W / 2, H / 2 - 30);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 18px monospace';
-      ctx.fillText('Take: $' + score, W / 2, H / 2 + 5);
-      ctx.fillStyle = score >= best && score > 0 ? YELLOW : '#9aa';
-      ctx.font = '12px monospace';
-      ctx.fillText(score >= best && score > 0 ? 'NEW BEST!' : 'Best: $' + best, W / 2, H / 2 + 25);
-      ctx.fillStyle = YELLOW;
-      ctx.fillText('SPACE or TAP to reopen the shop', W / 2, H / 2 + 48);
-    }
+    if (mode === 'enter') drawInitials();
+    if (mode === 'over') drawBoard();
 
 
   }

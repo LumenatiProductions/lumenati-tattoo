@@ -37,7 +37,12 @@ function makeSandbox() {
   const store = {};
   let rafCb = null;
   const spans = {};
-  const mkSpan = (id, txt) => (spans[id] = { textContent: txt });
+  const mkSpan = (id, txt) => {
+    let v = txt;
+    const span = { get textContent() { return v; }, set textContent(x) { v = String(x); } };
+    spans[id] = span;
+    return span;
+  };
   mkSpan("jd-br-score", "0"); mkSpan("jd-br-lives", "3");
   mkSpan("jd-game-hint", ""); mkSpan("jd-stat-a", "Score"); mkSpan("jd-stat-b", "Lives");
   const canvas = {
@@ -106,35 +111,44 @@ function runGame(id, src, opts = {}) {
   // 1. attract mode must loop well past its first cycle
   step(700);
 
-  // 2. start and play with periodic blind inputs
+  // 2. start and play with periodic blind inputs until the run dies
   h.key("Space"); h.key("Space", true);
-  let deadFrames = 0, signed = false, restarted = false;
+  let died = false, scoreAtDeath = "0";
   const boardKey = `lumenati-arcade-${id}-board`;
-  for (let i = 0; i < opts.maxFrames || i < 30000; i++) {
+  const maxFrames = opts.maxFrames ?? 30000;
+  for (let i = 0; i < maxFrames; i++) {
     if (i % 40 === 20) { h.key("Space"); h.key("Space", true); }
     if (i % 90 === 30) { h.key("ArrowLeft"); h.key("ArrowLeft", true); }
     if (i % 90 === 60) { h.key("ArrowRight"); h.key("ArrowRight", true); }
     if (i % 130 === 70) { h.key("ArrowUp"); h.key("ArrowUp", true); }
     if (i % 170 === 90) { h.key("ArrowDown"); h.key("ArrowDown", true); }
     step(1);
-    if (!signed && h.spans["jd-br-lives"].textContent === "0") {
-      deadFrames++;
-      if (deadFrames === 30) {
-        // sign initials if the score qualified; harmless key spam otherwise
-        h.key("KeyJ"); h.key("KeyD"); h.key("KeyX");
-        h.key("Space"); h.key("Space", true);
-        step(10);
-        signed = true;
-        // restart
-        h.key("Space"); h.key("Space", true);
-        step(30);
-        restarted = true;
-        break;
-      }
-    }
-    if (i >= (opts.maxFrames ?? 30000)) break;
+    if (h.spans["jd-br-lives"].textContent === "0" && id !== "pong") { died = true; scoreAtDeath = h.spans["jd-br-score"].textContent; break; }
+    if (id === "pong" && h.spans["jd-br-lives"].textContent === "5") { died = true; scoreAtDeath = "0"; break; }
   }
-  return { store: h.store, boardKey, signed, restarted, spans: h.spans };
+  if (!died) throw new Error(`never reached game over in ${maxFrames} frames`);
+  step(30);
+
+  // 3. sign initials (no-op when the score did not qualify), then restart
+  h.key("KeyS"); h.key("KeyC"); h.key("KeyO");
+  h.key("Space"); h.key("Space", true);
+  step(10);
+  h.key("Space"); h.key("Space", true);
+  step(90);
+
+  // 4. HARD assertions: the game must actually be running again
+  const livesNow = h.spans["jd-br-lives"].textContent;
+  if (id === "pong") {
+    if (livesNow === "5") throw new Error("restart failed: CPU score still 5 after restart input");
+  } else if (livesNow === "0") {
+    throw new Error("restart failed: lives still 0 after board + restart input");
+  }
+  if (Number(scoreAtDeath) > 0) {
+    const board = JSON.parse(h.store[boardKey] || "[]");
+    if (!board.length) throw new Error(`score ${scoreAtDeath} died but leaderboard is empty`);
+    if (!board.some((e) => e.n === "SCO")) throw new Error("initials SCO not on the board");
+  }
+  return { store: h.store, boardKey, scoreAtDeath, spans: h.spans };
 }
 
 const sources = gameSources();
@@ -143,8 +157,7 @@ for (const [id, src] of Object.entries(sources)) {
   try {
     const r = runGame(id, src);
     const boardNote = r.store[r.boardKey] ? `board=${r.store[r.boardKey]}` : "board empty (score 0 run)";
-    const life = r.restarted ? "full cycle + restart" : "survived the whole run";
-    console.log(`PASS ${id.padEnd(11)} ${life}; ${boardNote}`);
+    console.log(`PASS ${id.padEnd(11)} died at ${r.scoreAtDeath}, restarted clean; ${boardNote}`);
   } catch (e) {
     failed++;
     console.log(`FAIL ${id.padEnd(11)} ${e.stack.split("\n").slice(0, 3).join(" | ")}`);
