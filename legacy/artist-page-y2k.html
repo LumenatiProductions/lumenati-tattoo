@@ -910,7 +910,7 @@
 
   // SFX
   var sfxCtx;
-  function getSfx() { if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); return sfxCtx; }
+  function getSfx() { if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)(); if (sfxCtx.state === 'suspended') { try { sfxCtx.resume(); } catch (e) {} } return sfxCtx; }
   function playSfx(freq, dur, type, vol) {
     try {
       var c = getSfx(), o = c.createOscillator(), g = c.createGain();

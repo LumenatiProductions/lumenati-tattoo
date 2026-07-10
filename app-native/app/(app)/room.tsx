@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -412,6 +412,11 @@ export default function MyRoom() {
                       onChange={(id) => set("game_id", id === "none" ? null : id)}
                     />
                   </View>
+                  <Button
+                    label="Try the games first"
+                    tone="ghost"
+                    onPress={() => Linking.openURL(`${SITE || "https://lumenati-tattoo.vercel.app"}/arcade/${room.game_id ?? "skate"}`)}
+                  />
                 </Card>
 
                 <SectionTitle>Room video</SectionTitle>

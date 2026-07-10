@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GAME_CATALOG, renderRoomHtml } from "@/lib/admin/render-room";
+import { buildArcadePreviewHtml } from "@/lib/arcade-preview";
 import type { RoomContent } from "@/lib/admin/types";
 
 // The renderer templates JD's real room, so these assertions run against the
@@ -127,6 +128,17 @@ describe("arcade + video picks", () => {
     const html = renderRoomHtml(room({ gameId: "doom" }), "Test Artist", false);
     expect(html).not.toContain('<script id="jd-arcade-game">');
     expect(html).not.toContain('id="jd-games-icon"');
+  });
+
+  it("every game builds a playable /arcade preview", () => {
+    for (const g of GAME_CATALOG) {
+      const html = buildArcadePreviewHtml(g.id);
+      expect(html, g.id).toBeTruthy();
+      expect(html, g.id).toContain('id="jd-skate-canvas"');
+      expect(html, g.id).toContain('<script id="jd-arcade-game">');
+      expect(html, g.id).toContain(g.exe);
+    }
+    expect(buildArcadePreviewHtml("doom")).toBeNull();
   });
 
   it("game and video picks work together", () => {
