@@ -15,7 +15,6 @@ type Row = {
   portfolio: RoomContent["portfolio"];
   stickers: RoomContent["stickers"];
   posters: RoomContent["posters"];
-  game_id: string | null;
   video_url: string | null;
   video_title: string | null;
 };
@@ -32,7 +31,6 @@ const rowToContent = (r: Row): RoomContent => ({
   portfolio: r.portfolio ?? [],
   stickers: r.stickers ?? null,
   posters: r.posters ?? null,
-  gameId: r.game_id ?? null,
   videoUrl: r.video_url ?? null,
   videoTitle: r.video_title ?? null,
 });
@@ -49,7 +47,6 @@ const contentToRow = (c: RoomContent): Row => ({
   portfolio: c.portfolio,
   stickers: c.stickers,
   posters: c.posters,
-  game_id: c.gameId,
   video_url: c.videoUrl,
   video_title: c.videoTitle,
 });
@@ -79,7 +76,6 @@ function emptyRoom(artistId: string): RoomContent {
     portfolio: [],
     stickers: null,
     posters: null,
-    gameId: null,
     videoUrl: null,
     videoTitle: null,
   };

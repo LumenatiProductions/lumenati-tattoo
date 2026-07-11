@@ -57,7 +57,6 @@ type Room = {
   portfolio: PortfolioItem[];
   stickers: string[] | null;
   posters: Poster[] | null;
-  game_id: string | null;
   video_url: string | null;
   video_title: string | null;
 };
@@ -97,8 +96,8 @@ export default function MyRoom() {
   }, [email, isOwner, preview]);
 
   // Load the selected artist's room whenever the pick changes. select("*")
-  // so the arcade fields are optional: until the game_id/video_url migration
-  // runs, those sections simply don't render and saves don't touch them.
+  // so the video fields are optional: on a DB without the video_url/video_title
+  // columns, those sections simply don't render and saves don't touch them.
   const [arcadeReady, setArcadeReady] = useState(false);
   const [titleReady, setTitleReady] = useState(false);
   useEffect(() => {
@@ -111,7 +110,7 @@ export default function MyRoom() {
         .eq("artist_id", artistId)
         .maybeSingle();
       if (r) {
-        setArcadeReady((r as Record<string, unknown>).game_id !== undefined);
+        setArcadeReady((r as Record<string, unknown>).video_url !== undefined);
         setTitleReady((r as Record<string, unknown>).video_title !== undefined);
         setRoom({
           ...(r as Room),
@@ -119,7 +118,6 @@ export default function MyRoom() {
           portfolio: (r.portfolio as PortfolioItem[]) ?? [],
           stickers: (r.stickers as string[] | null) ?? null,
           posters: (r.posters as Poster[] | null) ?? null,
-          game_id: (r.game_id as string | null) ?? null,
           video_url: (r.video_url as string | null) ?? null,
           video_title: (r.video_title as string | null) ?? null,
         });

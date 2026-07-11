@@ -1,7 +1,7 @@
 // One-shot: build JD's room through the SAME pipeline every artist uses
 // (bug ccc842e4). Uploads his skate edit (pulled from his Vimeo) into the
 // room-photos bucket and writes his room_content row: the four classic wall
-// posters as real poster rows, game_id 'skate', and the uploaded video with
+// posters as real poster rows, the uploaded video with
 // its title. His public page renders identically — but now the app's My Room
 // editor shows the real content, editable like anyone else's.
 //
@@ -50,7 +50,6 @@ const { error: rowErr } = await db
   .from("room_content")
   .update({
     posters: CLASSIC_POSTERS,
-    game_id: "skate",
     video_url: pub.publicUrl,
     video_title: "jd skate edit",
   })

@@ -42,6 +42,16 @@ export async function apiPost<T = unknown>(
   }
 }
 
+export async function apiDelete<T = unknown>(path: string): Promise<{ ok: boolean; data?: T; error?: string }> {
+  try {
+    const r = await fetch(`${BASE}${path}`, { method: "DELETE", headers: await authHeaders() });
+    const d = await r.json().catch(() => ({}));
+    return r.ok ? { ok: true, data: d as T } : { ok: false, error: d.error || `Request failed (${r.status})` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+  }
+}
+
 export async function apiPatch<T = unknown>(
   path: string,
   body?: unknown,

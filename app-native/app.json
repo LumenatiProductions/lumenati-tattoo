@@ -22,7 +22,9 @@
         "NSCalendarsFullAccessUsageDescription": "Lumenati adds your bookings to your calendar and checks for conflicts with your schedule.",
         "NSCalendarsWriteOnlyAccessUsageDescription": "Lumenati adds your bookings to your calendar.",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Stripe needs your location to take secure Tap to Pay card payments."
+        "NSLocationWhenInUseUsageDescription": "Stripe needs your location to take secure Tap to Pay card payments.",
+        "NSBluetoothAlwaysUsageDescription": "Stripe uses Bluetooth to connect to supported card readers.",
+        "NSLocalNetworkUsageDescription": "Stripe uses the local network to connect to supported card readers."
       },
       "appleTeamId": "GBUTL2R6R6"
     },
@@ -32,7 +34,7 @@
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#0e0e11"
       },
-      "permissions": [
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -59,7 +61,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Pick a profile photo for your public room page.",
-          "cameraPermission": "Snap shelf photos to count inventory and receipts to log deductions."
+          "cameraPermission": "Snap shelf photos to count inventory and receipts to log deductions.",
+          "microphonePermission": false
         }
       ],
       "expo-notifications",

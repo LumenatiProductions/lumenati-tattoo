@@ -1,6 +1,15 @@
+import { createHash, timingSafeEqual } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+// Constant-time shared-secret check for cron/wizard lanes. Hashing first makes
+// the buffers equal-length, so timingSafeEqual never throws on a bad guess.
+const sha256 = (s: string) => createHash("sha256").update(s).digest();
+export function secretMatches(got: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!got || !expected) return false;
+  return timingSafeEqual(sha256(got), sha256(expected));
+}
 
 // Retired roles (bookkeeper/frontdesk) read as admin ('owner') — the shop is
 // artists + admin, nothing else (2026-07-09 audit).

@@ -18,7 +18,6 @@ const room = (over: Partial<RoomContent>): RoomContent => ({
   portfolio: [],
   stickers: null,
   posters: null,
-  gameId: null,
   videoUrl: null,
   videoTitle: null,
   ...over,
@@ -39,14 +38,6 @@ describe("the cabinet + video", () => {
       expect(html, g.id).toContain(g.label);
       expect(html, g.id).toContain(g.exe);
     }
-  });
-
-  it("a legacy game pick changes nothing — the pick is retired", () => {
-    const withPick = renderRoomHtml(room({ gameId: "snake" }), "Test Artist", false);
-    const withNonsense = renderRoomHtml(room({ gameId: "doom" }), "Test Artist", false);
-    const withNull = renderRoomHtml(room({}), "Test Artist", false);
-    expect(withPick).toBe(withNull);
-    expect(withNonsense).toBe(withNull);
   });
 
   it("JD keeps his Vimeo clip; his cabinet reads as his arcade", () => {

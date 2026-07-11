@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Dimensions, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +18,7 @@ import GoalDial from "@/components/GoalDial";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
 import { cumulativeSeries, earnedInRange, last7Days, startOf, type Range } from "@/lib/personal";
 import { loadShopMoney, shopCoachTips, type ShopMoney } from "@/lib/shop-coach";
+import { apiDelete } from "@/lib/appApi";
 
 const todayLocal = () => {
   const d = new Date();
@@ -148,8 +149,45 @@ export default function Home() {
           </View>
         </View>
       )}
+
+      {!previewArtist && <DeleteAccount signOut={signOut} />}
     </ScrollView>
     </View>
+  );
+}
+
+// App Store 5.1.1(v): accounts must be deletable from inside the app. Quiet
+// footer action; double-confirmed; the server refuses a shop's only admin.
+function DeleteAccount({ signOut }: { signOut: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const confirm = () =>
+    Alert.alert(
+      "Delete your account?",
+      "This removes your login and personal data from Lumenati. Shop records like bookings and sales stay with the shop. This can't be undone.",
+      [
+        { text: "Keep my account", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            setBusy(true);
+            const r = await apiDelete("/api/account");
+            setBusy(false);
+            if (!r.ok) {
+              Alert.alert("Couldn't delete your account", r.error ?? "Try again in a minute.");
+              return;
+            }
+            signOut();
+          },
+        },
+      ],
+    );
+  return (
+    <Pressable onPress={confirm} disabled={busy} hitSlop={10} style={{ marginTop: 40, alignSelf: "center", opacity: busy ? 0.5 : 1 }}>
+      <Text style={{ color: theme.textDim, fontSize: 13, textDecorationLine: "underline" }}>
+        {busy ? "Deleting your account…" : "Delete my account"}
+      </Text>
+    </Pressable>
   );
 }
 

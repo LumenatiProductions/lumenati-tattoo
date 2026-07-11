@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { secretMatches } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,11 @@ const RESERVED_SLUGS = [
   "request",
 ];
 
+// Best-effort brute-force brake on the invite code (per serverless instance;
+// real rate limiting lives at the platform edge, this just blunts tight loops).
+let wrongCodeCount = 0;
+let wrongCodeWindowStart = 0;
+
 export async function POST(req: Request) {
   const gate = process.env.SHOP_WIZARD_CODE;
   const b = (await req.json().catch(() => ({}))) as {
@@ -52,7 +58,16 @@ export async function POST(req: Request) {
     ownerName?: string;
     artists?: string[];
   };
-  if (!gate || b.code !== gate) {
+  const now = Date.now();
+  if (now - wrongCodeWindowStart > 60_000) {
+    wrongCodeWindowStart = now;
+    wrongCodeCount = 0;
+  }
+  if (wrongCodeCount >= 10) {
+    return NextResponse.json({ error: "Too many attempts — try again in a minute." }, { status: 429 });
+  }
+  if (!gate || !secretMatches(b.code, gate)) {
+    wrongCodeCount++;
     return NextResponse.json({ error: "Signups are invite-only right now — ask us for a code." }, { status: 403 });
   }
 

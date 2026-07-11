@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { secretMatches } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveStaff } from "@/lib/api-auth";
 import { syncSquare } from "@/lib/square/sync";
@@ -11,7 +12,7 @@ export const maxDuration = 60; // honored on paid plans; Square paging can take 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   const auth = req.headers.get("authorization");
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!secret || !secretMatches(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const admin = createAdminClient();

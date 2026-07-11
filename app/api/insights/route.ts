@@ -26,20 +26,26 @@ export async function GET() {
   }
 
   const since = new Date(Date.now() - WINDOW_DAYS * 86_400_000).toISOString();
-  const [bookingsRes, clientsRes] = await Promise.all([
-    supabase
+  // PostgREST caps un-ranged selects at 1000 rows; 90 days of bookings can
+  // exceed that, so page through the window.
+  const bookings: { client_id: string | null; artist_id: string | null; status: string; starts_at: string }[] = [];
+  for (let start = 0; ; start += 1000) {
+    const { data } = await supabase
       .from("bookings")
       .select("client_id, artist_id, status, starts_at")
-      .gte("starts_at", since),
-    supabase
-      .from("clients")
-      .select("id, first_name, last_name, total_spent_cents, last_seen")
-      .gt("total_spent_cents", 0)
-      .order("total_spent_cents", { ascending: false })
-      .limit(8),
-  ]);
-
-  const bookings = bookingsRes.data ?? [];
+      .gte("starts_at", since)
+      .order("starts_at", { ascending: true })
+      .range(start, start + 999);
+    if (!data?.length) break;
+    bookings.push(...data);
+    if (data.length < 1000) break;
+  }
+  const clientsRes = await supabase
+    .from("clients")
+    .select("id, first_name, last_name, total_spent_cents, last_seen")
+    .gt("total_spent_cents", 0)
+    .order("total_spent_cents", { ascending: false })
+    .limit(8);
 
   // Rebooking: of clients with a completed visit in the window, how many came twice+.
   const visitsByClient = new Map<string, number>();

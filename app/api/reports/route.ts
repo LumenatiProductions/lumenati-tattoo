@@ -156,17 +156,28 @@ export async function GET(req: Request) {
   const toExclusiveEnd = `${to}T23:59:59.999`; // make `to` inclusive of its whole day
 
   // ── Pull the real rows in the window (service-role: admins see all) ──
-  const [artistsRes, salesRows, bookingsRes, inventoryRes] = await Promise.all([
+  // PostgREST clamps any single select to 1000 rows regardless of .limit(),
+  // so bookings page through the window like the ledger does.
+  const bookingRows: { deposit_cents: number | null; deposit_status: string | null; starts_at: string }[] = [];
+  const pageBookings = async () => {
+    for (let start = 0; ; start += 1000) {
+      const { data } = await db
+        .from("bookings")
+        .select("deposit_cents, deposit_status, starts_at")
+        .eq("shop_id", shopId)
+        .gte("starts_at", from)
+        .lte("starts_at", toExclusiveEnd)
+        .order("starts_at", { ascending: true })
+        .range(start, start + 999);
+      bookingRows.push(...((data ?? []) as typeof bookingRows));
+      if (!data || data.length < 1000) break;
+    }
+  };
+  const [artistsRes, salesRows, , inventoryRes] = await Promise.all([
     db.from("artists").select("*").eq("shop_id", shopId).eq("active", true).order("sort"),
     // Reads the canonical ledger (as sales-shaped rows) — the money source of truth.
     ledgerSalesForShop(db, shopId, from, toExclusiveEnd),
-    db
-      .from("bookings")
-      .select("deposit_cents, deposit_status, starts_at")
-      .eq("shop_id", shopId)
-      .gte("starts_at", from)
-      .lte("starts_at", toExclusiveEnd)
-      .limit(20000),
+    pageBookings(),
     db.from("inventory_items").select("qty, cost_cents").eq("shop_id", shopId),
   ]);
 
@@ -200,7 +211,7 @@ export async function GET(req: Request) {
 
   // ── Deposits from bookings in the window ──
   const deposits = { held: 0, applied: 0, forfeited: 0, count: 0 };
-  for (const b of bookingsRes.data ?? []) {
+  for (const b of bookingRows) {
     const c = (b.deposit_cents as number) ?? 0;
     if (c <= 0) continue;
     if (b.deposit_status === "held") deposits.held += c;

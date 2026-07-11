@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
@@ -8,6 +8,9 @@ import { LumenatiLogo } from "@/components/LumenatiLogo";
 // Phone-first one-time-code sign-in: type your number, get a text. Email code
 // is the fallback. No passwords, no deep links. Existing team only
 // (shouldCreateUser: false — an unknown number gets a friendly nudge).
+
+// Where the privacy policy lives (App Store requires it reachable in-app).
+const SITE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
 
 // "(209) 555-0144" -> "+12095550144"; null if it doesn't look like a number.
 function e164(raw: string): string | null {
@@ -164,6 +167,10 @@ export default function SignIn() {
 
         {error && <Text style={styles.error}>{error}</Text>}
         {busy && <ActivityIndicator color={theme.textDim} style={{ marginTop: 12 }} />}
+
+        <Pressable onPress={() => Linking.openURL(`${SITE_URL}/privacy`)} style={{ marginTop: 28 }}>
+          <Text style={[styles.link, { fontSize: 12 }]}>Privacy policy</Text>
+        </Pressable>
       </View>
       </ScrollView>
     </KeyboardAvoidingView>
