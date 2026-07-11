@@ -33,24 +33,26 @@ Square is historical only; never flag its data quirks.
   items inside it (proration on the $99-to-$79 conversion; move notice
   vs veto). DESIGN ONLY — nothing built.
 
-## Priority 1 — cabinet selector (pending Scott's go, recommended YES)
-Scott asked (2026-07-11): drop per-artist game picking; every page gets
-the full cabinet with all 9 games behind an old-school game selector
-screen. Recommended design (see session notes):
-- Selector = the cabinet's attract/boot screen: INSERT COIN marquee, 9
-  titles, joystick/tap to choose. Fits the fiction and the new pocket
-  cabinet on phones.
-- One game runs at a time via cartridge iframes: the selector loads a
-  stripped /arcade/<id> embed (`?embed=1`, no switcher/site chrome) into
-  the cabinet window. Avoids 9 IIFEs double-binding key listeners on one
-  page. Flash Match still needs the artist's flash wall passed through.
-- If it ships: remove the game picker from app My Page + web editor
-  (also removes the "Try the games first" button), artist accent still
-  themes the cabinet. Leaderboards stay per-machine localStorage.
+## Priority 1 — product shape build order (after Scott reviews the doc)
+CABINET SELECTOR SHIPPED (2026-07-11 late): every page's Games window
+boots to a LUMENATI ARCADE selector screen (public/arcade-selector.js,
+injected catalog/artist/accent globals), games load one at a time as
+/arcade-embed/<id> cartridge iframes (route handler, NOT a (site) page —
+pages there inherit Winamp/Clippy chrome). "GAMES" titlebar button
+ejects the cartridge; per-artist game picking is fully retired (app
+picker gone, renderer ignores game_id, unknown/legacy picks harmless).
+The arcade is Lumenati-showroom-only by design: future professional
+page templates will simply not include it. game_id column still exists
+in room_content — drop it in a later migration sweep if desired.
+Verified: smoke 10/10, vitest 41/41, Chrome desktop (arrows + Enter,
+GAMES back, X close) and phone-width ?touch=1 (fullscreen selector, tap
+row -> cartridge, FIRE buttons hold-repeat inside iframe, MENU/close
+restore). NOT yet felt on real glass — Scott should thumb through JD's
+page on his iPhone.
 
-## Priority 2 — product shape build order (after Scott reviews the doc)
-Themes -> graduated fee engine + transparency receipt -> SKU billing ->
-Passport. Each shippable alone; docs/product-shape.md has the details.
+Then: Themes -> graduated fee engine + transparency receipt -> SKU
+billing -> Passport. Each shippable alone; docs/product-shape.md has
+the details and the two open Scott's-call items.
 
 ## How to work here (hard-won gotchas — trust these)
 - Scott's dev servers are already running (:3002 web, :8081 Metro). NEVER
