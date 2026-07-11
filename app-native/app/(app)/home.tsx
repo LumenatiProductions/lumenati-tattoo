@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Dimensions, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,11 +8,16 @@ import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
-import { Stat } from "@/components/ui";
+import { Button, Card, ProgressBar, SectionTitle, Stat } from "@/components/ui";
 import InkWash from "@/components/InkWash";
 import ArtistMoney from "@/components/ArtistMoney";
 import Launcher from "@/components/Launcher";
+import MoneyChart from "@/components/MoneyChart";
+import WeekBars from "@/components/WeekBars";
+import GoalDial from "@/components/GoalDial";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
+import { cumulativeSeries, earnedInRange, last7Days, startOf, type Range } from "@/lib/personal";
+import { loadShopMoney, shopCoachTips, type ShopMoney } from "@/lib/shop-coach";
 
 const todayLocal = () => {
   const d = new Date();
@@ -149,78 +154,110 @@ export default function Home() {
 }
 
 type StaffStats = {
-  gross: number;
-  service: number;
-  tips: number;
-  card: number;
-  cash: number;
   apptsToday: number;
   checkedIn: number;
-  tickets: number;
   lowNames: string[];
   outNames: string[];
   followupsDue: number;
   depositsHeld: number;
   expired: number;
   expiringSoon: number;
+  rentOutstanding: number;
+  waitlist: number;
 };
 
 type Sev = "high" | "med" | "low";
 const SEV_COLOR: Record<Sev, string> = { high: theme.bad, med: theme.warn, low: theme.textFaint };
 type AttnItem = { icon: keyof typeof Ionicons.glyphMap; text: string; detail?: string; sev: Sev; href: string };
 
+const RANGES: Range[] = ["week", "month", "year"];
+const RANGE_LABEL: Record<Range, string> = { week: "This week", month: "This month", year: "This year" };
+// screen padding (20×2) + card padding (16×2)
+const CHART_W = Dimensions.get("window").width - 72;
+
+// The owner's cockpit, brought up to the artist page's standard (Scott,
+// 2026-07-11): the revenue race chart with a shop goal to chase, the 7-day
+// strip, every chair's numbers side by side, and a SHOP coach reading the
+// whole room — with the ops glance (attention list) still at the bottom.
 function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: string | null; reloadKey: number }) {
   const router = useRouter();
+  const { setPreview } = usePreview();
+  const [range, setRange] = useState<Range>("week");
   const [stats, setStats] = useState<StaffStats | null>(null);
-  // Same role gating as the Launcher — a glance row never opens a screen the
-  // role can't use. Bookkeepers also skip ops noise (stock/follow-ups), like
+  const [money2, setMoney2] = useState<ShopMoney | null>(null);
+  const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
+  const [shopRow, setShopRow] = useState<{ id: string; goal_weekly_cents: number } | null>(null);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [draftGoal, setDraftGoal] = useState(0);
   const ops = role === "owner";
 
   useEffect(() => {
     (async () => {
       const date = todayLocal();
       const nowIso = new Date().toISOString();
-      const [salesRes, apptRes, invRes, fuRes, heldRes, compRes] = await Promise.all([
-        // Last 7 days, same window as the web home + the Monday email — the
-        // all-time number used to masquerade as "right now" here.
-        supabase.from("sales").select("service_cents, tip_cents, method").gte("created_at", daysAgoLocal(7)),
-        supabase
-          .from("bookings")
-          .select("checked_in_at")
-          .gte("starts_at", date)
-          .lte("starts_at", `${date}T23:59:59.999`)
-          .neq("status", "cancelled"),
-        supabase.from("inventory_items").select("name, qty, reorder_at"),
-        supabase.from("followups").select("id", { count: "exact", head: true }).eq("status", "pending").lte("scheduled_for", nowIso),
-        supabase.from("bookings").select("deposit_cents").eq("deposit_status", "held"),
-        supabase.from("compliance_items").select("status").in("status", ["expiring", "expired"]),
-      ]);
-      const sales = (salesRes.data ?? []) as { service_cents: number; tip_cents: number; method: string }[];
+      const [shopMoney, apptRes, invRes, fuRes, heldRes, compRes, artistsRes, shopRes, rentRes, waitRes] =
+        await Promise.all([
+          loadShopMoney(),
+          supabase
+            .from("bookings")
+            .select("checked_in_at")
+            .gte("starts_at", date)
+            .lte("starts_at", `${date}T23:59:59.999`)
+            .neq("status", "cancelled"),
+          supabase.from("inventory_items").select("name, qty, reorder_at"),
+          supabase.from("followups").select("id", { count: "exact", head: true }).eq("status", "pending").lte("scheduled_for", nowIso),
+          supabase.from("bookings").select("deposit_cents").eq("deposit_status", "held"),
+          supabase.from("compliance_items").select("status").in("status", ["expiring", "expired"]),
+          supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+          supabase.from("shops").select("id, goal_weekly_cents").maybeSingle(),
+          supabase.from("rent_invoices").select("amount_cents").eq("status", "pending"),
+          supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("active", true),
+        ]);
       const appts = (apptRes.data ?? []) as { checked_in_at: string | null }[];
       const inv = (invRes.data ?? []) as { name: string; qty: number; reorder_at: number }[];
       const held = (heldRes.data ?? []) as { deposit_cents: number }[];
       const comp = (compRes.data ?? []) as { status: string }[];
       const low = inv.filter((i) => Number(i.qty) <= Number(i.reorder_at));
+      setMoney2(shopMoney);
+      setArtists((artistsRes.data ?? []) as { id: string; name: string }[]);
+      const sr = shopRes.data as { id: string; goal_weekly_cents?: number } | null;
+      setShopRow(sr ? { id: sr.id, goal_weekly_cents: sr.goal_weekly_cents ?? 0 } : null);
       setStats({
-        gross: sales.reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
-        service: sales.reduce((a, s) => a + (s.service_cents ?? 0), 0),
-        tips: sales.reduce((a, s) => a + (s.tip_cents ?? 0), 0),
-        card: sales.filter((s) => s.method !== "cash").reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
-        cash: sales.filter((s) => s.method === "cash").reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0),
         apptsToday: appts.length,
         checkedIn: appts.filter((b) => b.checked_in_at).length,
-        tickets: sales.length,
         lowNames: low.filter((i) => Number(i.qty) > 0).map((i) => i.name),
         outNames: low.filter((i) => Number(i.qty) <= 0).map((i) => i.name),
         followupsDue: (fuRes as { count?: number }).count ?? 0,
         depositsHeld: held.reduce((a, h) => a + (h.deposit_cents ?? 0), 0),
         expired: comp.filter((c) => c.status === "expired").length,
         expiringSoon: comp.filter((c) => c.status === "expiring").length,
+        rentOutstanding: ((rentRes.data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + r.amount_cents, 0),
+        waitlist: (waitRes as { count?: number }).count ?? 0,
       });
     })();
   }, [reloadKey]);
 
-  if (!stats) {
+  const artistNames = useMemo(() => new Map(artists.map((a) => [a.id, a.name])), [artists]);
+
+  // Every chair's take for the range, biggest first — the whole roster shows,
+  // including a quiet chair at $0 (that IS the read).
+  const chairs = useMemo(() => {
+    if (!money2) return [];
+    const from = startOf(range);
+    const byArtist = new Map<string, { cents: number; tickets: number }>();
+    for (const s of money2.sales) {
+      if (!s.artist_id || (s.created_at || "").slice(0, 10) < from) continue;
+      const cell = byArtist.get(s.artist_id) ?? { cents: 0, tickets: 0 };
+      cell.cents += (s.service_cents ?? 0) + (s.tip_cents ?? 0);
+      cell.tickets += 1;
+      byArtist.set(s.artist_id, cell);
+    }
+    return artists
+      .map((a) => ({ ...a, cents: byArtist.get(a.id)?.cents ?? 0, tickets: byArtist.get(a.id)?.tickets ?? 0 }))
+      .sort((a, b) => b.cents - a.cents);
+  }, [money2, artists, range]);
+
+  if (!stats || !money2) {
     return (
       <View>
         <Text style={styles.greeting}>Hey {firstName}</Text>
@@ -228,6 +265,36 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
       </View>
     );
   }
+
+  const e = earnedInRange(money2.sales, range);
+  const from = startOf(range);
+  const inRange = money2.sales.filter((s) => (s.created_at || "").slice(0, 10) >= from);
+  const card = inRange.filter((s) => s.method !== "cash").reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0);
+  const cash = inRange.filter((s) => s.method === "cash").reduce((a, s) => a + (s.service_cents ?? 0) + (s.tip_cents ?? 0), 0);
+  const bars = last7Days(money2.sales);
+
+  const weeklyGoal = shopRow?.goal_weekly_cents ?? 0;
+  const goalCents =
+    range === "week" ? weeklyGoal : range === "month" ? Math.round((weeklyGoal * 52) / 12) : 0;
+  const goalPct = goalCents > 0 ? e.total / goalCents : 0;
+  const maxChair = Math.max(1, ...chairs.map((c) => c.cents));
+
+  const saveGoal = async () => {
+    if (!shopRow) return;
+    setShopRow({ ...shopRow, goal_weekly_cents: draftGoal });
+    setEditingGoal(false);
+    await supabase.from("shops").update({ goal_weekly_cents: draftGoal }).eq("id", shopRow.id);
+  };
+
+  const tips = shopCoachTips({
+    sales: money2.sales,
+    bookings: money2.bookings,
+    artistNames,
+    activeArtists: artists.length,
+    rentOutstandingCents: stats.rentOutstanding,
+    followupsDue: stats.followupsDue,
+    waitlistCount: stats.waitlist,
+  }).slice(0, 4);
 
   // Ranked like the web cockpit: most urgent first, each row opens where you act.
   const attention: AttnItem[] = [];
@@ -241,6 +308,8 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
     attention.push({ icon: "cube-outline", sev: "med", text: `Reorder: ${stats.lowNames.slice(0, 4).join(", ")}${stats.lowNames.length > 4 ? "…" : ""}`, href: "/inventory" });
   if (ops && stats.followupsDue)
     attention.push({ icon: "chatbubble-ellipses-outline", sev: "med", text: `${stats.followupsDue} follow-up${stats.followupsDue === 1 ? "" : "s"} due`, href: "/followups" });
+  if (ops && stats.rentOutstanding)
+    attention.push({ icon: "home-outline", sev: "med", text: `${money(stats.rentOutstanding)} booth rent outstanding`, href: "/rent" });
   if (stats.apptsToday)
     attention.push({ icon: "calendar-outline", sev: "low", text: `${stats.apptsToday} appointment${stats.apptsToday === 1 ? "" : "s"} today`, detail: `${stats.checkedIn} checked in`, href: "/bookings" });
   if (stats.depositsHeld)
@@ -250,12 +319,28 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
     <View>
       <Text style={styles.greeting}>Hey {firstName}</Text>
       <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
+
+      {/* Range toggle — same mechanic as the artist page. */}
+      <View style={styles.rangeToggle}>
+        {RANGES.map((r) => (
+          <Pressable key={r} onPress={() => setRange(r)} style={[styles.rangeTab, range === r && styles.rangeTabOn]}>
+            <Text style={[styles.rangeTabText, range === r && { color: "#fff" }]}>{RANGE_LABEL[r]}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       <View style={styles.grid}>
-        <Stat label="This week" value={money(stats.gross)} countTo={stats.gross} sub={`${stats.tickets} tickets · last 7 days`} hero />
-        <Stat label="Service" value={money(stats.service)} />
-        <Stat label="Tips" value={money(stats.tips)} />
-        <Stat label="Card" value={money(stats.card)} />
-        <Stat label="Cash" value={money(stats.cash)} />
+        <Stat
+          label="Shop earned"
+          value={money(e.total)}
+          countTo={e.total}
+          sub={`${e.tickets} ticket${e.tickets === 1 ? "" : "s"} · ${chairs.filter((c) => c.cents > 0).length}/${artists.length} chairs ringing`}
+          hero
+        />
+        <Stat label="Service" value={money(e.service)} />
+        <Stat label="Tips" value={money(e.tips)} />
+        <Stat label="Card" value={money(card)} />
+        <Stat label="Cash" value={money(cash)} />
         <Stat
           label="Today"
           value={`${stats.checkedIn}/${stats.apptsToday}`}
@@ -266,20 +351,163 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
         {ops && (
           <>
             <Stat
+              label="Rent outstanding"
+              value={money(stats.rentOutstanding)}
+              warn={stats.rentOutstanding > 0}
+              onPress={() => router.push("/rent")}
+            />
+            <Stat
               label="Low stock"
               value={String(stats.lowNames.length + stats.outNames.length)}
               warn={stats.lowNames.length + stats.outNames.length > 0}
               onPress={() => router.push("/inventory")}
             />
-            <Stat
-              label="Follow-ups due"
-              value={String(stats.followupsDue)}
-              warn={stats.followupsDue > 0}
-              onPress={() => router.push("/followups")}
-            />
           </>
         )}
       </View>
+
+      {/* The race: shop revenue vs the goal pace line. */}
+      <SectionTitle
+        right={
+          weeklyGoal > 0 && !editingGoal ? (
+            <Pressable
+              onPress={() => {
+                setDraftGoal(weeklyGoal);
+                setEditingGoal(true);
+              }}
+              hitSlop={8}
+            >
+              <Text style={styles.editLink}>Edit</Text>
+            </Pressable>
+          ) : undefined
+        }
+      >
+        Shop goal
+      </SectionTitle>
+      <Card>
+        {editingGoal ? (
+          <View>
+            <GoalDial
+              value={draftGoal}
+              min={0}
+              max={5000000}
+              step={50000}
+              format={(v) => money(v)}
+              caption="per week, whole shop"
+              onChange={setDraftGoal}
+            />
+            <View style={{ height: 10 }} />
+            <Button label="Save shop goal" onPress={saveGoal} />
+            <View style={{ height: 8 }} />
+            <Button label="Cancel" tone="ghost" onPress={() => setEditingGoal(false)} />
+          </View>
+        ) : (
+          <>
+            <MoneyChart
+              series={cumulativeSeries(money2.sales, range)}
+              startLabel={RANGE_LABEL[range].replace("This ", "")}
+              endLabel="today"
+              startISO={startOf(range)}
+              goalCents={goalCents > 0 ? goalCents : undefined}
+              width={CHART_W}
+            />
+            {goalCents > 0 ? (
+              <>
+                <View style={styles.goalRow}>
+                  <Text style={styles.goalNow}>{money(e.total)}</Text>
+                  <Text style={styles.goalTarget}>of {money(goalCents)}</Text>
+                </View>
+                <ProgressBar pct={goalPct} tone={theme.good} />
+                <Text style={styles.goalNote}>
+                  {goalPct >= 1 ? "Goal hit — the whole room did that." : `${Math.round(goalPct * 100)}% there`}
+                </Text>
+              </>
+            ) : range === "year" && weeklyGoal > 0 ? null : (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.goalPitch}>
+                  Give the shop a number to chase and this chart races the whole room against it.
+                </Text>
+                <Button
+                  label="Set the shop goal"
+                  onPress={() => {
+                    setDraftGoal(weeklyGoal || 500000);
+                    setEditingGoal(true);
+                  }}
+                />
+              </View>
+            )}
+          </>
+        )}
+      </Card>
+
+      {/* Every chair, side by side. Tap one to see the shop through their eyes. */}
+      <SectionTitle>Chairs</SectionTitle>
+      <Card>
+        {chairs.length === 0 ? (
+          <Text style={styles.chairEmpty}>No active artists yet.</Text>
+        ) : (
+          chairs.map((c, i) => (
+            <Pressable
+              key={c.id}
+              onPress={() => {
+                tap();
+                setPreview({ artistId: c.id, name: c.name });
+              }}
+              style={({ pressed }) => [styles.chairRow, i > 0 && styles.chairDivider, pressed && { opacity: 0.7 }]}
+            >
+              <View style={{ flex: 1 }}>
+                <View style={styles.chairTop}>
+                  <Text style={styles.chairName}>{c.name}</Text>
+                  <Text style={styles.chairMoney}>
+                    {money(c.cents)}
+                    <Text style={styles.chairTickets}>{c.tickets ? `  ·  ${c.tickets} ticket${c.tickets === 1 ? "" : "s"}` : ""}</Text>
+                  </Text>
+                </View>
+                <View style={styles.chairTrack}>
+                  <View
+                    style={[
+                      styles.chairFill,
+                      { width: `${Math.max(c.cents > 0 ? 3 : 0, (c.cents / maxChair) * 100)}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+            </Pressable>
+          ))
+        )}
+        <Text style={styles.chairHint}>Tap a chair to view the app as that artist.</Text>
+      </Card>
+
+      {/* 7-day strip, whole shop. */}
+      <SectionTitle>Last 7 days</SectionTitle>
+      <Card>
+        <WeekBars bars={bars} />
+      </Card>
+
+      {/* The shop coach — same voice as the artist coach, reading every chair. */}
+      {tips.length > 0 && (
+        <>
+          <SectionTitle>Coach</SectionTitle>
+          {tips.map((tip, i) => (
+            <Card key={tip.title} style={i > 0 ? { marginTop: 10 } : undefined}>
+              <Text style={styles.coachTitle}>{tip.title}</Text>
+              <Text style={styles.coachBody}>{tip.body}</Text>
+              {tip.href ? (
+                <Pressable
+                  onPress={() => {
+                    tap();
+                    router.push(tip.href as never);
+                  }}
+                  hitSlop={6}
+                  style={{ marginTop: 8 }}
+                >
+                  <Text style={styles.coachLink}>Open →</Text>
+                </Pressable>
+              ) : null}
+            </Card>
+          ))}
+        </>
+      )}
 
       <Text style={styles.sectionLabel}>Needs attention</Text>
       {attention.length === 0 ? (
@@ -390,4 +618,27 @@ const styles = StyleSheet.create({
   homeTabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   homeTabText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
   homeTabTextOn: { color: "#fff" },
+  rangeToggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  rangeTab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
+  rangeTabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
+  rangeTabText: { color: theme.textDim, fontSize: 13, fontWeight: "600" },
+  editLink: { color: theme.text, fontSize: 13, fontWeight: "700" },
+  goalRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 12, marginBottom: 10 },
+  goalNow: { color: theme.text, fontSize: 24, fontWeight: "800" },
+  goalTarget: { color: theme.textDim, fontSize: 14 },
+  goalNote: { color: theme.textFaint, fontSize: 12, marginTop: 8 },
+  goalPitch: { color: theme.textDim, fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  chairRow: { paddingVertical: 10 },
+  chairDivider: { borderTopColor: theme.border, borderTopWidth: 1 },
+  chairTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 },
+  chairName: { color: theme.text, fontSize: 14.5, fontWeight: "700" },
+  chairMoney: { color: theme.text, fontSize: 14, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  chairTickets: { color: theme.textFaint, fontSize: 12, fontWeight: "400" },
+  chairTrack: { height: 8, borderRadius: 5, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" },
+  chairFill: { height: 8, borderRadius: 5, backgroundColor: theme.good },
+  chairEmpty: { color: theme.textFaint, fontSize: 13.5 },
+  chairHint: { color: theme.textFaint, fontSize: 11.5, marginTop: 12 },
+  coachTitle: { color: theme.text, fontSize: 15.5, fontWeight: "700", marginBottom: 6 },
+  coachBody: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
+  coachLink: { color: theme.text, fontSize: 13, fontWeight: "700" },
 });

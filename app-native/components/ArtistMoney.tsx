@@ -7,6 +7,7 @@ import { theme, money } from "@/lib/theme";
 import { success, tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
 import MoneyChart from "@/components/MoneyChart";
+import WeekBars from "@/components/WeekBars";
 import MiniConfetti from "@/components/MiniConfetti";
 import RewardsStrip from "@/components/RewardsStrip";
 import TodayCard from "@/components/TodayCard";
@@ -107,7 +108,6 @@ export default function ArtistMoney({
   const goalCents = range === "month" ? goals.monthly_cents : range === "week" ? goals.weekly_cents : 0;
   const goalPct = goalCents > 0 ? e.total / goalCents : 0;
   const bars = last7Days(snap.sales);
-  const maxBar = Math.max(1, ...bars.map((b) => b.cents));
 
   // Tax: reserve = (earned − deductions) × pct. The tax situation follows the
   // pay setup (renters 1099, payroll artists W-2), but the % is THEIRS — the
@@ -243,7 +243,7 @@ export default function ArtistMoney({
       {/* 7-day strip — tap a bar to see that day's number */}
       <SectionTitle>Last 7 days</SectionTitle>
       <Card>
-        <WeekBars bars={bars} maxBar={maxBar} />
+        <WeekBars bars={bars} />
       </Card>
 
       {/* The coach — practice reads first (rebooking, open days, best-week
@@ -376,49 +376,6 @@ function RentCoachLine({
   );
 }
 
-// The 7-day bars, tappable: the biggest day starts labeled; tapping any bar
-// moves the value bubble to it (selection tick included).
-function WeekBars({ bars, maxBar }: { bars: { label: string; cents: number }[]; maxBar: number }) {
-  const biggest = bars.reduce((bi, b, i) => (b.cents > bars[bi].cents ? i : bi), 0);
-  const [sel, setSel] = useState(biggest);
-  const quietWeek = bars.every((b) => !b.cents);
-  return (
-    <View>
-      {quietWeek && <Text style={styles.quietWeek}>Nothing rung up in the last 7 days yet.</Text>}
-      <View style={styles.bars}>
-      {bars.map((b, i) => (
-        <Pressable
-          key={i}
-          onPress={() => {
-            tap();
-            setSel(i);
-          }}
-          style={styles.barCol}
-          hitSlop={6}
-        >
-          <Text style={[styles.barValue, (sel !== i || !b.cents) && { opacity: 0 }]}>
-            {b.cents ? money(b.cents) : " "}
-          </Text>
-          <View style={styles.barTrack}>
-            <View
-              style={[
-                styles.bar,
-                {
-                  height: `${(b.cents / maxBar) * 100}%`,
-                  backgroundColor: b.cents ? theme.good : "rgba(255,255,255,0.08)",
-                  opacity: sel === i || !b.cents ? 1 : 0.55,
-                },
-              ]}
-            />
-          </View>
-          <Text style={[styles.barLabel, sel === i && { color: theme.textDim, fontWeight: "700" }]}>{b.label}</Text>
-        </Pressable>
-      ))}
-      </View>
-    </View>
-  );
-}
-
 function EditLink({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable
@@ -477,17 +434,10 @@ const styles = StyleSheet.create({
   coachBody: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
   editLink: { paddingHorizontal: 2 },
   editLinkText: { color: theme.text, fontSize: 13, fontWeight: "700" },
-  bars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 110 },
-  barCol: { flex: 1, alignItems: "center" },
-  barTrack: { height: 90, width: 14, justifyContent: "flex-end", borderRadius: 7, overflow: "hidden" },
-  bar: { width: 14, borderRadius: 7, minHeight: 3 },
-  barLabel: { color: theme.textFaint, fontSize: 11, marginTop: 6 },
-  barValue: { color: theme.text, fontSize: 11, fontWeight: "700", marginBottom: 5, fontVariant: ["tabular-nums"] },
   row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
   rowLabel: { color: theme.textDim, fontSize: 14 },
   rowValue: { color: theme.textDim, fontSize: 15, fontWeight: "600" },
   streakLine: { color: theme.good, fontSize: 13, marginTop: 10, fontWeight: "600" },
-  quietWeek: { color: theme.textFaint, fontSize: 12.5, marginBottom: 10 },
   taxNote: { color: theme.textFaint, fontSize: 12, marginTop: 10, lineHeight: 17 },
   linkBtn: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   linkBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },
