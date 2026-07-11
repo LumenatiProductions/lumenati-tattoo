@@ -137,7 +137,7 @@ export default function Staff() {
                 <Chips label="Role" value={role} options={ROLES} display={(r) => ROLE_LABELS[r]} onChange={setRole} />
                 {role === "artist" && (
                   <Chips
-                    label="Whose room"
+                    label="Whose page"
                     value={artistId || artists[0]?.id || ""}
                     options={artists.map((a) => a.id)}
                     display={(id) => artists.find((a) => a.id === id)?.name ?? id}

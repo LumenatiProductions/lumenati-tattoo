@@ -20,7 +20,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Front of house",
     items: [
-      { href: "/room", label: "Rooms", icon: "color-palette-outline", roles: ["owner", "artist"] },
+      { href: "/room", label: "My Page", icon: "color-palette-outline", roles: ["owner", "artist"] },
       { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "artist"] },
       { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "artist"] },
       { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner"] },

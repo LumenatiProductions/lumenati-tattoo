@@ -113,7 +113,7 @@ export default function ArtistsPage() {
   };
 
   const remove = async (a: Artist) => {
-    if (!confirm(`Remove ${a.name}? This deletes their room too.`)) return;
+    if (!confirm(`Remove ${a.name}? This deletes their page too.`)) return;
     setBusy(true);
     const { error } = await sb.from("artists").delete().eq("id", a.id);
     if (error) {
@@ -132,7 +132,7 @@ export default function ArtistsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Artists &amp; Pay</h1>
           <p className="text-sm text-white/65">
-            Your roster and how each one is paid. Adding an artist gives them a room + public page.
+            Your roster and how each one is paid. Adding an artist gives them their own public page.
           </p>
         </div>
         {isOwner && (
@@ -211,7 +211,7 @@ export default function ArtistsPage() {
                   {isOwner && (
                     <div className="flex items-center gap-2 border-t border-white/9 px-4 py-2.5">
                       <button onClick={() => startEdit(a)} className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">Edit pay</button>
-                      <a href={`/${a.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">View room ↗</a>
+                      <a href={`/${a.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">View page ↗</a>
                       <a href={`/admin/card/${a.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">QR card ↗</a>
                       <button onClick={() => remove(a)} className="ml-auto rounded-lg border border-rose-400/30 px-2.5 py-1 text-xs font-medium text-rose-400 hover:bg-rose-400/10">Remove</button>
                     </div>

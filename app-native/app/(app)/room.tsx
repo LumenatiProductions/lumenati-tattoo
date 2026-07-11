@@ -10,7 +10,7 @@ import { theme } from "@/lib/theme";
 import { Button, Card, SectionTitle } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 
-// My Room — edit your public page from your phone (tagline, bio, IG, song,
+// My Page — edit your public page from your phone (tagline, bio, IG, song,
 // accent, profile photo). Same room_content row the web editor writes; the
 // public site re-renders on the next visit. Photo uploads land in the
 // room-photos bucket, exactly like the web editor.
@@ -169,7 +169,7 @@ export default function MyRoom() {
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
-    setMsg(error ? error.message : "Saved — your room is live.");
+    setMsg(error ? error.message : "Saved — your page is live.");
   }, [room, arcadeReady, titleReady]);
 
   // Pick from the library and land it in the public room-photos bucket.
@@ -247,7 +247,7 @@ export default function MyRoom() {
       }
       const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
       set("video_url", data.publicUrl);
-      setMsg("Video uploaded — tap Save to put it in your room.");
+      setMsg("Video uploaded — tap Save to put it on your page.");
     } catch {
       setMsg("Could not read that video.");
     } finally {
@@ -329,14 +329,14 @@ export default function MyRoom() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "My Room", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <Stack.Screen options={{ headerShown: true, title: "My Page", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}>
         {loading ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 60 }} />
         ) : !artistId ? (
           <Card>
             <Text style={styles.note}>
-              No room is linked to this login yet — ask the desk to link your artist profile.
+              No page is linked to this login yet — ask the shop owner to link your artist profile.
             </Text>
           </Card>
         ) : (
@@ -344,7 +344,7 @@ export default function MyRoom() {
             {isOwner && roster.length > 0 && (
               <View style={{ marginBottom: 4 }}>
                 <Chips
-                  label="Whose room"
+                  label="Whose page"
                   value={artistId}
                   options={roster.map((a) => a.id)}
                   display={(id) => roster.find((a) => a.id === id)?.name ?? id}
@@ -392,7 +392,7 @@ export default function MyRoom() {
               </View>
             </Card>
 
-            <SectionTitle>Room vibe</SectionTitle>
+            <SectionTitle>Page vibe</SectionTitle>
             <Card>
               <Chips
                 label="Winamp track"
@@ -420,8 +420,8 @@ export default function MyRoom() {
                 <SectionTitle>Arcade game</SectionTitle>
                 <Card>
                   <Text style={styles.note}>
-                    The game on your room's desktop — visitors actually play it.
-                    {room.game_id === null ? " (None picked yet, so your room stays classic.)" : ""}
+                    The game on your page's desktop — visitors actually play it.
+                    {room.game_id === null ? " (None picked yet, so your page stays classic.)" : ""}
                   </Text>
                   <View style={{ marginTop: 8 }}>
                     <Chips
@@ -438,12 +438,12 @@ export default function MyRoom() {
                   />
                 </Card>
 
-                <SectionTitle>Room video</SectionTitle>
+                <SectionTitle>Page video</SectionTitle>
                 <Card>
                   <Text style={[styles.note, { marginBottom: 12 }]}>
                     {room.video_url
-                      ? "Your clip plays in the room's media player window."
-                      : "Drop a clip into your room's media player window (mp4 or mov, under 60MB)."}
+                      ? "Your clip plays in your page's media player window."
+                      : "Drop a clip into your page's media player window (mp4 or mov, under 60MB)."}
                   </Text>
                   {room.video_url && titleReady ? (
                     <LabeledInput

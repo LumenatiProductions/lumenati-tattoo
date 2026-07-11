@@ -47,7 +47,7 @@ export function buildArcadePreviewHtml(gameId: string): string | null {
       <span id="jd-game-hint">${game.hint}</span>
     </div>
   </div>
-  <div style="margin-top:12px;color:#9aa;font-size:12px;">Pick this one in My Room and it lives on your public page.</div>
+  <div style="margin-top:12px;color:#9aa;font-size:12px;">Pick this one in My Page and it lives on your public page.</div>
 </div>
 <script id="jd-arcade-game">
 ${gameSource(gameId)}

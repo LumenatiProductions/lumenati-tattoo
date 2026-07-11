@@ -36,9 +36,9 @@ export default function RoomEditorPage() {
     <div>
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">My Room</h1>
+          <h1 className="text-2xl font-bold tracking-tight">My Page</h1>
           <p className="text-sm text-white/65">
-            Edit what shows in your room. Changes go live right away.
+            Edit what shows on your page. Changes go live right away.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -63,7 +63,7 @@ export default function RoomEditorPage() {
             >
               {artists.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}&apos;s room
+                  {a.name}&apos;s page
                 </option>
               ))}
             </select>
@@ -74,7 +74,7 @@ export default function RoomEditorPage() {
             rel="noreferrer"
             className="rounded-lg bg-white/14 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
           >
-            View live room ↗
+            View live page ↗
           </a>
         </div>
       </div>

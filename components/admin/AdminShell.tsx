@@ -29,7 +29,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: null,
     items: [
       { href: "/admin", label: "Overview", roles: ["owner", "artist"] },
-      { href: "/admin/room", label: "My Room", roles: ["owner", "artist"] },
+      { href: "/admin/room", label: "My Page", roles: ["owner", "artist"] },
     ],
   },
   {
