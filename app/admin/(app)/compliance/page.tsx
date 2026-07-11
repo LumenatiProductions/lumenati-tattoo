@@ -10,6 +10,20 @@ import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
 import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 import { todayLocal } from "@/lib/dates";
+import { createClient } from "@/lib/supabase/browser";
+
+// App-scanned docs live in the private compliance-docs bucket as object
+// paths; older entries may be full URLs. Signed link for paths, straight
+// open for URLs.
+async function openScan(doc: string) {
+  if (doc.startsWith("http")) {
+    window.open(doc, "_blank", "noreferrer");
+    return;
+  }
+  const supabase = createClient();
+  const { data } = await supabase.storage.from("compliance-docs").createSignedUrl(doc, 60 * 10);
+  if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noreferrer");
+}
 
 const KIND_LABELS: Record<string, string> = {
   tattoo_license: "Tattoo license",
@@ -219,14 +233,13 @@ function ItemTable({
                   {it.document_url && (
                     <>
                       {" · "}
-                      <a
-                        href={it.document_url}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => openScan(it.document_url!)}
                         className="text-brand underline"
                       >
                         scan
-                      </a>
+                      </button>
                     </>
                   )}
                 </div>

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
@@ -76,6 +77,15 @@ async function confirmOutsideConflicts(
   });
 }
 
+// Which logo to show for a calendar account (iCloud/Google/Outlook/local).
+function calProviderIcon(source?: string): keyof typeof Ionicons.glyphMap {
+  const s = (source ?? "").toLowerCase();
+  if (s.includes("google") || s.includes("gmail")) return "logo-google";
+  if (s.includes("outlook") || s.includes("exchange")) return "logo-microsoft";
+  if (s.includes("icloud") || s.includes("default")) return "logo-apple";
+  return "calendar-outline";
+}
+
 const STATUS_TONE: Record<string, string> = {
   scheduled: theme.textDim,
   completed: theme.good,
@@ -96,7 +106,9 @@ export default function Bookings() {
   const router = useRouter();
   const { role, email } = useAuth();
   const { preview } = usePreview();
-  const isStaff = role === "owner";
+  // Previewing an artist = being that artist on this screen too: their name
+  // only in the picker, no staff row actions (bug 1db64bc3).
+  const isStaff = role === "owner" && !preview;
 
   const [rows, setRows] = useState<Booking[]>([]);
   const [names, setNames] = useState<{ c: Map<string, string>; a: Map<string, string> }>({ c: new Map(), a: new Map() });
@@ -193,16 +205,21 @@ export default function Bookings() {
 
     // Pickers for the create form. RLS scopes the client list — staff see
     // everyone, an artist sees only the clients they've had a booking with.
-    const [allArtists, recent] = await Promise.all([
+    const [allArtists, clientBook] = await Promise.all([
       supabase.from("artists").select("id, name").eq("active", true).order("sort"),
-      supabase.from("clients").select("id, first_name, last_name").order("last_seen", { ascending: false, nullsFirst: false }).limit(12),
+      // The whole book (RLS keeps an artist's list to their own clients) —
+      // the form searches it instead of showing a pill sampler (bug 1db64bc3).
+      supabase
+        .from("clients")
+        .select("id, first_name, last_name")
+        .order("last_seen", { ascending: false, nullsFirst: false })
+        .limit(500),
     ]);
     setArtists((allArtists.data ?? []) as { id: string; name: string }[]);
     setRecentClients(
-      ((recent.data ?? []) as { id: string; first_name: string; last_name: string }[]).map((c) => ({
-        id: c.id,
-        name: `${c.first_name} ${c.last_name}`.trim() || "Client",
-      })),
+      ((clientBook.data ?? []) as { id: string; first_name: string; last_name: string }[])
+        .map((c) => ({ id: c.id, name: `${c.first_name} ${c.last_name}`.trim() }))
+        .filter((c) => c.name && c.name.toLowerCase() !== "client"),
     );
     setLoading(false);
   }, [preview]);
@@ -357,39 +374,53 @@ export default function Bookings() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
-        <Pressable
-          onPress={toggleCal}
-          style={{
-            marginBottom: 12,
-            paddingVertical: 11,
-            paddingHorizontal: 14,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: calOn ? theme.good : theme.border,
-            backgroundColor: theme.surface,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: calOn ? theme.good : theme.textDim, fontSize: 14, fontWeight: "600" }}>
-            {calOn ? "Calendar sync on — bookings land in your calendar" : "Sync bookings to my calendar"}
-          </Text>
-        </Pressable>
-        {calOn && calChoices.length > 1 && (
+        {!calOn ? (
+          <Pressable onPress={toggleCal} style={styles.calOffBanner}>
+            <Ionicons name="calendar-outline" size={17} color={theme.textDim} />
+            <Text style={{ color: theme.textDim, fontSize: 14, fontWeight: "600" }}>
+              Sync bookings to my calendar
+            </Text>
+          </Pressable>
+        ) : (
           <View style={styles.calPick}>
-            <Pressable onPress={() => setPickingCal((v) => !v)} style={styles.calPickRow}>
-              <Text style={styles.calPickLabel}>Syncing into</Text>
+            {/* Connected: provider logo + the actual calendar name, so it
+                FEELS wired up, not just a green border (bug 17a45485). */}
+            <View style={styles.calOnRow}>
+              <View style={styles.calCheck}>
+                <Ionicons name="checkmark" size={15} color="#0c0c11" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.calOnTitle}>Connected</Text>
+                <Text style={styles.calOnSub}>Every booking lands in your calendar automatically.</Text>
+              </View>
+              <Pressable onPress={toggleCal} hitSlop={8}>
+                <Text style={styles.calOff}>Turn off</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => calChoices.length > 1 && setPickingCal((v) => !v)}
+              style={styles.calPickRow}
+            >
+              <Ionicons name={calProviderIcon(calChoices.find((c) => c.id === calId)?.source)} size={16} color={theme.text} />
               <Text style={styles.calPickValue}>
                 {calChoices.find((c) => c.id === calId)?.title ?? "Default calendar"}
               </Text>
+              {(calChoices.find((c) => c.id === calId)?.source ?? "") !== "" && (
+                <Text style={styles.calPickSource}>{calChoices.find((c) => c.id === calId)?.source}</Text>
+              )}
+              {calChoices.length > 1 && (
+                <Text style={styles.calPickLabel}>{pickingCal ? "close" : "change"}</Text>
+              )}
             </Pressable>
             {pickingCal &&
               calChoices.map((c) => (
                 <Pressable key={c.id} onPress={() => pickCalendar(c.id)} style={styles.calOption}>
-                  <Text style={[styles.calOptionText, c.id === calId && { color: theme.good }]}>
+                  <Ionicons name={calProviderIcon(c.source)} size={15} color={c.id === calId ? theme.good : theme.textDim} />
+                  <Text style={[styles.calOptionText, c.id === calId && { color: theme.good, fontWeight: "700" }]}>
                     {c.title}
                     {c.source ? ` (${c.source})` : ""}
-                    {c.id === calId ? "  ✓" : ""}
                   </Text>
+                  {c.id === calId && <Ionicons name="checkmark" size={15} color={theme.good} />}
                 </Pressable>
               ))}
           </View>
@@ -441,7 +472,7 @@ export default function Bookings() {
           <NewBooking
             // An artist books themselves only — the RLS insert policy enforces
             // it, the picker just doesn't offer anyone else.
-            artists={isStaff ? artists : artists.filter((a) => a.id === myArtistId)}
+            artists={isStaff ? artists : artists.filter((a) => a.id === (preview?.artistId ?? myArtistId))}
             clients={recentClients}
             myArtistId={myArtistId}
             onSaved={() => {
@@ -737,13 +768,7 @@ function NewBooking({
       {artists.length > 0 && (
         <Chips label="Artist" value={artistId} options={artists.map((a) => a.id)} onChange={setArtistId} display={(id) => artists.find((a) => a.id === id)?.name ?? id} />
       )}
-      <Chips
-        label="Client"
-        value={clientId}
-        options={["", ...clients.map((c) => c.id)]}
-        onChange={setClientId}
-        display={(id) => (id ? clients.find((c) => c.id === id)?.name ?? "Client" : "Walk-in")}
-      />
+      <ClientPicker clients={clients} value={clientId} onChange={setClientId} />
       <DateTimeField date={date} time={time} onDate={setDate} onTime={setTime} />
       <LabeledInput label="Service" value={service} onChange={setService} placeholder="e.g. half-sleeve session" />
       <LabeledInput label="Deposit ($, optional)" value={deposit} onChange={setDeposit} keyboardType="numeric" placeholder="0" />
@@ -753,6 +778,100 @@ function NewBooking({
   );
 }
 
+
+// Search the whole client book instead of guessing from pills (bug 1db64bc3).
+// Walk-in stays one tap; typing filters as you go; the pick shows as a chip
+// you can clear.
+function ClientPicker({
+  clients,
+  value,
+  onChange,
+}: {
+  clients: { id: string; name: string }[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const picked = value ? clients.find((c) => c.id === value) : null;
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? clients.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 6)
+    : [];
+
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={pickerStyles.label}>Client</Text>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+        <Pressable onPress={() => { onChange(""); setQuery(""); }} style={[pickerStyles.chip, !value && pickerStyles.chipOn]}>
+          <Text style={[pickerStyles.chipText, !value && { color: "#fff" }]}>Walk-in</Text>
+        </Pressable>
+        {picked && (
+          <View style={[pickerStyles.chip, pickerStyles.chipOn, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
+            <Text style={[pickerStyles.chipText, { color: "#fff" }]}>{picked.name}</Text>
+            <Text onPress={() => onChange("")} style={{ color: theme.textDim, fontSize: 15, fontWeight: "700" }}>×</Text>
+          </View>
+        )}
+      </View>
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder={`Search your ${clients.length} client${clients.length === 1 ? "" : "s"}…`}
+        placeholderTextColor={theme.textFaint}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={pickerStyles.search}
+      />
+      {matches.length > 0 && (
+        <View style={pickerStyles.results}>
+          {matches.map((c, i) => (
+            <Pressable
+              key={c.id}
+              onPress={() => {
+                onChange(c.id);
+                setQuery("");
+              }}
+              style={({ pressed }) => [pickerStyles.result, i > 0 && pickerStyles.resultDivider, pressed && { backgroundColor: "rgba(255,255,255,0.05)" }]}
+            >
+              <Text style={pickerStyles.resultText}>{c.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      {q.length > 0 && matches.length === 0 && (
+        <Text style={pickerStyles.noMatch}>No client named "{query.trim()}" — book them as a walk-in and add them after.</Text>
+      )}
+    </View>
+  );
+}
+
+const pickerStyles = StyleSheet.create({
+  label: { color: theme.textDim, fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    borderColor: theme.borderStrong,
+    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  chipOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
+  chipText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
+  search: {
+    backgroundColor: theme.bg,
+    borderColor: theme.borderStrong,
+    borderWidth: 1,
+    borderRadius: theme.radius.sm,
+    color: theme.text,
+    fontSize: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  results: { marginTop: 6, borderColor: theme.border, borderWidth: 1, borderRadius: 12, backgroundColor: theme.surface, overflow: "hidden" },
+  result: { paddingVertical: 12, paddingHorizontal: 14 },
+  resultDivider: { borderTopColor: theme.border, borderTopWidth: 1 },
+  resultText: { color: theme.text, fontSize: 15, fontWeight: "600" },
+  noMatch: { color: theme.textFaint, fontSize: 12.5, marginTop: 8, lineHeight: 18 },
+});
 
 // ── Up for grabs ──────────────────────────────────────────────────────────
 // "No preference" website requests land in a shared pool; any artist can grab
@@ -979,12 +1098,31 @@ const styles = StyleSheet.create({
   depBtn: { flex: 1, borderColor: theme.border, borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center" },
   depBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },
   depNote: { color: theme.textFaint, fontSize: 12, marginTop: 8 },
-  calPick: { marginTop: -6, marginBottom: 12, borderColor: theme.border, borderWidth: 1, borderRadius: 12, backgroundColor: theme.surface, overflow: "hidden" },
-  calPickRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14 },
-  calPickLabel: { color: theme.textFaint, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
-  calPickValue: { color: theme.text, fontSize: 13.5, fontWeight: "600" },
-  calOption: { borderTopColor: theme.border, borderTopWidth: 1, paddingVertical: 11, paddingHorizontal: 14 },
-  calOptionText: { color: theme.textDim, fontSize: 13.5 },
+  calOffBanner: {
+    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  calPick: { marginBottom: 12, borderColor: "rgba(52,211,153,0.45)", borderWidth: 1, borderRadius: 14, backgroundColor: theme.goodSoft, overflow: "hidden" },
+  calOnRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 12, paddingHorizontal: 14 },
+  calCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.good, alignItems: "center", justifyContent: "center" },
+  calOnTitle: { color: theme.good, fontSize: 14.5, fontWeight: "800" },
+  calOnSub: { color: theme.textDim, fontSize: 12, marginTop: 1 },
+  calOff: { color: theme.textFaint, fontSize: 12.5, fontWeight: "600" },
+  calPickRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 11, paddingHorizontal: 14, borderTopColor: "rgba(52,211,153,0.25)", borderTopWidth: 1 },
+  calPickLabel: { color: theme.textFaint, fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginLeft: "auto" },
+  calPickValue: { color: theme.text, fontSize: 13.5, fontWeight: "700" },
+  calPickSource: { color: theme.textFaint, fontSize: 12 },
+  calOption: { flexDirection: "row", alignItems: "center", gap: 8, borderTopColor: "rgba(52,211,153,0.25)", borderTopWidth: 1, paddingVertical: 11, paddingHorizontal: 14 },
+  calOptionText: { color: theme.textDim, fontSize: 13.5, flex: 1 },
   cancelBtn: { borderColor: "rgba(251,113,133,0.4)", borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center" },
   cancelText: { color: "#fb7185", fontSize: 14, fontWeight: "600" },
 });

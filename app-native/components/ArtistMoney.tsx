@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Link, useRouter } from "expo-router";
+import { apiPost } from "@/lib/appApi";
+import BookingCalendar from "@/components/BookingCalendar";
 import { theme, money } from "@/lib/theme";
 import { success, tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
@@ -130,6 +132,9 @@ export default function ArtistMoney({
       {/* The day ahead — next client ready before the phone goes back away. */}
       <TodayCard artistId={artistId} reloadKey={reloadKey} />
 
+      {/* Their book as a real calendar — next up, day, week, or month views. */}
+      <BookingCalendar artistId={artistId} reloadKey={reloadKey} />
+
       {/* Range toggle */}
       <View style={styles.toggle}>
         {RANGES.map((r) => (
@@ -187,6 +192,8 @@ export default function ArtistMoney({
                   money passes through to you 100%.
                 </Text>
                 <RentCoachLine rent={rent} bookings={snap.bookings} />
+                <View style={{ height: 12 }} />
+                <PayRentButton unpaid={rent.unpaid} onNote={() => router.push("/rent")} />
               </>
             )}
             {rentOnTimeStreak(rent.history) >= 2 && (
@@ -294,6 +301,49 @@ export default function ArtistMoney({
   );
 }
 
+// Pay booth rent from right here (bug f7ca0567): grabs the invoice's hosted
+// pay link (same checkout the emailed link opens) and hands it to the browser.
+// Oldest month first when more than one is open. No link (Stripe was off when
+// it minted) → route to /rent where the cash handoff lives.
+function PayRentButton({
+  unpaid,
+  onNote,
+}: {
+  unpaid: RentStatus["unpaid"];
+  onNote: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const oldest = [...unpaid].sort((a, b) => a.period.localeCompare(b.period))[0];
+  if (!oldest) return null;
+
+  const pay = async () => {
+    setBusy(true);
+    setNote(null);
+    const r = await apiPost<{ url: string }>("/api/rent/pay-link", { invoiceId: oldest.id });
+    setBusy(false);
+    if (r.ok && r.data?.url) {
+      Linking.openURL(r.data.url);
+      if (unpaid.length > 1) setNote("Paying oldest month first — the next one unlocks here after.");
+    } else {
+      setNote(r.error ?? "Could not fetch your pay link.");
+    }
+  };
+
+  return (
+    <View>
+      <Button
+        label={busy ? "Getting your pay link…" : `Pay ${money(oldest.amount_cents)} rent now`}
+        onPress={pay}
+        disabled={busy}
+      />
+      <View style={{ height: 8 }} />
+      <Button label="Paying cash instead" tone="ghost" onPress={onNote} />
+      {note && <Text style={styles.taxNote}>{note}</Text>}
+    </View>
+  );
+}
+
 // Rent as per-appointment money: "you owe $X and have N sessions on the books
 // — set aside about $Y each." Advisory only, updates as the book fills.
 function RentCoachLine({
@@ -331,8 +381,11 @@ function RentCoachLine({
 function WeekBars({ bars, maxBar }: { bars: { label: string; cents: number }[]; maxBar: number }) {
   const biggest = bars.reduce((bi, b, i) => (b.cents > bars[bi].cents ? i : bi), 0);
   const [sel, setSel] = useState(biggest);
+  const quietWeek = bars.every((b) => !b.cents);
   return (
-    <View style={styles.bars}>
+    <View>
+      {quietWeek && <Text style={styles.quietWeek}>Nothing rung up in the last 7 days yet.</Text>}
+      <View style={styles.bars}>
       {bars.map((b, i) => (
         <Pressable
           key={i}
@@ -343,8 +396,8 @@ function WeekBars({ bars, maxBar }: { bars: { label: string; cents: number }[]; 
           style={styles.barCol}
           hitSlop={6}
         >
-          <Text style={[styles.barValue, sel !== i && { opacity: 0 }]}>
-            {b.cents ? money(b.cents) : "$0"}
+          <Text style={[styles.barValue, (sel !== i || !b.cents) && { opacity: 0 }]}>
+            {b.cents ? money(b.cents) : " "}
           </Text>
           <View style={styles.barTrack}>
             <View
@@ -361,6 +414,7 @@ function WeekBars({ bars, maxBar }: { bars: { label: string; cents: number }[]; 
           <Text style={[styles.barLabel, sel === i && { color: theme.textDim, fontWeight: "700" }]}>{b.label}</Text>
         </Pressable>
       ))}
+      </View>
     </View>
   );
 }
@@ -433,6 +487,7 @@ const styles = StyleSheet.create({
   rowLabel: { color: theme.textDim, fontSize: 14 },
   rowValue: { color: theme.textDim, fontSize: 15, fontWeight: "600" },
   streakLine: { color: theme.good, fontSize: 13, marginTop: 10, fontWeight: "600" },
+  quietWeek: { color: theme.textFaint, fontSize: 12.5, marginBottom: 10 },
   taxNote: { color: theme.textFaint, fontSize: 12, marginTop: 10, lineHeight: 17 },
   linkBtn: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   linkBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },

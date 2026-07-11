@@ -174,8 +174,10 @@ export default function MyRoom() {
 
   // Pick from the library and land it in the public room-photos bucket.
   // Square-crops for the profile shot; galleries keep the framing as shot.
+  // `onLocal` fires with the picked photo's on-device uri the moment it's
+  // chosen, so the UI can show it instantly while the upload runs (bug 24e80ad6).
   const uploadFromLibrary = useCallback(
-    async (square: boolean): Promise<string | null> => {
+    async (square: boolean, onLocal?: (uri: string) => void): Promise<string | null> => {
       if (!room) return null;
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
@@ -184,6 +186,7 @@ export default function MyRoom() {
         ...(square ? { aspect: [1, 1] as [number, number] } : {}),
       });
       if (res.canceled || !res.assets[0]) return null;
+      onLocal?.(res.assets[0].uri);
       setSaving(true);
       setMsg(null);
       try {
@@ -252,11 +255,15 @@ export default function MyRoom() {
     }
   }, [room]);
 
+  // The new profile shot shows up the moment it's picked (local uri with an
+  // uploading veil), then swaps to the stored copy when the upload lands.
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const pickPhoto = useCallback(async () => {
-    const url = await uploadFromLibrary(true);
+    const url = await uploadFromLibrary(true, setPhotoPreview);
+    setPhotoPreview(null);
     if (!url) return;
     set("profile_photo", url);
-    setMsg("Photo ready — tap Save to make it live.");
+    setMsg("Photo's in — tap Save to make it live.");
   }, [uploadFromLibrary]);
 
   const addPolaroid = useCallback(async () => {
@@ -363,15 +370,25 @@ export default function MyRoom() {
 
             <SectionTitle>Profile photo</SectionTitle>
             <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-              {room.profile_photo ? (
-                <Image source={{ uri: room.profile_photo.startsWith("http") ? room.profile_photo : `https://lumenati-tattoo.vercel.app${room.profile_photo}` }} style={styles.avatar} />
+              {photoPreview || room.profile_photo ? (
+                <View>
+                  <Image
+                    source={{ uri: photoPreview ?? (room.profile_photo.startsWith("http") ? room.profile_photo : `https://lumenati-tattoo.vercel.app${room.profile_photo}`) }}
+                    style={styles.avatar}
+                  />
+                  {photoPreview ? (
+                    <View style={styles.avatarVeil}>
+                      <ActivityIndicator color="#fff" size="small" />
+                    </View>
+                  ) : null}
+                </View>
               ) : (
                 <View style={[styles.avatar, { alignItems: "center", justifyContent: "center" }]}>
                   <Text style={{ color: theme.textFaint, fontSize: 11 }}>none</Text>
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Button label="Choose new photo" tone="ghost" onPress={pickPhoto} disabled={saving} />
+                <Button label={photoPreview ? "Uploading…" : "Choose new photo"} tone="ghost" onPress={pickPhoto} disabled={saving} />
               </View>
             </Card>
 
@@ -390,8 +407,10 @@ export default function MyRoom() {
                   <Pressable
                     key={c}
                     onPress={() => set("accent_color", c)}
-                    style={[styles.swatch, { backgroundColor: c }, room.accent_color === c && styles.swatchOn]}
-                  />
+                    style={[styles.swatchWrap, room.accent_color === c && styles.swatchWrapOn]}
+                  >
+                    <View style={[styles.swatch, { backgroundColor: c }]} />
+                  </Pressable>
                 ))}
               </View>
             </Card>
@@ -436,7 +455,7 @@ export default function MyRoom() {
                   ) : null}
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <View style={{ flex: 1 }}>
-                      <Button label={room.video_url ? "Replace video" : "Add a video"} tone="ghost" onPress={pickVideo} disabled={saving} />
+                      <Button label={saving ? "Uploading…" : room.video_url ? "Replace video" : "Add a video"} tone="ghost" onPress={pickVideo} disabled={saving} />
                     </View>
                     {room.video_url ? (
                       <View style={{ flex: 1 }}>
@@ -499,7 +518,7 @@ export default function MyRoom() {
                 onRemove={(id) => set("posters", (room.posters ?? []).filter((x) => x.id !== id))}
                 onMove={(id, dir) => set("posters", moveItem(room.posters ?? [], id, dir))}
               />
-              <Button label="Add a poster" tone="ghost" onPress={addPoster} disabled={saving || (room.posters ?? []).length >= 4} />
+              <Button label={saving ? "Uploading…" : "Add a poster"} tone="ghost" onPress={addPoster} disabled={saving || (room.posters ?? []).length >= 4} />
             </Card>
 
             <SectionTitle>Polaroids</SectionTitle>
@@ -514,7 +533,7 @@ export default function MyRoom() {
                 onRemove={(id) => set("polaroids", room.polaroids.filter((x) => x.id !== id))}
                 onMove={(id, dir) => set("polaroids", moveItem(room.polaroids, id, dir))}
               />
-              <Button label="Add a polaroid" tone="ghost" onPress={addPolaroid} disabled={saving} />
+              <Button label={saving ? "Uploading…" : "Add a polaroid"} tone="ghost" onPress={addPolaroid} disabled={saving} />
             </Card>
 
             <SectionTitle>Portfolio</SectionTitle>
@@ -527,7 +546,7 @@ export default function MyRoom() {
                 onRemove={(id) => set("portfolio", room.portfolio.filter((x) => x.id !== id))}
                 onMove={(id, dir) => set("portfolio", moveItem(room.portfolio, id, dir))}
               />
-              <Button label="Add a piece" tone="ghost" onPress={addPortfolio} disabled={saving} />
+              <Button label={saving ? "Uploading…" : "Add a piece"} tone="ghost" onPress={addPortfolio} disabled={saving} />
             </Card>
 
             <SectionTitle>Flash wall</SectionTitle>
@@ -570,7 +589,7 @@ export default function MyRoom() {
                   ))}
                 </View>
               )}
-              <Button label="Pin new flash" tone="ghost" onPress={addFlash} disabled={saving} />
+              <Button label={saving ? "Uploading…" : "Pin new flash"} tone="ghost" onPress={addFlash} disabled={saving} />
             </Card>
 
             <View style={{ marginTop: 20, gap: 10 }}>
@@ -665,7 +684,21 @@ const styles = StyleSheet.create({
   note: { color: theme.textDim, fontSize: 13.5, lineHeight: 19 },
   label: { color: theme.textDim, fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "600" },
   avatar: { width: 72, height: 72, borderRadius: 14, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1 },
-  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  swatch: { width: 36, height: 36, borderRadius: 10, borderWidth: 2, borderColor: "transparent" },
-  swatchOn: { borderColor: "#fff", transform: [{ scale: 1.12 }] },
+  avatarVeil: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 72,
+    height: 72,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  // Selection ring sits OUTSIDE the tile with a gap, so the whole color stays
+  // visible inside it (bug c766010c).
+  swatchWrap: { padding: 3, borderRadius: 14, borderWidth: 2, borderColor: "transparent" },
+  swatchWrapOn: { borderColor: "#fff" },
+  swatch: { width: 34, height: 34, borderRadius: 9 },
 });

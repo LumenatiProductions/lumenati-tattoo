@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, Image } from "react-native";
 import { usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiPost } from "@/lib/appApi";
@@ -131,6 +131,9 @@ export default function BugReporter() {
       )}
 
       <Modal visible={phase !== "hidden"} transparent animationType="slide" onRequestClose={() => setPhase("hidden")}>
+        {/* The sheet rides above the keyboard, so the note stays visible while
+            typing (bug 24e80ad6). */}
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <Pressable
           onPress={() => setPhase("hidden")}
           style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
@@ -215,6 +218,7 @@ export default function BugReporter() {
             )}
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );

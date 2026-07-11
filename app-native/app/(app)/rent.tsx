@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text } from "react-native";
+import { ActivityIndicator, Linking, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -54,6 +54,14 @@ export default function Rent() {
     load();
   };
 
+  // Card rent from the phone (bug f7ca0567): fetch the invoice's hosted pay
+  // link and open it in the browser — same checkout the emailed link uses.
+  const payCard = async (id: string) => {
+    const r = await apiPost<{ url: string }>("/api/rent/pay-link", { invoiceId: id });
+    if (r.ok && r.data?.url) Linking.openURL(r.data.url);
+    else setNote(r.error ?? "Could not fetch the pay link.");
+  };
+
   // The renter's side of cash rent (two-tap): declaring "paying in cash" puts
   // the stack on the handoff board; the invoice flips to paid when the admin
   // taps Got it with the cash in hand.
@@ -89,9 +97,14 @@ export default function Rent() {
               Mark paid
             </Text>
           ) : (
-            <Text onPress={() => payCash(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
-              Paying cash
-            </Text>
+            <View style={{ alignItems: "flex-end", gap: 8 }}>
+              <Text onPress={() => payCard(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
+                Pay by card
+              </Text>
+              <Text onPress={() => payCash(r.id)} style={{ color: theme.textDim, fontSize: 13, fontWeight: "600" }}>
+                Paying cash
+              </Text>
+            </View>
           )
         ) : (
           <Badge label={r.status} tone={r.status === "paid" ? "good" : "neutral"} />
