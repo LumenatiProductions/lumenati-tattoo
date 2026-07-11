@@ -52,7 +52,7 @@ export default function ShopCoach() {
       </SectionTitle>
       <div className="grid gap-3 lg:grid-cols-2">
         {tips.map((tip) => (
-          <Card key={tip.title} className="flex flex-col">
+          <Card key={tip.title} className="flex flex-col p-4">
             <div className="text-[15px] font-semibold">{tip.title}</div>
             <p className="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-white/60">{tip.body}</p>
             {tip.href && (
