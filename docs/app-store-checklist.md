@@ -37,14 +37,11 @@ portals), or waiting on Apple.
    - NOTHING under tracking, analytics, or advertising — we ship no such SDKs.
 2. **Privacy policy URL** in the listing: `https://lumenati-tattoo.vercel.app/privacy`
    (swap to the real domain when it exists).
-3. **Reviewer demo account.** Two steps on your go:
-   - Say the word and the queued script runs: `node scripts/provision-review-account.mjs`
-     (creates the sandboxed "Apple Review Studio" shop + reviewer login —
-     nothing touches real shop data).
-   - Supabase Dashboard -> Authentication -> Providers -> Phone -> Test OTP:
-     add number `+15005550100` with code `000000`. Reviewer signs in with that
-     number and code; no SMS is sent, no real login is exposed.
-   - App Review notes then say: "Sign in with phone +1 500 555 0100, code
+3. **Reviewer demo account — DONE 2026-07-11.** The sandboxed "Apple Review
+   Studio" shop + reviewer login are live, and the test OTP is configured
+   (valid through 2026-12-31; no SMS is ever sent). Proven end to end: the
+   fixed code signs in and sees only demo data.
+   - App Review notes say: "Sign in with phone +1 500 555 0100, code
      000000. This is a sandboxed demo studio."
 4. **Tap to Pay demo recording** — see the one-take script below.
 5. **Build 21 to TestFlight** — explicit go only. `app-native/.env` already
@@ -70,10 +67,13 @@ Apple wants a screen recording of the real payment flow for the production
 entitlement request. Everything is staged; the take is about 60 seconds.
 
 Prep (once, before the take):
-1. You need the DEVELOPMENT build on your iPhone (it's the only build allowed
-   to carry the Tap to Pay entitlement right now). If it's not installed, run
-   the interactive build command you've used before — say the word and I'll
-   line it up so you just approve it.
+1. You need a build that carries the Tap to Pay entitlement — TestFlight
+   builds can't have it yet (that's why the charge screen says it's in
+   Apple's review). A dedicated `ttp-recording` profile exists: a normal
+   standalone app, install-on-your-phone distribution, entitlement on. Run
+   it interactively (Apple credential prompts need you):
+       cd app-native && npx eas build --profile ttp-recording --platform ios
+   Install from the link/QR EAS gives you when it finishes.
 2. Make sure you're signed in as yourself and the shop has at least one
    booking or merch item to charge against.
 

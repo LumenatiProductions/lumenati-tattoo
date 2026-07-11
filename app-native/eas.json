@@ -12,6 +12,13 @@
         "EXPO_PUBLIC_TTP": "1"
       }
     },
+    "ttp-recording": {
+      "distribution": "internal",
+      "env": {
+        "TTP_ENTITLEMENT": "1",
+        "EXPO_PUBLIC_TTP": "1"
+      }
+    },
     "development-simulator": {
       "developmentClient": true,
       "distribution": "internal",

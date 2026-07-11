@@ -99,7 +99,7 @@ for (let i = 0; i < 4; i++) {
     shop_id: shopId,
     artist_id: artistIds[i % 2],
     client_id: clientIds[i % 3],
-    status: i === 0 ? "completed" : "confirmed",
+    status: i === 0 ? "completed" : "scheduled",
     starts_at: new Date(now + (i - 1) * 86_400_000).toISOString(),
     ends_at: new Date(now + (i - 1) * 86_400_000 + 2 * 3_600_000).toISOString(),
     service_desc: "Demo session",
