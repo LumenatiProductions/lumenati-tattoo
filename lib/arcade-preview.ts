@@ -35,8 +35,8 @@ export function buildArcadePreviewHtml(
     return `
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#000;}</style>
 <div style="height:100vh;display:flex;flex-direction:column;background:#000;">
-  <div id="jd-game-overlay" style="display:none;flex:1;min-height:0;align-items:center;justify-content:center;position:relative;">
-    <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;image-rendering:pixelated;touch-action:none;background:#000;"></canvas>
+  <div id="jd-game-overlay" style="display:none;flex:1;min-height:0;align-items:center;justify-content:center;position:relative;background-color:#5a3a22;background-image:repeating-linear-gradient(90deg, rgba(255,220,170,0.05) 0 1px, transparent 1px 6px),repeating-linear-gradient(88deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 11px),repeating-linear-gradient(92deg, rgba(0,0,0,0.10) 0 3px, transparent 3px 23px),linear-gradient(90deg, #6b4527 0%, #55331b 30%, #6b4527 55%, #4c2e18 80%, #61401f 100%);">
+    <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;image-rendering:pixelated;touch-action:none;background:#000;box-shadow:0 0 0 8px #0c0c0c, 0 0 30px rgba(0,0,0,0.65);"></canvas>
   </div>
   <div style="padding:4px 8px;background:#ece9d8;font-family:Tahoma,sans-serif;font-size:10px;color:#444;display:flex;justify-content:space-between;">
     <span><span id="jd-stat-a">${statA}</span>: <span id="jd-br-score">0</span></span>
@@ -54,7 +54,8 @@ ${gameSource(gameId)}
     var c = document.getElementById('jd-skate-canvas');
     var wrap = c.parentElement;
     function fit() {
-      var s = Math.min(wrap.clientWidth / 400, wrap.clientHeight / 320);
+      // -20 leaves room for the bezel shadow so it never bleeds off the wrap.
+      var s = Math.min((wrap.clientWidth - 20) / 400, (wrap.clientHeight - 20) / 320);
       c.style.width = Math.max(1, Math.floor(400 * s)) + 'px';
       c.style.height = Math.max(1, Math.floor(320 * s)) + 'px';
     }

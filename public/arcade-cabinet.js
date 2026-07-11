@@ -93,7 +93,8 @@
   // games (and the selector) map taps over the element box, and letterbox
   // bars inside the element would skew every touch.
   function fit() {
-    var s = Math.min(pad.clientWidth / 400, pad.clientHeight / 320);
+    // -20 leaves room for the bezel shadow so it never bleeds off the pad.
+    var s = Math.min((pad.clientWidth - 20) / 400, (pad.clientHeight - 20) / 320);
     if (!isFinite(s) || s <= 0) return;
     canvas.style.width = Math.max(1, Math.floor(400 * s)) + "px";
     canvas.style.height = Math.max(1, Math.floor(320 * s)) + "px";
@@ -142,6 +143,16 @@
     pad.style.alignItems = "center";
     pad.style.justifyContent = "center";
     pad.style.position = "relative";
+    // Old-cabinet woodgrain around the screen, with a black bezel between.
+    // The bezel is a box-shadow on purpose: a CSS border would grow the
+    // canvas rect the games map their taps over.
+    pad.style.backgroundColor = "#5a3a22";
+    pad.style.backgroundImage =
+      "repeating-linear-gradient(90deg, rgba(255,220,170,0.05) 0 1px, transparent 1px 6px)," +
+      "repeating-linear-gradient(88deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 11px)," +
+      "repeating-linear-gradient(92deg, rgba(0,0,0,0.10) 0 3px, transparent 3px 23px)," +
+      "linear-gradient(90deg, #6b4527 0%, #55331b 30%, #6b4527 55%, #4c2e18 80%, #61401f 100%)";
+    canvas.style.boxShadow = "0 0 0 8px #0c0c0c, 0 0 30px rgba(0,0,0,0.65)";
     canvas.style.maxWidth = "none";
     fit();
     window.addEventListener("resize", fit);
