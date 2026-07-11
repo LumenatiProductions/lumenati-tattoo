@@ -150,7 +150,7 @@
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Arrows or tap to run // seat, then collect';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Tap to run there // seat, then collect' : 'Arrows to run // seat, then collect';
     var statA = document.getElementById('jd-stat-a');
     if (statA) statA.textContent = 'Cash';
     var statB = document.getElementById('jd-stat-b');

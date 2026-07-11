@@ -52,6 +52,7 @@ export function buildArcadePreviewHtml(gameId: string): string | null {
 <script id="jd-arcade-game">
 ${gameSource(gameId)}
 </script>
+<script src="/arcade-cabinet.js"></script>
 <script>
   // the games boot when the overlay's style attribute changes
   document.getElementById('jd-game-overlay').style.display = 'flex';

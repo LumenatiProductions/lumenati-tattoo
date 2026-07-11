@@ -148,7 +148,7 @@
     document.getElementById('jd-br-lives').textContent = '3';
     startDesign();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Up/Down or drag // stay on the stencil';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag up + down // stay on the stencil' : 'Up/Down keys // stay on the stencil';
     var statB = document.getElementById('jd-stat-b');
     if (statB) statB.textContent = 'Trust';
     window.skateRunning = true;

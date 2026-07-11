@@ -139,7 +139,7 @@
     dealCards();
     cursor = { col: 0, row: 0 };
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Tap a card, or arrows + SPACE // find the pairs';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Tap the cards // find the pairs' : 'Tap a card, or arrows + SPACE // find the pairs';
     window.skateRunning = true;
     startLoop();
   }

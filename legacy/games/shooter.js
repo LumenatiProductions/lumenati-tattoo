@@ -147,7 +147,7 @@
     invuln = 0; shootCd = 0; touching = false;
     buildWave();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Arrows move, SPACE fires // drag on phones';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag to fly (autofire) // FIRE for bursts' : 'Arrows move, SPACE fires';
     window.skateRunning = true;
     startLoop();
   }
@@ -470,11 +470,11 @@
     e.preventDefault();
     start();
     touching = true;
-    player.x = Math.max(14, Math.min(W - 14, canvasX(e.touches[0].clientX)));
+    player.x = Math.max(14, Math.min(W - 14, canvasX((e.targetTouches[0] || e.touches[0]).clientX)));
   }, { passive: false });
   canvas.addEventListener('touchmove', function(e) {
     e.preventDefault();
-    player.x = Math.max(14, Math.min(W - 14, canvasX(e.touches[0].clientX)));
+    player.x = Math.max(14, Math.min(W - 14, canvasX((e.targetTouches[0] || e.touches[0]).clientX)));
   }, { passive: false });
   canvas.addEventListener('touchend', function(e) { e.preventDefault(); touching = false; }, { passive: false });
 
@@ -571,7 +571,7 @@
   }
   canvas.addEventListener('click', function(e) { if (mode === 'enter') enterTap(e.clientX, e.clientY); });
   canvas.addEventListener('touchstart', function(e) {
-    if (mode === 'enter') { e.preventDefault(); enterTap(e.touches[0].clientX, e.touches[0].clientY); }
+    if (mode === 'enter') { e.preventDefault(); enterTap((e.targetTouches[0] || e.touches[0]).clientX, e.touches[0].clientY); }
   }, { passive: false });
 
   function drawInitials() {

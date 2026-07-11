@@ -258,7 +258,7 @@
     buildBricks();
     serve();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Arrows, mouse or drag // SPACE launches';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag the paddle // FIRE launches + lasers' : 'Arrows, mouse or drag // SPACE launches';
     window.skateRunning = true;
     startLoop();
   }
@@ -436,11 +436,11 @@
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
     start();
-    paddle.x = Math.max(0, Math.min(W - paddle.w, canvasX(e.touches[0].clientX) - paddle.w / 2));
+    paddle.x = Math.max(0, Math.min(W - paddle.w, canvasX((e.targetTouches[0] || e.touches[0]).clientX) - paddle.w / 2));
   }, { passive: false });
   canvas.addEventListener('touchmove', function(e) {
     e.preventDefault();
-    paddle.x = Math.max(0, Math.min(W - paddle.w, canvasX(e.touches[0].clientX) - paddle.w / 2));
+    paddle.x = Math.max(0, Math.min(W - paddle.w, canvasX((e.targetTouches[0] || e.touches[0]).clientX) - paddle.w / 2));
   }, { passive: false });
 
   // ── Shop leaderboard: top 5 on this machine, signed with three initials ──
@@ -508,7 +508,7 @@
   }
   canvas.addEventListener('click', function(e) { if (mode === 'enter') enterTap(e.clientX, e.clientY); });
   canvas.addEventListener('touchstart', function(e) {
-    if (mode === 'enter') { e.preventDefault(); enterTap(e.touches[0].clientX, e.touches[0].clientY); }
+    if (mode === 'enter') { e.preventDefault(); enterTap((e.targetTouches[0] || e.touches[0]).clientX, e.touches[0].clientY); }
   }, { passive: false });
 
   function drawInitials() {

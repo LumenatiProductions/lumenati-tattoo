@@ -114,7 +114,7 @@
     resetSnake();
     placeFood();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Arrows or swipe to steer // machine +50';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Swipe to steer // machine +50' : 'Arrows to steer // machine +50';
     window.skateRunning = true;
     startLoop();
   }

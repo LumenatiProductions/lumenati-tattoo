@@ -143,7 +143,7 @@
     makeLanes();
     resetPlayer();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = 'Arrows or tap to hop // fill all 3 chairs';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Tap where to hop // fill all 3 chairs' : 'Arrows or tap to hop // fill all 3 chairs';
     window.skateRunning = true;
     startLoop();
   }
