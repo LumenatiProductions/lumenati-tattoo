@@ -9,6 +9,7 @@ import { useSettledStatements } from "@/lib/admin/settlements-context";
 import { shopSummary, fmt } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
+import ShopCoach from "@/components/admin/home/ShopCoach";
 import { PageHead, WeekTile, StatementsTable, RentPanel, daysAgoLocal } from "./shared";
 
 // Owner: the whole shop. The cross-feature cockpit (POS-STARTER-4) on top, then
@@ -48,6 +49,9 @@ export default function OwnerHome() {
       <PageHead title="Shop Overview" sub={real ? "Live" : "Period to date · preview data"} />
 
       <Cockpit />
+
+      {/* The shop coach — same reads as the app's shop home. */}
+      <ShopCoach />
 
       {!real && !loading && <MockBanner source="Square & QuickBooks" />}
 

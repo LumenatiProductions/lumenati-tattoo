@@ -273,12 +273,16 @@ const styles = StyleSheet.create({
     padding: 16,
     flexGrow: 1,
     flexBasis: "45%",
+    // An odd tile stays half-width instead of stretching the row — width is
+    // layout, not importance. The hero overrides this on purpose.
+    maxWidth: "48.6%",
   },
   statAccent: { borderColor: theme.brandBorder, backgroundColor: theme.brandSoft },
   // The hero money tile is glass like everything else — the NUMBER is the
   // event, not a pink box around it. Pink stays reserved for money actions.
   statHero: {
     flexBasis: "100%",
+    maxWidth: "100%",
     backgroundColor: theme.surfaceRaised,
     borderColor: theme.border,
     borderTopColor: theme.glassEdge,

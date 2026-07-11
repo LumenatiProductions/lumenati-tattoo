@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     flexGrow: 1,
     flexBasis: "45%",
+    maxWidth: "48.6%",
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
