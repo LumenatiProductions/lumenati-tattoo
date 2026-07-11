@@ -1,4 +1,4 @@
-# Lumenati — next-session starter: ARCADE WRAP-UP
+# Lumenati — next-session starter: PAGES, POCKET ARCADE, PRODUCT SHAPE
 
 Read this first in a fresh context. Scott is NOT a coder: explain in plain
 English, no jargon/file paths in chat. Never use emojis or em dashes. Dive
@@ -12,71 +12,112 @@ Public layer: Y2K site at root. Owner login: lumenati@icloud.com.
 Core principle: NO front desk — artists run their own world from the app.
 Square is historical only; never flag its data quirks.
 
-## State of THE ARCADE (built 2026-07-10, all committed + pushed)
-- 9 playable games, each play-verified in Chrome on real room pages.
-  Skate (levels: pigeons/ink spills/stacks, ink shield) in the template;
-  Ink Snake / Flash Breaker / Sterile! / Needle Pong / Walk-In plus the
-  second wave — Steady Hand (trace-the-stencil flagship), Shop Rush
-  (front-of-house dash), Flash Match (pairs dealt from the room's own
-  portfolio images) — live in `legacy/games/*.js` as drop-in IIFEs
-  sharing the same Win98 window shell (600px chunky-pixel canvas). Every
-  game has a level/wave/night/session ladder and self-sets its status-bar
-  hint + labels at init.
-- Demo rooms live for Scott's play-through (artists arcade-demo-*,
-  inactive, OVERNIGHT-style disposable): snake, bricks, shooter, pong,
-  frogger, steady, shoprush, flashmatch. SWEEP THEM when Scott is done
-  playing (artists + room_content rows, service key).
-- Renderer (`lib/admin/render-room.ts`, GAME_CATALOG): swaps the picked
-  game's IIFE + exe title + hint into the shell; uploaded video swaps JD's
-  Vimeo iframe for a <video> in the same WMP chrome. NULL fields = today's
-  rooms exactly (JD skate+Vimeo, others neither). 9 tests in
-  tests/render-room.test.ts; vitest green, tsc clean both sides.
-- App My Room: Arcade game chip row + Room video add/replace/remove
-  (mp4/mov, 60MB cap, uploads to the room-photos bucket — existing storage
-  policies cover it, no new policies needed). Sections gate on the columns
-  existing, so the app is safe pre-migration. NOT yet on phones (no eas
-  update run).
+## Where things stand (2026-07-11, all committed + pushed)
+- ARCADE complete: 9 games with levels/music/announcer voices/leaderboards,
+  playable previews at `/arcade/<id>` with a switcher row, app "Try the
+  games first" button. JD's room is now REAL room data (four wall posters,
+  Ink or Die, his skate edit pulled from Vimeo into room-photos) — built
+  through the same pipeline as every artist.
+- Bug sweep: all 11 reports fixed and marked `fixed` in bug_reports
+  (instant photo preview + Uploading states, accent ring around the whole
+  tile, bug reporter above the keyboard, inline calendar date picker,
+  client search over the whole book, artist-scoped booking form even in
+  preview, calendar-sync connected state with provider logos, pay rent by
+  card from the app via `/api/rent/pay-link`, booking calendar on the
+  artist home, button label padding, compliance self-scan).
+- Compliance: artists add + camera-scan their own license/BBP (private
+  `compliance-docs` bucket, artist RLS lane applied to prod; the web admin
+  opens path scans via signed URLs).
+- Shop home (app) now matches the artist page: range toggle, Shop earned
+  hero, revenue race chart vs a shop weekly goal (shops.goal_weekly_cents,
+  set/edited with the drag dial on the page — $5,000/wk starter saved,
+  Scott can drag it), Chairs leaderboard (tap = view as that artist),
+  7-day bars, and a SHOP COACH (deterministic reads: rebook rate, rent
+  outstanding, one-chair concentration, quiet days, deposit discipline,
+  follow-ups due, best-week chase).
+- The same shop coach lives on the desktop owner overview
+  (`components/admin/home/ShopCoach.tsx` + `lib/admin/shop-coach.ts`).
+  Keep it in lockstep with `app-native/lib/shop-coach.ts` — one read,
+  two renderers, never disagreeing.
+- Odd launcher/stat tiles no longer stretch full width (maxWidth cap;
+  only the hero money tile spans the row, on purpose).
+- TestFlight: build 20 is live but PRE-DATES all of 2026-07-11. Build 21
+  NOT sent — Scott said not yet. Never run eas build/update without his
+  explicit go.
 
-## Priority 1 — one leftover migration
-E2E is DONE (2026-07-10 afternoon, Scott's session): game_id/video_url
-applied live; disposable artist picked Ink Snake + uploaded a video
-through the app, second artist got Walk-In, both public rooms verified
-in Chrome, JD byte-identical, test data swept to zero. Scott's polish
-pass also shipped: per-game status-bar instructions (games set their
-own at init), My Room spacing, pink standout Flash wall card, video
-titles.
+## Priority 1 — "Room" becomes "Page"
+Product story: every artist gets their own PAGE. UI copy sweep only —
+the app's My Room screen + launcher label, web admin room editor
+headings, toasts like "your room is live". DB stays room_content
+(Cinebody "Project not Shoot" pattern). The Y2K theme may keep "room"
+flavor inside the bedroom fiction itself.
 
-ONE thing left: `supabase/2026-07-10-room-video-title.sql` (additive
-video_title) got classifier-blocked. Ask Scott to shift+tab and go:
-`node scripts/apply-sql.mjs supabase/2026-07-10-room-video-title.sql`
-The app's Video title field and the renderer filename swap are already
-shipped and gate on the column existing, so nothing breaks meanwhile.
+## Priority 2 — pocket arcade (games on phones)
+The games were designed for a keyboard; on phones they letterbox and
+have no buttons. Agreed direction (2026-07-11):
+1. Full-screen cabinet mode on touch devices: tapping the game window
+   takes over the viewport, page scroll locked, small close button.
+2. Per-game touch decks designed for thumbs: invisible left/right steer
+   zones, tap = jump/fire, swipes = skate tricks, drag for Steady Hand
+   (already touch-fine). Games that need a fire button (Sterile!, Flash
+   Breaker's laser) get one or two big drawn arcade-cabinet buttons in
+   the bottom corners.
+3. The intro instruction strip shows TOUCH hints when touch is detected,
+   keyboard hints otherwise.
+Applies to room pages AND `/arcade/<id>` previews (same markup). Verify
+with the headless harness (scripts/arcade-smoke.mjs) plus phone-width
+Chrome.
+
+## Priority 3 — product shape (design first, then build)
+Scott's direction from the pricing conversation (memory:
+project_lumenati_business_model):
+- Two SKUs: Artist $99/mo solo; Shop $199 base + $79/seat. A solo's $99
+  converts to a $79 seat when their shop joins (a discount, not a capture).
+- Payments GRADUATED, not flat: 4.9% on the first $200 of a payment,
+  2.9% above it. Deposits/flash pay full rate; big sessions read fair.
+  Instant payout 1.5% opt-in. Consider per-payment Stripe/Lumenati fee
+  transparency as an artist-first flex.
+- Artist Passport: the artist account is global; shops are stamps in it.
+  Moving to another Lumenati shop = invite + one accept: page moves,
+  client book + money history stay theirs, license scans carry over. The
+  old shop keeps its ledger. Edges to design: future bookings
+  transfer-or-cancel, held deposits, final rent settle-up.
+- Page themes: room data is theme-agnostic; build 2-3 professional
+  templates (minimal portfolio, dark ink, classic flash-sheet) rendering
+  the same room_content. The Y2K arcade theme stays Lumenati-only
+  showroom — never a template ("powered by Lumenati" footer is the ad).
 
 ## How to work here (hard-won gotchas — trust these)
 - Scott's dev servers are already running (:3002 web, :8081 Metro). NEVER
   kill Metro. Shell cwd resets between calls — cd the repo first.
 - Live DB DDL: `node scripts/apply-sql.mjs supabase/<file>.sql`
-  (SUPABASE_ACCESS_TOKEN in ~/.zshrc). This session even additive columns
-  got classifier-blocked — expect to need Scott's go.
+  (SUPABASE_ACCESS_TOKEN in ~/.zshrc). Even additive columns can get
+  classifier-blocked — ask Scott for shift+tab / manual mode.
+- COLUMN-GRANT GOTCHA IS REAL: tables with per-column grants (shops!)
+  need explicit `grant select (col), update (col) ... to authenticated`
+  for any NEW column, or app writes silently 42501. supabase-js default
+  writes use return=minimal, which masks it — test with representation.
+- UI verification on Metro web: disposable test identity (auth user via
+  service key, profile via Mgmt API SQL, password-grant, inject
+  localStorage key sb-humjddiwzzanvvqztypy-auth-token on :8081). DELETE
+  EVERYTHING after — rows, auth user, localStorage, token files. See
+  memory reference_lumenati_test_identity.
 - Metro web CANNOT click buttons that call the Next API — prove API paths
   with curl + Bearer. Supabase-direct actions click fine in Chrome.
-- New admin CSS goes in its own file (stale admin.css compile gotcha).
-  Room pages are unaffected (legacy blocks are inline-styled).
 - readLegacyBlock rewrites CDN URLs to /legacy-assets and adds
   loading=lazy — template assertions must expect the rewritten form.
-- Verify UI in Chrome MCP (never computer-use). public/ stays slim; games
-  are asset-free by design.
-- No real sends (RENT_AUTOSEND / FOLLOWUPS_AUTOSEND stay off). No eas
-  build/update without explicit go (before eas update set
-  EXPO_PUBLIC_API_URL to https://lumenati-tattoo.vercel.app).
+- Verify UI in Chrome MCP (never computer-use). No real sends
+  (RENT_AUTOSEND / FOLLOWUPS_AUTOSEND stay off).
 
-## Open / owed items (carry-over)
+## Standing leftovers
+- Sweep the 8 demo rooms when Scott says he's done playing
+  (arcade-demo-* artists + room_content rows, service key).
+- Build 21 to TestFlight on Scott's explicit go (app-native/.env already
+  points at the prod URL).
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens.
 - Tap to Pay go-live bundle: live Stripe keys, Apple production
   entitlement, real-phone done-screen check (sandbox proven).
-- Owed: real 4x6 QR card print; artist push tokens need an artist login on
-  a real phone.
 
 ## Still Scott's (remind if asked, don't build)
 - Twilio upgrade, then RENT_AUTOSEND=true (and FOLLOWUPS_AUTOSEND).
