@@ -2,8 +2,9 @@ import LegacyBlock from "@/components/LegacyBlock";
 import { notFound } from "next/navigation";
 import { buildArcadePreviewHtml } from "@/lib/arcade-preview";
 
-// Try-before-you-pick: every arcade game playable at /arcade/<id>. The app's
-// game chooser links here so artists can decide with their thumbs.
+// Every arcade game playable at /arcade/<id> — the test bench with a switcher
+// row. The room cabinet loads its cartridges from /arcade-embed/<id> instead
+// (a bare route with none of the site chrome).
 export const dynamic = "force-dynamic";
 
 export default async function ArcadePreviewPage({

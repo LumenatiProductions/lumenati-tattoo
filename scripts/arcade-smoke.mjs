@@ -10,12 +10,9 @@ const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
 
 function gameSources() {
   const out = {};
-  for (const id of ["snake", "bricks", "shooter", "pong", "frogger", "steady", "shoprush", "flashmatch"]) {
+  for (const id of ["snake", "bricks", "shooter", "pong", "frogger", "steady", "shoprush", "flashmatch", "skate"]) {
     out[id] = readFileSync(path.join(ROOT, "legacy", "games", `${id}.js`), "utf8");
   }
-  const tpl = readFileSync(path.join(ROOT, "legacy", "artist-page-y2k.html"), "utf8");
-  const m = tpl.match(/<script id="jd-arcade-game">\n([\s\S]*?)<\/script>/);
-  out.skate = m[1];
   return out;
 }
 

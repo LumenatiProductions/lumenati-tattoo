@@ -1,28 +1,71 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { readLegacyBlock } from "@/lib/legacy";
 import { GAME_CATALOG } from "@/lib/admin/render-room";
 
-// A standalone, playable arcade window for /arcade/<game> — the try-before-
-// you-pick screen the app's game chooser links to. Same shell ids the games
-// expect, same clips, no room required.
+// Two flavors of a standalone, playable arcade window:
+// - /arcade/<game>            — the try-the-games screen with a switcher row.
+// - /arcade/<game>?embed=1    — a bare cartridge: fills its viewport, no site
+//   chrome, loaded in an iframe by the room cabinet's selector screen.
+// Same shell ids the games expect either way.
 
 function gameSource(id: string): string {
-  if (id === "skate") {
-    const tpl = readLegacyBlock("artist-page-y2k.html");
-    const m = tpl.match(/<script id="jd-arcade-game">\n([\s\S]*?)<\/script>/);
-    return m ? m[1] : "";
-  }
   return readFileSync(path.join(process.cwd(), "legacy", "games", `${id}.js`), "utf8");
 }
 
-export function buildArcadePreviewHtml(gameId: string): string | null {
+export function buildArcadePreviewHtml(
+  gameId: string,
+  opts: { embed?: boolean; flashSrcs?: string[] } = {},
+): string | null {
   const game = GAME_CATALOG.find((g) => g.id === gameId);
   if (!game) return null;
 
   const statA = "statA" in game ? game.statA : "Score";
   const statB = "statB" in game ? game.statB : "Lives";
   const livesInit = "livesInit" in game ? game.livesInit : "3";
+
+  const flash =
+    gameId === "flashmatch" && opts.flashSrcs?.length
+      ? `<script>window.__ROOM_FLASH__=${JSON.stringify(opts.flashSrcs.slice(0, 8)).replace(/</g, "\\u003c")};</script>\n`
+      : "";
+
+  if (opts.embed) {
+    // The cartridge: canvas sized to the exact drawn rect (never object-fit —
+    // the games map taps over the element box, letterboxing would skew them),
+    // status strip below, fire buttons via the cabinet script on touch.
+    return `
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#000;}</style>
+<div style="height:100vh;display:flex;flex-direction:column;background:#000;">
+  <div id="jd-game-overlay" style="display:none;flex:1;min-height:0;align-items:center;justify-content:center;position:relative;">
+    <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;image-rendering:pixelated;touch-action:none;background:#000;"></canvas>
+  </div>
+  <div style="padding:4px 8px;background:#ece9d8;font-family:Tahoma,sans-serif;font-size:10px;color:#444;display:flex;justify-content:space-between;">
+    <span><span id="jd-stat-a">${statA}</span>: <span id="jd-br-score">0</span></span>
+    <span><span id="jd-stat-b">${statB}</span>: <span id="jd-br-lives">${livesInit}</span></span>
+    <span id="jd-game-hint">${game.hint}</span>
+  </div>
+</div>
+<script>window.__ARCADE_EMBED__=${JSON.stringify(gameId)};</script>
+${flash}<script id="jd-arcade-game">
+${gameSource(gameId)}
+</script>
+<script src="/arcade-cabinet.js"></script>
+<script>
+  (function(){
+    var c = document.getElementById('jd-skate-canvas');
+    var wrap = c.parentElement;
+    function fit() {
+      var s = Math.min(wrap.clientWidth / 400, wrap.clientHeight / 320);
+      c.style.width = Math.max(1, Math.floor(400 * s)) + 'px';
+      c.style.height = Math.max(1, Math.floor(320 * s)) + 'px';
+    }
+    window.addEventListener('resize', fit);
+    // the games boot when the overlay's style attribute changes; the wrap
+    // must be visible before fit() can measure it
+    wrap.style.display = 'flex';
+    fit();
+  })();
+</script>`;
+  }
 
   const switcher = GAME_CATALOG.map((g) =>
     g.id === gameId
@@ -47,9 +90,9 @@ export function buildArcadePreviewHtml(gameId: string): string | null {
       <span id="jd-game-hint">${game.hint}</span>
     </div>
   </div>
-  <div style="margin-top:12px;color:#9aa;font-size:12px;">Pick this one in My Page and it lives on your public page.</div>
+  <div style="margin-top:12px;color:#9aa;font-size:12px;">Every page has the full cabinet — this is just the test bench.</div>
 </div>
-<script id="jd-arcade-game">
+${flash}<script id="jd-arcade-game">
 ${gameSource(gameId)}
 </script>
 <script src="/arcade-cabinet.js"></script>

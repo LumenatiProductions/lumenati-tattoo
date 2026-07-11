@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { readLegacyBlock } from "@/lib/legacy";
 import type { RoomContent } from "./types";
 
@@ -49,10 +47,6 @@ export const GAME_CATALOG = [
 // Each game also writes its hint (and pong its You/CPU labels) into the
 // status bar at init, so the shell is right even before the renderer swap.
 
-function readGameScript(id: string): string {
-  return readFileSync(path.join(process.cwd(), "legacy", "games", `${id}.js`), "utf8").trimEnd();
-}
-
 const STICKER_SLOTS = [
   "top:6%;right:6%;transform:rotate(-12deg);width:120px",
   "top:45%;left:2%;transform:rotate(15deg);width:100px",
@@ -73,7 +67,6 @@ export function renderRoomHtml(
   content: RoomContent,
   name: string,
   isJd: boolean,
-  flashSrcs: string[] = [],
 ): string {
   let html = readLegacyBlock("artist-page-y2k.html");
   const firstName = name.split(" ")[0];
@@ -152,15 +145,11 @@ export function renderRoomHtml(
     `<span>${content.portfolio.length} objects</span>`,
   );
 
-  // ── Arcade + video: every room gets what its artist picked ──
-  // NULL keeps today's behavior: JD's room ships the skate game + his Vimeo
-  // clip, everyone else has neither window.
-  const game =
-    content.gameId && GAME_CATALOG.some((g) => g.id === content.gameId)
-      ? content.gameId
-      : isJd
-        ? "skate"
-        : null;
+  // ── Arcade + video ──
+  // Every room ships the full Lumenati cabinet: all games behind the selector
+  // screen (/arcade-selector.js swaps game cartridges in as embed iframes).
+  // The arcade is Lumenati showroom flair, not a per-page setting — future
+  // professional page templates simply won't include it.
   const hasVideo = !!content.videoUrl || isJd;
 
   // Video first: its strip regex needs the game block's comment as a boundary.
@@ -194,38 +183,7 @@ export function renderRoomHtml(
     }
   }
 
-  if (!game) {
-    html = html.replace(/<!-- Hidden Game -->[\s\S]*?<\/script>/, "");
-    html = html.replace(
-      /<div class="br-icon"[^>]*id="jd-games-icon">[\s\S]*?<span class="br-icon-label">Games<\/span>\s*<\/div>/,
-      "",
-    );
-    html = html.replace(/<a class="bedroom-mobile-btn"[^>]*id="jd-mob-game">[\s\S]*?<\/a>\s*/, "");
-  } else {
-    if (!isJd) html = html.replace("JD's Arcade", `${esc(firstName)}'s Arcade`);
-    if (game !== "skate") {
-      const g = GAME_CATALOG.find((x) => x.id === game)!;
-      const src = readGameScript(game);
-      html = html.replace(
-        /<script id="jd-arcade-game">[\s\S]*?<\/script>/,
-        () => `<script id="jd-arcade-game">\n${src}\n</script>`,
-      );
-      html = html.replace(GAME_CATALOG[0].exe, g.exe);
-      html = html.replace(
-        `<span id="jd-game-hint">${GAME_CATALOG[0].hint}</span>`,
-        `<span id="jd-game-hint">${esc(g.hint)}</span>`,
-      );
-      if ("statA" in g) {
-        html = html.replace('<span id="jd-stat-a">Score</span>', `<span id="jd-stat-a">${esc(g.statA)}</span>`);
-      }
-      if ("statB" in g) {
-        html = html.replace('<span id="jd-stat-b">Lives</span>', `<span id="jd-stat-b">${esc(g.statB)}</span>`);
-      }
-      if ("livesInit" in g) {
-        html = html.replace('<span id="jd-br-lives">3</span>', `<span id="jd-br-lives">${esc(g.livesInit)}</span>`);
-      }
-    }
-  }
+  if (!isJd) html = html.replace("JD's Arcade", `${esc(firstName)}'s Arcade`);
 
   // ── Stickers: chosen catalog set into the five designed wall slots ──
   // (null = artist hasn't picked; the baked-in set stays.)
@@ -264,10 +222,10 @@ export function renderRoomHtml(
   // The Winamp widget (site-wide bundle) starts on the artist's actual pick.
   html += `\n<script>window.__ROOM_SONG_ID__=${JSON.stringify(content.songId)};</script>`;
 
-  // Flash Match deals its cards from the artist's flash wall.
-  if (game === "flashmatch") {
-    html += `\n<script>window.__ROOM_FLASH__=${JSON.stringify(flashSrcs.slice(0, 8)).replace(/</g, "\\u003c")};</script>`;
-  }
+  // The cabinet selector reads the catalog + whose room this is (the artist id
+  // rides the embed URL so Flash Match can deal from their flash wall).
+  const games = GAME_CATALOG.map((g) => ({ id: g.id, label: g.label, exe: g.exe }));
+  html += `\n<script>window.__ARCADE_GAMES__=${JSON.stringify(games).replace(/</g, "\\u003c")};window.__ARCADE_ARTIST__=${JSON.stringify(content.artistId)};window.__ARCADE_ACCENT__=${JSON.stringify(content.accentColor)};</script>`;
 
   return html;
 }

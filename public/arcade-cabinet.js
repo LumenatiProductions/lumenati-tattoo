@@ -3,8 +3,9 @@
 // scales to fill, and games that need a fire key get big drawn cabinet
 // buttons in the bottom corners that send real key events. Desktop and the
 // headless smoke harness never reach past the first guard, so nothing about
-// the keyboard game changes. Loaded by both the room template and the
-// /arcade/<id> preview (same window markup).
+// the keyboard game changes. Loaded by the room template (where the window
+// hosts the selector screen), the /arcade previews, and the ?embed=1
+// cartridges the selector swaps into an iframe.
 (function () {
   var isTouch =
     "ontouchstart" in window ||
@@ -15,22 +16,9 @@
   var canvas = document.getElementById("jd-skate-canvas");
   var overlay = document.getElementById("jd-game-overlay");
   if (!canvas || !overlay) return;
-  var pad = canvas.parentElement; // the 4px bezel around the canvas
+  var pad = canvas.parentElement; // the bezel around the canvas
   var box = pad && pad.parentElement; // the win95 window: titlebar + pad + status bar
   if (!pad || !box) return;
-  var titlebar = box.firstElementChild;
-  // In the room the overlay is a fixed backdrop AROUND the window; in the
-  // /arcade preview the overlay id sits ON the bezel itself.
-  var isRoom = overlay !== pad;
-
-  // Games whose keyboard fire key has no touch equivalent get FIRE buttons.
-  // Identified by the exe name the renderer writes into the titlebar.
-  var title = titlebar ? titlebar.textContent || "" : "";
-  var wantsFire = /sterile\.exe|flashbreak\.exe/.test(title);
-
-  var saved = null; // style snapshots while the cabinet is live
-  var deckBtns = [];
-  var closeBtn = null;
 
   function sendKey(type) {
     try {
@@ -75,6 +63,42 @@
     return b;
   }
 
+  // ── Cartridge mode: this page is a game embed inside the selector's iframe.
+  // The iframe already fills the cabinet, so no takeover — just the deck.
+  var embedId = window.__ARCADE_EMBED__ || null;
+  if (embedId) {
+    if (embedId === "shooter" || embedId === "bricks") {
+      pad.appendChild(makeFireBtn("left"));
+      pad.appendChild(makeFireBtn("right"));
+    }
+    document.addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
+    return;
+  }
+
+  var titlebar = box.firstElementChild;
+  // In the room the overlay is a fixed backdrop AROUND the window; in the
+  // /arcade preview the overlay id sits ON the bezel itself.
+  var isRoom = overlay !== pad;
+
+  // Standalone previews still carry one game whose fire key has no touch
+  // equivalent; the room window hosts the selector and never needs FIRE.
+  var title = titlebar ? titlebar.textContent || "" : "";
+  var wantsFire = /sterile\.exe|flashbreak\.exe/.test(title);
+
+  var saved = null; // style snapshots while the cabinet is live
+  var deckBtns = [];
+  var closeBtn = null;
+
+  // Size the canvas element to the exact drawn rect. Never object-fit: the
+  // games (and the selector) map taps over the element box, and letterbox
+  // bars inside the element would skew every touch.
+  function fit() {
+    var s = Math.min(pad.clientWidth / 400, pad.clientHeight / 320);
+    if (!isFinite(s) || s <= 0) return;
+    canvas.style.width = Math.max(1, Math.floor(400 * s)) + "px";
+    canvas.style.height = Math.max(1, Math.floor(320 * s)) + "px";
+  }
+
   function lockScroll(on) {
     document.documentElement.style.overflow = on ? "hidden" : "";
     document.body.style.overflow = on ? "hidden" : "";
@@ -94,12 +118,12 @@
       canvas: canvas.style.cssText,
       overlayZ: overlay.style.zIndex,
     };
+    lockScroll(true);
     // In the room the box sits inside the fixed overlay backdrop (z 99999),
     // so the overlay itself must clear Winamp + Clippy (999999). Only the
     // z-index is touched — the ✕ drives display, and restoring the whole
     // style here would fight it.
     if (isRoom) overlay.style.zIndex = "1000000";
-    lockScroll(true);
     box.style.position = "fixed";
     box.style.left = "0";
     box.style.top = "0";
@@ -118,10 +142,9 @@
     pad.style.alignItems = "center";
     pad.style.justifyContent = "center";
     pad.style.position = "relative";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
     canvas.style.maxWidth = "none";
-    canvas.style.objectFit = "contain";
+    fit();
+    window.addEventListener("resize", fit);
     box.addEventListener("touchmove", blockPan, { passive: false });
 
     if (wantsFire) {
@@ -151,6 +174,7 @@
     if (isRoom) overlay.style.zIndex = saved.overlayZ;
     saved = null;
     lockScroll(false);
+    window.removeEventListener("resize", fit);
     box.removeEventListener("touchmove", blockPan);
     for (var i = 0; i < deckBtns.length; i++) {
       if (deckBtns[i].parentNode) deckBtns[i].parentNode.removeChild(deckBtns[i]);

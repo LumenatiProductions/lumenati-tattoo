@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -40,21 +40,6 @@ const STICKERS: { id: string; src: string }[] = [
   { id: "smilie", src: "/legacy-assets/sqsp-014.png" },
   { id: "tongue", src: "/legacy-assets/sqsp-020.png" },
   { id: "stars", src: "/legacy-assets/sqsp-030.png" },
-];
-
-// Mirrors GAME_CATALOG in lib/admin/render-room.ts — keep the ids in sync.
-// "none" = classic: JD keeps his skate game, everyone else has no arcade.
-const GAMES: { id: string; label: string }[] = [
-  { id: "none", label: "None" },
-  { id: "skate", label: "Ink or Die" },
-  { id: "snake", label: "Ink Snake" },
-  { id: "bricks", label: "Flash Breaker" },
-  { id: "shooter", label: "Sterile!" },
-  { id: "pong", label: "Needle Pong" },
-  { id: "frogger", label: "Walk-In" },
-  { id: "steady", label: "Steady Hand" },
-  { id: "shoprush", label: "Shop Rush" },
-  { id: "flashmatch", label: "Flash Match" },
 ];
 
 type Polaroid = { id: string; src: string; caption: string };
@@ -164,7 +149,7 @@ export default function MyRoom() {
         portfolio: room.portfolio,
         stickers: room.stickers,
         posters: room.posters,
-        ...(arcadeReady ? { game_id: room.game_id, video_url: room.video_url } : {}),
+        ...(arcadeReady ? { video_url: room.video_url } : {}),
         ...(titleReady ? { video_title: room.video_title?.trim() || null } : {}),
       })
       .eq("artist_id", room.artist_id);
@@ -417,27 +402,6 @@ export default function MyRoom() {
 
             {arcadeReady && (
               <>
-                <SectionTitle>Arcade game</SectionTitle>
-                <Card>
-                  <Text style={styles.note}>
-                    The game on your page's desktop — visitors actually play it.
-                    {room.game_id === null ? " (None picked yet, so your page stays classic.)" : ""}
-                  </Text>
-                  <View style={{ marginTop: 8 }}>
-                    <Chips
-                      value={room.game_id ?? "none"}
-                      options={GAMES.map((g) => g.id)}
-                      display={(id) => GAMES.find((g) => g.id === id)?.label ?? id}
-                      onChange={(id) => set("game_id", id === "none" ? null : id)}
-                    />
-                  </View>
-                  <Button
-                    label="Try the games first"
-                    tone="ghost"
-                    onPress={() => Linking.openURL(`${SITE || "https://lumenati-tattoo.vercel.app"}/arcade/${room.game_id ?? "skate"}`)}
-                  />
-                </Card>
-
                 <SectionTitle>Page video</SectionTitle>
                 <Card>
                   <Text style={[styles.note, { marginBottom: 12 }]}>

@@ -24,60 +24,47 @@ const room = (over: Partial<RoomContent>): RoomContent => ({
   ...over,
 });
 
-describe("arcade + video picks", () => {
-  it("JD with NULL picks keeps his baked-in skate game and Vimeo clip", () => {
-    const html = renderRoomHtml(room({ artistId: "jd", igHandle: "jd.pruitt" }), "J.D. Pruitt", true);
-    expect(html).toContain('<script id="jd-arcade-game">');
-    expect(html).toContain("INK OR DIE");
-    expect(html).toContain("ink_or_die.exe — JD's Arcade");
-    expect(html).toContain('id="jd-vimeo"');
-    expect(html).toContain("jd_skate_edit.avi");
-    expect(html).toContain('id="jd-games-icon"');
-    expect(html).toContain('id="jd-skate-icon"');
-    expect(html).toContain('id="jd-mob-game"');
-    expect(html).toContain('id="jd-mob-skate"');
-  });
-
-  it("another artist with NULL picks gets neither window", () => {
+describe("the cabinet + video", () => {
+  it("every room ships the full cabinet: selector script, arcade window, catalog payload", () => {
     const html = renderRoomHtml(room({}), "Test Artist", false);
-    expect(html).not.toContain('<script id="jd-arcade-game">');
-    expect(html).not.toContain('id="jd-vimeo"');
-    expect(html).not.toContain('id="jd-game-overlay"');
-    expect(html).not.toContain('id="jd-video-overlay"');
-    expect(html).not.toContain('id="jd-games-icon"');
-    expect(html).not.toContain('id="jd-skate-icon"');
-    expect(html).not.toContain('id="jd-mob-game"');
-    expect(html).not.toContain('id="jd-mob-skate"');
-  });
-
-  it("a picked game swaps the IIFE, exe title and hint into the shell", () => {
-    const html = renderRoomHtml(room({ gameId: "snake" }), "Test Artist", false);
-    expect(html).toContain('<script id="jd-arcade-game">');
-    expect(html).toContain("INK SNAKE");
-    expect(html).not.toContain("INK OR DIE");
-    expect(html).toContain("inksnake.exe — Test's Arcade");
-    expect(html).toContain('<span id="jd-game-hint">Arrows or swipe to steer // machine +50</span>');
+    expect(html).toContain('<script id="jd-arcade-game" src="/arcade-selector.js">');
+    expect(html).toContain("arcade.exe — Test's Arcade");
+    expect(html).toContain('id="jd-game-overlay"');
     expect(html).toContain('id="jd-games-icon"');
     expect(html).toContain('id="jd-mob-game"');
-    // No video picked: the video window stays gone
-    expect(html).not.toContain('id="jd-video-overlay"');
-    expect(html).not.toContain('id="jd-mob-skate"');
-  });
-
-  it("every catalog game renders into the shell", () => {
+    expect(html).toContain("window.__ARCADE_GAMES__=");
+    expect(html).toContain('window.__ARCADE_ARTIST__="test"');
+    expect(html).toContain('window.__ARCADE_ACCENT__="#FFD700"');
     for (const g of GAME_CATALOG) {
-      const html = renderRoomHtml(room({ gameId: g.id }), "Test Artist", false);
-      expect(html, g.id).toContain('<script id="jd-arcade-game">');
-      expect(html, g.id).toContain(`${g.exe} — Test's Arcade`);
-      expect(html, g.id).toContain(`<span id="jd-game-hint">${g.hint}</span>`);
+      expect(html, g.id).toContain(g.label);
+      expect(html, g.id).toContain(g.exe);
     }
   });
 
-  it("pong relabels the status bar to You/CPU", () => {
-    const html = renderRoomHtml(room({ gameId: "pong" }), "Test Artist", false);
-    expect(html).toContain('<span id="jd-stat-a">You</span>');
-    expect(html).toContain('<span id="jd-stat-b">CPU</span>');
-    expect(html).toContain('<span id="jd-br-lives">0</span>');
+  it("a legacy game pick changes nothing — the pick is retired", () => {
+    const withPick = renderRoomHtml(room({ gameId: "snake" }), "Test Artist", false);
+    const withNonsense = renderRoomHtml(room({ gameId: "doom" }), "Test Artist", false);
+    const withNull = renderRoomHtml(room({}), "Test Artist", false);
+    expect(withPick).toBe(withNull);
+    expect(withNonsense).toBe(withNull);
+  });
+
+  it("JD keeps his Vimeo clip; his cabinet reads as his arcade", () => {
+    const html = renderRoomHtml(room({ artistId: "jd", igHandle: "jd.pruitt" }), "J.D. Pruitt", true);
+    expect(html).toContain("arcade.exe — JD's Arcade");
+    expect(html).toContain('id="jd-vimeo"');
+    expect(html).toContain("jd_skate_edit.avi");
+    expect(html).toContain('id="jd-skate-icon"');
+    expect(html).toContain('id="jd-mob-skate"');
+  });
+
+  it("no video means no video window, but the cabinet stays", () => {
+    const html = renderRoomHtml(room({}), "Test Artist", false);
+    expect(html).not.toContain('id="jd-vimeo"');
+    expect(html).not.toContain('id="jd-video-overlay"');
+    expect(html).not.toContain('id="jd-skate-icon"');
+    expect(html).not.toContain('id="jd-mob-skate"');
+    expect(html).toContain('id="jd-games-icon"');
   });
 
   it("an uploaded video swaps the Vimeo iframe for a <video> in the same WMP chrome", () => {
@@ -89,8 +76,6 @@ describe("arcade + video picks", () => {
     expect(html).toContain("Windows Media Player — test_handle_edit.avi");
     expect(html).toContain('<span class="br-icon-label">Video</span>');
     expect(html).toContain('id="jd-mob-skate">Video</a>');
-    // No game picked: the arcade stays gone
-    expect(html).not.toContain('<script id="jd-arcade-game">');
   });
 
   it("a video title becomes the media player filename", () => {
@@ -111,25 +96,9 @@ describe("arcade + video picks", () => {
     expect(html).not.toContain('id="jd-vimeo"');
     expect(html).toContain('<span class="br-icon-label">Skate</span>');
   });
+});
 
-  it("flash match gets the artist's flash wall handed into the page", () => {
-    const html = renderRoomHtml(room({ gameId: "flashmatch" }), "Test Artist", false, [
-      "https://example.supabase.co/storage/flash/a.png",
-      "/legacy-assets/sqsp-003.jpg",
-    ]);
-    expect(html).toContain("window.__ROOM_FLASH__=");
-    expect(html).toContain("https://example.supabase.co/storage/flash/a.png");
-    // Other games do not carry the flash payload
-    const other = renderRoomHtml(room({ gameId: "snake" }), "Test Artist", false, ["https://x/y.png"]);
-    expect(other).not.toContain("window.__ROOM_FLASH__");
-  });
-
-  it("an unknown game id falls back to NULL behavior", () => {
-    const html = renderRoomHtml(room({ gameId: "doom" }), "Test Artist", false);
-    expect(html).not.toContain('<script id="jd-arcade-game">');
-    expect(html).not.toContain('id="jd-games-icon"');
-  });
-
+describe("the /arcade cartridges", () => {
   it("every game builds a playable /arcade preview", () => {
     for (const g of GAME_CATALOG) {
       const html = buildArcadePreviewHtml(g.id);
@@ -141,13 +110,33 @@ describe("arcade + video picks", () => {
     expect(buildArcadePreviewHtml("doom")).toBeNull();
   });
 
-  it("game and video picks work together", () => {
-    const url = "https://example.supabase.co/storage/room-photos/test/video-1.mp4";
-    const html = renderRoomHtml(room({ gameId: "frogger", videoUrl: url }), "Test Artist", false);
-    expect(html).toContain("WALK-IN");
-    expect(html).toContain('<video id="jd-room-video"');
-    expect(html).toContain('id="jd-games-icon"');
-    expect(html).toContain('id="jd-mob-game"');
-    expect(html).toContain('id="jd-mob-skate"');
+  it("every game builds an embed cartridge: bare shell, no switcher, tagged for the cabinet script", () => {
+    for (const g of GAME_CATALOG) {
+      const html = buildArcadePreviewHtml(g.id, { embed: true });
+      expect(html, g.id).toBeTruthy();
+      expect(html, g.id).toContain(`window.__ARCADE_EMBED__="${g.id}"`);
+      expect(html, g.id).toContain('id="jd-skate-canvas"');
+      expect(html, g.id).toContain('<script id="jd-arcade-game">');
+      expect(html, g.id).toContain("/arcade-cabinet.js");
+      expect(html, g.id).not.toContain("Try the Arcade");
+    }
+  });
+
+  it("pong's embed relabels the status bar to You/CPU", () => {
+    const html = buildArcadePreviewHtml("pong", { embed: true })!;
+    expect(html).toContain('<span id="jd-stat-a">You</span>');
+    expect(html).toContain('<span id="jd-stat-b">CPU</span>');
+    expect(html).toContain('<span id="jd-br-lives">0</span>');
+  });
+
+  it("flash match's embed carries the artist's flash wall; other games do not", () => {
+    const html = buildArcadePreviewHtml("flashmatch", {
+      embed: true,
+      flashSrcs: ["https://example.supabase.co/storage/flash/a.png", "/legacy-assets/sqsp-003.jpg"],
+    })!;
+    expect(html).toContain("window.__ROOM_FLASH__=");
+    expect(html).toContain("https://example.supabase.co/storage/flash/a.png");
+    const other = buildArcadePreviewHtml("snake", { embed: true, flashSrcs: ["https://x/y.png"] })!;
+    expect(other).not.toContain("window.__ROOM_FLASH__");
   });
 });
