@@ -52,6 +52,11 @@ style comes with solo/pro tier; no per-artist override at launch).
 NEXT: dark-ink + flash-sheet templates, shop theme picker (shops.template
 values beyond y2k/standard), close-the-books day-picker scheduling idea
 (deferred), anon grant for books_closed (queued, blocked by classifier).
+THE HARD LINE (Scott, 2026-07-12): Lumenati is NOT in the shop-website
+business. Artist pages are the product; shops keep their own sites
+(Squarespace etc.) and just link to our roster/artist pages (a
+shops.website_url backlink field when a real shop needs it). Never build
+hours/policies/about pages — that's Squarespace's job.
 
 - room_content is already theme-agnostic data; templates are renderers
   over the same row. Start with 2-3: minimal portfolio, dark ink,
