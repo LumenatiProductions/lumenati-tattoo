@@ -11,6 +11,7 @@ export type PublicShop = {
   template: string;
   accent: string;
   tagline: string;
+  logoUrl: string | null;
 };
 export type PublicArtist = {
   id: string;
@@ -25,10 +26,12 @@ export async function fetchShopBySlug(slug: string): Promise<PublicShop | null> 
   if (!sb) return null;
   const { data } = await sb
     .from("shops")
-    .select("id, slug, name, template, accent, tagline")
+    .select("id, slug, name, template, accent, tagline, logo_url")
     .eq("slug", slug)
     .maybeSingle();
-  return (data as PublicShop) ?? null;
+  if (!data) return null;
+  const { logo_url, ...rest } = data as PublicShop & { logo_url: string | null };
+  return { ...rest, logoUrl: logo_url ?? null };
 }
 
 export async function fetchShopArtists(shopId: string): Promise<PublicArtist[]> {

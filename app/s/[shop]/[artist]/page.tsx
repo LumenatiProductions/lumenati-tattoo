@@ -119,8 +119,12 @@ export default async function ShopArtistPage({
       >
         <Link
           href={`/s/${shop.slug}`}
-          className="text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500 hover:text-zinc-300"
+          className="inline-flex flex-col items-center gap-2 text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500 hover:text-zinc-300"
         >
+          {shop.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={shop.logoUrl} alt={shop.name} className="h-10 w-auto max-w-[160px] object-contain opacity-90" />
+          ) : null}
           {shop.name}
         </Link>
         <div className="mt-5 flex justify-center">

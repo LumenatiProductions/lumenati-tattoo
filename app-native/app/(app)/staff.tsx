@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { ActivityIndicator, Alert, Image, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, type Role } from "@/lib/auth";
@@ -25,6 +26,45 @@ export default function Staff() {
   const insets = useSafeAreaInsets();
   const { role: myRole, email: myEmail, shopId } = useAuth();
   const [rows, setRows] = useState<Profile[] | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+
+  useEffect(() => {
+    if (!shopId) return;
+    supabase
+      .from("shops")
+      .select("logo_url")
+      .eq("id", shopId)
+      .maybeSingle()
+      .then(({ data }) => setLogoUrl((data as { logo_url?: string | null } | null)?.logo_url ?? null));
+  }, [shopId]);
+
+  const pickLogo = async () => {
+    if (!shopId || logoBusy) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
+    if (res.canceled || !res.assets[0]) return;
+    setLogoBusy(true);
+    try {
+      const asset = res.assets[0];
+      const ext = (asset.fileName?.split(".").pop() ?? "png").toLowerCase();
+      const path = `shop-logo/${shopId}-${Date.now()}.${ext}`;
+      const file = await fetch(asset.uri);
+      const blob = await file.arrayBuffer();
+      const { error } = await supabase.storage.from("room-photos").upload(path, blob, {
+        contentType: asset.mimeType ?? "image/png",
+        upsert: false,
+      });
+      if (error) throw new Error(error.message);
+      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
+      const { error: upErr } = await supabase.from("shops").update({ logo_url: data.publicUrl }).eq("id", shopId);
+      if (upErr) throw new Error(upErr.message);
+      setLogoUrl(data.publicUrl);
+    } catch (e) {
+      Alert.alert("Logo upload failed", e instanceof Error ? e.message : "Try again.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
   const [artists, setArtists] = useState<Artist[]>([]);
   const [adding, setAdding] = useState(false);
   const [email, setEmail] = useState("");
@@ -129,6 +169,29 @@ export default function Staff() {
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           <>
+            <SectionTitle>Shop logo</SectionTitle>
+            <Card style={{ marginBottom: 18 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+                {logoUrl ? (
+                  <Image source={{ uri: logoUrl }} style={{ width: 72, height: 44 }} resizeMode="contain" />
+                ) : (
+                  <View style={{ width: 72, height: 44, borderRadius: 8, borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: theme.textFaint, fontSize: 10 }}>none</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Pressable onPress={pickLogo} disabled={logoBusy} hitSlop={8}>
+                    <Text style={{ color: theme.text, fontSize: 14.5, fontWeight: "700" }}>
+                      {logoBusy ? "Uploading…" : logoUrl ? "Change logo" : "Add your logo"}
+                    </Text>
+                  </Pressable>
+                  <Text style={{ color: theme.textDim, fontSize: 12, marginTop: 3 }}>
+                    Shows at the top of every artist page. A wide, transparent PNG looks best.
+                  </Text>
+                </View>
+              </View>
+            </Card>
+
             <Button label={adding ? "Cancel" : "Add someone"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
 
             {adding && (
