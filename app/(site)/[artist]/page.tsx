@@ -1,7 +1,8 @@
 import LegacyBlock from "@/components/LegacyBlock";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { fetchRoom } from "@/lib/admin/room-data";
 import { fetchArtistBySlug } from "@/lib/admin/artists-data";
+import { publicArtistSlug } from "@/lib/shops/public";
 import { renderRoomHtml } from "@/lib/admin/render-room";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSupabase } from "@/lib/supabase";
@@ -53,6 +54,21 @@ export default async function ArtistRoomPage({
   const { artist: slug } = await params;
   const artist = await fetchArtistBySlug(slug);
   if (!artist) notFound();
+
+  // Theme follows context: the Y2K bedroom is Lumenati's skin. An artist from
+  // any other shop renders in THEIR shop's template over at /s/<shop>/<slug>.
+  {
+    const admin = createAdminClient();
+    if (admin) {
+      const { data: a } = await admin.from("artists").select("shop_id").eq("id", artist.id).maybeSingle();
+      if (a?.shop_id) {
+        const { data: shop } = await admin.from("shops").select("slug, template").eq("id", a.shop_id).maybeSingle();
+        if (shop && shop.template !== "y2k") {
+          redirect(`/s/${shop.slug}/${publicArtistSlug(shop.slug as string, artist.slug)}`);
+        }
+      }
+    }
+  }
 
   const [content, promo, booksClosed] = await Promise.all([
     fetchRoom(artist.id),

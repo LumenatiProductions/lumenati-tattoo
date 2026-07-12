@@ -33,8 +33,25 @@ The four-lane hardening sweep ran end to end:
   permission stripped, Bluetooth/LocalNetwork strings added. Everything else
   is docs/app-store-checklist.md — the source of truth for the listing.
 
-## Priority 1 — page templates (the product, buildable by an artist today)
+## Priority 1 — page templates (STARTED 2026-07-12; two more skins to go)
 Goal: an artist signing up cold could build a beautiful page right now.
+
+DONE so far: socials live end to end (room_content.socials jsonb applied,
+app My Page Socials card, Y2K icons + minimal-template links, tests);
+MINIMAL PORTFOLIO v1 shipped at /s/<shop>/<artist> (research-driven:
+niche statement, socials by the name, flash-for-sale grid, books-closed
+waitlist swap, phone-only sticky Book bar via custom .book-bar class —
+the stale-Tailwind gotcha is REAL, use custom classes in s.css for new
+utilities); root /<slug> now redirects non-Lumenati artists to their
+shop's template (theme follows context). Verified in Chrome on the demo
+shop. ARCHITECTURE DECISIONS (Scott, 2026-07-12): the artist's URL
+belongs to the ARTIST (permanent, survives shop moves — the Passport
+made visible; a lumenati.app/@handle vanity route is future work); theme
+follows CONTEXT (resident artists render in shop theme everywhere; own
+style comes with solo/pro tier; no per-artist override at launch).
+NEXT: dark-ink + flash-sheet templates, shop theme picker (shops.template
+values beyond y2k/standard), close-the-books day-picker scheduling idea
+(deferred), anon grant for books_closed (queued, blocked by classifier).
 
 - room_content is already theme-agnostic data; templates are renderers
   over the same row. Start with 2-3: minimal portfolio, dark ink,

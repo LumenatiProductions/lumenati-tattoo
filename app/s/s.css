@@ -6,3 +6,26 @@
   --color-ink: #0e0e11;
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+
+/* Minimal-portfolio template: the one-tap booking bar, phones only.
+   Custom class (not sm:hidden) so the long-running dev server's stale
+   Tailwind compile can't silently drop it. */
+.book-bar {
+  display: none;
+}
+@media (max-width: 639px) {
+  .book-bar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px;
+    background: rgba(11, 11, 16, 0.95);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .book-bar-pad {
+    padding-bottom: 80px;
+  }
+}
