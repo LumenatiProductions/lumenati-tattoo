@@ -4,6 +4,7 @@ import { fetchShopArtist, fetchShopBySlug } from "@/lib/shops/public";
 import { fetchRoom } from "@/lib/admin/room-data";
 import { getSupabase } from "@/lib/supabase";
 import { createAdminClient } from "@/lib/supabase/admin";
+import SocialIcon from "@/components/SocialIcon";
 
 // The MINIMAL PORTFOLIO template (/s/<shop>/<artist>) — the same room_content
 // data the Y2K rooms render, different skin. Built to the research rules:
@@ -55,22 +56,21 @@ const prettyDay = (date: string) =>
 
 const usd = (c: number) => `$${Math.round(c / 100)}`;
 
-// Handles or URLs -> clean display label + real link, same rules as the Y2K
-// renderer's social bag.
+// Handles or URLs -> real link; SocialIcon draws the official Ionicons mark.
 function socialLinks(socials: Record<string, string> | null, igHandle: string) {
-  const out: { label: string; href: string }[] = [];
+  const out: { key: string; label: string; href: string }[] = [];
   const ig = (socials?.instagram ?? igHandle ?? "").replace(/^@/, "");
-  if (ig) out.push({ label: "Instagram", href: `https://www.instagram.com/${ig}/` });
+  if (ig) out.push({ key: "instagram", label: "Instagram", href: `https://www.instagram.com/${ig}/` });
   const defs: [string, string, (v: string) => string][] = [
     ["tiktok", "TikTok", (v) => `https://www.tiktok.com/@${v.replace(/^@/, "")}`],
     ["x", "X", (v) => `https://x.com/${v.replace(/^@/, "")}`],
     ["youtube", "YouTube", (v) => (v.startsWith("http") ? v : `https://www.youtube.com/@${v.replace(/^@/, "")}`)],
     ["facebook", "Facebook", (v) => (v.startsWith("http") ? v : `https://www.facebook.com/${v}`)],
-    ["website", "Site", (v) => (v.startsWith("http") ? v : `https://${v}`)],
+    ["website", "Website", (v) => (v.startsWith("http") ? v : `https://${v}`)],
   ];
   for (const [key, label, base] of defs) {
     const raw = (socials?.[key] ?? "").trim();
-    if (raw) out.push({ label, href: base(raw) });
+    if (raw) out.push({ key, label, href: base(raw) });
   }
   return out;
 }
@@ -93,7 +93,7 @@ export default async function ShopArtistPage({
     fetchFlash(artist.id),
     fetchBooksClosed(artist.id),
   ]);
-  const accent = artist.color || shop.accent;
+  const accent = room.accentColor || artist.color || shop.accent;
   const shots = [
     ...room.portfolio.map((p) => ({ src: p.src, label: p.alt })),
     ...room.polaroids.map((p) => ({ src: p.src, label: p.caption })),
@@ -149,10 +149,18 @@ export default async function ShopArtistPage({
           </div>
         ) : null}
         {socials.length > 0 && (
-          <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] font-semibold text-zinc-400">
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
             {socials.map((s) => (
-              <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className="hover:text-white">
-                {s.label}
+              <a
+                key={s.href}
+                href={s.href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={s.label}
+                title={s.label}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-zinc-400 hover:border-white/40 hover:text-white"
+              >
+                <SocialIcon name={s.key} />
               </a>
             ))}
           </div>
