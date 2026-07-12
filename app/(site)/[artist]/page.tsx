@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchRoom } from "@/lib/admin/room-data";
 import { fetchArtistBySlug } from "@/lib/admin/artists-data";
 import { renderRoomHtml } from "@/lib/admin/render-room";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getSupabase } from "@/lib/supabase";
 
 // One dynamic route for every artist room (/<slug>). The roster lives in the
@@ -35,6 +36,15 @@ async function fetchLivePromo(artistId: string) {
 const prettyDay = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+// books_closed rides the service client: the anon key's column grants don't
+// include it yet (grant queued), and this page renders server-side anyway.
+async function fetchBooksClosed(artistId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) return false;
+  const { data } = await admin.from("artists").select("books_closed").eq("id", artistId).maybeSingle();
+  return !!data?.books_closed;
+}
+
 export default async function ArtistRoomPage({
   params,
 }: {
@@ -44,8 +54,12 @@ export default async function ArtistRoomPage({
   const artist = await fetchArtistBySlug(slug);
   if (!artist) notFound();
 
-  const [content, promo] = await Promise.all([fetchRoom(artist.id), fetchLivePromo(artist.id)]);
-  const html = renderRoomHtml(content, artist.name, !!artist.roomExtras);
+  const [content, promo, booksClosed] = await Promise.all([
+    fetchRoom(artist.id),
+    fetchLivePromo(artist.id),
+    fetchBooksClosed(artist.id),
+  ]);
+  const html = renderRoomHtml(content, artist.name, !!artist.roomExtras, { booksClosed });
   return (
     <>
       {promo && (

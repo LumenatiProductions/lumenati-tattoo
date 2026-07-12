@@ -78,16 +78,18 @@ export async function POST(req: Request) {
 
   // Validate the artist id against the real roster (don't trust the form).
   let artistId: string | null = null;
+  let booksClosed = false;
   const requested = clip(b.artistId, 60);
   if (requested) {
     const { data: a } = await admin
       .from("artists")
-      .select("id")
+      .select("id, books_closed")
       .eq("id", requested)
       .eq("shop_id", shopId)
       .eq("active", true)
       .maybeSingle();
     artistId = a?.id ?? null;
+    booksClosed = !!a?.books_closed;
   }
 
   // Reference images: only URLs minted by our own upload route (request-refs
@@ -96,6 +98,30 @@ export async function POST(req: Request) {
   const referenceUrls = (Array.isArray(b.referenceUrls) ? b.referenceUrls : [])
     .filter((u): u is string => typeof u === "string" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && u.startsWith(refPrefix))
     .slice(0, 3);
+
+  // Closed books: the ask lands on that artist's waitlist instead of the
+  // request inbox — first in line when the books reopen (Scott, 2026-07-12).
+  if (artistId && booksClosed) {
+    const { error: wErr } = await admin.from("waitlist").insert({
+      id: `wl-${randomUUID()}`,
+      shop_id: shopId,
+      artist_id: artistId,
+      name,
+      phone: phone || (emailOk ? email : null),
+      want: [idea, clip(b.placement, 200), clip(b.availability, 300)].filter(Boolean).join(" · ").slice(0, 500),
+      active: true,
+    });
+    if (wErr) {
+      return NextResponse.json({ error: "Could not save your spot — try again." }, { status: 500 });
+    }
+    await pushEvent(
+      admin,
+      { roles: ["owner"], artistId, shopId },
+      "Waitlist join",
+      `${name} wants in when your books open: ${idea.slice(0, 80)}`,
+    );
+    return NextResponse.json({ ok: true, waitlisted: true });
+  }
 
   const { error } = await admin.from("booking_requests").insert({
     shop_id: shopId,

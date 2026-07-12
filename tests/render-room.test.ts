@@ -40,6 +40,16 @@ describe("the cabinet + video", () => {
     }
   });
 
+  it("closed books swap every Book CTA for the waitlist door", () => {
+    const open = renderRoomHtml(room({}), "Test Artist", false);
+    const closed = renderRoomHtml(room({}), "Test Artist", false, { booksClosed: true });
+    expect(open).toContain('href="/book"');
+    expect(open).not.toContain("Waitlist");
+    expect(closed).not.toContain('href="/book"');
+    expect(closed).toContain('href="/request?artist=test"');
+    expect((closed.match(/>Waitlist</g) ?? []).length).toBe(3);
+  });
+
   it("JD keeps his Vimeo clip; his cabinet reads as his arcade", () => {
     const html = renderRoomHtml(room({ artistId: "jd", igHandle: "jd.pruitt" }), "J.D. Pruitt", true);
     expect(html).toContain("arcade.exe — JD's Arcade");

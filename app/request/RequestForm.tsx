@@ -41,7 +41,7 @@ export default function RequestForm({
   preselectArtistId,
   accent = "#ff1493",
 }: {
-  artists: { id: string; name: string }[];
+  artists: { id: string; name: string; booksClosed?: boolean }[];
   shopSlug?: string;
   preselectArtistId?: string;
   accent?: string;
@@ -58,7 +58,7 @@ export default function RequestForm({
     website: "", // honeypot
   });
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<false | "sent" | "waitlisted">(false);
   const [err, setErr] = useState<string | null>(null);
   // Reference images, held as downscaled data URLs until submit.
   const [refs, setRefs] = useState<string[]>([]);
@@ -122,7 +122,7 @@ export default function RequestForm({
         // The request itself made it; just be honest about the photos.
         setErr(null);
       }
-      setDone(true);
+      setDone(d.waitlisted ? "waitlisted" : "sent");
     } catch {
       setErr("Connection problem — check your signal and try again.");
     } finally {
@@ -135,13 +135,17 @@ export default function RequestForm({
   const label = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
 
   if (done) {
+    const waitlisted = done === "waitlisted";
     return (
       <div className={`${card} text-center`}>
         <div className="text-lg font-semibold" style={{ color: accent }}>
-          Request sent.
+          {waitlisted ? "You're on the waitlist." : "Request sent."}
         </div>
         <p className="mt-1 text-sm text-zinc-500">
-          The shop will look it over and get back to you to lock in a time. Keep an eye on your
+          {waitlisted
+            ? "Their books are closed right now, so you're in line. The moment a spot opens you'll hear from the shop first."
+            : "The shop will look it over and get back to you to lock in a time."}{" "}
+          Keep an eye on your
           {f.phone.trim() ? " texts" : " inbox"}.
         </p>
       </div>
@@ -212,9 +216,16 @@ export default function RequestForm({
               {artists.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
+                  {a.booksClosed ? " — books closed (waitlist)" : ""}
                 </option>
               ))}
             </select>
+            {artists.find((a) => a.id === f.artistId)?.booksClosed ? (
+              <p className="mt-1.5 text-xs text-zinc-500">
+                Their books are closed right now — sending this puts you on their waitlist, first in
+                line when a spot opens.
+              </p>
+            ) : null}
           </label>
           <label className="block">
             <span className={label}>When can you come in?</span>

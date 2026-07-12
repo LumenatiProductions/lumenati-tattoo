@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { Stack } from "expo-router";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Stack, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import { Button, Card, SectionTitle } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
+import { apiPost } from "@/lib/appApi";
 
 // My Page — edit your public page from your phone (tagline, bio, IG, song,
 // accent, profile photo). Same room_content row the web editor writes; the
@@ -64,6 +65,7 @@ type Room = {
 type RosterArtist = { id: string; name: string; slug: string };
 
 export default function MyRoom() {
+  const router = useRouter();
   const { email, role, shopId } = useAuth();
   const { preview } = usePreview();
   const insets = useSafeAreaInsets();
@@ -100,6 +102,43 @@ export default function MyRoom() {
   // columns, those sections simply don't render and saves don't touch them.
   const [arcadeReady, setArcadeReady] = useState(false);
   const [titleReady, setTitleReady] = useState(false);
+  const [booksClosed, setBooksClosed] = useState<boolean | null>(null);
+  const [booksBusy, setBooksBusy] = useState(false);
+  useEffect(() => {
+    if (!artistId) return;
+    setBooksClosed(null);
+    supabase
+      .from("artists")
+      .select("books_closed")
+      .eq("id", artistId)
+      .maybeSingle()
+      .then(({ data }) => setBooksClosed(!!(data as { books_closed?: boolean } | null)?.books_closed));
+  }, [artistId]);
+
+  const toggleBooks = async (closed: boolean) => {
+    if (!artistId || booksBusy) return;
+    setBooksBusy(true);
+    const prev = booksClosed;
+    setBooksClosed(closed);
+    const r = await apiPost<{ booksClosed: boolean; waiting: number }>("/api/artist/books", { closed, artistId });
+    setBooksBusy(false);
+    if (!r.ok) {
+      setBooksClosed(prev);
+      Alert.alert("Couldn't update your books", r.error ?? "Try again in a minute.");
+      return;
+    }
+    const waiting = r.data?.waiting ?? 0;
+    if (!closed && waiting > 0) {
+      Alert.alert(
+        "Books are open",
+        `${waiting} ${waiting === 1 ? "person is" : "people are"} on your waitlist — fill the calendar first.`,
+        [
+          { text: "Later", style: "cancel" },
+          { text: "Open waitlist", onPress: () => router.push("/waitlist") },
+        ],
+      );
+    }
+  };
   useEffect(() => {
     (async () => {
       if (!artistId) return;
@@ -344,6 +383,27 @@ export default function MyRoom() {
               <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
             ) : (
             <>
+            <SectionTitle>Books</SectionTitle>
+            <Card>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}>
+                    {booksClosed ? "Books closed" : "Books open"}
+                  </Text>
+                  <Text style={{ color: theme.textDim, fontSize: 13, lineHeight: 18, marginTop: 3 }}>
+                    {booksClosed
+                      ? "Your page says Waitlist — new asks line up instead of booking."
+                      : "Close your books and new bookers join your waitlist until you reopen."}
+                  </Text>
+                </View>
+                <Switch
+                  value={!!booksClosed}
+                  disabled={booksClosed === null || booksBusy}
+                  onValueChange={(v) => toggleBooks(v)}
+                />
+              </View>
+            </Card>
+
             <SectionTitle>Identity</SectionTitle>
             <Card>
               <LabeledInput label="Tagline" value={room.tagline} onChange={(v) => set("tagline", v)} placeholder="skater // gamer // bold color tattoos" />

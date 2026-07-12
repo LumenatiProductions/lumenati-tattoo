@@ -22,7 +22,7 @@ export default async function RequestPage({
 }) {
   const { shop: shopSlug, artist: artistParam } = await searchParams;
   const admin = createAdminClient();
-  let artists: { id: string; name: string }[] = [];
+  let artists: { id: string; name: string; booksClosed: boolean }[] = [];
   let shopName = "Lumenati Tattoo";
   let resolvedSlug: string | undefined;
   // The button + accents wear the shop's color; bare /request stays Lumenati pink.
@@ -45,11 +45,15 @@ export default async function RequestPage({
     }
     const { data } = await admin
       .from("artists")
-      .select("id, name")
+      .select("id, name, books_closed")
       .eq("shop_id", shopId)
       .eq("active", true)
       .order("sort");
-    artists = (data ?? []).map((a) => ({ id: a.id as string, name: a.name as string }));
+    artists = (data ?? []).map((a) => ({
+      id: a.id as string,
+      name: a.name as string,
+      booksClosed: !!a.books_closed,
+    }));
   }
   // A "Book with <artist>" link arrives with ?artist=<id>; preselect them only
   // if they're really in this shop's roster (a stale/foreign id falls back to

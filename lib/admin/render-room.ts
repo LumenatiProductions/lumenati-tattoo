@@ -67,9 +67,21 @@ export function renderRoomHtml(
   content: RoomContent,
   name: string,
   isJd: boolean,
+  opts?: { booksClosed?: boolean },
 ): string {
   let html = readLegacyBlock("artist-page-y2k.html");
   const firstName = name.split(" ")[0];
+
+  // Closed books: every Book CTA becomes the waitlist door. The /request form
+  // preselects this artist and the API files the ask on their waitlist.
+  if (opts?.booksClosed) {
+    const waitHref = `/request?artist=${escAttr(content.artistId)}`;
+    html = html
+      .replaceAll('href="/book"', `href="${waitHref}"`)
+      .replace('<span class="br-icon-label">Book</span>', '<span class="br-icon-label">Waitlist</span>')
+      .replace(`<a class="bedroom-mobile-btn" href="${waitHref}">Book</a>`, `<a class="bedroom-mobile-btn" href="${waitHref}">Waitlist</a>`)
+      .replace(`<a href="${waitHref}" class="br-aim-btn">Book</a>`, `<a href="${waitHref}" class="br-aim-btn">Waitlist</a>`);
+  }
   const handle = content.igHandle;
   const folder = name.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
 

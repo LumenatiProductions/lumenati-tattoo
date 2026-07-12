@@ -12,14 +12,9 @@ import type { Role } from "@/lib/auth";
 type Item = { href: string; label: string; icon: keyof typeof Ionicons.glyphMap; roles: Role[] };
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
-    title: "Go to",
-    items: [
-      { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "artist"] },
-    ],
-  },
-  {
     title: "Front of house",
     items: [
+      { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "artist"] },
       { href: "/room", label: "My Page", icon: "color-palette-outline", roles: ["owner", "artist"] },
       { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "artist"] },
       { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "artist"] },
@@ -32,7 +27,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Finances",
     items: [
-      { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["owner", "artist"] },
+      { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["owner"] },
       { href: "/reports", label: "Reports", icon: "stats-chart-outline", roles: ["owner"] },
       { href: "/rent", label: "Booth rent", icon: "key-outline", roles: ["owner"] },
       { href: "/cash", label: "Cash log", icon: "cash-outline", roles: ["owner"] },
@@ -42,6 +37,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "My business",
     items: [
+      { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["artist"] },
       { href: "/my-clients", label: "My clients", icon: "people-circle-outline", roles: ["artist"] },
       { href: "/qr-card", label: "Booking card", icon: "qr-code-outline", roles: ["artist"] },
       { href: "/promos", label: "Promos", icon: "megaphone-outline", roles: ["artist"] },

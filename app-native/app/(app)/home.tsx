@@ -16,6 +16,7 @@ import MoneyChart from "@/components/MoneyChart";
 import WeekBars from "@/components/WeekBars";
 import GoalDial from "@/components/GoalDial";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
+import CoachDeck from "@/components/CoachDeck";
 import { cumulativeSeries, earnedInRange, last7Days, startOf, type Range } from "@/lib/personal";
 import { loadShopMoney, shopCoachTips, type ShopMoney } from "@/lib/shop-coach";
 import { apiDelete } from "@/lib/appApi";
@@ -334,7 +335,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
     rentOutstandingCents: stats.rentOutstanding,
     followupsDue: stats.followupsDue,
     waitlistCount: stats.waitlist,
-  }).slice(0, 4);
+  });
 
   // Ranked like the web cockpit: most urgent first, each row opens where you act.
   const attention: AttnItem[] = [];
@@ -360,8 +361,38 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
       <Text style={styles.greeting}>Hey {firstName}</Text>
       <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
 
+      {/* What needs a decision leads the page (Scott, 2026-07-12). */}
+      <Text style={[styles.sectionLabel, { marginTop: 0 }]}>Needs attention</Text>
+      {attention.length === 0 ? (
+        <View style={styles.allClear}>
+          <Ionicons name="checkmark-circle-outline" size={18} color={theme.good} />
+          <Text style={styles.allClearText}>All clear — nothing needs a decision.</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 8 }}>
+          {attention.map((a, i) => (
+            <Pressable
+              key={i}
+              onPress={() => {
+                tap();
+                router.push(a.href as never);
+              }}
+              style={({ pressed }) => [styles.attnCard, pressed && { backgroundColor: theme.surfaceRaised }]}
+            >
+              <View style={[styles.attnRail, { backgroundColor: SEV_COLOR[a.sev] }]} />
+              <Ionicons name={a.icon} size={17} color={SEV_COLOR[a.sev]} style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.attnText}>{a.text}</Text>
+                {a.detail ? <Text style={styles.attnDetail}>{a.detail}</Text> : null}
+              </View>
+              <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {/* Range toggle — same mechanic as the artist page. */}
-      <View style={styles.rangeToggle}>
+      <View style={[styles.rangeToggle, { marginTop: 22 }]}>
         {RANGES.map((r) => (
           <Pressable key={r} onPress={() => setRange(r)} style={[styles.rangeTab, range === r && styles.rangeTabOn]}>
             <Text style={[styles.rangeTabText, range === r && { color: "#fff" }]}>{RANGE_LABEL[r]}</Text>
@@ -524,58 +555,13 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
         <WeekBars bars={bars} />
       </Card>
 
-      {/* The shop coach — same voice as the artist coach, reading every chair. */}
+      {/* The shop coach — same voice as the artist coach, reading every chair.
+          Swipe a tip away; the next-ranked one fills the slot. */}
       {tips.length > 0 && (
         <>
           <SectionTitle>Coach</SectionTitle>
-          {tips.map((tip, i) => (
-            <Card key={tip.title} style={i > 0 ? { marginTop: 10 } : undefined}>
-              <Text style={styles.coachTitle}>{tip.title}</Text>
-              <Text style={styles.coachBody}>{tip.body}</Text>
-              {tip.href ? (
-                <Pressable
-                  onPress={() => {
-                    tap();
-                    router.push(tip.href as never);
-                  }}
-                  hitSlop={6}
-                  style={{ marginTop: 8 }}
-                >
-                  <Text style={styles.coachLink}>Open →</Text>
-                </Pressable>
-              ) : null}
-            </Card>
-          ))}
+          <CoachDeck tips={tips} max={4} />
         </>
-      )}
-
-      <Text style={styles.sectionLabel}>Needs attention</Text>
-      {attention.length === 0 ? (
-        <View style={styles.allClear}>
-          <Ionicons name="checkmark-circle-outline" size={18} color={theme.good} />
-          <Text style={styles.allClearText}>All clear — nothing needs a decision.</Text>
-        </View>
-      ) : (
-        <View style={{ gap: 8 }}>
-          {attention.map((a, i) => (
-            <Pressable
-              key={i}
-              onPress={() => {
-                tap();
-                router.push(a.href as never);
-              }}
-              style={({ pressed }) => [styles.attnCard, pressed && { backgroundColor: theme.surfaceRaised }]}
-            >
-              <View style={[styles.attnRail, { backgroundColor: SEV_COLOR[a.sev] }]} />
-              <Ionicons name={a.icon} size={17} color={SEV_COLOR[a.sev]} style={{ marginRight: 10 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.attnText}>{a.text}</Text>
-                {a.detail ? <Text style={styles.attnDetail}>{a.detail}</Text> : null}
-              </View>
-              <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
-            </Pressable>
-          ))}
-        </View>
       )}
     </View>
   );

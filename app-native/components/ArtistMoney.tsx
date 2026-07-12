@@ -12,6 +12,7 @@ import MiniConfetti from "@/components/MiniConfetti";
 import RewardsStrip from "@/components/RewardsStrip";
 import TodayCard from "@/components/TodayCard";
 import { coachTips } from "@/lib/coach";
+import CoachDeck from "@/components/CoachDeck";
 import { todayLocal } from "@/lib/dates";
 import {
   loadMoney,
@@ -249,23 +250,19 @@ export default function ArtistMoney({
       {/* The coach — practice reads first (rebooking, open days, best-week
           chase), then the standing money truths. All from their own numbers. */}
       <SectionTitle>Coach</SectionTitle>
-      {coachTips({
-        sales: snap.sales,
-        bookings: snap.bookings,
-        expenses,
-        weeklyGoalCents: goals.weekly_cents,
-        taxPct,
-        ytdCents: ytd.total,
-        reserveCents: reserve,
-        taxStatus,
-      })
-        .slice(0, 3)
-        .map((tip, i) => (
-          <Card key={tip.title} style={i > 0 ? { marginTop: 10 } : undefined}>
-            <Text style={styles.coachTitle}>{tip.title}</Text>
-            <Text style={styles.coachBody}>{tip.body}</Text>
-          </Card>
-        ))}
+      <CoachDeck
+        tips={coachTips({
+          sales: snap.sales,
+          bookings: snap.bookings,
+          expenses,
+          weeklyGoalCents: goals.weekly_cents,
+          taxPct,
+          ytdCents: ytd.total,
+          reserveCents: reserve,
+          taxStatus,
+        })}
+        max={3}
+      />
 
       {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
       <SectionTitle right={taxPct != null ? <EditLink label="Edit %" onPress={() => router.push("/goals")} /> : undefined}>Taxes</SectionTitle>
