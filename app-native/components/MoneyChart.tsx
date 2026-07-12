@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, PanResponder, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Stop, Line, Circle } from "react-native-svg";
 import { theme, money } from "@/lib/theme";
-import { detent } from "@/lib/haptics";
+import { endStop, picked } from "@/lib/haptics";
 
 // The dopamine chart: cumulative earnings climbing across the range, with the
 // goal pace as a dashed line to race. The stroke draws itself in on mount,
-// Robinhood-style — and scrubs like Robinhood too: drag a finger across it and
-// a hairline + dot ride the line, the readout shows that day's date and running
-// total, and each day crossed gives a tiny detent tick.
+// Robinhood-style — and scrubs like Robinhood too: the hairline + dot ride the
+// line CONTINUOUSLY under the finger (Animated values, no re-render per frame),
+// the readout snaps to the nearest real day, each day crossed gives a light
+// selection tick, and the chart's ends land with a firmer stop.
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -94,28 +95,51 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
     };
   }, [series, goalCents, width]);
 
-  // Scrub: finger x → nearest day index. A detent tick per day crossed.
+  // Scrub: the dot + hairline follow the finger every frame via Animated
+  // values (setValue skips React re-render — that's the whole smoothness
+  // trick). The readout snaps to the nearest real day; a light selection tick
+  // marks each day crossed and the chart's ends thunk like a dial's end stop.
+  const scrubX = useRef(new Animated.Value(0)).current;
+  const scrubY = useRef(new Animated.Value(0)).current;
+  const atEnd = useRef(false);
+
+  // y on the polyline for any x — linear between the two neighboring days.
+  const yAt = (x: number): number => {
+    const n = pts.length;
+    if (n < 2) return pts[0]?.y ?? 0;
+    const f = Math.min(n - 1, Math.max(0, (x / width) * (n - 1)));
+    const i = Math.min(n - 2, Math.floor(f));
+    const t = f - i;
+    return pts[i].y + (pts[i + 1].y - pts[i].y) * t;
+  };
+
+  const track = (rawX: number, isGrant: boolean) => {
+    const x = Math.min(width, Math.max(0, rawX));
+    scrubX.setValue(x);
+    scrubY.setValue(yAt(x));
+    const n = pts.length;
+    const idx = Math.min(n - 1, Math.max(0, Math.round((x / width) * (n - 1))));
+    const edge = x <= 0 || x >= width;
+    if (edge && !atEnd.current) endStop();
+    atEnd.current = edge;
+    if (idx !== scrubRef.current) {
+      scrubRef.current = idx;
+      setScrubIdx(idx);
+      if (!isGrant && !edge) picked();
+    }
+  };
+
   const pan = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (e) => {
-          const n = pts.length;
-          const idx = Math.min(n - 1, Math.max(0, Math.round((e.nativeEvent.locationX / width) * (n - 1))));
-          scrubRef.current = idx;
-          setScrubIdx(idx);
-          detent();
+          atEnd.current = false;
+          track(e.nativeEvent.locationX, true);
+          picked();
         },
-        onPanResponderMove: (e) => {
-          const n = pts.length;
-          const idx = Math.min(n - 1, Math.max(0, Math.round((e.nativeEvent.locationX / width) * (n - 1))));
-          if (idx !== scrubRef.current) {
-            scrubRef.current = idx;
-            setScrubIdx(idx);
-            detent();
-          }
-        },
+        onPanResponderMove: (e) => track(e.nativeEvent.locationX, false),
         onPanResponderRelease: () => {
           scrubRef.current = null;
           setScrubIdx(null);
@@ -125,6 +149,7 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
           setScrubIdx(null);
         },
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pts, width],
   );
 
@@ -136,7 +161,7 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
           day: "numeric",
         })
       : null;
-  const scrubPt = scrubIdx != null ? pts[scrubIdx] : null;
+  const scrubbing = scrubIdx != null;
 
   // Rough path length for the draw-in animation (overshoot is harmless).
   const approxLen = width * 1.8;
@@ -193,30 +218,49 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
             strokeDashoffset={dashOffset}
           />
 
-          {/* scrub hairline + dot riding the line */}
-          {scrubPt && (
-            <>
-              <Line
-                x1={scrubPt.x}
-                y1={PAD_TOP}
-                x2={scrubPt.x}
-                y2={H - PAD_BOTTOM}
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth={1}
-              />
-              <Circle cx={scrubPt.x} cy={scrubPt.y} r={7} fill={theme.surface} />
-              <Circle cx={scrubPt.x} cy={scrubPt.y} r={5} fill={lineColor} />
-            </>
-          )}
-
           {/* today */}
-          {drawn && !scrubPt && lastPt && (
+          {drawn && !scrubbing && lastPt && (
             <>
               <Circle cx={lastPt.x} cy={lastPt.y} r={9} fill={lineColor} opacity={0.25} />
               <Circle cx={lastPt.x} cy={lastPt.y} r={4.5} fill={lineColor} />
             </>
           )}
         </Svg>
+
+        {/* scrub hairline + dot — Animated overlays gliding with the finger */}
+        {scrubbing && (
+          <>
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: PAD_TOP,
+                left: -0.5,
+                width: 1,
+                height: H - PAD_TOP - PAD_BOTTOM,
+                backgroundColor: "rgba(255,255,255,0.25)",
+                transform: [{ translateX: scrubX }],
+              }}
+            />
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: -7,
+                left: -7,
+                width: 14,
+                height: 14,
+                borderRadius: 7,
+                backgroundColor: theme.surface,
+                alignItems: "center",
+                justifyContent: "center",
+                transform: [{ translateX: scrubX }, { translateY: scrubY }],
+              }}
+            >
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: lineColor }} />
+            </Animated.View>
+          </>
+        )}
       </View>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={{ color: theme.textFaint, fontSize: 11 }}>{startLabel}</Text>
