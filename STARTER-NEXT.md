@@ -74,17 +74,22 @@ values beyond y2k/standard), close-the-books day-picker scheduling idea
   Two open Scott's-call items still live in that doc.
 
 ## Waiting on Scott (remind, don't nag)
-- Run the blocked DDL (classifier): `node scripts/apply-sql.mjs
-  supabase/2026-07-11-schema-sweep.sql` in shift+tab manual mode.
-- Confirm the arcade-demo rooms sweep, then apply
-  supabase/2026-07-11-sweep-arcade-demo-rooms.sql (8 rooms + 3 demo flash).
-- App Store portal items — all spelled out in docs/app-store-checklist.md:
-  App Privacy questionnaire answers, privacy URL, reviewer demo account
-  (script queued: scripts/provision-review-account.mjs + one Supabase test-OTP
-  toggle), Tap to Pay one-take recording script, build 21 go.
+- STRIPE ACTIVATION + the sk_live key, then the Tap to Pay one-take
+  recording (the dev build with the entitlement is ON HIS PHONE, built
+  locally via Xcode 2026-07-12 after every EAS path failed — ad hoc
+  signing can't carry the restricted entitlement; docs/app-store-checklist.md
+  has the take script). Test-mode card taps DECLINE real cards — the
+  recording needs live keys, one real $1, refund after.
+- The real business numbers (docs/handoff-coo-bookkeeper.md): artist
+  splits/rents are PLACEHOLDERS, plus tax rate, bills, bank, payroll,
+  1099 yes/no. Enter via Edit pay when they arrive.
+- App Store portal items: App Privacy questionnaire (answers pre-written),
+  privacy URL, build 21 go. Reviewer demo account is LIVE and proven
+  (+1 500 555 0100 / 000000, self-healing via provision script).
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens.
 - Thumb the arcade cabinet on real glass (still unverified on touch).
+- (Deep-pass DDL, demo-room sweep, waiver flag: all APPLIED 2026-07-12.)
 
 ## How to work here (hard-won gotchas — trust these)
 - Scott's dev servers are already running (:3002 web, :8081 Metro). NEVER
