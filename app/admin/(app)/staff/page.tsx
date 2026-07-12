@@ -23,6 +23,153 @@ type Profile = {
 const prettyPhone = (p: string | null) =>
   p && /^\+1\d{10}$/.test(p) ? `(${p.slice(2, 5)}) ${p.slice(5, 8)}-${p.slice(8)}` : p ?? "";
 
+// The hosted artist pages' shop-wide settings — logo + page style. Same two
+// controls as the app's Staff screen, same direct writes (grants are per
+// column: logo_url + template). One saved setting; every artist page wears
+// it. Lumenati's Y2K site is hardcoded, so its card never shows.
+const TEMPLATES = [
+  { key: "standard", name: "Minimal", blurb: "Clean and simple. The work leads." },
+  { key: "dark", name: "Dark ink", blurb: "Heavier atmosphere. Blackwork energy, smoke instead of white." },
+  { key: "flash", name: "Flash sheet", blurb: "The flash wall is the page. Prices on, tap to claim." },
+];
+
+function ShopPageCard({ myEmail }: { myEmail: string | null }) {
+  const supabase = createClient();
+  const [shop, setShop] = useState<{ id: string; slug: string; logo_url: string | null; template: string } | null>(null);
+  const [artistSlug, setArtistSlug] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!myEmail) return;
+    (async () => {
+      const { data: me } = await supabase.from("profiles").select("shop_id").eq("email", myEmail).maybeSingle();
+      if (!me?.shop_id) return;
+      const { data: s } = await supabase
+        .from("shops")
+        .select("id, slug, logo_url, template")
+        .eq("id", me.shop_id)
+        .maybeSingle();
+      if (s) setShop(s as typeof shop);
+      // Any active artist works for the style preview links.
+      const { data: a } = await supabase
+        .from("artists")
+        .select("slug")
+        .eq("shop_id", me.shop_id)
+        .eq("active", true)
+        .order("sort")
+        .limit(1)
+        .maybeSingle();
+      const slug = (a?.slug as string | undefined) ?? null;
+      setArtistSlug(slug);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myEmail]);
+
+  if (!shop || shop.template === "y2k") return null;
+  const publicSlug = artistSlug?.startsWith(`${shop.slug}--`) ? artistSlug.slice(shop.slug.length + 2) : artistSlug;
+
+  const pickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const ext = (file.name.split(".").pop() ?? "png").toLowerCase();
+      const path = `shop-logo/${shop.id}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("room-photos").upload(path, file, { upsert: false });
+      if (error) throw new Error(error.message);
+      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
+      const { error: upErr } = await supabase.from("shops").update({ logo_url: data.publicUrl }).eq("id", shop.id);
+      if (upErr) throw new Error(upErr.message);
+      setShop({ ...shop, logo_url: data.publicUrl });
+    } catch (ex) {
+      setMsg(ex instanceof Error ? ex.message : "Logo upload failed — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickTemplate = async (next: string) => {
+    if (next === shop.template || busy) return;
+    const prev = shop.template;
+    setShop({ ...shop, template: next });
+    setMsg(null);
+    const { error } = await supabase.from("shops").update({ template: next }).eq("id", shop.id);
+    if (error) {
+      setShop({ ...shop, template: prev });
+      setMsg(error.message);
+    }
+  };
+
+  return (
+    <div className="mt-5">
+      <SectionTitle>Shop page</SectionTitle>
+      <Card>
+        <div className="space-y-4 p-4">
+          <div className="flex items-center gap-3">
+            {shop.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={shop.logo_url} alt="Shop logo" className="h-11 w-[72px] rounded-lg border border-white/10 object-contain" />
+            ) : (
+              <div className="flex h-11 w-[72px] items-center justify-center rounded-lg border border-white/12 text-[10px] text-white/45">
+                none
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <label className="cursor-pointer text-sm font-semibold hover:text-white/85">
+                {busy ? "Uploading…" : shop.logo_url ? "Change logo" : "Add your logo"}
+                <input type="file" accept="image/*" className="hidden" onChange={pickLogo} disabled={busy} />
+              </label>
+              <p className="mt-0.5 text-xs text-white/55">
+                Shows at the top of every artist page. A wide, transparent PNG looks best.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 text-xs uppercase tracking-wide text-white/55">Page style</div>
+            <div className="space-y-2">
+              {TEMPLATES.map((t) => {
+                const active = shop.template === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => pickTemplate(t.key)}
+                    className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                      active ? "border-brand bg-brand/10" : "border-white/12 hover:bg-white/6"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">{t.name}</span>
+                      {publicSlug && (
+                        <a
+                          href={`/s/${shop.slug}/${publicSlug}?skin=${t.key}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs text-white/55 underline-offset-2 hover:text-white/85 hover:underline"
+                        >
+                          Preview
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-xs text-white/55">{t.blurb}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-white/55">Every artist page wears this look the moment you pick it.</p>
+          </div>
+          {msg && <p className="text-xs text-white/70">{msg}</p>}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function StaffPage() {
   const { realRole, email: myEmail } = useRole();
   const { artists } = useArtists();
@@ -188,6 +335,8 @@ export default function StaffPage() {
               {msg && <p className="text-xs text-white/70">{msg}</p>}
             </form>
           </Card>
+
+          <ShopPageCard myEmail={myEmail} />
         </div>
       </div>
     </div>
