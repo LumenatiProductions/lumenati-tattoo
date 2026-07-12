@@ -87,7 +87,7 @@ function statementFor(artist: ArtistRow, sales: SaleRow[], since: string | undef
 
 export default function Payouts() {
   const insets = useSafeAreaInsets();
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const { preview } = usePreview();
   const [statements, setStatements] = useState<Statement[] | null>(null);
   const [settleConfigured, setSettleConfigured] = useState(false);
@@ -98,8 +98,9 @@ export default function Payouts() {
   const canSettle = (role === "owner") && !preview;
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const [{ data: artists }, sales, settle, mine] = await Promise.all([
-      supabase.from("artists").select("id, name, pay_type, split_pct").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name, pay_type, split_pct").eq("shop_id", shopId!).eq("active", true).order("sort"),
       // Statements sum ALL sales after settled_through (all-time before the
       // first settlement) — page, since responses clamp at 1000 rows.
       pageAll<SaleRow>((from, to) =>
@@ -144,7 +145,7 @@ export default function Payouts() {
         .filter((st): st is Statement => !!st)
         .map((st) => ({ ...st, spark: sparkBy[st.artist.id] })),
     );
-  }, [role, email, preview]);
+  }, [role, email, preview, shopId]);
 
   useEffect(() => {
     load();

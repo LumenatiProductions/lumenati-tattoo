@@ -54,7 +54,7 @@ function daysNote(expires: string | null, status: string): string {
 // compliance-docs bucket and open via short-lived signed links.
 export default function Compliance() {
   const insets = useSafeAreaInsets();
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const isOwner = role === "owner";
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
@@ -75,19 +75,20 @@ export default function Compliance() {
   }, [email]);
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const [itemsRes, artistsRes] = await Promise.all([
       supabase
         .from("compliance_items")
         .select("id, scope, artist_id, kind, label, expires_on, document_url, status")
         .order("expires_on", { ascending: true, nullsFirst: false }),
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
     ]);
     setItems((itemsRes.data ?? []) as Item[]);
     const a = (artistsRes.data ?? []) as { id: string; name: string }[];
     setArtists(a);
     setNames(new Map(a.map((x) => [x.id, x.name])));
     setLoading(false);
-  }, []);
+  }, [shopId]);
   useEffect(() => {
     load();
   }, [load]);

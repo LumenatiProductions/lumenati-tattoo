@@ -18,7 +18,7 @@ type Artist = { id: string; name: string };
 
 export default function Integrations() {
   const insets = useSafeAreaInsets();
-  const { role } = useAuth();
+  const { role, shopId } = useAuth();
   const [members, setMembers] = useState<Member[] | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
@@ -29,9 +29,10 @@ export default function Integrations() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const [{ data: m }, { data: a }, { data: s }, { count }] = await Promise.all([
       supabase.from("square_team_members").select("square_id, name, artist_id").order("name"),
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
       supabase.from("square_sync").select("last_synced_at, last_result").eq("id", 1).maybeSingle(),
       supabase.from("sales").select("id", { count: "exact", head: true }),
     ]);
@@ -40,7 +41,7 @@ export default function Integrations() {
     setLastSyncedAt((s?.last_synced_at as string | null) ?? null);
     setLastResult((s?.last_result as string | null) ?? null);
     setSalesCount(count ?? 0);
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     load();

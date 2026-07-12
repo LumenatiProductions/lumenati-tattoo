@@ -41,7 +41,7 @@ const dayLabel = (iso: string) =>
 
 export default function Waitlist() {
   const insets = useSafeAreaInsets();
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const { preview } = usePreview();
   const isStaff = role === "owner";
   // The freed slot handed over from Bookings' cancel moment.
@@ -62,6 +62,7 @@ export default function Waitlist() {
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const [{ data }, { data: a }] = await Promise.all([
       supabase
         .from("waitlist")
@@ -69,11 +70,11 @@ export default function Waitlist() {
         .eq("active", true)
         .order("created_at", { ascending: true })
         .limit(100),
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
     ]);
     setRows((data ?? []) as Entry[]);
     setArtists((a ?? []) as Artist[]);
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     (async () => {

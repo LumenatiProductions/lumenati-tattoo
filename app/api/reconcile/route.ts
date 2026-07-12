@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveStaff } from "@/lib/api-auth";
 import { stripe, isStripeConfigured } from "@/lib/stripe/client";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 export const dynamic = "force-dynamic";
 
@@ -166,7 +167,9 @@ export async function GET(req: Request) {
     error?: string;
   } = { configured: false };
 
-  if (isStripeConfigured && stripe) {
+  // The platform Stripe account is Lumenati's (like the Square sync) — other
+  // tenants must not see its balance/payouts (2026-07-12 reviewer walk).
+  if (isStripeConfigured && stripe && me.shopId === LUMENATI_SHOP_ID) {
     try {
       const [bal, payouts, txns] = await Promise.all([
         stripe.balance.retrieve(),

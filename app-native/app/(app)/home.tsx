@@ -42,7 +42,7 @@ const ROLE_LABEL: Record<string, string> = {
 // Role-routed home: artists get the money + coaching dashboard (6b), staff get
 // the shop glance (the owner cockpit port lands in 6d).
 export default function Home() {
-  const { role, email, fullName, signOut } = useAuth();
+  const { role, email, fullName, signOut, shopId } = useAuth();
   const insets = useSafeAreaInsets();
   const isStaff = role === "owner";
   // Greet like a person: profile name first, email prefix as the fallback.
@@ -58,15 +58,15 @@ export default function Home() {
   const [homeTab, setHomeTab] = useState<"shop" | "money">("shop");
 
   useEffect(() => {
-    if (role === "owner") {
-      supabase.from("artists").select("id, name").eq("active", true).order("sort")
+    if (role === "owner" && shopId) {
+      supabase.from("artists").select("id, name").eq("shop_id", shopId).eq("active", true).order("sort")
         .then(({ data }) => setRoster((data ?? []) as { id: string; name: string }[]));
     }
     if (isStaff && email) {
       supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle()
         .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
     }
-  }, [role, isStaff, email]);
+  }, [role, isStaff, email, shopId]);
 
   const previewArtist = preview;
 
@@ -218,6 +218,7 @@ const CHART_W = Dimensions.get("window").width - 72;
 // strip, every chair's numbers side by side, and a SHOP coach reading the
 // whole room — with the ops glance (attention list) still at the bottom.
 function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: string | null; reloadKey: number }) {
+  const { shopId } = useAuth();
   const router = useRouter();
   const { setPreview } = usePreview();
   const [range, setRange] = useState<Range>("week");
@@ -230,6 +231,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
   const ops = role === "owner";
 
   useEffect(() => {
+    if (!shopId) return;
     (async () => {
       const date = todayLocal();
       const nowIso = new Date().toISOString();
@@ -246,8 +248,8 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
           supabase.from("followups").select("id", { count: "exact", head: true }).eq("status", "pending").lte("scheduled_for", nowIso),
           supabase.from("bookings").select("deposit_cents").eq("deposit_status", "held"),
           supabase.from("compliance_items").select("status").in("status", ["expiring", "expired"]),
-          supabase.from("artists").select("id, name").eq("active", true).order("sort"),
-          supabase.from("shops").select("id, goal_weekly_cents").maybeSingle(),
+          supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
+          supabase.from("shops").select("id, goal_weekly_cents").eq("id", shopId!).maybeSingle(),
           supabase.from("rent_invoices").select("amount_cents").eq("status", "pending"),
           supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("active", true),
         ]);
@@ -273,7 +275,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
         waitlist: (waitRes as { count?: number }).count ?? 0,
       });
     })();
-  }, [reloadKey]);
+  }, [reloadKey, shopId]);
 
   const artistNames = useMemo(() => new Map(artists.map((a) => [a.id, a.name])), [artists]);
 

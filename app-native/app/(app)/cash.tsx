@@ -35,7 +35,7 @@ type Artist = { id: string; name: string };
 
 export default function Cash() {
   const insets = useSafeAreaInsets();
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const isAdmin = role === "owner";
   const [rows, setRows] = useState<Entry[] | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -65,6 +65,7 @@ export default function Cash() {
   }, [isAdmin, email]);
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const [{ data }, { data: a }] = await Promise.all([
       supabase
         .from("cash_entries")
@@ -72,11 +73,11 @@ export default function Cash() {
         .order("date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(60),
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
     ]);
     setRows((data ?? []) as unknown as Entry[]);
     setArtists((a ?? []) as Artist[]);
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     load();

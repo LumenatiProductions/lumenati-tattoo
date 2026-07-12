@@ -23,7 +23,7 @@ type Artist = { id: string; name: string };
 
 export default function Staff() {
   const insets = useSafeAreaInsets();
-  const { role: myRole, email: myEmail } = useAuth();
+  const { role: myRole, email: myEmail, shopId } = useAuth();
   const [rows, setRows] = useState<Profile[] | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [adding, setAdding] = useState(false);
@@ -36,13 +36,14 @@ export default function Staff() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const [{ data: p }, { data: a }] = await Promise.all([
       supabase.from("profiles").select("email, role, artist_id, full_name").order("role"),
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
     ]);
     setRows((p ?? []) as Profile[]);
     setArtists((a ?? []) as Artist[]);
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     load();

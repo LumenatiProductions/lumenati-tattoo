@@ -14,7 +14,7 @@
       "backgroundColor": "#0e0e11"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.lumenati.app",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Pick a profile photo for your public room page.",

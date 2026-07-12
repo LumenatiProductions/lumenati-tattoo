@@ -5,6 +5,7 @@ import { userFromBearer } from "@/lib/api-auth";
 import { rowToArtist } from "@/lib/admin/artists-data";
 import { shopSummary, statementFor } from "@/lib/admin/calc";
 import { fetchRentInvoices, isSquareConfigured } from "@/lib/square/client";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 import type { Sale } from "@/lib/admin/types";
 
 export const dynamic = "force-dynamic";
@@ -230,10 +231,12 @@ export async function GET(req: Request) {
   }
 
   // ── Rent from Square (not date-bounded — recurring booth rent status) ──
+  // Square is Lumenati's single-shop integration: any other tenant's report
+  // must not see these numbers (caught by the 2026-07-12 reviewer walk).
   let rentCollected = 0;
   let rentOutstanding = 0;
   let rentConfigured = false;
-  if (isSquareConfigured) {
+  if (isSquareConfigured && shopId === LUMENATI_SHOP_ID) {
     try {
       const invoices = await fetchRentInvoices();
       rentConfigured = true;

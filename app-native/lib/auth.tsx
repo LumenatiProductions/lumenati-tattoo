@@ -17,6 +17,10 @@ type AuthState = {
   email: string | null;
   /** profiles.full_name — the human greeting; null when unset. */
   fullName: string | null;
+  /** profiles.shop_id — every roster/public-table read MUST scope to this
+   * (artists/room_content are public-read for the website, so RLS alone
+   * won't wall them between shops). */
+  shopId: string | null;
   signOut: () => Promise<void>;
 };
 
@@ -26,17 +30,25 @@ const Ctx = createContext<AuthState>({
   role: null,
   email: null,
   fullName: null,
+  shopId: null,
   signOut: async () => {},
 });
 
 // Resolve the signed-in user's role + name from `profiles` (same lookup as the
 // web, just client-side under RLS). Falls back to "artist" if it can't be read.
-async function fetchProfile(email: string | null): Promise<{ role: Role; fullName: string | null }> {
-  if (!email) return { role: "artist", fullName: null };
-  const { data } = await supabase.from("profiles").select("role, full_name").eq("email", email).maybeSingle();
+async function fetchProfile(
+  email: string | null,
+): Promise<{ role: Role; fullName: string | null; shopId: string | null }> {
+  if (!email) return { role: "artist", fullName: null, shopId: null };
+  const { data } = await supabase
+    .from("profiles")
+    .select("role, full_name, shop_id")
+    .eq("email", email)
+    .maybeSingle();
   return {
     role: normalizeRole(data?.role as string | undefined) ?? "artist",
     fullName: (data?.full_name as string | null) ?? null,
+    shopId: (data?.shop_id as string | null) ?? null,
   };
 }
 
@@ -45,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
+  const [shopId, setShopId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -54,9 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const p = await fetchProfile(s.user.email ?? null);
         setRole(p.role);
         setFullName(p.fullName);
+        setShopId(p.shopId);
       } else {
         setRole(null);
         setFullName(null);
+        setShopId(null);
       }
     };
     (async () => {
@@ -83,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role,
         email: session?.user.email ?? null,
         fullName,
+        shopId,
         signOut: async () => {
           await supabase.auth.signOut();
         },

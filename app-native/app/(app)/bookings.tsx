@@ -104,7 +104,7 @@ const todayKey = () => {
 export default function Bookings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const { preview } = usePreview();
   // Previewing an artist = being that artist on this screen too: their name
   // only in the picker, no staff row actions (bug 1db64bc3).
@@ -178,6 +178,7 @@ export default function Bookings() {
   };
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const start = todayKey();
     let q = supabase
       .from("bookings")
@@ -206,7 +207,7 @@ export default function Bookings() {
     // Pickers for the create form. RLS scopes the client list — staff see
     // everyone, an artist sees only the clients they've had a booking with.
     const [allArtists, clientBook] = await Promise.all([
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
       // The whole book (RLS keeps an artist's list to their own clients) —
       // the form searches it instead of showing a pill sampler (bug 1db64bc3).
       supabase
@@ -222,7 +223,7 @@ export default function Bookings() {
         .filter((c) => c.name && c.name.toLowerCase() !== "client"),
     );
     setLoading(false);
-  }, [preview]);
+  }, [preview, shopId]);
 
   useEffect(() => {
     load();

@@ -27,7 +27,7 @@ type Phase = "idle" | "connecting" | "collecting" | "done";
 const TIP_PRESETS = [15, 20, 25] as const;
 
 export default function TapToPayPos() {
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const { preview } = usePreview();
   const [amount, setAmount] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -68,9 +68,10 @@ export default function TapToPayPos() {
   });
 
   useEffect(() => {
+    if (!shopId) return;
     initialize();
     (async () => {
-      const { data } = await supabase.from("artists").select("id, name").eq("active", true).order("sort");
+      const { data } = await supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort");
       let roster = (data ?? []) as { id: string; name: string }[];
       // Artists ring up themselves (their own terms apply) or the shop (merch).
       // Never other artists — the server enforces the same rule. An owner
@@ -88,7 +89,7 @@ export default function TapToPayPos() {
       setArtists(roster);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [shopId]);
 
   // With a merch cart, the cart IS the amount: net (products) drives the
   // service figure, tax rides on top — the server recomputes both from the DB.

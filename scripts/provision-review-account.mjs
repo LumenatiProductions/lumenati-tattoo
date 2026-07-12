@@ -41,14 +41,12 @@ const REVIEW_EMAIL = "applereview@lumenati.app";
 const REVIEW_PHONE = "+15005550100";
 const SHOP_SLUG = "apple-review";
 
+// Re-runnable: if the shop already exists (e.g. Apple deleted the reviewer
+// account mid-review), skip seeding and just restore the logins below.
 const { data: existing } = await db.from("shops").select("id").eq("slug", SHOP_SLUG).maybeSingle();
-if (existing) {
-  console.log("Demo shop already exists — nothing to do. Shop id:", existing.id);
-  process.exit(0);
-}
-
-const shopId = randomUUID();
+const shopId = existing?.id ?? randomUUID();
 let err;
+if (!existing) {
 ({ error: err } = await db.from("shops").insert({
   id: shopId,
   slug: SHOP_SLUG,
@@ -106,25 +104,42 @@ for (let i = 0; i < 4; i++) {
   }));
   if (err) throw new Error("bookings: " + err.message);
 }
+} // end fresh-seed block
 
 // The reviewer's login: auth user (phone + email, both confirmed) + profile.
-const { data: created, error: authErr } = await db.auth.admin.createUser({
-  email: REVIEW_EMAIL,
-  phone: REVIEW_PHONE,
-  email_confirm: true,
-  phone_confirm: true,
-});
-if (authErr) throw new Error("auth user: " + authErr.message);
-({ error: err } = await db.from("profiles").insert({
+// Idempotent so a mid-review deletion (Apple testing 5.1.1(v)) is restorable.
+const { data: userList } = await db.auth.admin.listUsers({ perPage: 200 });
+let reviewer = userList.users.find((u) => u.email === REVIEW_EMAIL);
+if (!reviewer) {
+  const { data: created, error: authErr } = await db.auth.admin.createUser({
+    email: REVIEW_EMAIL,
+    phone: REVIEW_PHONE,
+    email_confirm: true,
+    phone_confirm: true,
+  });
+  if (authErr) throw new Error("auth user: " + authErr.message);
+  reviewer = created.user;
+}
+({ error: err } = await db.from("profiles").upsert({
   email: REVIEW_EMAIL,
   phone: REVIEW_PHONE,
   role: "owner",
-  full_name: "App Reviewer",
+  full_name: "Reviewer",
   shop_id: shopId,
-}));
+}, { onConflict: "email" }));
 if (err) throw new Error("profiles: " + err.message);
+
+// Second admin so the sole-admin deletion guard never blocks the reviewer's
+// delete-account test (no login; it exists purely as the other admin).
+({ error: err } = await db.from("profiles").upsert({
+  email: "applereview-backup@lumenati.app",
+  role: "owner",
+  full_name: "Review Backup Admin",
+  shop_id: shopId,
+}, { onConflict: "email" }));
+if (err) throw new Error("backup profile: " + err.message);
 
 console.log("Demo tenant ready.");
 console.log("  shop:", shopId, `(/s/${SHOP_SLUG})`);
-console.log("  reviewer:", REVIEW_EMAIL, REVIEW_PHONE, "auth id:", created.user.id);
-console.log("REMINDER: add Test OTP for", REVIEW_PHONE, "(code 000000) in Supabase Auth -> Phone.");
+console.log("  reviewer:", REVIEW_EMAIL, REVIEW_PHONE, "auth id:", reviewer.id);
+console.log("REMINDER: Test OTP for", REVIEW_PHONE, "(code 000000) is set in auth config until 2026-12-31.");

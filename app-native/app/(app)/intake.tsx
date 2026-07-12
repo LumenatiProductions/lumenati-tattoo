@@ -67,7 +67,7 @@ const FILTER_LABEL: Record<Filter, string> = { attention: "Needs attention", tod
 
 export default function Intake() {
   const insets = useSafeAreaInsets();
-  const { role, email } = useAuth();
+  const { role, email, shopId } = useAuth();
   const isAdmin = role === "owner";
   // Which artist is holding this phone — gates per-row actions to THEIR forms.
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
@@ -93,11 +93,12 @@ export default function Intake() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
+    if (!shopId) return;
     const dayStart = `${todayKey()}T00:00:00`;
     const [{ data: f }, { data: c }, { data: a }, { data: b }] = await Promise.all([
       supabase.from("consent_forms").select("*").order("created_at", { ascending: false }).limit(200),
       supabase.from("clients").select("id, first_name, last_name"),
-      supabase.from("artists").select("id, name").eq("active", true).order("sort"),
+      supabase.from("artists").select("id, name").eq("shop_id", shopId!).eq("active", true).order("sort"),
       supabase
         .from("bookings")
         .select("id, starts_at, client_id, artist_id")
@@ -114,7 +115,7 @@ export default function Intake() {
     );
     setArtists((a ?? []) as Named[]);
     setTodays(((b ?? []) as Booking[]).filter((bk) => bk.starts_at.slice(0, 10) === todayKey()));
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
     load();

@@ -64,7 +64,7 @@ type Room = {
 type RosterArtist = { id: string; name: string; slug: string };
 
 export default function MyRoom() {
-  const { email, role } = useAuth();
+  const { email, role, shopId } = useAuth();
   const { preview } = usePreview();
   const insets = useSafeAreaInsets();
   // Previewing = being that artist: their room only, no roster picker.
@@ -83,8 +83,8 @@ export default function MyRoom() {
       if (!email) return;
       const [{ data: profile }, rosterRes] = await Promise.all([
         supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle(),
-        isOwner
-          ? supabase.from("artists").select("id, name, slug").eq("active", true).order("sort")
+        isOwner && shopId
+          ? supabase.from("artists").select("id, name, slug").eq("shop_id", shopId).eq("active", true).order("sort")
           : Promise.resolve({ data: null }),
       ]);
       const own = (profile?.artist_id as string | null) ?? null;
@@ -93,7 +93,7 @@ export default function MyRoom() {
       setArtistId(preview?.artistId ?? own ?? (isOwner ? list[0]?.id ?? null : null));
       setLoading(false);
     })();
-  }, [email, isOwner, preview]);
+  }, [email, isOwner, preview, shopId]);
 
   // Load the selected artist's room whenever the pick changes. select("*")
   // so the video fields are optional: on a DB without the video_url/video_title
