@@ -7,6 +7,14 @@ order.
 
 ## Bookkeeper
 
+0. **The real artist roster and deal terms** — the numbers in the system
+   today are build placeholders, not the actual deals. For every artist:
+   legal name, phone, email, arrangement (percentage split vs booth
+   rent), the real percentage or the real monthly rent, and anyone on
+   the roster who shouldn't be (or missing). These get entered once on
+   the Pay settings and every statement, report, and 1099 flows from
+   them — so they need to be the true numbers.
+
 1. **Stripe activation details** — so real card payments can turn on.
    Legal entity name (LLC or sole proprietor), EIN (or SSN if sole prop),
    business address, and the bank account where card money should land.
