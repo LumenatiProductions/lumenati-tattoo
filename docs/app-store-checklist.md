@@ -67,15 +67,17 @@ Apple wants a screen recording of the real payment flow for the production
 entitlement request. Everything is staged; the take is about 60 seconds.
 
 Prep (once, before the take):
-1. You need a build that carries the Tap to Pay entitlement — TestFlight
-   builds can't have it yet (that's why the charge screen says it's in
-   Apple's review). A dedicated `ttp-recording` profile exists: a normal
-   standalone app, install-on-your-phone distribution, entitlement on. Run
-   it interactively (Apple credential prompts need you):
-       cd app-native && npx eas build --profile ttp-recording --platform ios
-   Install from the link/QR EAS gives you when it finishes.
+1. You need the DEVELOPMENT build — Apple's restricted grant only signs the
+   entitlement into true development builds (a standalone/ad-hoc attempt
+   failed at signing on 2026-07-12, confirming this). Stored EAS credentials
+   cover it, no Apple login needed:
+       cd app-native && npx eas build --profile development --platform ios
+   Install from the QR when it finishes. This build loads the app from the
+   Metro dev server, so have Claude make sure Metro is up and reachable from
+   the phone before the take (same wifi, or a tunnel).
 2. Make sure you're signed in as yourself and the shop has at least one
-   booking or merch item to charge against.
+   booking or merch item to charge against. Stripe TEST keys are fine —
+   the tap screen is identical and no real money moves.
 
 The take:
 1. Swipe into Control Center, start Screen Recording, swipe back.
