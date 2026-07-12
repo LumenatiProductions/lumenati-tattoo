@@ -17,9 +17,12 @@ export default async function ShopPage({ params }: { params: Promise<{ shop: str
   const artists = await fetchShopArtists(shop.id);
   const rooms = await Promise.all(artists.map((a) => fetchRoom(a.id)));
 
+  // The dark-ink skin's smoke follows the shop onto the crew page; the other
+  // skins share the standard landing.
+  const dark = shop.template === "dark";
   return (
-    <div className="min-h-screen text-zinc-100" style={{ background: "#0b0b10" }}>
-      <header className="px-6 pb-10 pt-14 text-center" style={{ background: `radial-gradient(80% 120% at 50% -20%, ${shop.accent}33 0%, transparent 70%)` }}>
+    <div className={`min-h-screen text-zinc-100 ${dark ? "ink-bg" : ""}`} style={dark ? undefined : { background: "#0b0b10" }}>
+      <header className="px-6 pb-10 pt-14 text-center" style={dark ? undefined : { background: `radial-gradient(80% 120% at 50% -20%, ${shop.accent}33 0%, transparent 70%)` }}>
         <div className="text-[11px] font-bold uppercase" style={{ letterSpacing: "0.35em", color: shop.accent }}>
           Tattoo studio
         </div>

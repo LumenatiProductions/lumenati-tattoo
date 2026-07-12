@@ -40,18 +40,24 @@ export default function RequestForm({
   shopSlug,
   preselectArtistId,
   accent = "#ff1493",
+  initialIdea,
+  flashPiece,
 }: {
   artists: { id: string; name: string; booksClosed?: boolean }[];
   shopSlug?: string;
   preselectArtistId?: string;
   accent?: string;
+  initialIdea?: string;
+  // Set when the visitor tapped a flash piece — rendered above the form so
+  // they can see exactly what they're claiming.
+  flashPiece?: { src: string; title: string; price: string | null };
 }) {
   const [f, setF] = useState({
     name: "",
     email: "",
     phone: "",
     artistId: preselectArtistId ?? "",
-    idea: "",
+    idea: initialIdea ?? "",
     placement: "",
     size: "",
     availability: "",
@@ -154,6 +160,19 @@ export default function RequestForm({
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      {flashPiece && (
+        <div className={`${card} flex items-center gap-4`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={flashPiece.src} alt={flashPiece.title || "flash"} className="h-16 w-16 rounded-lg border border-black/10 object-cover" />
+          <div className="min-w-0">
+            <div className="text-xs font-medium uppercase tracking-wide text-black/45">Claiming this flash</div>
+            <div className="truncate text-sm font-semibold">
+              {flashPiece.title || "One-off design"}
+              {flashPiece.price ? <span style={{ color: accent }}> · {flashPiece.price}</span> : null}
+            </div>
+          </div>
+        </div>
+      )}
       <div className={card}>
         <h1 className="text-lg font-bold">Tell us what you want.</h1>
         <p className="mt-1 text-sm text-zinc-500">

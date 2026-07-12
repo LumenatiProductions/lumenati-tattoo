@@ -18,9 +18,9 @@ export const metadata = {
 export default async function RequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ shop?: string; artist?: string }>;
+  searchParams: Promise<{ shop?: string; artist?: string; flash?: string }>;
 }) {
-  const { shop: shopSlug, artist: artistParam } = await searchParams;
+  const { shop: shopSlug, artist: artistParam, flash: flashParam } = await searchParams;
   const admin = createAdminClient();
   let artists: { id: string; name: string; booksClosed: boolean }[] = [];
   let shopName = "Lumenati Tattoo";
@@ -58,7 +58,27 @@ export default async function RequestPage({
   // A "Book with <artist>" link arrives with ?artist=<id>; preselect them only
   // if they're really in this shop's roster (a stale/foreign id falls back to
   // "no preference").
-  const preselectArtistId = artists.some((a) => a.id === artistParam) ? artistParam : undefined;
+  let preselectArtistId = artists.some((a) => a.id === artistParam) ? artistParam : undefined;
+
+  // Tapping a flash piece lands here with ?flash=<id>: show the piece above
+  // the form and seed the idea so the desk knows exactly which design it is.
+  // A piece someone already claimed (or a foreign/stale id) is just ignored —
+  // the form still works as a normal request.
+  let flashPiece: { src: string; title: string; price: string | null } | undefined;
+  let initialIdea: string | undefined;
+  if (admin && flashParam) {
+    const { data: piece } = await admin
+      .from("flash_pieces")
+      .select("id, src, title, price_cents, status, artist_id")
+      .eq("id", flashParam)
+      .maybeSingle();
+    if (piece && piece.status !== "claimed" && artists.some((a) => a.id === piece.artist_id)) {
+      const price = piece.price_cents ? `$${Math.round((piece.price_cents as number) / 100)}` : null;
+      flashPiece = { src: piece.src as string, title: (piece.title as string) || "", price };
+      initialIdea = `Claiming the flash piece${flashPiece.title ? ` "${flashPiece.title}"` : ""}${price ? ` (${price})` : ""} from the sheet.`;
+      if (!preselectArtistId) preselectArtistId = piece.artist_id as string;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900">
@@ -78,7 +98,14 @@ export default async function RequestPage({
         </div>
       </header>
       <main className="mx-auto max-w-xl px-5 py-6">
-        <RequestForm artists={artists} shopSlug={resolvedSlug} preselectArtistId={preselectArtistId} accent={accent} />
+        <RequestForm
+          artists={artists}
+          shopSlug={resolvedSlug}
+          preselectArtistId={preselectArtistId}
+          accent={accent}
+          initialIdea={initialIdea}
+          flashPiece={flashPiece}
+        />
       </main>
     </div>
   );

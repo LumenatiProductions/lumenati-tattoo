@@ -19,6 +19,14 @@ const ROLE_LABELS: Record<Role, string> = {
 };
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
 
+// The looks a shop can pick for its hosted artist pages ('y2k' is Lumenati's
+// own skin and never offered).
+const TEMPLATES = [
+  { key: "standard", name: "Minimal", blurb: "Clean and simple. The work leads, everything else stays out of the way." },
+  { key: "dark", name: "Dark ink", blurb: "Heavier atmosphere. Blackwork energy, smoke instead of white." },
+  { key: "flash", name: "Flash sheet", blurb: "The flash wall is the page. Designs and prices first, tap to claim." },
+];
+
 type Profile = { email: string; role: Role; artist_id: string | null; full_name: string | null };
 type Artist = { id: string; name: string };
 
@@ -28,16 +36,34 @@ export default function Staff() {
   const [rows, setRows] = useState<Profile[] | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [template, setTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     if (!shopId) return;
     supabase
       .from("shops")
-      .select("logo_url")
+      .select("logo_url, template")
       .eq("id", shopId)
       .maybeSingle()
-      .then(({ data }) => setLogoUrl((data as { logo_url?: string | null } | null)?.logo_url ?? null));
+      .then(({ data }) => {
+        const row = data as { logo_url?: string | null; template?: string | null } | null;
+        setLogoUrl(row?.logo_url ?? null);
+        setTemplate(row?.template ?? null);
+      });
   }, [shopId]);
+
+  // The artist pages' skin — same one-tap admin card as the logo. Lumenati's
+  // Y2K site is hardcoded, so its picker never shows.
+  const pickTemplate = async (next: string) => {
+    if (!shopId || next === template) return;
+    const prev = template;
+    setTemplate(next);
+    const { error } = await supabase.from("shops").update({ template: next }).eq("id", shopId);
+    if (error) {
+      setTemplate(prev);
+      Alert.alert("Could not switch the page style", error.message);
+    }
+  };
 
   const pickLogo = async () => {
     if (!shopId || logoBusy) return;
@@ -191,6 +217,24 @@ export default function Staff() {
                 </View>
               </View>
             </Card>
+
+            {template && template !== "y2k" && (
+              <>
+                <SectionTitle>Page style</SectionTitle>
+                <Card style={{ marginBottom: 18 }}>
+                  <Chips
+                    label="Every artist page wears this look"
+                    value={TEMPLATES.some((t) => t.key === template) ? template : "standard"}
+                    options={TEMPLATES.map((t) => t.key)}
+                    display={(k) => TEMPLATES.find((t) => t.key === k)?.name ?? k}
+                    onChange={pickTemplate}
+                  />
+                  <Text style={{ color: theme.textDim, fontSize: 12, marginTop: 3 }}>
+                    {TEMPLATES.find((t) => t.key === template)?.blurb ?? ""}
+                  </Text>
+                </Card>
+              </>
+            )}
 
             <Button label={adding ? "Cancel" : "Add someone"} tone={adding ? "ghost" : "brand"} onPress={() => setAdding((v) => !v)} />
 
