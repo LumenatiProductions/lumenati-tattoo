@@ -1,134 +1,129 @@
-# Lumenati — next-session starter: PAGE TEMPLATES (the deep pass is done)
+# Lumenati — next-session starter: TEMPLATES, part two (dark ink + flash sheet + picker)
 
 Read this first in a fresh context. Scott is NOT a coder: explain in plain
 English, no jargon/file paths in chat. Never use emojis or em dashes. Dive
-straight into Priority 1 — no questions, no menus.
+straight into Priority 1 — no questions, no menus. When Scott asks for "a
+list", the answer is plain paste-able bullets in chat, nothing else first.
 
 ## What this is
 A tattoo-shop management product Lumenati owns end to end. Two surfaces:
 - **Web Command Center** (`/admin`, Next.js, dev on :3002) = admins.
 - **Phone app** (`app-native`, Expo, Metro :8081) = artists + admin on the go.
-Public layer: Y2K site at root. Owner login: lumenati@icloud.com.
-Core principle: NO front desk — artists run their own world from the app.
-Square is historical only; never flag its data quirks.
+Public layer: Y2K site at root (Lumenati's skin only). Owner login:
+lumenati@icloud.com. Core principle: NO front desk. Square is historical
+only; never flag its data quirks.
 
-## Where things stand (2026-07-11, deep pass done, committed)
-The four-lane hardening sweep ran end to end:
-- **Bugs**: bug_reports inbox empty (all 11 recent = fixed). Reports/insights
-  admin pages verified live in Chrome; JD's public page + arcade verified;
-  vitest 40/40 + arcade smoke green.
-- **DB**: FK drift found (profiles AND sales AND square_team_members pointed
-  artist_id at room_content, not artists; zero orphans, safe to repoint) —
-  fix written as supabase/2026-07-11-schema-sweep.sql, CLASSIFIER-BLOCKED,
-  needs Scott shift+tab. video_title migration is LIVE already (non-item).
-  game_id retired from all code; drop is supabase/2026-07-11-drop-game-id.sql,
-  run ONLY after build 21 ships (old builds probe it for the video editor).
-  1000-row cap fixed on /api/insights + /api/reports bookings pulls.
-- **Security**: anon break-in 32/32 tables clean; two-shop wall holds; buckets
-  correct (compliance-docs/proof/bug-reports private). Hardened: timing-safe
-  secret compares on 6 cron lanes + shop wizard (+ per-instance brute-force
-  brake), digest now fails closed, report-error same-origin + throttled.
-- **App Store**: account deletion shipped (Home footer -> DELETE /api/account,
-  sole-admin guardrail), /privacy page live + linked from app sign-in, mic
-  permission stripped, Bluetooth/LocalNetwork strings added. Everything else
-  is docs/app-store-checklist.md — the source of truth for the listing.
+## THE HARD LINE (Scott, 2026-07-12 — do not let scope cross it)
+Lumenati is NOT in the shop-website business. Artist pages are the hosted
+product; shops keep their own sites and link to us. The shop's presence on
+our pages = their logo (shipped) + a backlink field when needed. Never build
+shop hours/policies/about pages. Pitch: "keep your website, we take over
+everything behind it."
 
-## Priority 1 — page templates (STARTED 2026-07-12; two more skins to go)
-Goal: an artist signing up cold could build a beautiful page right now.
+## Where things stand (2026-07-12 end of day, all committed + pushed)
+Massive two-day run. In shipping order:
+- **Deep pass done** (bugs/DB/security/App Store): FK repoint APPLIED live,
+  demo rooms swept, anon+two-shop break-ins pass, cron lanes timing-safe,
+  account deletion + /privacy shipped, reviewer demo tenant LIVE and proven
+  (phone +1 500 555 0100 / code 000000, self-healing provision script).
+- **Reviewer walk caught + fixed cross-shop leaks**: app rosters now scope
+  to profiles.shop_id via auth context (artists/room_content are public-read
+  so RLS can't wall them — APP-LEVEL scoping is mandatory); /api/reports'
+  Square rent block and /api/reconcile's Stripe view pinned to
+  LUMENATI_SHOP_ID. App is iPhone-only (kiosk iPad = web).
+- **Tap to Pay recording saga**: EAS CANNOT build the restricted entitlement
+  (ad hoc signing rejects it — three failed builds prove it). The working
+  path: local Xcode build, dev-signed, installed on Scott's phone over wifi
+  (entitlement verified inside). BLOCKED on Stripe activation: test mode
+  DECLINES real cards (a recorded take died on this), so the video needs
+  live keys + one real $1 + refund. Scott is activating Stripe.
+- **Scott's asks shipped**: coach tips swipe-dismiss (CoachDeck, 14-day
+  sit-out, next tip backfills), home reorg (attention up top, launcher
+  regrouped), close-the-books v1 (My Page toggle -> public CTA becomes
+  Waitlist -> asks land on waitlist -> reopen nudges with the count; the
+  reopen day-picker scheduling idea is DEFERRED), Robinhood chart scrub
+  (Animated glide + per-day ticks + end stops, WeekBars slide too).
+- **Templates arc STARTED**: socials end to end (room_content.socials jsonb,
+  app Socials card, Y2K icons + template links); MINIMAL PORTFOLIO v1 live
+  at /s/<shop>/<artist> (niche statement, Ionicons social marks via shared
+  SocialIcon component, flash-for-sale grid, promo banner, books-closed
+  waitlist swap, phone-only sticky Book bar, artist's OWN accent color
+  wins); root /<slug> redirects non-Lumenati artists to their shop's
+  template (theme follows context); shop logo upload (Staff screen, one
+  tap) renders on resident artists' pages.
+- **Business homework docs**: docs/handoff-coo-bookkeeper.md (artist deal
+  terms are PLACEHOLDERS — real numbers pending), waiver review CLOSED
+  (Scott's call, LEGAL_COPY_REVIEWED=true in prod + local).
 
-DONE so far: socials live end to end (room_content.socials jsonb applied,
-app My Page Socials card, Y2K icons + minimal-template links, tests);
-MINIMAL PORTFOLIO v1 shipped at /s/<shop>/<artist> (research-driven:
-niche statement, socials by the name, flash-for-sale grid, books-closed
-waitlist swap, phone-only sticky Book bar via custom .book-bar class —
-the stale-Tailwind gotcha is REAL, use custom classes in s.css for new
-utilities); root /<slug> now redirects non-Lumenati artists to their
-shop's template (theme follows context). Verified in Chrome on the demo
-shop. ARCHITECTURE DECISIONS (Scott, 2026-07-12): the artist's URL
-belongs to the ARTIST (permanent, survives shop moves — the Passport
-made visible; a lumenati.app/@handle vanity route is future work); theme
-follows CONTEXT (resident artists render in shop theme everywhere; own
-style comes with solo/pro tier; no per-artist override at launch).
-NEXT: dark-ink + flash-sheet templates, shop theme picker (shops.template
-values beyond y2k/standard), close-the-books day-picker scheduling idea
-(deferred), anon grant for books_closed (queued, blocked by classifier).
-THE HARD LINE (Scott, 2026-07-12): Lumenati is NOT in the shop-website
-business. Artist pages are the product; shops keep their own sites
-(Squarespace etc.) and just link to our roster/artist pages (a
-shops.website_url backlink field when a real shop needs it). Never build
-hours/policies/about pages — that's Squarespace's job.
-
-- room_content is already theme-agnostic data; templates are renderers
-  over the same row. Start with 2-3: minimal portfolio, dark ink,
-  classic flash-sheet. The Y2K bedroom + arcade stay Lumenati-only
-  showroom; every template page carries the "powered by Lumenati"
-  footer (that footer is the ad).
-- **THE KEY DESIGN DECISION (Scott, 2026-07-11): the theme belongs to
-  the SHOP, not the artist page.** A shop picks its style; every
-  artist page at that shop renders in it. When an artist ports to a new
-  shop (Artist Passport), their page data travels untouched and simply
-  re-renders in the new shop's theme. Solo artists (no shop) pick their
-  own theme. Build it so the port case is literally zero migration.
-- Suggested shape: shops.theme_id (+ artist override only for solos),
-  one render entry point that picks the renderer, shared data loader.
-  Onboarding: the app's My Page editor already builds all the content —
-  make sure a brand-new artist's empty page looks intentional in every
-  template (empty states matter more than full ones).
-- Then continue product-shape build order (docs/product-shape.md):
-  graduated fee engine + transparency receipt -> SKU billing -> Passport.
-  Two open Scott's-call items still live in that doc.
+## Priority 1 — finish the templates arc
+1. **Dark ink** skin: heavier atmosphere (smoke not white, blackwork/metal
+   energy) — same data, same header unit (logo/name/niche/socials/Book).
+2. **Flash sheet** skin: the wall-of-flash IS the page — grid-first, prices,
+   tap to claim via the existing flash mechanics.
+3. **Shop theme picker**: shops.template gains the new values; a simple
+   picker (app, admin-only, like the logo card) + the /s renderer dispatches
+   per template. Y2K stays hardcoded Lumenati.
+4. Keep the header unit identical across skins; empty states intentional
+   everywhere; verify each skin in Chrome at phone width.
+Then continue product-shape build order (docs/product-shape.md): graduated
+fee engine + transparency receipt -> SKU billing -> Passport flows. The
+@handle vanity URL (artist-owned permanent link) is future work on that path.
 
 ## Waiting on Scott (remind, don't nag)
-- STRIPE ACTIVATION + the sk_live key, then the Tap to Pay one-take
-  recording (the dev build with the entitlement is ON HIS PHONE, built
-  locally via Xcode 2026-07-12 after every EAS path failed — ad hoc
-  signing can't carry the restricted entitlement; docs/app-store-checklist.md
-  has the take script). Test-mode card taps DECLINE real cards — the
-  recording needs live keys, one real $1, refund after.
+- STRIPE ACTIVATION -> paste sk_live -> flip server, record the $1 take
+  (docs/app-store-checklist.md has the one-take script), refund, flip back.
 - The real business numbers (docs/handoff-coo-bookkeeper.md): artist
-  splits/rents are PLACEHOLDERS, plus tax rate, bills, bank, payroll,
-  1099 yes/no. Enter via Edit pay when they arrive.
-- App Store portal items: App Privacy questionnaire (answers pre-written),
-  privacy URL, build 21 go. Reviewer demo account is LIVE and proven
-  (+1 500 555 0100 / 000000, self-healing via provision script).
+  splits/rents, tax rate, bills, bank, payroll, 1099 yes/no.
+- App Store portal: App Privacy questionnaire (answers pre-written in the
+  checklist), privacy URL, then BUILD 21 GO (it carries account deletion,
+  iPhone-only flag, roster scoping, coach deck, books toggle, chart scrub —
+  the store build must be 21+).
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens.
-- Thumb the arcade cabinet on real glass (still unverified on touch).
-- (Deep-pass DDL, demo-room sweep, waiver flag: all APPLIED 2026-07-12.)
+- Queued DDL for a manual-mode moment: `grant select (books_closed) on
+  artists to anon;` (in supabase/2026-07-12-books-closed.sql; nothing
+  breaks without it — server-side reads cover it).
+- game_id column drop (supabase/2026-07-11-drop-game-id.sql) ONLY after
+  build 21 ships.
+- Thumb on real glass: arcade cabinet, coach swipe, chart scrub (his phone
+  currently has the local Xcode TTP build — fresh code needs a rebuild or
+  build 21).
 
 ## How to work here (hard-won gotchas — trust these)
-- Scott's dev servers are already running (:3002 web, :8081 Metro). NEVER
-  kill Metro. Shell cwd resets between calls — cd the repo first.
-- Live DB DDL: `node scripts/apply-sql.mjs supabase/<file>.sql`
-  (SUPABASE_ACCESS_TOKEN in ~/.zshrc). Schema-altering statements get
-  classifier-blocked — queue them and ask Scott for shift+tab / manual mode.
-  Read-only introspection via the Management API query endpoint passes.
-- COLUMN-GRANT GOTCHA IS REAL: tables with per-column grants (shops!)
-  need explicit `grant select (col), update (col) ... to authenticated`
-  for any NEW column, or app writes silently 42501. supabase-js default
-  writes use return=minimal, which masks it — test with representation.
-- UI verification on Metro web: disposable test identity (memory:
-  reference_lumenati_test_identity), classifier permitting; otherwise
-  grep the served Metro bundle: curl the per-route bundle, e.g.
-  `curl -s "http://localhost:8081/app/(app)/home.bundle?platform=web&dev=true" | grep -c <string>`.
-- Metro web CANNOT click buttons that call the Next API — prove API
-  paths with curl + Bearer. Supabase-direct actions click fine.
-- readLegacyBlock rewrites CDN URLs to /legacy-assets and adds
-  loading=lazy — template assertions must expect the rewritten form.
-- Verify UI in Chrome MCP (never computer-use). No real sends
-  (RENT_AUTOSEND / FOLLOWUPS_AUTOSEND stay off).
-- Chrome MCP tab occlusion freezes requestAnimationFrame — game canvases
-  screenshot black/frozen; Winamp logs a benign play() AbortError. Not bugs.
-- Arcade changes: `node scripts/arcade-smoke.mjs` + vitest; verify in
-  Chrome with `?touch=1` at phone width (forces cabinet on desktop).
-- Artist slugs are full names (jd-pruitt, not jd) — public pages live at
-  /<artist-slug> behind the LumenatiOnline sign-on intro (or Skip).
+- Scott's dev servers run already (:3002 web, :8081 Metro). NEVER kill
+  Metro. Shell cwd resets between calls — cd the repo first.
+- Live DB DDL: `node scripts/apply-sql.mjs supabase/<file>.sql`. Additive
+  columns (even with their grants in the same file) have been passing;
+  standalone grants/deletes get classifier-blocked — queue for shift+tab.
+- STALE-TAILWIND GOTCHA: the long-running dev server silently drops
+  never-before-used Tailwind utilities. New styling in /s pages = custom
+  classes in app/s/s.css (see .book-bar), or Scott restarts the server.
+- Tables with per-column grants (shops, artists): every NEW column needs
+  explicit grants or reads/writes silently fail. room_content has
+  full-table grants — new columns inherit there.
+- App-native roster/public-table reads MUST scope .eq("shop_id", shopId)
+  from useAuth — RLS does not wall public-read tables between shops.
+- Reviewer session for Metro-web/API testing: sign in via test OTP
+  (+15005550100/000000, script pattern in git history), inject into
+  localStorage sb-humjddiwzzanvvqztypy-auth-token; tokens die in 1h.
+- Metro web CANNOT click Next-API buttons (CORS) — curl with a Bearer.
+  Supabase-direct actions click fine. Grep served bundles to verify app
+  code: `curl -s "http://localhost:8081/app/(app)/<route>.bundle?platform=web&dev=true" | grep -c <string>`.
+- Verify UI in Chrome MCP (never computer-use). Occluded tabs freeze rAF
+  (black canvases) and Winamp logs a benign play() AbortError — not bugs.
+- readLegacyBlock rewrites CDN URLs + adds loading=lazy — template
+  assertions expect the rewritten form. Arcade changes: arcade-smoke.mjs +
+  vitest + ?touch=1 at phone width.
+- Artist slugs are full names (jd-pruitt). Demo tenant = /s/apple-review
+  (Sam Rivera has socials, a promo, orange accent, stand-in logo — the
+  template showcase page).
 
 ## Still Scott's (remind if asked, don't build)
-- Twilio upgrade, then RENT_AUTOSEND=true (and FOLLOWUPS_AUTOSEND).
-- Artist logins on the Team page (gates rent nudges + pool pushes).
-- Sales-tax rate, recurring bills, live Stripe keys, GOOGLE_* keys, email
-  domain (docs/owner-setup-checklist.md).
-- Meta developer app for the Social redesign; Gusto account decision.
+- Twilio auth token + trial upgrade, then FOLLOWUPS/RENT autosend flips.
+- Artist logins on the Team page; message-voice pass on the four templates.
+- Domain move off Squarespace -> Resend verify.
+- GOOGLE_* keys for review tracking; Meta developer app (socials OAuth +
+  Social redesign); Gusto decision.
 - Sunset Square cutover button: build only when Scott says go.
-- The two Scott's-call items in docs/product-shape.md.
+- The two Scott's-call items in docs/product-shape.md (proration timing,
+  move notice vs veto).
