@@ -49,6 +49,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     posters: null,
     videoUrl: null,
     videoTitle: null,
+    socials: null,
   },
   elaine: {
     artistId: "elaine",
@@ -64,6 +65,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     posters: null,
     videoUrl: null,
     videoTitle: null,
+    socials: null,
   },
   shorty: {
     artistId: "shorty",
@@ -79,6 +81,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     posters: null,
     videoUrl: null,
     videoTitle: null,
+    socials: null,
   },
   kalypso: {
     artistId: "kalypso",
@@ -94,6 +97,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     posters: null,
     videoUrl: null,
     videoTitle: null,
+    socials: null,
   },
   sam: {
     artistId: "sam",
@@ -112,6 +116,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     posters: null,
     videoUrl: null,
     videoTitle: null,
+    socials: null,
   },
   moonie: {
     artistId: "moonie",
@@ -127,6 +132,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
     posters: null,
     videoUrl: null,
     videoTitle: null,
+    socials: null,
   },
 };
 

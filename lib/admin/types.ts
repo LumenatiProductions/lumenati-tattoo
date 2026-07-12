@@ -120,6 +120,8 @@ export interface RoomContent {
   /** Arcade game id (see GAME_CATALOG in render-room.ts); null = JD keeps skate, others have none. */
   /** The artist's uploaded room video; null = JD keeps his Vimeo clip, others have none. */
   videoUrl: string | null;
+  /** { instagram, tiktok, x, youtube, facebook, website } — handles or URLs. */
+  socials: Record<string, string> | null;
   /** Title for the room video; becomes the media player window's filename. */
   videoTitle: string | null;
 }

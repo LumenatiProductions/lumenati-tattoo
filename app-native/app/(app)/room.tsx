@@ -60,6 +60,7 @@ type Room = {
   posters: Poster[] | null;
   video_url: string | null;
   video_title: string | null;
+  socials: Record<string, string> | null;
 };
 
 type RosterArtist = { id: string; name: string; slug: string };
@@ -159,6 +160,7 @@ export default function MyRoom() {
           posters: (r.posters as Poster[] | null) ?? null,
           video_url: (r.video_url as string | null) ?? null,
           video_title: (r.video_title as string | null) ?? null,
+          socials: (r.socials as Record<string, string> | null) ?? null,
         });
       }
     })();
@@ -186,6 +188,7 @@ export default function MyRoom() {
         portfolio: room.portfolio,
         stickers: room.stickers,
         posters: room.posters,
+        socials: room.socials,
         ...(arcadeReady ? { video_url: room.video_url } : {}),
         ...(titleReady ? { video_title: room.video_title?.trim() || null } : {}),
       })
@@ -409,6 +412,34 @@ export default function MyRoom() {
               <LabeledInput label="Tagline" value={room.tagline} onChange={(v) => set("tagline", v)} placeholder="skater // gamer // bold color tattoos" />
               <LabeledInput label="Instagram handle" value={room.ig_handle} onChange={(v) => set("ig_handle", v)} autoCapitalize="none" placeholder="your.handle" />
               <LabeledInput label="Bio" value={room.bio} onChange={(v) => set("bio", v)} placeholder="Tell them who you are…" />
+            </Card>
+
+            <SectionTitle>Socials</SectionTitle>
+            <Card>
+              <Text style={[styles.note, { marginBottom: 10 }]}>
+                Handles or links — each one you fill in shows up on your public page.
+              </Text>
+              {([
+                ["tiktok", "TikTok", "@your.handle"],
+                ["x", "X", "@your.handle"],
+                ["youtube", "YouTube", "@your.channel"],
+                ["facebook", "Facebook", "your page name or link"],
+                ["website", "Website", "yoursite.com"],
+              ] as const).map(([key, label, ph]) => (
+                <LabeledInput
+                  key={key}
+                  label={label}
+                  value={room.socials?.[key] ?? ""}
+                  onChange={(v) => {
+                    const next = { ...(room.socials ?? {}) };
+                    if (v.trim()) next[key] = v;
+                    else delete next[key];
+                    set("socials", Object.keys(next).length ? next : null);
+                  }}
+                  autoCapitalize="none"
+                  placeholder={ph}
+                />
+              ))}
             </Card>
 
             <SectionTitle>Profile photo</SectionTitle>

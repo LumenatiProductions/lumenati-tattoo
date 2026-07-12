@@ -82,8 +82,66 @@ export function renderRoomHtml(
       .replace(`<a class="bedroom-mobile-btn" href="${waitHref}">Book</a>`, `<a class="bedroom-mobile-btn" href="${waitHref}">Waitlist</a>`)
       .replace(`<a href="${waitHref}" class="br-aim-btn">Book</a>`, `<a href="${waitHref}" class="br-aim-btn">Waitlist</a>`);
   }
-  const handle = content.igHandle;
+  // Instagram: the connected socials bag wins; the legacy ig_handle field is
+  // the fallback so old rooms render unchanged.
+  const handle = (content.socials?.instagram ?? content.igHandle ?? "").replace(/^@/, "");
   const folder = name.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+  // ── Socials beyond Instagram: desktop icons, mobile buttons, buddy-info
+  // lines. Handles or full URLs both work; empty entries render nothing. ──
+  const SOCIAL_DEFS: { key: string; label: string; base: (v: string) => string; svg: string }[] = [
+    {
+      key: "tiktok",
+      label: "TikTok",
+      base: (v) => `https://www.tiktok.com/@${v.replace(/^@/, "")}`,
+      svg: '<svg viewBox="0 0 32 32"><path d="M13 6 L19 6 L19 18 A5 5 0 1 1 14 13 L14 17 A2 2 0 1 0 16 19 L16 6 Z" fill="#fff"/><path d="M19 6 Q20 11 25 11 L25 14 Q20 14 19 12 Z" fill="#fff"/></svg>',
+    },
+    {
+      key: "x",
+      label: "X",
+      base: (v) => `https://x.com/${v.replace(/^@/, "")}`,
+      svg: '<svg viewBox="0 0 32 32"><path d="M7 7 L14 16 L7 25 L10 25 L16 18 L21 25 L25 25 L18 16 L25 7 L22 7 L16 14 L11 7 Z" fill="#fff"/></svg>',
+    },
+    {
+      key: "youtube",
+      label: "YouTube",
+      base: (v) => (v.startsWith("http") ? v : `https://www.youtube.com/@${v.replace(/^@/, "")}`),
+      svg: '<svg viewBox="0 0 32 32"><rect x="4" y="9" width="24" height="14" rx="4" fill="#fff"/><path d="M14 13 L20 16 L14 19 Z" fill="#c8006e"/></svg>',
+    },
+    {
+      key: "facebook",
+      label: "Facebook",
+      base: (v) => (v.startsWith("http") ? v : `https://www.facebook.com/${v}`),
+      svg: '<svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="3" fill="#fff"/><path d="M18 12 L20 12 L20 9 L17 9 Q14 9 14 13 L14 15 L12 15 L12 18 L14 18 L14 24 L17 24 L17 18 L20 18 L20 15 L17 15 L17 13 Q17 12 18 12 Z" fill="#c8006e"/></svg>',
+    },
+    {
+      key: "website",
+      label: "Website",
+      base: (v) => (v.startsWith("http") ? v : `https://${v}`),
+      svg: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="#fff" stroke-width="2"/><ellipse cx="16" cy="16" rx="5" ry="11" fill="none" stroke="#fff" stroke-width="1.5"/><line x1="5" y1="16" x2="27" y2="16" stroke="#fff" stroke-width="1.5"/></svg>',
+    },
+  ];
+  const extraSocials = SOCIAL_DEFS.flatMap((d) => {
+    const raw = (content.socials?.[d.key] ?? "").trim();
+    return raw ? [{ ...d, href: d.base(raw) }] : [];
+  });
+  if (extraSocials.length) {
+    const icons = extraSocials
+      .map(
+        (x) =>
+          `    <a class="br-icon" href="${escAttr(x.href)}" target="_blank">\n      <div class="br-icon-img">${x.svg}</div>\n      <span class="br-icon-label">${x.label}</span>\n    </a>\n`,
+      )
+      .join("");
+    html = html.replace('    <div class="br-icon" style="cursor:pointer" id="jd-games-icon">', `${icons}    <div class="br-icon" style="cursor:pointer" id="jd-games-icon">`);
+    const btns = extraSocials
+      .map((x) => `    <a class="bedroom-mobile-btn" href="${escAttr(x.href)}" target="_blank">${x.label}</a>\n`)
+      .join("");
+    html = html.replace('<a class="bedroom-mobile-btn" href="#" id="jd-mob-game">Games</a>', `<a class="bedroom-mobile-btn" href="#" id="jd-mob-game">Games</a>\n${btns}`);
+    const aimLines = extraSocials
+      .map((x) => `${x.label}: <a href="${escAttr(x.href)}" target="_blank">${esc(x.href.replace(/^https?:\/\/(www\.)?/, ""))}</a><br>`)
+      .join("\n        ");
+    html = html.replace(`@${handle}</a><br>`, `@${handle}</a><br>\n        ${aimLines}`);
+  }
 
   // ── Accent: gradient + UI accents derive from the artist's color ──
   html = html.replace(

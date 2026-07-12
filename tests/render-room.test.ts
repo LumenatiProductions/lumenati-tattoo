@@ -18,6 +18,7 @@ const room = (over: Partial<RoomContent>): RoomContent => ({
   portfolio: [],
   stickers: null,
   posters: null,
+  socials: null,
   videoUrl: null,
   videoTitle: null,
   ...over,
@@ -48,6 +49,32 @@ describe("the cabinet + video", () => {
     expect(closed).not.toContain('href="/book"');
     expect(closed).toContain('href="/request?artist=test"');
     expect((closed.match(/>Waitlist</g) ?? []).length).toBe(3);
+  });
+
+  it("socials render as desktop icons, mobile buttons, and buddy-info links", () => {
+    const html = renderRoomHtml(
+      room({ socials: { tiktok: "@inky", x: "inky", website: "inky.ink" } }),
+      "Test Artist",
+      false,
+    );
+    expect(html).toContain('href="https://www.tiktok.com/@inky"');
+    expect(html).toContain('href="https://x.com/inky"');
+    expect(html).toContain('href="https://inky.ink"');
+    expect(html).toContain('<span class="br-icon-label">TikTok</span>');
+    expect(html).toContain('<span class="br-icon-label">Website</span>');
+    expect((html.match(/bedroom-mobile-btn/g) ?? []).length).toBeGreaterThanOrEqual(5);
+    const none = renderRoomHtml(room({}), "Test Artist", false);
+    expect(none).not.toContain("TikTok");
+  });
+
+  it("a connected instagram wins over the legacy handle field", () => {
+    const html = renderRoomHtml(
+      room({ igHandle: "old.handle", socials: { instagram: "@new.handle" } }),
+      "Test Artist",
+      false,
+    );
+    expect(html).toContain("https://www.instagram.com/new.handle/");
+    expect(html).not.toContain("old.handle");
   });
 
   it("JD keeps his Vimeo clip; his cabinet reads as his arcade", () => {
