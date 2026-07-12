@@ -27,9 +27,9 @@ Until this is `true`, the system quietly *queues* follow-ups but doesn't send th
 - Set the live `STRIPE_WEBHOOK_SECRET` for the production webhook.
 - Payments run in test mode until this is done.
 
-## 5. Legal sign-off on consent forms
-- Have the consent/waiver wording reviewed (it holds medical + ID info).
-- Then set `LEGAL_COPY_REVIEWED` = `true` to drop the "pending review" banner.
+## 5. Legal sign-off on consent forms — DONE (Scott's call, 2026-07-12)
+- No outside review wanted. `LEGAL_COPY_REVIEWED` is set to `true` in
+  production and locally; the "pending review" banner is gone.
 
 ## 6. Message voice (whenever)
 - The four follow-up templates (aftercare, review, rebook, birthday) are placeholders. Edit them in the Follow-ups page in your shop's voice.

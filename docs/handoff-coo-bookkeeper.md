@@ -31,10 +31,9 @@ order.
    subscriptions, supplies contracts: name, amount, and due day for each.
    They get loaded once and the books post them automatically every cycle.
 
-4. **1099 basis sign-off** — the system produces a 1099 prep report for
-   booth renters (their gross earned through the shop's card reader).
-   The accountant should confirm exactly which figure belongs on the
-   1099-NEC before filing season.
+4. **1099 question (one yes/no)** — renters keep their own earnings and
+   pay rent, so the shop likely owes them no 1099 at all. Confirm that
+   with the accountant once; the app has the numbers either way.
 
 5. **Payroll decision (Gusto)** — split and salary artists are paid
    through payroll, and the app already produces the wage numbers to type
@@ -58,24 +57,20 @@ order.
    so shop email can send from a real address instead of a sandbox one
    that lands in spam.
 
-4. **Legal review of the consent form** — the waiver wording holds medical
-   and ID information; a lawyer should bless it. The app shows a "pending
-   review" note until that's done.
-
-5. **Message voice pass** — the four follow-up message templates
+4. **Message voice pass** — the four follow-up message templates
    (aftercare, review, rebook, birthday) are placeholder wording. Rewrite
    them in the shop's voice on the Follow-ups page. No technical work.
 
-6. **Artist logins** — each artist needs to be added on the Team page
+5. **Artist logins** — each artist needs to be added on the Team page
    (name, phone, email) so they can use the app. This is also what lets
    rent nudges and open-slot offers reach them.
 
-7. **Google review tracking keys** — the Reports page tracks review
+6. **Google review tracking keys** — the Reports page tracks review
    velocity by hand right now; with a Google Places API key + the shop's
    Place ID + the review link, it updates itself every morning and the
    review-ask emails point somewhere.
 
-8. **Meta developer account** — needed later for the Social redesign
+7. **Meta developer account** — needed later for the Social redesign
    (pulling artist Instagram posts in). Parked, not urgent.
 
 ## Already handled — no action
