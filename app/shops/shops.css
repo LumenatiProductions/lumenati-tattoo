@@ -11,6 +11,15 @@
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
+/* Belt-and-suspenders: hardcode heading color so a title can never fall back
+   to the default black if the ink CSS variable ever fails to resolve (e.g. a
+   stale cache). Brand-accent spans keep their own color (direct class wins). */
+.mkt-wash h1,
+.mkt-wash h2,
+.mkt-wash h3 {
+  color: #f2f3fa;
+}
+
 /* The app's Liquid Ink atmosphere, dialed up so the site reads like the
    Command Center: violet bleeding from the top-left, brand pink hazing the
    top-right, electric blue pooling bottom-right, a blue-violet swell bottom-
