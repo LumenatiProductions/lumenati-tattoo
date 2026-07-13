@@ -158,6 +158,17 @@
   padding: 7px;
   border-radius: 1.6rem;
   z-index: 2;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 50px rgb(0 0 0 / 0.55);
+}
+/* Liquid-ink halo behind the phone so it pops off the laptop. Sits inside
+   the phone's stacking context (above the laptop, behind the phone). */
+.hero-stack .mkt-phone::before {
+  content: "";
+  position: absolute;
+  inset: -46% -38%;
+  z-index: -1;
+  background: radial-gradient(46% 46% at 50% 48%, rgba(255, 20, 147, 0.6), rgba(120, 60, 190, 0.34) 46%, transparent 72%);
+  filter: blur(42px);
 }
 .hero-stack .mkt-phone img {
   width: 172px;
@@ -192,6 +203,24 @@
   .mkt-slide {
     flex-basis: 72%;
   }
+}
+.mkt-slider-arrow {
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-top-color: rgb(255 255 255 / 0.24);
+  background: rgb(20 20 27 / 0.85);
+  backdrop-filter: blur(8px);
+  color: #f2f3fa;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.5);
+  transition: background 0.15s;
+  z-index: 3;
+}
+.mkt-slider-arrow:hover {
+  background: rgb(30 30 40 / 0.95);
 }
 
 /* One gentle rise on load. Nothing else moves. */

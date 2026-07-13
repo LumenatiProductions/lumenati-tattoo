@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import { Icon } from "@/components/marketing/Icon";
+import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 
 // The marketing page. Lumenati is the business brain for a tattoo shop, sold
 // to two buyers: the ARTIST (run your chair like a business — money, goals,
@@ -36,6 +37,26 @@ const DESKTOP_SCREENS = [
   { img: "/marketing/bookings.webp", title: "Bookings", body: "The day's calendar, deposits held, and no-show outcomes in one place.", alt: "Bookings: the day's calendar and deposits" },
   { img: "/marketing/followups.webp", title: "Follow-ups", body: "Aftercare, reviews, and rebooking nudges queued and texting on schedule.", alt: "Follow-ups queue" },
 ] as const;
+
+// Plan comparison. Values are true (included), false (not), or a string.
+const COMPARE: { label: string; artist: string | boolean; shop: string | boolean }[] = [
+  { label: "Best for", artist: "Solo & booth-rent artists", shop: "Shops with a crew" },
+  { label: "Card payments", artist: "4.9% flat", shop: "4.9% flat" },
+  { label: "Booking, deposits & waivers", artist: true, shop: true },
+  { label: "Texting, winbacks & reviews", artist: true, shop: true },
+  { label: "The coach", artist: "Your chair", shop: "Shop + every artist" },
+  { label: "Goals, taxes & 1099 pack", artist: true, shop: true },
+  { label: "Splits, booth rent & payouts", artist: false, shop: true },
+  { label: "P&L + Reports", artist: false, shop: true },
+  { label: "Per-artist performance", artist: false, shop: true },
+  { label: "Multi-artist roster", artist: false, shop: true },
+];
+
+function PlanCell({ value }: { value: string | boolean }) {
+  if (typeof value === "string") return <span className="text-zinc-300">{value}</span>;
+  if (value) return <Icon name="check" className="mx-auto h-5 w-5 text-brand" />;
+  return <span className="text-zinc-600">—</span>;
+}
 
 export default function ShopsMarketingPage() {
   return (
@@ -194,26 +215,9 @@ export default function ShopsMarketingPage() {
             ))}
           </ul>
 
-          {/* The desktop back office — a swipeable slider of real screens. */}
-          <div className="mkt-slider mt-12">
-            {DESKTOP_SCREENS.map((s) => (
-              <figure key={s.img} className="mkt-slide">
-                <div className="mkt-browser">
-                  <div className="mkt-browser-bar">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.img} alt={s.alt} />
-                </div>
-                <figcaption className="mt-4 text-sm text-zinc-400">
-                  <span className="font-semibold text-white">{s.title}.</span> {s.body}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-          <p className="mt-1 text-center text-xs text-zinc-500">Swipe to see more of the back office.</p>
+          {/* The desktop back office — a slider of real screens (arrows on lg). */}
+          <DesktopSlider screens={DESKTOP_SCREENS} />
+          <p className="mt-1 text-center text-xs text-zinc-500">Swipe, or use the arrows, to see more of the back office.</p>
 
           {/* Shop pricing. */}
           <div className="mkt-glass mt-14 flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
@@ -237,6 +241,55 @@ export default function ShopsMarketingPage() {
               Set up your shop
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Compare plans. */}
+      <section id="pricing" className="mx-auto max-w-4xl border-t border-white/10 px-5 py-20">
+        <div className="text-center">
+          <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
+            Compare plans
+          </div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Two plans. One number each.</h2>
+        </div>
+        <div className="mkt-glass mt-10 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-white/12">
+                <th className="p-5" />
+                <th className="p-5 text-center align-bottom">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">Artist</div>
+                  <div className="mt-1 text-2xl font-black">
+                    $99<span className="text-sm font-semibold text-zinc-400">/mo</span>
+                  </div>
+                </th>
+                <th className="rounded-t-xl bg-brand/[0.08] p-5 text-center align-bottom">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-brand">Shop</div>
+                  <div className="mt-1 text-2xl font-black">
+                    $199<span className="text-sm font-semibold text-zinc-400">/mo + $79/artist</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE.map((row) => (
+                <tr key={row.label} className="border-b border-white/8 last:border-0">
+                  <td className="p-5 font-semibold text-zinc-200">{row.label}</td>
+                  <td className="p-5 text-center">
+                    <PlanCell value={row.artist} />
+                  </td>
+                  <td className="bg-brand/[0.05] p-5 text-center">
+                    <PlanCell value={row.shop} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-8 text-center">
+          <Link href="/start" className="inline-block rounded-xl bg-brand px-8 py-3.5 text-base font-bold text-white hover:brightness-110">
+            Set up your shop
+          </Link>
         </div>
       </section>
 

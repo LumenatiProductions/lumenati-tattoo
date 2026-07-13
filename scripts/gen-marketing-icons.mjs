@@ -28,6 +28,9 @@ const MAP = {
   flag: "flag-outline",
   repeat: "repeat-outline",
   people: "people-outline",
+  chevronLeft: "chevron-back-outline",
+  chevronRight: "chevron-forward-outline",
+  check: "checkmark-outline",
 };
 
 const entries = Object.entries(MAP)
