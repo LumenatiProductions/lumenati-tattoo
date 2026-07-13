@@ -1,4 +1,4 @@
-# Lumenati — next-session starter: product-shape build order (fee engine first)
+# Lumenati — next-session starter: SELF-SERVE ONBOARDING + MARKETING PAGE
 
 Read this first in a fresh context. Scott is NOT a coder: explain in plain
 English, no jargon/file paths in chat. Never use emojis or em dashes. Dive
@@ -49,13 +49,46 @@ everything behind it."
   saga, coach deck, close-the-books, chart scrub) is unchanged — see git
   history if needed.
 
-## Priority 1 — product-shape build order (docs/product-shape.md)
-1. Graduated fee engine + transparency receipt.
-2. SKU billing.
-3. Passport flows.
-The @handle vanity URL (artist-owned permanent link) is future work on that
-path. Templates only need Scott's eyes + the queued SQL; don't reopen them
-unless he flags something.
+## Priority 1 — make it a real product people can join themselves (Scott, 2026-07-12)
+Scott's words: "Shouldn't we make it so people can just do it themselves?
+We will need a marketing page but I feel like that's how a real product
+works." Aim everything at that.
+
+What already exists (don't rebuild it):
+- A full tenant wizard at /start — shop name/tagline/accent, crew list,
+  owner email; provisions shop + artists + room_content + owner invite in
+  one shot via /api/shops/create. Invite-gated by ?code= (SHOP_WIZARD_CODE)
+  on purpose while Scott co-builds. Slug collisions + reserved routes
+  handled server-side.
+- The hosted product itself: three page skins + picker (app AND desktop
+  Team page), logo upload, booking/waitlist, the whole Command Center.
+
+The build order:
+1. **Marketing page** — the front door that sells artist pages + Command
+   Center to OTHER shops. Pitch line is locked: "keep your website, we
+   take over everything behind it." Show the three skins (live demo links
+   to /s/apple-review/sam-rivera with ?skin=), the phone app, the no-front-
+   desk story. DECISION NEEDED FROM SCOTT before building far: where does
+   it live? The root is Lumenati-the-shop's Y2K site (its own skin, hands
+   off), so the product pitch needs its own home — a route like /pro as a
+   stopgap, or the real answer, a product name + domain. Ask him ONCE,
+   early, with a recommendation; default to a clean route on this app if
+   he hasn't decided.
+2. **Wizard grows the missing beats**: logo upload + page-style pick right
+   in /start (both are one-tap now, settings exist), and phone number for
+   the owner so day-one sign-in is a text code (invite email already
+   works). Keep it three beats, don't bloat it.
+3. **Open the gate deliberately**: marketing page CTA -> /start. Keep the
+   invite code until Stripe activation lands (no pricing wired = free
+   co-building cohort), then the code drops and a plan/payment beat slots
+   into the wizard. Do NOT build payment before Stripe activation (still
+   waiting on Scott, see below).
+4. **Onboarding aftercare**: the first-run experience once the owner lands
+   in the Command Center — the existing owner-setup-checklist.md content
+   should become the in-product "get set up" card, not a doc.
+Product-shape build order (fee engine -> SKU billing -> Passport,
+docs/product-shape.md) moves to after this arc. Templates are DONE — don't
+reopen unless Scott flags something.
 
 ## Waiting on Scott (remind, don't nag)
 - **QUEUED SQL (new)**: `node scripts/apply-sql.mjs supabase/2026-07-12-template-picker.sql`
