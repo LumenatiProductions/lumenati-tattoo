@@ -17,15 +17,35 @@ only; never flag its data quirks.
 Lumenati is NOT in the shop-website business. Artist pages are the hosted
 product; shops keep their own sites and link to us. The shop's presence on
 our pages = their logo (shipped) + a backlink field when needed. Never build
-shop hours/policies/about pages. Pitch: "keep your website, we take over
-everything behind it."
+shop hours/policies/about pages.
+
+## WHAT LUMENATI ACTUALLY SELLS (Scott, 2026-07-13 — I had this backwards)
+The product is the BUSINESS BRAIN for a shop, not a booking widget. "Keep
+your website" is a footnote, NOT the pitch — Scott never locked any pitch
+(an earlier note wrongly said he did; do not treat any headline as locked).
+Marketing must lead with benefits, split into TWO buyers:
+- FOR THE ARTIST (focus = the APP/phones): coaches them, keeps their books,
+  sends+texts follow-ups, sets goals + auto tax set-aside, real hourly rate,
+  rewards/streaks — "run your chair like a business" (Robinhood energy).
+- FOR THE SHOP (focus = the DESKTOP Command Center): revenue coaching + a
+  read on what you can control, keeps the books (P&L/Reports/pay/rent), one
+  goal the room races, retention that runs itself, no front desk.
+Current /shops hero: "Everything but the tattoo." Two benefit sections with
+Ionicons-style outline icons; artist=app phones, shop=desktop screens.
 
 ## Where things stand (2026-07-13, SELF-SERVE ARC BUILT this session)
-- **Marketing page SHIPPED (code)**: `/shops` — its own scoped-CSS page in
-  the Command Center family (liquid-ink wash, brand pink), NOT Y2K. Locked
-  pitch line is the hero. The three skins show as LIVE phone-width iframes
-  of Sam Rivera (?skin= previews), six feature cards, CTA -> /start.
-  "shops" added to RESERVED_SLUGS. Verified in Chrome desktop + 390px.
+- **Marketing page SHIPPED + REWORKED (code)**: `/shops` — its own
+  scoped-CSS page in the Command Center family (liquid-ink wash, glass,
+  brand pink), NOT Y2K. Reworked 2026-07-13 into the two-buyer benefits
+  page above (hero "Everything but the tattoo"; artist section = app
+  phones; shop section = desktop Command Center + Reports). Real product
+  screens captured headlessly via scripts/marketing-shots.mjs (web, via
+  Playwright borrowed from ~/cinebody-platform) + scripts/marketing-shots-
+  app.mjs (the RN app via Scott's Metro web :8081). Demo tenant seeded with
+  14 days of sales + shop/artist goals so every money screen reads real
+  (scripts/seed-review-sales.mjs; goals set directly in DB). "shops" is in
+  RESERVED_SLUGS. STILL OPEN: pricing section (Scott asked; needs real
+  numbers — business-model memory has a $199+$79/seat THESIS, unconfirmed).
 - **Wizard grew the three beats**: /start now has page-style chips
   (standard/dark/flash), optional logo upload (data URL -> service-role
   upload to room-photos/shop-logo/), and optional owner cell. A cell makes

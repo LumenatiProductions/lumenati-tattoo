@@ -69,30 +69,17 @@ await settle(page);
 await shot(page, "command-center.png");
 console.log("command-center.png");
 
-await page.goto(`${BASE}/admin/bookings`);
+// Desktop proof for the SHOP section: the books (P&L) and the reports.
+await page.goto(`${BASE}/admin/pnl`);
+await page.getByText("Live", { exact: true }).waitFor({ timeout: 15000 }).catch(() => {});
 await settle(page);
-await shot(page, "bookings.png");
-console.log("bookings.png");
+await shot(page, "pnl.png");
+console.log("pnl.png");
 
-await page.goto(`${BASE}/admin/room`);
+await page.goto(`${BASE}/admin/reports`);
 await settle(page);
-// Owners land on the first artist; make sure it's Sam (the dressed room).
-const picker = page.locator("select").first();
-if (await picker.count()) {
-  const options = await picker.locator("option").allTextContents();
-  const sam = options.findIndex((t) => t.includes("Sam"));
-  if (sam >= 0) {
-    await picker.selectOption({ index: sam });
-    await page.waitForTimeout(800);
-  }
-}
-await shot(page, "page-editor.png");
-console.log("page-editor.png");
-
-await page.goto(`${BASE}/admin/followups`);
-await settle(page);
-await shot(page, "followups.png");
-console.log("followups.png");
+await shot(page, "reports.png");
+console.log("reports.png");
 
 await desktop.close();
 
