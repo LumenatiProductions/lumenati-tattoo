@@ -133,6 +133,27 @@ export default function ShopsMarketingPage() {
               <figcaption className="mt-3 text-center text-sm text-zinc-400">Goals, coaching, and taxes.</figcaption>
             </figure>
           </div>
+
+          {/* Artist pricing. */}
+          <div className="mkt-glass mt-16 flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[11px] font-bold uppercase text-zinc-400" style={{ letterSpacing: "0.2em" }}>
+                Solo or booth-rent artist
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-5xl font-black tracking-tight">$99</span>
+                <span className="text-lg font-semibold text-zinc-400">/mo</span>
+              </div>
+              <div className="mt-2 text-sm text-zinc-400">Card payments 4.9% flat. No shop needed.</div>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
+              Booking, deposits, waivers, texting, winbacks, reviews, the tax &amp; 1099 pack, and the
+              coach. Everything above, for one chair.
+            </p>
+            <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
+              Get started
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -195,6 +216,29 @@ export default function ShopsMarketingPage() {
               Every number that used to live in QuickBooks and a shoebox, per artist, exportable.
             </figcaption>
           </figure>
+
+          {/* Shop pricing. */}
+          <div className="mkt-glass mt-14 flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[11px] font-bold uppercase text-zinc-400" style={{ letterSpacing: "0.2em" }}>
+                For shops
+              </div>
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="text-5xl font-black tracking-tight">$199</span>
+                <span className="text-lg font-semibold text-zinc-400">/mo</span>
+                <span className="ml-1 text-3xl font-black text-brand">+ $79</span>
+                <span className="text-sm font-semibold text-zinc-400">per artist</span>
+              </div>
+              <div className="mt-2 text-sm text-zinc-400">Card payments 4.9% flat.</div>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
+              Everything in the artist plan, plus the shop finance layer: splits, booth rent,
+              payouts, the P&amp;L, and per-artist performance.
+            </p>
+            <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
+              Set up your shop
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -212,7 +256,7 @@ export default function ShopsMarketingPage() {
             Set up your shop
           </Link>
           <p className="mt-4 text-xs text-zinc-500">
-            Invite-only while we onboard the first shops. Ask us for a code.
+            Founding shops lock <span className="font-semibold text-zinc-300">$49 per artist for life</span>. Invite-only while we onboard the first cohort, ask us for a code.
           </p>
         </div>
       </section>
