@@ -39,7 +39,9 @@ async function settle(page) {
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" }).catch(() => {});
   await page.evaluate(() => {
     document.querySelectorAll("button").forEach((b) => {
-      if ((b.textContent || "").includes("Report a bug")) b.style.display = "none";
+      const t = b.textContent || "";
+      // Square is historical only — it has no place in marketing shots.
+      if (t.includes("Report a bug") || t.includes("Sync from Square")) b.style.display = "none";
     });
   });
 }
@@ -109,6 +111,75 @@ await settle(ppage);
 await shot(ppage, "pocket.png");
 console.log("pocket.png");
 await phone.close();
+
+// ── Zoomed feature highlights ─────────────────────────────────────────────
+// Element-level captures of the best moments, for the close-up cards on
+// /shops. Text-anchored locators; .last() picks the innermost match.
+const hi = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const hp = await hi.newPage();
+await hp.addInitScript(() => {
+  try {
+    localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
+  } catch {}
+});
+await signIn(hp);
+
+async function elShot(pg, locator, name) {
+  try {
+    const el = locator.last();
+    await el.waitFor({ state: "visible", timeout: 8000 });
+    await el.screenshot({ path: join(OUT, name) });
+    console.log(name);
+  } catch (e) {
+    console.log(`SKIP ${name}: ${e.message.split("\n")[0]}`);
+  }
+}
+
+await settle(hp);
+await elShot(hp, hp.locator("div.rounded-xl", { hasText: "Saturdays run at" }), "hi-coach.png");
+
+await hp.goto(`${BASE}/admin/bookings`);
+await settle(hp);
+await elShot(hp, hp.locator("div.rounded-xl", { hasText: "No-show" }).filter({ hasText: "Jordan" }), "hi-booking.png");
+
+await hp.goto(`${BASE}/admin/followups`);
+await settle(hp);
+await elShot(hp, hp.locator("div.rounded-xl", { hasText: "Aftercare" }).filter({ hasText: "Jordan" }), "hi-followups.png");
+
+await hp.goto(`${BASE}/admin/room`);
+await settle(hp);
+await elShot(hp, hp.locator("div.lg\\:sticky"), "hi-preview.png");
+
+// Signed-out surfaces: the login card and the flash claim tile.
+const anon = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const ap = await anon.newPage();
+await ap.goto(`${BASE}/admin/login`);
+await settle(ap);
+await elShot(ap, ap.locator("div", { hasText: "Team sign-in" }).locator("xpath=self::div[contains(@class,'rounded')]").first(), "hi-signin.png");
+
+const aphone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+const fp = await aphone.newPage();
+await fp.goto(`${BASE}/s/apple-review/sam-rivera?skin=flash`);
+await settle(fp);
+await elShot(fp, fp.locator(".flash-claim").first().locator("xpath=ancestor::a[1]"), "hi-flash.png");
+await elShot(fp, fp.locator(".flash-stamp").first().locator("xpath=ancestor::a[1]"), "hi-claimed.png");
+
+// Phone shots for the phones strip.
+const p2 = await aphone.newPage();
+await p2.addInitScript(() => {
+  try {
+    localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
+  } catch {}
+});
+await signIn(p2);
+await p2.goto(`${BASE}/admin/bookings`);
+await settle(p2);
+await shot(p2, "phone-bookings.png");
+console.log("phone-bookings.png");
+
+await hi.close();
+await anon.close();
+await aphone.close();
 
 await browser.close();
 console.log(`done -> ${OUT}`);
