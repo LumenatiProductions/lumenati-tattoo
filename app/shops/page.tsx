@@ -30,6 +30,13 @@ const SHOP_BENEFITS = [
   { icon: "repeat", title: "Retention runs itself", body: "Follow-ups, review asks, and rebooking nudges go out across the shop, on schedule, over text." },
 ] as const;
 
+// The artist app screens (side by side on desktop, a carousel on mobile).
+const ARTIST_PHONES = [
+  { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
+  { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
+  { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
+];
+
 // The desktop back-office screens in the shop slider.
 const DESKTOP_SCREENS = [
   { img: "/marketing/command-center.webp", title: "The overview", body: "The week's money, the coach reads, and what needs a decision, live.", alt: "The Command Center overview" },
@@ -150,14 +157,21 @@ export default function ShopsMarketingPage() {
             ))}
           </ul>
 
-          <div className="mt-14">
-            <PhoneCarousel
-              slides={[
-                { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
-                { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
-                { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
-              ]}
-            />
+          {/* Mobile: swipeable auto-carousel. */}
+          <div className="mt-14 sm:hidden">
+            <PhoneCarousel slides={ARTIST_PHONES} />
+          </div>
+          {/* Desktop: the three phones side by side. */}
+          <div className="mt-14 hidden flex-wrap items-start justify-center gap-8 sm:flex">
+            {ARTIST_PHONES.map((p) => (
+              <figure key={p.img}>
+                <div className="mkt-phone mkt-phone-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.img} alt={p.alt} />
+                </div>
+                <figcaption className="mt-3 text-center text-sm text-zinc-400">{p.cap}</figcaption>
+              </figure>
+            ))}
           </div>
 
           {/* Artist pricing. */}
