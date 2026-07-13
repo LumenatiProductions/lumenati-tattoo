@@ -62,6 +62,9 @@ await page.addInitScript(() => {
 });
 await signIn(page);
 
+// Wait for live sales to load (the sub flips from "preview data" to "Live")
+// so the money reads real, not the mock preview state.
+await page.getByText("Live", { exact: true }).waitFor({ timeout: 20000 }).catch(() => {});
 await settle(page);
 await shot(page, "command-center.png");
 console.log("command-center.png");
