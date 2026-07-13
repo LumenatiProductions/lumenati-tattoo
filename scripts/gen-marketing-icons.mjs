@@ -31,6 +31,8 @@ const MAP = {
   chevronLeft: "chevron-back-outline",
   chevronRight: "chevron-forward-outline",
   check: "checkmark-outline",
+  doc: "document-text-outline",
+  tablet: "tablet-portrait-outline",
 };
 
 const entries = Object.entries(MAP)

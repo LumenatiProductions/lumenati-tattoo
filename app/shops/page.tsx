@@ -24,9 +24,9 @@ const SHOP_BENEFITS = [
   { icon: "bars", title: "Every dollar, every chair, live", body: "Service vs tips vs card vs cash, per artist, in real time. No spreadsheet to reconcile." },
   { icon: "bulb", title: "Revenue coaching", body: "Plain-English reads on what you can control: who's carrying the shop, which days are dead, what to do about it." },
   { icon: "book", title: "Keeps the books", body: "Registers, artist pay, booth rent, and a real P&L. The QuickBooks-and-shoebox job, done." },
-  { icon: "flag", title: "One goal the room races", body: "Give the shop a number and every chair chases it on a live leaderboard." },
+  { icon: "doc", title: "Inspection-ready", body: "Waivers and consent signed at the chair, licenses and BBP certs tracked with expiry warnings. The records an inspector asks for, already in order." },
+  { icon: "tablet", title: "A kiosk, not a front desk", body: "Clients check themselves in on the kiosk and it pings the artist the moment they arrive. Deposits and no-show defense built in. Nobody works a counter." },
   { icon: "repeat", title: "Retention runs itself", body: "Follow-ups, review asks, and rebooking nudges go out across the shop, on schedule, over text." },
-  { icon: "people", title: "No front desk", body: "Deposits and no-show defense, waitlist auto-fill, and text-code sign-in. Onboard an artist in thirty seconds." },
 ] as const;
 
 // The desktop back-office screens in the shop slider.
@@ -41,7 +41,7 @@ const DESKTOP_SCREENS = [
 // Plan comparison. Values are true (included), false (not), or a string.
 const COMPARE: { label: string; artist: string | boolean; shop: string | boolean }[] = [
   { label: "Best for", artist: "Solo & booth-rent artists", shop: "Shops with a crew" },
-  { label: "Card payments", artist: "4.9% flat", shop: "4.9% flat" },
+  { label: "Card payments", artist: "4% flat", shop: "4% flat" },
   { label: "Booking, deposits & waivers", artist: true, shop: true },
   { label: "Texting, winbacks & reviews", artist: true, shop: true },
   { label: "The coach", artist: "Your chair", shop: "Shop + every artist" },
@@ -108,7 +108,7 @@ export default function ShopsMarketingPage() {
                 <span />
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/marketing/command-center.webp" alt="The Lumenati Command Center: the week's money, coach reads, and what needs attention" />
+              <img src="/marketing/command-center-full.webp" alt="The Lumenati Command Center: the week's money, coach reads, and what needs attention" />
             </div>
             <div className="mkt-laptop-base" />
           </div>
@@ -147,13 +147,13 @@ export default function ShopsMarketingPage() {
             ))}
           </ul>
 
-          <div className="mt-14 flex items-start justify-start gap-6 overflow-x-auto px-1 pb-4 sm:justify-center">
+          <div className="mkt-carousel mt-14 flex snap-x snap-mandatory items-start gap-6 overflow-x-auto px-[calc(50%-118px)] pb-4 sm:snap-none sm:justify-center sm:px-1">
             {[
               { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
               { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
               { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
             ].map((p) => (
-              <figure key={p.img} className="flex-none">
+              <figure key={p.img} className="flex-none snap-center">
                 <div className="mkt-phone mkt-phone-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.img} alt={p.alt} />
@@ -173,7 +173,7 @@ export default function ShopsMarketingPage() {
                 <span className="text-5xl font-black tracking-tight">$99</span>
                 <span className="text-lg font-semibold text-zinc-400">/mo</span>
               </div>
-              <div className="mt-2 text-sm text-zinc-400">Card payments 4.9% flat. No shop needed.</div>
+              <div className="mt-2 text-sm text-zinc-400">Card payments 4% flat. No shop needed.</div>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
               Booking, deposits, waivers, texting, winbacks, reviews, the tax &amp; 1099 pack, and the
@@ -230,7 +230,7 @@ export default function ShopsMarketingPage() {
                 <span className="ml-1 text-3xl font-black text-brand">+ $79</span>
                 <span className="text-sm font-semibold text-zinc-400">per artist</span>
               </div>
-              <div className="mt-2 text-sm text-zinc-400">Card payments 4.9% flat.</div>
+              <div className="mt-2 text-sm text-zinc-400">Card payments 4% flat.</div>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
               Everything in the artist plan, plus the shop finance layer: splits, booth rent,

@@ -23,12 +23,7 @@ export function DesktopSlider({ screens }: { screens: readonly Screen[] }) {
       <div ref={ref} className="mkt-slider mt-12">
         {screens.map((s) => (
           <figure key={s.img} className="mkt-slide">
-            <div className="mkt-browser">
-              <div className="mkt-browser-bar">
-                <span />
-                <span />
-                <span />
-              </div>
+            <div className="mkt-shot">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={s.img} alt={s.alt} />
             </div>

@@ -85,6 +85,20 @@
   object-position: top;
 }
 
+/* Clean framed screenshot for the punched-in slider crops (no browser bar). */
+.mkt-shot {
+  border-radius: 0.9rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-top-color: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.04);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+.mkt-shot img {
+  display: block;
+  width: 100%;
+}
+
 /* Smaller phone so three fit side by side (the artist section). */
 .mkt-phone-sm {
   padding: 7px;

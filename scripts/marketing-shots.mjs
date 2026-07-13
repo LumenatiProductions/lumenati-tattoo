@@ -62,24 +62,33 @@ await page.addInitScript(() => {
 });
 await signIn(page);
 
-// Wait for live sales to load (the sub flips from "preview data" to "Live")
-// so the money reads real, not the mock preview state.
-await page.getByText("Live", { exact: true }).waitFor({ timeout: 20000 }).catch(() => {});
-await settle(page);
-await shot(page, "command-center.png");
-console.log("command-center.png");
-
-// Desktop proof for the SHOP section slider: reports, bookings, pay, follow-ups.
-for (const [route, name] of [
-  ["/admin/reports", "reports"],
-  ["/admin/bookings", "bookings"],
-  ["/admin/payouts", "payouts"],
-  ["/admin/followups", "followups"],
-]) {
-  await page.goto(`${BASE}${route}`);
+// Punched-in content crops for the SHOP slider: drop the sidebar and frame
+// each page's key panels. Anchored on the page's h1 so the sidebar is out.
+const clipContent = async (name, height = 600) => {
   await settle(page);
-  await shot(page, `${name}.png`);
+  const box = await page.locator("h1").first().boundingBox();
+  const vw = page.viewportSize().width;
+  const x = Math.max(0, Math.round((box?.x ?? 320) - 28));
+  const y = Math.max(0, Math.round((box?.y ?? 40) - 22));
+  await page.screenshot({ path: join(OUT, `${name}.png`), clip: { x, y, width: vw - x - 24, height } });
   console.log(`${name}.png`);
+};
+
+// Wait for live sales + the coach to load so the overview reads full (not the
+// empty first-paint state) in both the hero laptop and the slider crop.
+await page.getByText("Live", { exact: true }).waitFor({ timeout: 20000 }).catch(() => {});
+await page.getByText("reads from your own numbers", { exact: false }).waitFor({ timeout: 15000 }).catch(() => {});
+await page.getByText("appointments today", { exact: false }).waitFor({ timeout: 12000 }).catch(() => {});
+await page.waitForTimeout(1800);
+// Full overview (with sidebar) for the hero laptop; punched-in crop for the slider.
+await settle(page); // hides the bug-reporter + Square buttons
+await shot(page, "command-center-full.png");
+console.log("command-center-full.png");
+await clipContent("command-center");
+
+for (const route of ["/admin/reports", "/admin/bookings", "/admin/payouts", "/admin/followups"]) {
+  await page.goto(`${BASE}${route}`);
+  await clipContent(route.split("/").pop());
 }
 
 await desktop.close();
