@@ -38,3 +38,6 @@ supabase/.temp/
 # must prebuild from config or the dev-only TTP entitlement leaks into store builds.
 app-native/ios/
 public/marketing/*.png
+
+# keep the share image (overrides the *.png ignore above)
+!public/marketing/og-shops.png

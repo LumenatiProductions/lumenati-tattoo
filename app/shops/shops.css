@@ -204,14 +204,20 @@
   height: 346px;
   border-radius: 1.15rem;
 }
+/* On phones the laptop-plus-overlap composition gets cramped; show the app
+   phone alone, centered. The Command Center shows up in the shop section. */
 @media (max-width: 767px) {
+  .hero-stack > div:first-child {
+    display: none;
+  }
   .hero-stack .mkt-phone {
-    right: 0.5rem;
-    bottom: -1.5rem;
+    position: static;
+    margin: 0 auto;
+    width: max-content;
   }
   .hero-stack .mkt-phone img {
-    width: 132px;
-    height: 270px;
+    width: 240px;
+    height: 494px;
   }
 }
 @media (max-width: 767px) {

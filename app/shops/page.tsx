@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import { Icon } from "@/components/marketing/Icon";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
+import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
 
 // The marketing page. Lumenati is the business brain for a tattoo shop, sold
 // to two buyers: the ARTIST (run your chair like a business — money, goals,
@@ -73,9 +74,10 @@ export default function ShopsMarketingPage() {
         </nav>
       </header>
 
-      {/* Hero — headline left, the product on a laptop right. */}
-      <section className="mkt-rise mx-auto grid max-w-6xl items-center gap-12 px-5 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:gap-10 lg:pt-24">
-        <div className="text-center lg:text-left">
+      {/* Hero — headline + CTA left, the product on a laptop right. On mobile
+          the order is headline, phone, then CTA (phone above "Set up your shop"). */}
+      <section className="mkt-rise mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-24">
+        <div className="order-1 text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
           <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
             The business brain for tattoo shops
           </div>
@@ -88,18 +90,10 @@ export default function ShopsMarketingPage() {
             Lumenati coaches the shop and every artist, keeps the books, texts the follow-ups, and
             runs goals and taxes for every chair. You bring the needle.
           </p>
-          <div className="mt-9 flex items-center justify-center gap-4 lg:justify-start">
-            <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
-              Set up your shop
-            </Link>
-            <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
-              What&apos;s in it for me
-            </a>
-          </div>
         </div>
 
         {/* The product: desktop Command Center in a laptop + the app phone. */}
-        <div className="hero-stack">
+        <div className="hero-stack order-2 mt-12 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-center">
           <div>
             <div className="mkt-laptop-screen">
               <div className="mkt-laptop-bar">
@@ -116,6 +110,15 @@ export default function ShopsMarketingPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
           </div>
+        </div>
+
+        <div className="order-3 mt-10 flex items-center justify-center gap-4 lg:col-start-1 lg:row-start-2 lg:mt-8 lg:justify-start lg:self-start">
+          <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
+            Set up your shop
+          </Link>
+          <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
+            What&apos;s in it for me
+          </a>
         </div>
       </section>
 
@@ -147,20 +150,14 @@ export default function ShopsMarketingPage() {
             ))}
           </ul>
 
-          <div className="mkt-carousel mt-14 flex snap-x snap-mandatory items-start gap-6 overflow-x-auto px-[calc(50%-118px)] pb-4 sm:snap-none sm:justify-center sm:px-1">
-            {[
-              { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
-              { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
-              { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
-            ].map((p) => (
-              <figure key={p.img} className="flex-none snap-center">
-                <div className="mkt-phone mkt-phone-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.img} alt={p.alt} />
-                </div>
-                <figcaption className="mt-3 text-center text-sm text-zinc-400">{p.cap}</figcaption>
-              </figure>
-            ))}
+          <div className="mt-14">
+            <PhoneCarousel
+              slides={[
+                { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
+                { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
+                { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
+              ]}
+            />
           </div>
 
           {/* Artist pricing. */}
@@ -251,8 +248,9 @@ export default function ShopsMarketingPage() {
           </div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Two plans. One number each.</h2>
         </div>
-        <div className="mkt-glass mt-10 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
+        {/* Desktop: side-by-side table. */}
+        <div className="mkt-glass mt-10 hidden sm:block">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-white/12">
                 <th className="p-5" />
@@ -284,6 +282,34 @@ export default function ShopsMarketingPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile: two stacked plan cards, no horizontal scroll. */}
+        <div className="mt-8 grid gap-5 sm:hidden">
+          {([
+            { name: "Artist", price: "$99", unit: "/mo", key: "artist" as const, accent: false },
+            { name: "Shop", price: "$199", unit: "/mo + $79/artist", key: "shop" as const, accent: true },
+          ]).map((plan) => (
+            <div key={plan.name} className={`mkt-glass p-6 ${plan.accent ? "border-brand/40" : ""}`}>
+              <div className={`text-[11px] font-bold uppercase tracking-wide ${plan.accent ? "text-brand" : "text-zinc-400"}`}>
+                {plan.name}
+              </div>
+              <div className="mt-1 text-3xl font-black">
+                {plan.price}
+                <span className="text-sm font-semibold text-zinc-400">{plan.unit}</span>
+              </div>
+              <ul className="mt-4 divide-y divide-white/8">
+                {COMPARE.map((row) => (
+                  <li key={row.label} className="flex items-center justify-between gap-4 py-2.5">
+                    <span className="text-sm text-zinc-300">{row.label}</span>
+                    <span className="flex-none text-sm font-semibold">
+                      <PlanCell value={row[plan.key]} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
         <div className="mt-8 text-center">
           <Link href="/start" className="inline-block rounded-xl bg-brand px-8 py-3.5 text-base font-bold text-white hover:brightness-110">
