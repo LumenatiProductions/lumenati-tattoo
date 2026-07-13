@@ -28,6 +28,15 @@ const SHOP_BENEFITS = [
   { icon: "people", title: "No front desk", body: "Deposits and no-show defense, waitlist auto-fill, and text-code sign-in. Onboard an artist in thirty seconds." },
 ] as const;
 
+// The desktop back-office screens in the shop slider.
+const DESKTOP_SCREENS = [
+  { img: "/marketing/command-center.webp", title: "The overview", body: "The week's money, the coach reads, and what needs a decision, live.", alt: "The Command Center overview" },
+  { img: "/marketing/reports.webp", title: "Reports", body: "Shop-wide financials, per-artist roll-ups, and 1099 prep, exportable.", alt: "Reports: financials and per-artist roll-ups" },
+  { img: "/marketing/payouts.webp", title: "Pay", body: "Renter pass-through and Gusto payroll prep, per artist, every period.", alt: "Pay: renter pass-through and payroll prep" },
+  { img: "/marketing/bookings.webp", title: "Bookings", body: "The day's calendar, deposits held, and no-show outcomes in one place.", alt: "Bookings: the day's calendar and deposits" },
+  { img: "/marketing/followups.webp", title: "Follow-ups", body: "Aftercare, reviews, and rebooking nudges queued and texting on schedule.", alt: "Follow-ups queue" },
+] as const;
+
 export default function ShopsMarketingPage() {
   return (
     <div className="mkt-wash min-h-screen text-ink">
@@ -185,37 +194,26 @@ export default function ShopsMarketingPage() {
             ))}
           </ul>
 
-          {/* The desktop Command Center — the shop's home base. */}
-          <figure className="mt-14">
-            <div className="mkt-browser">
-              <div className="mkt-browser-bar">
-                <span />
-                <span />
-                <span />
-              </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/marketing/command-center.webp" alt="The Command Center overview: the week's money, coach reads, and what needs attention" />
-            </div>
-            <figcaption className="mt-4 text-center text-sm text-zinc-400">
-              The overview. The week&apos;s money, the coach reads, and what needs a decision, live.
-            </figcaption>
-          </figure>
-
-          {/* Reports — the books, per artist. */}
-          <figure className="mt-10">
-            <div className="mkt-browser">
-              <div className="mkt-browser-bar">
-                <span />
-                <span />
-                <span />
-              </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/marketing/reports.webp" alt="Reports: shop-wide financials, per-artist roll-ups, and 1099 prep" />
-            </div>
-            <figcaption className="mt-4 text-center text-sm text-zinc-400">
-              Every number that used to live in QuickBooks and a shoebox, per artist, exportable.
-            </figcaption>
-          </figure>
+          {/* The desktop back office — a swipeable slider of real screens. */}
+          <div className="mkt-slider mt-12">
+            {DESKTOP_SCREENS.map((s) => (
+              <figure key={s.img} className="mkt-slide">
+                <div className="mkt-browser">
+                  <div className="mkt-browser-bar">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.img} alt={s.alt} />
+                </div>
+                <figcaption className="mt-4 text-sm text-zinc-400">
+                  <span className="font-semibold text-white">{s.title}.</span> {s.body}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <p className="mt-1 text-center text-xs text-zinc-500">Swipe to see more of the back office.</p>
 
           {/* Shop pricing. */}
           <div className="mkt-glass mt-14 flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">

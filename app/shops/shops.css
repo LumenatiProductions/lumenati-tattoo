@@ -171,6 +171,29 @@
   }
 }
 
+/* Horizontal desktop-screen slider (scroll-snap, no JS). The next slide
+   peeks so it reads as swipeable. */
+.mkt-slider {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0.25rem 0 1.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.mkt-slide {
+  flex: 0 0 86%;
+  max-width: 900px;
+  scroll-snap-align: center;
+}
+@media (min-width: 1024px) {
+  .mkt-slide {
+    flex-basis: 72%;
+  }
+}
+
 /* One gentle rise on load. Nothing else moves. */
 @keyframes mkt-rise {
   from {

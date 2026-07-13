@@ -69,17 +69,18 @@ await settle(page);
 await shot(page, "command-center.png");
 console.log("command-center.png");
 
-// Desktop proof for the SHOP section: the books (P&L) and the reports.
-await page.goto(`${BASE}/admin/pnl`);
-await page.getByText("Live", { exact: true }).waitFor({ timeout: 15000 }).catch(() => {});
-await settle(page);
-await shot(page, "pnl.png");
-console.log("pnl.png");
-
-await page.goto(`${BASE}/admin/reports`);
-await settle(page);
-await shot(page, "reports.png");
-console.log("reports.png");
+// Desktop proof for the SHOP section slider: reports, bookings, pay, follow-ups.
+for (const [route, name] of [
+  ["/admin/reports", "reports"],
+  ["/admin/bookings", "bookings"],
+  ["/admin/payouts", "payouts"],
+  ["/admin/followups", "followups"],
+]) {
+  await page.goto(`${BASE}${route}`);
+  await settle(page);
+  await shot(page, `${name}.png`);
+  console.log(`${name}.png`);
+}
 
 await desktop.close();
 
