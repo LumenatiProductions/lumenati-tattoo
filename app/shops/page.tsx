@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
+import { Icon } from "@/components/marketing/Icon";
 
 // The marketing page. Lumenati is the business brain for a tattoo shop, sold
 // to two buyers: the ARTIST (run your chair like a business — money, goals,
@@ -8,102 +9,6 @@ import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 // benefit sections, each backed by real product screens from the demo tenant
 // (scripts/marketing-shots*.mjs regenerate them). Icons match the app's
 // Ionicons outline language.
-
-// Ionicons-style outline icons (stroke, round caps) so the page speaks the
-// product's visual language.
-function Icon({ name, className = "" }: { name: string; className?: string }) {
-  const paths: Record<string, React.ReactNode> = {
-    cash: (
-      <>
-        <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
-        <circle cx="12" cy="12" r="2.5" />
-      </>
-    ),
-    goal: (
-      <>
-        <path d="M3 16l5-5 4 4 8-8" />
-        <path d="M15 7h6v6" />
-      </>
-    ),
-    shield: (
-      <>
-        <path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z" />
-        <path d="M9 12l2 2 4-4" />
-      </>
-    ),
-    chat: (
-      <>
-        <path d="M4 5h16v10H8l-4 4z" />
-        <path d="M8 9h8M8 12h5" />
-      </>
-    ),
-    clock: (
-      <>
-        <circle cx="12" cy="13" r="7" />
-        <path d="M12 13V9M10 2.5h4M18.5 6l1.5-1.5" />
-      </>
-    ),
-    ribbon: (
-      <>
-        <circle cx="12" cy="9" r="5" />
-        <path d="M9 13l-2 8 5-3 5 3-2-8" />
-      </>
-    ),
-    bars: (
-      <>
-        <path d="M5 20V11M12 20V5M19 20v-6" />
-        <path d="M3.5 20h17" />
-      </>
-    ),
-    bulb: (
-      <>
-        <path d="M9.5 18.5h5M10.5 21.5h3" />
-        <path d="M12 3a6 6 0 0 0-4 10.4c.8.9 1 1.6 1 2.6h6c0-1 .2-1.7 1-2.6A6 6 0 0 0 12 3z" />
-      </>
-    ),
-    book: (
-      <>
-        <path d="M12 5c-1-1-3-1.5-5-1.5S4 4 4 4v14s1-1 3-1 4 .5 5 1.5" />
-        <path d="M12 5c1-1 3-1.5 5-1.5S20 4 20 4v14s-1-1-3-1-4 .5-5 1.5V5z" />
-      </>
-    ),
-    flag: (
-      <>
-        <path d="M6 21V3.5" />
-        <path d="M6 4h11l-2 3.2 2 3.2H6" />
-      </>
-    ),
-    repeat: (
-      <>
-        <path d="M17 3l3 3-3 3" />
-        <path d="M20 6H9a4.5 4.5 0 0 0-4.5 4.5" />
-        <path d="M7 21l-3-3 3-3" />
-        <path d="M4 18h11a4.5 4.5 0 0 0 4.5-4.5" />
-      </>
-    ),
-    people: (
-      <>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
-        <path d="M16 6a3 3 0 0 1 0 6M17.5 20c0-2.2-.6-3.8-1.7-5" />
-      </>
-    ),
-  };
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.6}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      {paths[name]}
-    </svg>
-  );
-}
 
 const ARTIST_BENEFITS = [
   { icon: "cash", title: "See what you actually made", body: "Earnings, tips, and tickets for today, this week, this month. In your pocket, not a shoebox." },
@@ -138,27 +43,49 @@ export default function ShopsMarketingPage() {
         </nav>
       </header>
 
-      {/* Hero. */}
-      <section className="mkt-rise mx-auto max-w-3xl px-5 pb-10 pt-16 text-center sm:pt-20">
-        <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
-          The business brain for tattoo shops
+      {/* Hero — headline left, the product on a laptop right. */}
+      <section className="mkt-rise mx-auto grid max-w-6xl items-center gap-12 px-5 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:gap-10 lg:pt-24">
+        <div className="text-center lg:text-left">
+          <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
+            The business brain for tattoo shops
+          </div>
+          <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+            Everything but
+            <br />
+            <span className="text-brand">the tattoo.</span>
+          </h1>
+          <p className="mx-auto mt-6 max-w-md text-base text-zinc-300 sm:text-lg lg:mx-0">
+            Lumenati coaches the shop and every artist, keeps the books, texts the follow-ups, and
+            runs goals and taxes for every chair. You bring the needle.
+          </p>
+          <div className="mt-9 flex items-center justify-center gap-4 lg:justify-start">
+            <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
+              Set up your shop
+            </Link>
+            <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
+              What&apos;s in it for me
+            </a>
+          </div>
         </div>
-        <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight sm:text-6xl">
-          Everything but
-          <br />
-          <span className="text-brand">the tattoo.</span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-xl text-base text-zinc-300 sm:text-lg">
-          Lumenati coaches the shop and every artist, keeps the books, texts the follow-ups, and
-          runs goals and taxes for every chair. You bring the needle.
-        </p>
-        <div className="mt-9 flex items-center justify-center gap-4">
-          <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
-            Set up your shop
-          </Link>
-          <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
-            What&apos;s in it for me
-          </a>
+
+        {/* The product: desktop Command Center in a laptop + the app phone. */}
+        <div className="hero-stack">
+          <div>
+            <div className="mkt-laptop-screen">
+              <div className="mkt-laptop-bar">
+                <span />
+                <span />
+                <span />
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/marketing/command-center.webp" alt="The Lumenati Command Center: the week's money, coach reads, and what needs attention" />
+            </div>
+            <div className="mkt-laptop-base" />
+          </div>
+          <div className="mkt-phone">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's earnings this month" />
+          </div>
         </div>
       </section>
 
@@ -198,12 +125,12 @@ export default function ShopsMarketingPage() {
               </div>
               <figcaption className="mt-3 text-center text-sm text-zinc-400">Their money, in their pocket.</figcaption>
             </figure>
-            <figure className="sm:mt-12">
+            <figure>
               <div className="mkt-phone">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/marketing/app-artist-mid.webp" alt="An artist's goal chart, tax reserve, and reward badges" />
               </div>
-              <figcaption className="mt-3 text-center text-sm text-zinc-400">Goals, taxes, and rewards.</figcaption>
+              <figcaption className="mt-3 text-center text-sm text-zinc-400">Goals, coaching, and taxes.</figcaption>
             </figure>
           </div>
         </div>

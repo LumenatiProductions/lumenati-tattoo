@@ -81,6 +81,96 @@
   object-position: top;
 }
 
+/* Hero product shot: the desktop Command Center inside a laptop, with the
+   app phone overlapping its corner, lit from behind. Reads as "real product"
+   at a glance and separates cleanly from the dark page. */
+.hero-stack {
+  position: relative;
+}
+.hero-stack::before {
+  content: "";
+  position: absolute;
+  inset: -12% -6% -4%;
+  background: radial-gradient(60% 55% at 50% 30%, rgba(255, 20, 147, 0.22), transparent 70%);
+  filter: blur(45px);
+  z-index: 0;
+}
+.hero-stack > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Laptop: bezel + screen, then a wider base with a notch. Bezel is lifted
+   off near-black and ringed so the device separates from the dark page. */
+.mkt-laptop-screen {
+  border: 10px solid #26262f;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: #26262f;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 30px 80px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+.mkt-laptop-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 13px;
+  background: #101016;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+}
+.mkt-laptop-bar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+}
+.mkt-laptop-screen img {
+  display: block;
+  width: 100%;
+}
+.mkt-laptop-base {
+  position: relative;
+  height: 14px;
+  margin: 0 -5.5%;
+  border-radius: 0 0 13px 13px;
+  background: linear-gradient(180deg, #3a3a46 0%, #22222b 55%, #14141a 100%);
+  box-shadow: 0 22px 34px rgb(0 0 0 / 0.55);
+}
+.mkt-laptop-base::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 7px;
+  background: #0b0b10;
+  border-radius: 0 0 9px 9px;
+}
+
+.hero-stack .mkt-phone {
+  position: absolute;
+  right: -0.5rem;
+  bottom: -1.5rem;
+  padding: 7px;
+  border-radius: 1.6rem;
+  z-index: 2;
+}
+.hero-stack .mkt-phone img {
+  width: 172px;
+  height: 354px;
+  border-radius: 1.15rem;
+}
+@media (max-width: 767px) {
+  .hero-stack .mkt-phone {
+    position: static;
+    margin: -2.5rem auto 0;
+  }
+}
+
 /* One gentle rise on load. Nothing else moves. */
 @keyframes mkt-rise {
   from {
