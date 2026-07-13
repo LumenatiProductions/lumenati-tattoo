@@ -112,11 +112,7 @@ export default function ShopsMarketingPage() {
             </div>
             <div className="mkt-laptop-base" />
           </div>
-          <div className="mkt-phone phone-left">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marketing/app-artist-mid.webp" alt="The artist app: goals, tax reserve, and coaching" />
-          </div>
-          <div className="mkt-phone phone-right">
+          <div className="mkt-phone">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
           </div>
@@ -151,21 +147,20 @@ export default function ShopsMarketingPage() {
             ))}
           </ul>
 
-          <div className="mt-14 flex flex-wrap items-start justify-center gap-8">
-            <figure>
-              <div className="mkt-phone">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/marketing/app-artist-home.webp" alt="An artist's earnings this month with tips and tickets" />
-              </div>
-              <figcaption className="mt-3 text-center text-sm text-zinc-400">Their money, in their pocket.</figcaption>
-            </figure>
-            <figure>
-              <div className="mkt-phone">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/marketing/app-artist-mid.webp" alt="An artist's goal chart, tax reserve, and reward badges" />
-              </div>
-              <figcaption className="mt-3 text-center text-sm text-zinc-400">Goals, coaching, and taxes.</figcaption>
-            </figure>
+          <div className="mt-14 flex items-start justify-start gap-6 overflow-x-auto px-1 pb-4 sm:justify-center">
+            {[
+              { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
+              { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
+              { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
+            ].map((p) => (
+              <figure key={p.img} className="flex-none">
+                <div className="mkt-phone mkt-phone-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.img} alt={p.alt} />
+                </div>
+                <figcaption className="mt-3 text-center text-sm text-zinc-400">{p.cap}</figcaption>
+              </figure>
+            ))}
           </div>
 
           {/* Artist pricing. */}

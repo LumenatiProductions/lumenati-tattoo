@@ -146,9 +146,12 @@ if (await page.getByPlaceholder("(555) 555-5555").count()) {
 }
 await monthRange();
 await shot("app-artist-home.png");
-await page.mouse.wheel(0, 1400);
+await page.mouse.wheel(0, 950);
 await page.waitForTimeout(1200);
-await shot("app-artist-mid.png");
+await shot("app-artist-goals.png");
+await page.mouse.wheel(0, 980);
+await page.waitForTimeout(1200);
+await shot("app-artist-coach.png");
 
 await browser.close();
 console.log("done");
