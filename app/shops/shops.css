@@ -11,14 +11,18 @@
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-/* Same atmosphere as the Command Center: violet bleeding from the top
-   corner, a pink haze right, deep blue pooling at the bottom. */
+/* The app's Liquid Ink atmosphere, dialed up so the site reads like the
+   Command Center: violet bleeding from the top-left, brand pink hazing the
+   top-right, electric blue pooling bottom-right, a blue-violet swell bottom-
+   left, and a soft violet core. Fixed, so panels scroll over the ink. */
 .mkt-wash {
   background:
-    radial-gradient(55% 38% at 8% 0%, rgba(109, 58, 160, 0.3), transparent 65%),
-    radial-gradient(42% 32% at 100% 14%, rgba(255, 20, 147, 0.13), transparent 60%),
-    radial-gradient(70% 48% at 50% 100%, rgba(43, 74, 140, 0.26), transparent 65%),
-    var(--color-paper);
+    radial-gradient(48% 40% at 10% 6%, rgba(124, 58, 190, 0.42), transparent 62%),
+    radial-gradient(44% 38% at 94% 10%, rgba(255, 20, 147, 0.22), transparent 60%),
+    radial-gradient(52% 46% at 90% 86%, rgba(0, 150, 210, 0.2), transparent 62%),
+    radial-gradient(58% 50% at 12% 94%, rgba(60, 78, 168, 0.28), transparent 62%),
+    radial-gradient(70% 60% at 50% 48%, rgba(78, 48, 150, 0.16), transparent 72%),
+    #08080e;
   background-attachment: fixed;
 }
 
@@ -151,29 +155,55 @@
   border-radius: 0 0 9px 9px;
 }
 
+/* Two phones flanking the laptop: the money home hangs off the RIGHT edge,
+   the goals/tax screen off the LEFT, staggered, both lifted on an ink halo. */
 .hero-stack .mkt-phone {
   position: absolute;
-  right: -0.5rem;
-  bottom: -1.5rem;
-  padding: 7px;
-  border-radius: 1.6rem;
+  padding: 6px;
+  border-radius: 1.5rem;
   z-index: 2;
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 50px rgb(0 0 0 / 0.55);
 }
-/* Liquid-ink halo behind the phone so it pops off the laptop. Sits inside
+.hero-stack .phone-right {
+  right: -3rem;
+  bottom: -2.25rem;
+}
+.hero-stack .phone-left {
+  left: -3rem;
+  bottom: -3.5rem;
+  z-index: 1;
+}
+/* Liquid-ink halo behind each phone so it pops off the laptop. Sits inside
    the phone's stacking context (above the laptop, behind the phone). */
 .hero-stack .mkt-phone::before {
   content: "";
   position: absolute;
-  inset: -46% -38%;
+  inset: -46% -40%;
   z-index: -1;
-  background: radial-gradient(46% 46% at 50% 48%, rgba(255, 20, 147, 0.6), rgba(120, 60, 190, 0.34) 46%, transparent 72%);
-  filter: blur(42px);
+  background: radial-gradient(46% 46% at 50% 48%, rgba(255, 20, 147, 0.62), rgba(120, 60, 190, 0.36) 46%, transparent 72%);
+  filter: blur(44px);
+}
+.hero-stack .phone-left::before {
+  background: radial-gradient(46% 46% at 50% 48%, rgba(0, 150, 210, 0.5), rgba(90, 60, 180, 0.34) 46%, transparent 72%);
 }
 .hero-stack .mkt-phone img {
-  width: 172px;
-  height: 354px;
-  border-radius: 1.15rem;
+  width: 156px;
+  height: 320px;
+  border-radius: 1.1rem;
+}
+/* On phones the laptop shrinks; show one screen, keep it on-canvas. */
+@media (max-width: 767px) {
+  .hero-stack .phone-left {
+    display: none;
+  }
+  .hero-stack .phone-right {
+    right: 0.5rem;
+    bottom: -1.5rem;
+  }
+  .hero-stack .mkt-phone img {
+    width: 132px;
+    height: 270px;
+  }
 }
 @media (max-width: 767px) {
   .hero-stack .mkt-phone {

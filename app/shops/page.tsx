@@ -112,9 +112,13 @@ export default function ShopsMarketingPage() {
             </div>
             <div className="mkt-laptop-base" />
           </div>
-          <div className="mkt-phone">
+          <div className="mkt-phone phone-left">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's earnings this month" />
+            <img src="/marketing/app-artist-mid.webp" alt="The artist app: goals, tax reserve, and coaching" />
+          </div>
+          <div className="mkt-phone phone-right">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
           </div>
         </div>
       </section>
