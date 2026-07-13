@@ -22,9 +22,12 @@ export default function RoomEditorPage() {
   const { get, update, saveState } = useRoomContent();
   const { artists } = useArtists();
 
-  // Artists edit their own room; owners can pick whose room to edit.
-  const [ownerPick, setOwnerPick] = useState<string>(asArtistId || "jd");
-  const artistId = role === "artist" ? asArtistId : ownerPick;
+  // Artists edit their own room; owners can pick whose room to edit. An
+  // owner's default pick must come from THEIR roster (a hardcoded Lumenati
+  // id blanked the page for every other shop).
+  const [ownerPick, setOwnerPick] = useState<string>(asArtistId);
+  const pick = role === "artist" ? asArtistId : ownerPick;
+  const artistId = artists.some((a) => a.id === pick) ? pick : artists[0]?.id ?? "";
   const artist = artists.find((a) => a.id === artistId);
   const room = get(artistId);
   if (!artist) return null;

@@ -1,7 +1,7 @@
 /* Tailwind for the marketing page — scoped to /shops (imported by
    app/shops/layout.tsx), same pattern as /admin and /s so the Y2K root
-   never sees it. Wears the Command Center family: near-black paper, the
-   liquid-ink wash, brand pink for the asks. */
+   never sees it. Wears the Command Center family: liquid-ink wash, glass
+   panels lit from the top edge, pink spent on the asks. */
 @import "tailwindcss";
 
 @theme {
@@ -22,13 +22,46 @@
   background-attachment: fixed;
 }
 
-/* Phone frames around the live skin demos. Custom classes, not utilities
-   (the stale-Tailwind gotcha). The iframes are real artist pages at phone
-   width — media queries track iframe width, so 340px serves the phone
-   layout, sticky book bar and all. */
+/* The app's glass: lit top edge, faint fill, blur over the wash. */
+.mkt-glass {
+  border-radius: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-top-color: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.05);
+  backdrop-filter: blur(10px);
+}
+
+/* Real product shots sit in a glass browser frame. */
+.mkt-browser {
+  border-radius: 0.9rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-top-color: rgb(255 255 255 / 0.26);
+  background: rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
+}
+.mkt-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+.mkt-browser-bar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+}
+.mkt-browser img {
+  display: block;
+  width: 100%;
+}
+
+/* Phone frames: one live artist page (iframe) + the pocket screenshot. */
 .mkt-phone {
   flex: none;
-  scroll-snap-align: center;
   border-radius: 2.25rem;
   border: 1px solid rgb(255 255 255 / 0.14);
   border-top-color: rgb(255 255 255 / 0.24);
@@ -36,13 +69,16 @@
   padding: 10px;
   box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
 }
-.mkt-phone iframe {
+.mkt-phone iframe,
+.mkt-phone img {
   display: block;
-  width: 340px;
+  width: 320px;
   height: 620px;
   border: 0;
   border-radius: 1.65rem;
   background: #0b0b10;
+  object-fit: cover;
+  object-position: top;
 }
 
 /* One gentle rise on load. Nothing else moves. */

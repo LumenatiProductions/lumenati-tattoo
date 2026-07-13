@@ -1,0 +1,114 @@
+#!/usr/bin/env node
+// Capture real product screenshots for the /shops marketing page from the
+// App Review demo tenant (never Lumenati's real data). Signs in headlessly
+// with the documented test OTP (+1 500 555 0100 / 000000), then shoots the
+// Command Center at desktop and phone widths into public/marketing/.
+//
+// Run (dev server must be on :3002): node scripts/marketing-shots.mjs
+// Re-run any time the demo data improves; images overwrite in place.
+
+import { createRequire } from "node:module";
+import { mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+// Playwright lives in the cinebody monorepo; borrow it rather than adding a
+// heavy dev dependency here.
+const require = createRequire("/Users/scottmcdonald/cinebody-platform/package.json");
+const { chromium } = require("playwright");
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const OUT = join(root, "public", "marketing");
+mkdirSync(OUT, { recursive: true });
+
+const BASE = "http://127.0.0.1:3002";
+async function signIn(page) {
+  await page.goto(`${BASE}/admin/login`);
+  await page.getByPlaceholder("(555) 555-5555").fill("(500) 555-0100");
+  await page.getByRole("button", { name: "Text me a code" }).click();
+  await page.getByPlaceholder("000000").fill("000000");
+  await page.getByRole("button", { name: "Verify & sign in" }).click();
+  await page.waitForURL("**/admin", { timeout: 20000 });
+}
+
+async function settle(page) {
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForTimeout(1200);
+  // Hide (never remove — React owns these nodes) the bug reporter and the
+  // Next.js dev-tools bubble so shots are clean.
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" }).catch(() => {});
+  await page.evaluate(() => {
+    document.querySelectorAll("button").forEach((b) => {
+      if ((b.textContent || "").includes("Report a bug")) b.style.display = "none";
+    });
+  });
+}
+
+const shot = (page, name) => page.screenshot({ path: join(OUT, name), type: "png" });
+
+const browser = await chromium.launch();
+
+// Desktop: 1440 wide at 2x for crisp marketing crops.
+const desktop = await browser.newContext({ viewport: { width: 1440, height: 860 }, deviceScaleFactor: 2 });
+const page = await desktop.newPage();
+// The first-run setup card is real product but clutters a money shot; the
+// demo shop id is stable (provision script re-creates it idempotently).
+await page.addInitScript(() => {
+  try {
+    localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
+  } catch {}
+});
+await signIn(page);
+
+await settle(page);
+await shot(page, "command-center.png");
+console.log("command-center.png");
+
+await page.goto(`${BASE}/admin/bookings`);
+await settle(page);
+await shot(page, "bookings.png");
+console.log("bookings.png");
+
+await page.goto(`${BASE}/admin/room`);
+await settle(page);
+// Owners land on the first artist; make sure it's Sam (the dressed room).
+const picker = page.locator("select").first();
+if (await picker.count()) {
+  const options = await picker.locator("option").allTextContents();
+  const sam = options.findIndex((t) => t.includes("Sam"));
+  if (sam >= 0) {
+    await picker.selectOption({ index: sam });
+    await page.waitForTimeout(800);
+  }
+}
+await shot(page, "page-editor.png");
+console.log("page-editor.png");
+
+await page.goto(`${BASE}/admin/followups`);
+await settle(page);
+await shot(page, "followups.png");
+console.log("followups.png");
+
+await desktop.close();
+
+// Phone: the Command Center from a pocket (390pt at 3x).
+const phone = await browser.newContext({
+  viewport: { width: 390, height: 780 },
+  deviceScaleFactor: 3,
+  isMobile: true,
+  hasTouch: true,
+});
+const ppage = await phone.newPage();
+await ppage.addInitScript(() => {
+  try {
+    localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
+  } catch {}
+});
+await signIn(ppage);
+await settle(ppage);
+await shot(ppage, "pocket.png");
+console.log("pocket.png");
+await phone.close();
+
+await browser.close();
+console.log(`done -> ${OUT}`);

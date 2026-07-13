@@ -52,14 +52,14 @@ if (!existing) {
   slug: SHOP_SLUG,
   name: "Apple Review Studio",
   template: "standard",
-  accent: "#22d3ee",
+  accent: "#ff1493",
   tagline: "Demo shop for App Review",
 }));
 if (err) throw new Error("shops: " + err.message);
 
 const ARTISTS = [
-  { name: "Sam Rivera", color: "#22d3ee" },
-  { name: "Max Doyle", color: "#f59e0b" },
+  { name: "Sam Rivera", color: "#ff1493" },
+  { name: "Max Doyle", color: "#ff1493" },
 ];
 const artistIds = [];
 for (let i = 0; i < ARTISTS.length; i++) {
