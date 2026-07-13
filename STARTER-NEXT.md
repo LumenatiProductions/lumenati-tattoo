@@ -68,12 +68,13 @@ The build order:
    Center to OTHER shops. Pitch line is locked: "keep your website, we
    take over everything behind it." Show the three skins (live demo links
    to /s/apple-review/sam-rivera with ?skin=), the phone app, the no-front-
-   desk story. DECISION NEEDED FROM SCOTT before building far: where does
-   it live? The root is Lumenati-the-shop's Y2K site (its own skin, hands
-   off), so the product pitch needs its own home — a route like /pro as a
-   stopgap, or the real answer, a product name + domain. Ask him ONCE,
-   early, with a recommendation; default to a clean route on this app if
-   he hasn't decided.
+   desk story. DECIDED (Scott, 2026-07-12): its own NEW page, NOT Y2K —
+   themed like the app/Command Center (the dark admin look: near-black,
+   the brand pink, clean type; see /admin and the phone app for the
+   family). Scoped CSS like /s and /admin so the Y2K root never sees it.
+   Route: pick something clean on this app for now (product name/domain
+   can come later; "start" is a reserved slug already, the wizard lives
+   there).
 2. **Wizard grows the missing beats**: logo upload + page-style pick right
    in /start (both are one-tap now, settings exist), and phone number for
    the owner so day-one sign-in is a text code (invite email already
