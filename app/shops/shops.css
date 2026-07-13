@@ -1,0 +1,70 @@
+/* Tailwind for the marketing page — scoped to /shops (imported by
+   app/shops/layout.tsx), same pattern as /admin and /s so the Y2K root
+   never sees it. Wears the Command Center family: near-black paper, the
+   liquid-ink wash, brand pink for the asks. */
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #f2f3fa;
+  --color-paper: #0a0a11;
+  --color-brand: #ff1493;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Same atmosphere as the Command Center: violet bleeding from the top
+   corner, a pink haze right, deep blue pooling at the bottom. */
+.mkt-wash {
+  background:
+    radial-gradient(55% 38% at 8% 0%, rgba(109, 58, 160, 0.3), transparent 65%),
+    radial-gradient(42% 32% at 100% 14%, rgba(255, 20, 147, 0.13), transparent 60%),
+    radial-gradient(70% 48% at 50% 100%, rgba(43, 74, 140, 0.26), transparent 65%),
+    var(--color-paper);
+  background-attachment: fixed;
+}
+
+/* Phone frames around the live skin demos. Custom classes, not utilities
+   (the stale-Tailwind gotcha). The iframes are real artist pages at phone
+   width — media queries track iframe width, so 340px serves the phone
+   layout, sticky book bar and all. */
+.mkt-phone {
+  flex: none;
+  scroll-snap-align: center;
+  border-radius: 2.25rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-top-color: rgb(255 255 255 / 0.24);
+  background: #000;
+  padding: 10px;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+.mkt-phone iframe {
+  display: block;
+  width: 340px;
+  height: 620px;
+  border: 0;
+  border-radius: 1.65rem;
+  background: #0b0b10;
+}
+
+/* One gentle rise on load. Nothing else moves. */
+@keyframes mkt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.mkt-rise {
+  animation: mkt-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.mkt-rise-2 {
+  animation: mkt-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mkt-rise,
+  .mkt-rise-2 {
+    animation: none;
+  }
+}

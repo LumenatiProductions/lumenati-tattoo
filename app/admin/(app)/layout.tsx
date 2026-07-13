@@ -22,7 +22,7 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("email, role, artist_id, full_name")
+    .select("email, role, artist_id, full_name, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
 
@@ -32,6 +32,7 @@ export default async function AppLayout({
     <AdminShell
       realRole={normalizeRole(profile.role)}
       realArtistId={profile.artist_id}
+      shopId={profile.shop_id ?? null}
       email={profile.email}
       fullName={profile.full_name}
     >

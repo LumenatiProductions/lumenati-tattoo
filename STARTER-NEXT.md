@@ -1,4 +1,4 @@
-# Lumenati — next-session starter: SELF-SERVE ONBOARDING + MARKETING PAGE
+# Lumenati — next-session starter: OPEN THE GATE (Stripe) + POLISH THE FUNNEL
 
 Read this first in a fresh context. Scott is NOT a coder: explain in plain
 English, no jargon/file paths in chat. Never use emojis or em dashes. Dive
@@ -20,83 +20,57 @@ our pages = their logo (shipped) + a backlink field when needed. Never build
 shop hours/policies/about pages. Pitch: "keep your website, we take over
 everything behind it."
 
-## Where things stand (2026-07-12, templates arc COMPLETE in code)
-- **TEMPLATES ARC DONE (this session)**: three artist-page skins over one
-  data model — minimal ('standard'), **dark ink** ('dark', smoke-not-white
-  atmosphere, uppercase name, hairline rules, tighter grid), **flash sheet**
-  ('flash', the sheet IS the page: claim bar + price per tile, CLAIMED
-  stamps, portfolio demoted to a strip). Header unit (logo/name/niche/
-  socials/Book) is ONE shared component across skins. `?skin=` on any /s
-  artist URL previews a skin without touching the stored choice. Dark shops'
-  crew landing page wears the smoke too.
-- **Flash tap-to-claim shipped**: every flash tile (all skins) links to
-  /request?flash=<id>; the form shows the piece (thumb/title/price), seeds
-  the idea text, preselects the artist. Claimed/foreign ids degrade to a
-  normal request. Also FIXED a live bug: the flash query asked for a
-  `claimed` column that never existed (table has `status`) — the flash grid
-  had never actually rendered.
-- **App theme picker shipped (code)**: Staff screen "Page style" card under
-  the logo card, admin-only, three chips + blurb; hidden for Lumenati (Y2K
-  stays hardcoded). BLOCKED on the queued SQL below — until it runs, the
-  shops.template check constraint still only allows 'standard'/'y2k' and
-  authenticated has no update grant, so the picker's save fails.
-- **Demo tenant is the showcase**: Sam Rivera (/s/apple-review/sam-rivera)
-  now has profile, 6 real tattoo portfolio shots, 4 flash pieces (1 claimed)
-  — scripts/seed-review-flash.mjs re-seeds it. Max Doyle stays empty on
-  purpose (the empty-state showcase). All three skins + claim flow verified
-  in Chrome at phone width; empty states verified on Max.
-- Everything from the prior two-day run (deep pass, reviewer tenant, TTP
-  saga, coach deck, close-the-books, chart scrub) is unchanged — see git
-  history if needed.
+## Where things stand (2026-07-13, SELF-SERVE ARC BUILT this session)
+- **Marketing page SHIPPED (code)**: `/shops` — its own scoped-CSS page in
+  the Command Center family (liquid-ink wash, brand pink), NOT Y2K. Locked
+  pitch line is the hero. The three skins show as LIVE phone-width iframes
+  of Sam Rivera (?skin= previews), six feature cards, CTA -> /start.
+  "shops" added to RESERVED_SLUGS. Verified in Chrome desktop + 390px.
+- **Wizard grew the three beats**: /start now has page-style chips
+  (standard/dark/flash), optional logo upload (data URL -> service-role
+  upload to room-photos/shop-logo/), and optional owner cell. A cell makes
+  day-one sign-in a text code: auth user gets phone attached CONFIRMED
+  (same pattern as /api/staff), profiles.phone set. Invite email still the
+  anchor; if it bounces AND a phone exists, the user is created confirmed
+  with both. Verified END TO END against prod (disposable tenant
+  "wizard-test-parlor": dark skin + logo + phone all landed on the live
+  page) then fully deleted (rows, storage object, auth user).
+- **Get set up card SHIPPED**: owner home (/admin) now opens with a
+  first-run checklist read live from the shop's own data — logo done?,
+  every active artist has a profile photo?, every portfolio has shots?,
+  plus a copy-your-page-link row. Self-retires when all done; Hide link
+  (localStorage per shop); never shows for Y2K (Lumenati). Verified in
+  Chrome as the App Review owner (sign in on 127.0.0.1 to keep Scott's
+  localhost session untouched: +1 500 555 0100 / 000000).
+- **Multi-tenant roster leak FIXED**: the web admin's artists context read
+  ALL shops' artists (the reviewer owner saw 8, not 2 — same class as the
+  app-native scoping gotcha). profiles.shop_id now threads from the admin
+  layout through AdminShell into RoleProvider (useRole().shopId) and
+  ArtistsProvider scopes .eq("shop_id", ...). Lumenati home verified
+  unchanged after the fix. Other admin contexts (sales, clients, etc.) were
+  NOT audited for the same leak — worth a pass when touching them.
+- **Template-picker SQL RAN** (Scott applied it): shops.template check now
+  allows dark/flash and authenticated can update the column. The app's Page
+  style picker and the desktop Team page card are LIVE. The create API
+  still carries a fallback-to-standard if a constraint ever rejects.
+- Templates arc, flash tap-to-claim, demo tenant showcase: all done in
+  prior sessions and unchanged — see git history.
 
-## Priority 1 — make it a real product people can join themselves (Scott, 2026-07-12)
-Scott's words: "Shouldn't we make it so people can just do it themselves?
-We will need a marketing page but I feel like that's how a real product
-works." Aim everything at that.
-
-What already exists (don't rebuild it):
-- A full tenant wizard at /start — shop name/tagline/accent, crew list,
-  owner email; provisions shop + artists + room_content + owner invite in
-  one shot via /api/shops/create. Invite-gated by ?code= (SHOP_WIZARD_CODE)
-  on purpose while Scott co-builds. Slug collisions + reserved routes
-  handled server-side.
-- The hosted product itself: three page skins + picker (app AND desktop
-  Team page), logo upload, booking/waitlist, the whole Command Center.
-
-The build order:
-1. **Marketing page** — the front door that sells artist pages + Command
-   Center to OTHER shops. Pitch line is locked: "keep your website, we
-   take over everything behind it." Show the three skins (live demo links
-   to /s/apple-review/sam-rivera with ?skin=), the phone app, the no-front-
-   desk story. DECIDED (Scott, 2026-07-12): its own NEW page, NOT Y2K —
-   themed like the app/Command Center (the dark admin look: near-black,
-   the brand pink, clean type; see /admin and the phone app for the
-   family). Scoped CSS like /s and /admin so the Y2K root never sees it.
-   Route: pick something clean on this app for now (product name/domain
-   can come later; "start" is a reserved slug already, the wizard lives
-   there).
-2. **Wizard grows the missing beats**: logo upload + page-style pick right
-   in /start (both are one-tap now, settings exist), and phone number for
-   the owner so day-one sign-in is a text code (invite email already
-   works). Keep it three beats, don't bloat it.
-3. **Open the gate deliberately**: marketing page CTA -> /start. Keep the
-   invite code until Stripe activation lands (no pricing wired = free
-   co-building cohort), then the code drops and a plan/payment beat slots
-   into the wizard. Do NOT build payment before Stripe activation (still
-   waiting on Scott, see below).
-4. **Onboarding aftercare**: the first-run experience once the owner lands
-   in the Command Center — the existing owner-setup-checklist.md content
-   should become the in-product "get set up" card, not a doc.
-Product-shape build order (fee engine -> SKU billing -> Passport,
-docs/product-shape.md) moves to after this arc. Templates are DONE — don't
-reopen unless Scott flags something.
+## Priority 1 — open the gate + make the funnel real
+1. **Stripe activation is the blocker Scott owns** (below). The moment it
+   lands: wire the plan/payment beat into /start, drop SHOP_WIZARD_CODE,
+   and the CTA path is fully self-serve. Do NOT build payment before the
+   sk_live moment.
+2. **Backlink field** (the one shop-presence item allowed by the hard
+   line): shops.website -> "back to <shop site>" link on the crew landing
+   + artist page footers. Small, sanctioned, not yet built.
+3. **Funnel polish worth doing while waiting**: /shops could use one real
+   product shot of the Command Center or app (Scott may want approval on
+   whatever screenshot is used); marketing-page copy pass in Scott's voice.
+4. Product-shape build order (fee engine -> SKU billing -> Passport,
+   docs/product-shape.md) stays AFTER this arc.
 
 ## Waiting on Scott (remind, don't nag)
-- **QUEUED SQL (new)**: `node scripts/apply-sql.mjs supabase/2026-07-12-template-picker.sql`
-  — widens the shops.template check to add 'dark'/'flash' + grants
-  authenticated update on that one column. Classifier-blocked for me
-  (grant); needs a shift+tab manual-mode moment. The app's Page style
-  picker does nothing until this runs.
 - STRIPE ACTIVATION -> paste sk_live -> flip server, record the $1 take
   (docs/app-store-checklist.md has the one-take script), refund, flip back.
 - The real business numbers (docs/handoff-coo-bookkeeper.md): artist
@@ -104,7 +78,7 @@ reopen unless Scott flags something.
 - App Store portal: App Privacy questionnaire (answers pre-written in the
   checklist), privacy URL, then BUILD 21 GO (account deletion, iPhone-only,
   roster scoping, coach deck, books toggle, chart scrub — store build must
-  be 21+). The theme picker rides whatever build follows the SQL.
+  be 21+).
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens.
 - Older queued DDL: `grant select (books_closed) on artists to anon;`
@@ -117,39 +91,44 @@ reopen unless Scott flags something.
 ## How to work here (hard-won gotchas — trust these)
 - Scott's dev servers run already (:3002 web, :8081 Metro). NEVER kill
   Metro. Shell cwd resets between calls — cd the repo first.
-- STALE-TAILWIND ROOT CAUSE FOUND (this session): the webpack persistent
-  cache poisons the compiled s.css — restarts alone DON'T fix it; custom
-  classes didn't serve either. The fix: kill :3002, `rm -rf .next`, restart
-  `npx next dev -p 3002`. (Web server restarts are fine; Metro is the one
-  you never touch.)
+- STALE TAILWIND: the webpack persistent cache poisons compiled CSS —
+  restarts alone DON'T fix it. Kill :3002, `rm -rf .next`, restart
+  `npx next dev -p 3002`. (Web restarts fine; Metro never.) Also: dev-page
+  form state can be wiped by a late Fast Refresh after edits — refill.
+- Testing as another tenant WITHOUT touching Scott's session: sign in at
+  http://127.0.0.1:3002/admin/login (separate cookie jar from localhost).
+  App Review owner: phone (500) 555-0100, code 000000. Log out after.
 - Live DB DDL: `node scripts/apply-sql.mjs supabase/<file>.sql`. Additive
-  columns (grants in same file) pass; standalone grants/constraint swaps
-  get classifier-blocked — queue for shift+tab.
+  columns pass; standalone grants/constraint swaps get classifier-blocked —
+  queue for shift+tab.
 - Tables with per-column grants (shops, artists): every NEW column needs
   explicit grants or reads/writes silently fail. room_content has
   full-table grants — new columns inherit there.
+- Roster reads on BOTH surfaces MUST scope to the viewer's shop: app-native
+  via useAuth().shopId, web admin via useRole().shopId (RLS does not wall
+  public-read tables between shops).
 - flash_pieces tracks `status` ('available'/'claimed'), NOT a `claimed`
   boolean. Sorting status asc puts available first.
-- App-native roster/public-table reads MUST scope .eq("shop_id", shopId)
-  from useAuth — RLS does not wall public-read tables between shops.
-- Reviewer session for Metro-web/API testing: sign in via test OTP
-  (+15005550100/000000, script pattern in git history), inject into
-  localStorage sb-humjddiwzzanvvqztypy-auth-token; tokens die in 1h.
+- Reviewer session for Metro-web/API testing: test OTP (+15005550100 /
+  000000), inject into localStorage sb-humjddiwzzanvvqztypy-auth-token;
+  tokens die in 1h.
 - Metro web CANNOT click Next-API buttons (CORS) — curl with a Bearer.
   Supabase-direct actions click fine. Grep served bundles to verify app
   code: `curl -s "http://localhost:8081/app/(app)/<route>.bundle?platform=web&dev=true" | grep -c <string>`.
 - Verify UI in Chrome MCP (never computer-use). If the window won't resize
   to phone width, inject same-origin 390px iframes on a localhost page and
-  screenshot all skins side by side — media queries track iframe width.
+  screenshot (media queries track iframe width). To scroll inside an
+  injected iframe use its contentWindow.scrollTo, not wheel events.
 - readLegacyBlock rewrites CDN URLs + adds loading=lazy — template
   assertions expect the rewritten form. Arcade changes: arcade-smoke.mjs +
   vitest + ?touch=1 at phone width.
 - Artist slugs are full names (jd-pruitt). Demo tenant = /s/apple-review
   (Sam Rivera = populated showcase, Max Doyle = empty-state showcase).
+  Wizard code: SHOP_WIZARD_CODE in .env.local.
 
 ## Still Scott's (remind if asked, don't build)
 - Twilio auth token + trial upgrade, then FOLLOWUPS/RENT autosend flips.
-- Artist logins on the Team page; message-voice pass on the four templates.
+- Message-voice pass on the follow-up templates.
 - Domain move off Squarespace -> Resend verify.
 - GOOGLE_* keys for review tracking; Meta developer app (socials OAuth +
   Social redesign); Gusto decision.

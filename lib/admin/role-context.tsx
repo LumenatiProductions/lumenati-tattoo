@@ -14,6 +14,8 @@ type RoleCtx = {
   fullName: string | null;
   realRole: Role;
   canPreview: boolean;
+  /** profiles.shop_id — scope every roster/public-table read to this. */
+  shopId: string | null;
 };
 
 const Ctx = createContext<RoleCtx | null>(null);
@@ -23,12 +25,14 @@ export function RoleProvider({
   realArtistId,
   email,
   fullName,
+  shopId,
   children,
 }: {
   realRole: Role;
   realArtistId: string | null;
   email: string;
   fullName: string | null;
+  shopId: string | null;
   children: React.ReactNode;
 }) {
   const canPreview = realRole === "owner";
@@ -44,7 +48,7 @@ export function RoleProvider({
 
   return (
     <Ctx.Provider
-      value={{ role, setRole, asArtistId, setAsArtistId, email, fullName, realRole, canPreview }}
+      value={{ role, setRole, asArtistId, setAsArtistId, email, fullName, realRole, canPreview, shopId }}
     >
       {children}
     </Ctx.Provider>

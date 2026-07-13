@@ -239,17 +239,19 @@ export default function AdminShell({
   realArtistId,
   email,
   fullName,
+  shopId,
   children,
 }: {
   realRole: Role;
   realArtistId: string | null;
   email: string;
   fullName: string | null;
+  shopId: string | null;
   children: React.ReactNode;
 }) {
   return (
-    <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName}>
-      <ArtistsProvider>
+    <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName} shopId={shopId}>
+      <ArtistsProvider shopId={shopId}>
         <RoomContentProvider>
           <SalesProvider>
            <RentProvider>

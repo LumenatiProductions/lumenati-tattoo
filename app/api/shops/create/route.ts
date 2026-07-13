@@ -6,13 +6,16 @@ import { secretMatches } from "@/lib/api-auth";
 export const dynamic = "force-dynamic";
 
 // "Add your shop" (the SaaS front door, invite-gated).
-// Body: { code, shopName, tagline?, accent?, ownerEmail, ownerName?, artists: string[] }
+// Body: { code, shopName, tagline?, accent?, template?, logo?, ownerEmail,
+//         ownerName?, ownerPhone?, artists: string[] }
 //
-// Provisions the whole tenant in one shot: shop row (template 'standard' —
-// the clean skin; Y2K stays Lumenati's), artist rows + empty room_content
-// (slugs namespaced "<shop>--<artist>" because artists.slug is globally
-// unique), and the owner: auth invite email + profiles row pinned to the new
-// shop_id.
+// Provisions the whole tenant in one shot: shop row (any of the three public
+// skins; Y2K stays Lumenati's), the shop logo (data URL, uploaded here with
+// the service role because the wizard user is anonymous), artist rows + empty
+// room_content (slugs namespaced "<shop>--<artist>" because artists.slug is
+// globally unique), and the owner: auth invite email + profiles row pinned to
+// the new shop_id. An owner phone makes day-one sign-in a text code — the
+// auth user gets it attached confirmed, same pattern as /api/staff.
 //
 // GATED by SHOP_WIZARD_CODE on purpose. Shop isolation is now enforced
 // (shop-scoped RLS + service-role route scoping, 2026-07-07), so a second
@@ -23,6 +26,28 @@ const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 
 const PALETTE = ["#ff1493", "#22d3ee", "#34d399", "#f59e0b", "#a78bfa", "#f43f5e"];
+
+// The skins a shop can pick at signup (y2k is Lumenati's alone).
+const PICKABLE_TEMPLATES = ["standard", "dark", "flash"];
+
+// "(209) 555-0144" / "+1 209 555 0144" -> "+12095550144" (same as /api/staff).
+function e164(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
+
+// Data-URL logo -> bytes + content type. Caps at 3MB decoded.
+function parseLogo(dataUrl: string): { bytes: Buffer; contentType: string; ext: string } | null {
+  const m = /^data:(image\/(png|jpeg|jpg|webp|svg\+xml));base64,(.+)$/.exec(dataUrl);
+  if (!m) return null;
+  const bytes = Buffer.from(m[3], "base64");
+  if (bytes.length === 0 || bytes.length > 3 * 1024 * 1024) return null;
+  const ext = m[2] === "svg+xml" ? "svg" : m[2] === "jpeg" || m[2] === "jpg" ? "jpg" : m[2];
+  return { bytes, contentType: m[1], ext };
+}
 
 // Slugs that collide with top-level routes (every public directory under app/)
 // or are otherwise confusing to hand out as a shop address.
@@ -40,6 +65,7 @@ const RESERVED_SLUGS = [
   "login",
   "pay",
   "request",
+  "shops",
 ];
 
 // Best-effort brute-force brake on the invite code (per serverless instance;
@@ -54,8 +80,11 @@ export async function POST(req: Request) {
     shopName?: string;
     tagline?: string;
     accent?: string;
+    template?: string;
+    logo?: string;
     ownerEmail?: string;
     ownerName?: string;
+    ownerPhone?: string;
     artists?: string[];
   };
   const now = Date.now();
@@ -80,6 +109,15 @@ export async function POST(req: Request) {
   }
   if (artistNames.length === 0) return NextResponse.json({ error: "Add at least one artist." }, { status: 400 });
   const accent = /^#[0-9a-f]{6}$/i.test(b.accent ?? "") ? b.accent! : "#ff1493";
+  const template = PICKABLE_TEMPLATES.includes(b.template ?? "") ? b.template! : "standard";
+  const ownerPhone = (b.ownerPhone ?? "").trim() ? e164(b.ownerPhone!.trim()) : null;
+  if ((b.ownerPhone ?? "").trim() && !ownerPhone) {
+    return NextResponse.json({ error: "That phone number doesn't look right — use 10 digits." }, { status: 400 });
+  }
+  const logo = (b.logo ?? "").trim() ? parseLogo(b.logo!.trim()) : null;
+  if ((b.logo ?? "").trim() && !logo) {
+    return NextResponse.json({ error: "That logo didn't come through — use a PNG, JPG, WEBP, or SVG under 3MB." }, { status: 400 });
+  }
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
@@ -92,15 +130,35 @@ export async function POST(req: Request) {
   if (profTaken) return NextResponse.json({ error: "That email already has a login here." }, { status: 409 });
 
   const shopId = randomUUID();
-  const { error: shopErr } = await admin.from("shops").insert({
+  const shopRow = {
     id: shopId,
     slug,
     name: shopName,
-    template: "standard",
+    template,
     accent,
     tagline: (b.tagline ?? "").trim(),
-  });
+  };
+  let { error: shopErr } = await admin.from("shops").insert(shopRow);
+  if (shopErr && template !== "standard" && /check|constraint/i.test(shopErr.message)) {
+    // The template-picker SQL (widens the check to dark/flash) is still
+    // queued — fall back to standard so signup never dies on a skin choice.
+    console.warn(`shops.template check rejected '${template}' — queued SQL not applied yet; falling back to standard`);
+    ({ error: shopErr } = await admin.from("shops").insert({ ...shopRow, template: "standard" }));
+  }
   if (shopErr) return NextResponse.json({ error: shopErr.message }, { status: 500 });
+
+  // The logo rides the same public bucket as the app's logo card; the wizard
+  // user is anonymous, so the upload happens here with the service role.
+  if (logo) {
+    const path = `shop-logo/${shopId}-${Date.now()}.${logo.ext}`;
+    const { error: upErr } = await admin.storage
+      .from("room-photos")
+      .upload(path, logo.bytes, { contentType: logo.contentType, upsert: false });
+    if (!upErr) {
+      const { data } = admin.storage.from("room-photos").getPublicUrl(path);
+      await admin.from("shops").update({ logo_url: data.publicUrl }).eq("id", shopId);
+    }
+  }
 
   // Artists + their (empty, standard-template-ready) room content.
   for (let i = 0; i < artistNames.length; i++) {
@@ -125,15 +183,31 @@ export async function POST(req: Request) {
   // so a bad mailbox never strands a half-created shop.
   await admin.from("profiles").insert({
     email: ownerEmail,
+    phone: ownerPhone,
     role: "owner",
     full_name: (b.ownerName ?? "").trim() || null,
     shop_id: shopId,
   });
   const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
-  const { error: invErr } = await admin.auth.admin.inviteUserByEmail(ownerEmail, {
+  const { data: invData, error: invErr } = await admin.auth.admin.inviteUserByEmail(ownerEmail, {
     redirectTo: `${base}/admin`,
   });
   const invited = !invErr || /already/i.test(invErr.message);
+  // A phone makes day-one sign-in a text code: attach it to the auth user
+  // confirmed (same as /api/staff). If the invite bounced entirely, create
+  // the user confirmed with both identifiers so the text code still works.
+  if (ownerPhone) {
+    if (invData?.user) {
+      await admin.auth.admin.updateUserById(invData.user.id, { phone: ownerPhone, phone_confirm: true });
+    } else if (invErr && !/already/i.test(invErr.message)) {
+      await admin.auth.admin.createUser({
+        email: ownerEmail,
+        email_confirm: true,
+        phone: ownerPhone,
+        phone_confirm: true,
+      });
+    }
+  }
 
   return NextResponse.json({
     ok: true,

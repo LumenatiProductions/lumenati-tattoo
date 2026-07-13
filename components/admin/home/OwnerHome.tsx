@@ -9,6 +9,7 @@ import { useSettledStatements } from "@/lib/admin/settlements-context";
 import { shopSummary, fmt } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
+import GetSetUp from "@/components/admin/home/GetSetUp";
 import ShopCoach from "@/components/admin/home/ShopCoach";
 import { PageHead, WeekTile, StatementsTable, RentPanel, daysAgoLocal } from "./shared";
 
@@ -47,6 +48,9 @@ export default function OwnerHome() {
   return (
     <div>
       <PageHead title="Shop Overview" sub={real ? "Live" : "Period to date · preview data"} />
+
+      {/* First-run setup card — self-retires once the pages are dressed. */}
+      <GetSetUp />
 
       <Cockpit />
 
