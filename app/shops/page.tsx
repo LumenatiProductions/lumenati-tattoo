@@ -176,30 +176,35 @@ export default function ShopsMarketingPage() {
             handled, with a coach in their corner.
           </p>
 
-          <div className="mt-12 grid items-center gap-10 lg:grid-cols-2">
-            <ul className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
-              {ARTIST_BENEFITS.map((b) => (
-                <li key={b.title} className="flex gap-3.5">
-                  <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-white/12 border-t-white/22 bg-white/5 text-brand">
-                    <Icon name={b.icon} className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <div className="text-[15px] font-bold">{b.title}</div>
-                    <p className="mt-1 text-sm leading-relaxed text-zinc-400">{b.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="flex justify-center gap-6">
+          <ul className="mt-12 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+            {ARTIST_BENEFITS.map((b) => (
+              <li key={b.title} className="flex gap-3.5">
+                <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-white/12 border-t-white/22 bg-white/5 text-brand">
+                  <Icon name={b.icon} className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-[15px] font-bold">{b.title}</div>
+                  <p className="mt-1 text-sm leading-relaxed text-zinc-400">{b.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-14 flex flex-wrap items-start justify-center gap-8">
+            <figure>
               <div className="mkt-phone">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/marketing/app-artist-home.webp" alt="An artist's earnings this month with tips and tickets" />
               </div>
-              <div className="mkt-phone hidden sm:block">
+              <figcaption className="mt-3 text-center text-sm text-zinc-400">Their money, in their pocket.</figcaption>
+            </figure>
+            <figure className="sm:mt-12">
+              <div className="mkt-phone">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/marketing/app-artist-mid.webp" alt="An artist's goal chart, tax reserve, and reward badges" />
               </div>
-            </div>
+              <figcaption className="mt-3 text-center text-sm text-zinc-400">Goals, taxes, and rewards.</figcaption>
+            </figure>
           </div>
         </div>
       </section>
