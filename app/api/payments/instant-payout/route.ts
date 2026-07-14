@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveStaff } from "@/lib/api-auth";
 import { stripe, isStripeConfigured } from "@/lib/stripe/client";
 import { instantPayoutFeeCents } from "@/lib/stripe/fees";
 import { pushEvent } from "@/lib/push/send";
@@ -16,47 +16,37 @@ export const dynamic = "force-dynamic";
 // isn't bound by the surcharge cap. Renter-only: payroll artists are paid by
 // Gusto and never have a Stripe balance to pull early.
 //
-// Owner-triggered here (the /admin/payouts surface). The artist-facing app
-// button will call this as the artist themselves — same handler, add Bearer auth
-// when that RN screen lands.
-
-async function owner() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { role: null as string | null, shopId: null as string | null };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, shop_id")
-    .eq("email", user.email!)
-    .maybeSingle();
-  return {
-    role: (profile?.role ?? null) as string | null,
-    shopId: (profile?.shop_id as string | null) ?? null,
-  };
-}
+// Cookie-or-Bearer (resolveStaff): the OWNER drives it from /admin/payouts (any
+// renter in the shop); an ARTIST drives it from their app Pay screen, scoped to
+// their OWN tickets only. Bearer callers get the service-role client, so every
+// query is explicitly shop- (and for artists, self-) scoped.
 
 // List the renter tickets that could be paid out early right now: settled, not
-// already paid out, routed to a booth renter with a linked bank. Owner only.
-export async function GET() {
+// already paid out, routed to a booth renter with a linked bank. An owner sees
+// every renter's; an artist sees only their own.
+export async function GET(req: Request) {
   if (!isStripeConfigured || !stripe) {
     return NextResponse.json({ configured: false, eligible: [] });
   }
-  const { role, shopId } = await owner();
-  if (!role || !shopId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner") return NextResponse.json({ error: "Owners only." }, { status: 403 });
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const { role, shopId, artistId } = ctx;
+  // An artist can only ever see their own; they must be pinned to a chair.
+  if (role === "artist" && !artistId) return NextResponse.json({ configured: true, eligible: [] });
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  // Onboarded booth renters are the only artists who can be paid early.
-  const { data: renters } = await admin
+  // Onboarded booth renters are the only artists who can be paid early; an
+  // artist caller is narrowed to just themselves.
+  let rq = admin
     .from("artists")
     .select("id, name")
     .eq("shop_id", shopId)
     .eq("pay_type", "booth_rent")
     .eq("stripe_onboarded", true);
+  if (role === "artist") rq = rq.eq("id", artistId!);
+  const { data: renters } = await rq;
   const renterMap = new Map((renters ?? []).map((r) => [r.id as string, r.name as string]));
   if (renterMap.size === 0) return NextResponse.json({ configured: true, eligible: [] });
 
@@ -93,9 +83,12 @@ export async function POST(req: Request) {
   if (!isStripeConfigured || !stripe) {
     return NextResponse.json({ error: "Stripe is not configured." }, { status: 503 });
   }
-  const { role, shopId } = await owner();
-  if (!role || !shopId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner") return NextResponse.json({ error: "Owners only." }, { status: 403 });
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const { role, shopId, artistId } = ctx;
+  if (role === "artist" && !artistId) {
+    return NextResponse.json({ error: "No chair linked to your account." }, { status: 403 });
+  }
 
   const b = (await req.json().catch(() => ({}))) as { paymentId?: string };
   if (!b.paymentId) return NextResponse.json({ error: "Missing paymentId" }, { status: 400 });
@@ -103,12 +96,16 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  // Pinned to the caller's shop — a foreign payment id is just "not found".
-  const { data: row } = await admin
+  // Pinned to the caller's shop — a foreign payment id is just "not found". An
+  // artist is further pinned to their own chair, so they can only pay out their
+  // own sales (mirrors the RLS wall for Bearer callers).
+  let pq = admin
     .from("payments")
     .select("id, kind, status, artist_id, amount_cents, tip_cents, stripe_payment_intent_id, instant_payout_id")
     .eq("id", b.paymentId)
-    .eq("shop_id", shopId)
+    .eq("shop_id", shopId);
+  if (role === "artist") pq = pq.eq("artist_id", artistId!);
+  const { data: row } = await pq
     .maybeSingle<{
       id: string;
       kind: string;

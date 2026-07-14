@@ -38,6 +38,14 @@ type SaleRow = {
   method: string | null;
   created_at: string | null;
 };
+// A settled card sale this caller can instant-cash to their debit card now.
+type EarlyRow = {
+  paymentId: string;
+  artistName: string;
+  amountCents: number;
+  feeCents: number;
+  paidAt: string | null;
+};
 type Statement = {
   artist: ArtistRow;
   kind: "passthrough" | "payroll";
@@ -94,6 +102,8 @@ export default function Payouts() {
   const [msg, setMsg] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [early, setEarly] = useState<EarlyRow[]>([]);
+  const [earlyBusy, setEarlyBusy] = useState<string | null>(null);
 
   const canSettle = (role === "owner") && !preview;
 
@@ -145,6 +155,12 @@ export default function Payouts() {
         .filter((st): st is Statement => !!st)
         .map((st) => ({ ...st, spark: sparkBy[st.artist.id] })),
     );
+
+    // Settled card sales that can be cashed to a debit card right now. The API
+    // scopes by role (an artist sees only their own); empty when nothing's
+    // eligible or Stripe isn't linked, so the section just hides itself.
+    const earlyRes = await apiGet<{ eligible: EarlyRow[] }>("/api/payments/instant-payout");
+    setEarly(earlyRes.ok ? earlyRes.data?.eligible ?? [] : []);
   }, [role, email, preview, shopId]);
 
   useEffect(() => {
@@ -197,6 +213,36 @@ export default function Payouts() {
     );
   };
 
+  const payEarly = (row: EarlyRow) => {
+    const net = row.amountCents - row.feeCents;
+    Alert.alert(
+      "Get paid now",
+      `Send ${money(net)} to your debit card now? A ${money(row.feeCents)} speed fee comes out of this ${money(row.amountCents)} sale.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Get paid now",
+          style: "default",
+          onPress: async () => {
+            setEarlyBusy(row.paymentId);
+            setMsg(null);
+            const res = await apiPost<{ payoutCents?: number }>("/api/payments/instant-payout", {
+              paymentId: row.paymentId,
+            });
+            setEarlyBusy(null);
+            if (!res.ok) {
+              setMsg(res.error ?? "Could not pay out early.");
+              return;
+            }
+            endStop();
+            setEarly((cur) => cur.filter((r) => r.paymentId !== row.paymentId));
+            setMsg(`${money(res.data?.payoutCents ?? net)} on the way to your debit card.`);
+          },
+        },
+      ],
+    );
+  };
+
   const renters = (statements ?? []).filter((s) => s.kind === "passthrough" && s.due > 0).sort((a, b) => b.due - a.due);
   const payroll = (statements ?? []).filter((s) => s.kind === "payroll" && s.due > 0).sort((a, b) => b.due - a.due);
 
@@ -221,6 +267,29 @@ export default function Payouts() {
             )}
 
             {msg ? <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 12 }}>{msg}</Text> : null}
+
+            {early.length > 0 && (
+              <>
+                <SectionTitle>Get paid early</SectionTitle>
+                <Card>
+                  {early.map((r, i) => (
+                    <EarlyRowView
+                      key={r.paymentId}
+                      row={r}
+                      first={i === 0}
+                      busy={earlyBusy === r.paymentId}
+                      disabled={!!preview}
+                      showName={role !== "artist"}
+                      onPay={() => payEarly(r)}
+                    />
+                  ))}
+                </Card>
+                <Text style={styles.note}>
+                  Send a settled card sale to your debit card now instead of waiting for the bank. A
+                  small speed fee comes out of that sale.
+                </Text>
+              </>
+            )}
 
             <SectionTitle>Renter pass-through</SectionTitle>
             <Card>
@@ -355,6 +424,53 @@ function StatementRow({
   );
 }
 
+// One get-paid-early row: a settled card sale + the "Get paid now" action. The
+// pink button follows the design rule — pink is money, and this IS the money
+// moment. For an artist it's all theirs (lead with the amount ready); an owner
+// on the go sees whose sale it is.
+function EarlyRowView({
+  row,
+  first,
+  busy,
+  disabled,
+  showName,
+  onPay,
+}: {
+  row: EarlyRow;
+  first: boolean;
+  busy: boolean;
+  disabled: boolean;
+  showName: boolean;
+  onPay: () => void;
+}) {
+  const net = row.amountCents - row.feeCents;
+  return (
+    <View
+      style={[
+        { flexDirection: "row", alignItems: "center", paddingVertical: 13 },
+        !first && { borderTopColor: theme.border, borderTopWidth: 1 },
+      ]}
+    >
+      <View style={{ flex: 1, marginRight: 12 }}>
+        <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>
+          {showName ? row.artistName : `${money(net)} ready now`}
+        </Text>
+        <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 3 }}>
+          {money(row.amountCents)} sale · {money(row.feeCents)} fee
+          {showName ? ` · ${money(net)} now` : ""}
+        </Text>
+      </View>
+      <Pressable
+        onPress={disabled || busy ? undefined : onPay}
+        disabled={disabled || busy}
+        style={({ pressed }) => [styles.payBtn, pressed && { opacity: 0.7 }, (disabled || busy) && { opacity: 0.4 }]}
+      >
+        <Text style={styles.payBtnText}>{busy ? "Sending…" : "Get paid now"}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // Tiny 14-day earnings line, normalized into a w×h box.
 function sparkPoints(daily: number[] | undefined, w: number, h: number): string | null {
   if (!daily || daily.length < 2 || daily.every((v) => v === 0)) return null;
@@ -371,4 +487,11 @@ const styles = StyleSheet.create({
   },
   settleFillText: { color: theme.good, fontSize: 15, fontWeight: "800" },
   note: { color: theme.textFaint, fontSize: 12, lineHeight: 17, marginTop: 8 },
+  payBtn: {
+    backgroundColor: theme.brand,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  payBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 });
