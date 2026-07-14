@@ -1,4 +1,4 @@
-# Lumenati — next-session starter: OPEN THE GATE (Stripe) + POLISH THE FUNNEL
+# Lumenati — next-session starter: PAYMENTS (client-pays-the-fee + get-paid-early)
 
 Read this first in a fresh context. Scott is NOT a coder: explain in plain
 English, no jargon/file paths in chat. Never use emojis or em dashes. Dive
@@ -9,149 +9,167 @@ list", the answer is plain paste-able bullets in chat, nothing else first.
 A tattoo-shop management product Lumenati owns end to end. Two surfaces:
 - **Web Command Center** (`/admin`, Next.js, dev on :3002) = admins.
 - **Phone app** (`app-native`, Expo, Metro :8081) = artists + admin on the go.
-Public layer: Y2K site at root (Lumenati's skin only). Owner login:
-lumenati@icloud.com. Core principle: NO front desk. Square is historical
-only; never flag its data quirks.
+Public layer: Y2K site at root (Lumenati's skin only). `/shops` = the
+marketing/sales page (DONE, see below). Owner login: lumenati@icloud.com.
+Core principle: NO front desk. Square is historical only; never flag its quirks.
 
-## THE HARD LINE (Scott, 2026-07-12 — do not let scope cross it)
-Lumenati is NOT in the shop-website business. Artist pages are the hosted
-product; shops keep their own sites and link to us. The shop's presence on
-our pages = their logo (shipped) + a backlink field when needed. Never build
-shop hours/policies/about pages.
+## THE HARD LINE (Scott, 2026-07-12) + WHAT WE SELL
+Lumenati is NOT in the shop-website business — shops keep their own sites and
+link to us. The product is the BUSINESS BRAIN: it coaches the shop and every
+artist, keeps the books, texts follow-ups, runs goals + auto tax set-aside,
+deposits/no-show defense, waivers + full compliance (inspection-ready), and a
+kiosk that pings the artist when a client arrives. Two buyers: the ARTIST
+(the app — "run your chair like a business", Robinhood energy) and the SHOP
+(the desktop Command Center — revenue coaching, the books, retention).
 
-## WHAT LUMENATI ACTUALLY SELLS (Scott, 2026-07-13 — I had this backwards)
-The product is the BUSINESS BRAIN for a shop, not a booking widget. "Keep
-your website" is a footnote, NOT the pitch — Scott never locked any pitch
-(an earlier note wrongly said he did; do not treat any headline as locked).
-Marketing must lead with benefits, split into TWO buyers:
-- FOR THE ARTIST (focus = the APP/phones): coaches them, keeps their books,
-  sends+texts follow-ups, sets goals + auto tax set-aside, real hourly rate,
-  rewards/streaks — "run your chair like a business" (Robinhood energy).
-- FOR THE SHOP (focus = the DESKTOP Command Center): revenue coaching + a
-  read on what you can control, keeps the books (P&L/Reports/pay/rent), one
-  goal the room races, retention that runs itself, no front desk.
-Current /shops hero: "Everything but the tattoo." Two benefit sections with
-Ionicons-style outline icons; artist=app phones, shop=desktop screens.
+## PRICING (CONFIRMED, live on /shops) — [[project_lumenati_business_model]]
+- **Artist** (solo / booth-rent): **$99/mo**.
+- **Shop**: **$199/mo base + $79/artist**.
+- **Founding 100**: $49/seat locked for life (the invite-phase hook).
+- **Payments = client pays the card fee (surcharge / cash-discount).** The
+  artist keeps 100% of their rate; the client covers the card fee at checkout.
+  Marketing shows NO percentage — "you keep 100%, clients cover the card fee";
+  the exact surcharge is a signup/checkout detail. Scott decided 2026-07-13:
+  put the fee on the client, and build get-paid-early.
+- **Where Lumenati's transaction $ comes from:** (1) ~1% baked into the
+  surcharge as a Stripe Connect application fee (capped — see Priority 1);
+  (2) **get-paid-early (instant payout)**, an opt-in ~1.5% service fee that is
+  NOT bound by surcharge caps — this is the real margin lever.
 
-## Where things stand (2026-07-13, SELF-SERVE ARC BUILT this session)
-- **Marketing page SHIPPED + REWORKED (code)**: `/shops` — its own
-  scoped-CSS page in the Command Center family (liquid-ink wash, glass,
-  brand pink), NOT Y2K. Reworked 2026-07-13 into the two-buyer benefits
-  page above (hero "Everything but the tattoo"; artist section = app
-  phones; shop section = desktop Command Center + Reports). Real product
-  screens captured headlessly via scripts/marketing-shots.mjs (web, via
-  Playwright borrowed from ~/cinebody-platform) + scripts/marketing-shots-
-  app.mjs (the RN app via Scott's Metro web :8081). Demo tenant seeded with
-  14 days of sales + shop/artist goals so every money screen reads real
-  (scripts/seed-review-sales.mjs; goals set directly in DB). "shops" is in
-  RESERVED_SLUGS. STILL OPEN: pricing section (Scott asked; needs real
-  numbers — business-model memory has a $199+$79/seat THESIS, unconfirmed).
-- **Wizard grew the three beats**: /start now has page-style chips
-  (standard/dark/flash), optional logo upload (data URL -> service-role
-  upload to room-photos/shop-logo/), and optional owner cell. A cell makes
-  day-one sign-in a text code: auth user gets phone attached CONFIRMED
-  (same pattern as /api/staff), profiles.phone set. Invite email still the
-  anchor; if it bounces AND a phone exists, the user is created confirmed
-  with both. Verified END TO END against prod (disposable tenant
-  "wizard-test-parlor": dark skin + logo + phone all landed on the live
-  page) then fully deleted (rows, storage object, auth user).
-- **Get set up card SHIPPED**: owner home (/admin) now opens with a
-  first-run checklist read live from the shop's own data — logo done?,
-  every active artist has a profile photo?, every portfolio has shots?,
-  plus a copy-your-page-link row. Self-retires when all done; Hide link
-  (localStorage per shop); never shows for Y2K (Lumenati). Verified in
-  Chrome as the App Review owner (sign in on 127.0.0.1 to keep Scott's
-  localhost session untouched: +1 500 555 0100 / 000000).
-- **Multi-tenant roster leak FIXED**: the web admin's artists context read
-  ALL shops' artists (the reviewer owner saw 8, not 2 — same class as the
-  app-native scoping gotcha). profiles.shop_id now threads from the admin
-  layout through AdminShell into RoleProvider (useRole().shopId) and
-  ArtistsProvider scopes .eq("shop_id", ...). Lumenati home verified
-  unchanged after the fix. Other admin contexts (sales, clients, etc.) were
-  NOT audited for the same leak — worth a pass when touching them.
-- **Template-picker SQL RAN** (Scott applied it): shops.template check now
-  allows dark/flash and authenticated can update the column. The app's Page
-  style picker and the desktop Team page card are LIVE. The create API
-  still carries a fallback-to-standard if a constraint ever rejects.
-- Templates arc, flash tap-to-claim, demo tenant showcase: all done in
-  prior sessions and unchanged — see git history.
+## Where things stand (2026-07-14, MARKETING PAGE DONE)
+- **`/shops` marketing page COMPLETE.** Own scoped-CSS page in the Command
+  Center family (Liquid Ink wash on a `position:fixed` layer — NOT
+  background-attachment:fixed, which glitches on iOS; hardcoded heading color
+  as a belt-and-suspenders). Hero "Everything but the tattoo." = headline +
+  CTA left, product on a laptop (full Command Center) + app phone right; on
+  mobile the laptop hides and the phone shows centered ABOVE the CTA. Two
+  benefit sections (artist / shop) with REAL Ionicons (the `ionicons`
+  package, generated by scripts/gen-marketing-icons.mjs into
+  components/marketing/Icon.tsx). Artist screens = 3 phones side by side on
+  desktop, an infinite auto-advancing (5s) swipeable carousel on mobile
+  (components/marketing/PhoneCarousel.tsx). Shop = a punched-in slider of
+  desktop screens (components/marketing/DesktopSlider.tsx, arrows on lg) +
+  the two pricing cards + a compare table (side-by-side on desktop, stacked
+  cards on mobile). OG share image at public/marketing/og-shops.png
+  (scripts/gen-og.mjs) — NOTE it is force-tracked past a `.gitignore` that
+  excludes public/marketing/*.png (there is a `!og-shops.png` negation).
+- **Real product screens** are captured headlessly: scripts/marketing-shots.mjs
+  (web/desktop, Playwright borrowed from ~/cinebody-platform), marketing-
+  shots-app.mjs (RN app via Metro web, owner preview), marketing-shots-
+  artist.mjs (RN app as a REAL Sam login via password + session injection).
+  Demo tenant apple-review seeded with 14 days of sales, shop+artist goals,
+  and a booked day for Sam (scripts/seed-review-sales.mjs + direct DB writes).
+- Self-serve arc (the /start wizard with page-style/logo/phone beats, the
+  first-run "Get set up" card, the multi-tenant roster-leak fix, the template
+  picker) all shipped in prior sessions — see git history.
 
-## Priority 1 — open the gate + make the funnel real
-1. **Stripe activation is the blocker Scott owns** (below). The moment it
-   lands: wire the plan/payment beat into /start, drop SHOP_WIZARD_CODE,
-   and the CTA path is fully self-serve. Do NOT build payment before the
-   sk_live moment.
-2. **Backlink field** (the one shop-presence item allowed by the hard
-   line): shops.website -> "back to <shop site>" link on the crew landing
-   + artist page footers. Small, sanctioned, not yet built.
-3. **Funnel polish worth doing while waiting**: /shops could use one real
-   product shot of the Command Center or app (Scott may want approval on
-   whatever screenshot is used); marketing-page copy pass in Scott's voice.
-4. Product-shape build order (fee engine -> SKU billing -> Passport,
-   docs/product-shape.md) stays AFTER this arc.
+## Priority 1 — BUILD PAYMENTS (surcharge app-fee + get-paid-early)
+Goal: client pays the card fee, artist/shop keeps 100%, Lumenati takes a ~1%
+slice on card volume, and get-paid-early is the opt-in margin lever.
+
+WHAT ALREADY EXISTS (build on it, don't reinvent):
+- `lib/stripe/connect.ts`: `ensureAccount` (Express connected accounts —
+  currently only for BOOTH RENTERS), `onboardingLink`, `refreshOnboardStatus`,
+  `connectChargeParams`. Right now connectChargeParams ONLY returns a split
+  for `kind==='ticket'` + `pay_type==='booth_rent'`, and hardcodes
+  **applicationFeeCents: 0** (100% to the renter, Stripe files their 1099).
+- `lib/stripe/payments.ts`: creates the pending `payments` row + opaque token;
+  `startCheckout` adds `application_fee_amount` + `transfer_data.destination`
+  when connectChargeParams returns non-null. Tips (`tip_cents`) go to the
+  artist in full. Merch adds `tax_cents` + cart.
+- Public checkout at `/pay/[token]` + `/pay/[token]/checkout/route.ts`;
+  settle in `/api/stripe/webhook`. Deposits are `kind:'deposit'`. Tap-to-Pay
+  scaffolding in `/api/terminal/*` (native PaymentSheet is BLOCKED on
+  Expo54/Xcode26 — mobile uses the browser-checkout fallback,
+  [[project_native_stripe_blocked]]). Payouts UI at `/admin/payouts`
+  (renter pass-through + Gusto prep). `/api/connect` handles onboarding.
+
+THE CORE ARCHITECTURE DECISION (settle with Scott first):
+Today a PAYROLL artist's ticket returns null from connectChargeParams, so it
+charges on the PLATFORM (Lumenati) account with no transfer — fine when
+Lumenati is the only shop, WRONG for multi-tenant (the shop's money would sit
+in Lumenati's balance). To take an app fee on ALL card volume, the SHOP needs
+to be a Stripe Connect connected account too. Recommended model:
+- Renter ticket -> destination charge to the RENTER's account (as now), but
+  set applicationFeeCents = Lumenati's slice (no longer 0).
+- Payroll/shop-income ticket -> destination charge to the SHOP's account,
+  applicationFeeCents = Lumenati's slice.
+- Either way: the CLIENT is charged ticket + tip + surcharge; the app fee =
+  the surcharge; Lumenati nets surcharge minus Stripe's processing fee
+  (Stripe deducts its ~2.9%+30c from the platform's app-fee portion on
+  destination charges). So set surcharge ~= Stripe fee + ~1%.
+
+SURCHARGE RULES (do not let the surcharge exceed these):
+- Card-network rules cap a surcharge at the merchant's actual cost of
+  acceptance; most states cap ~3-4%; a few states restrict/ban surcharging.
+- Must be disclosed to the client before they pay. So the surcharge realistic
+  ceiling is ~3-4% all-in, and Lumenati's slice inside it is ~1%. You CANNOT
+  pad the surcharge to skim more — that's the ceiling. More margin = the
+  instant-payout fee, which is a service fee, not a surcharge (uncapped).
+
+BUILD ORDER (suggested):
+1. Shop-as-connected-account: extend ensureAccount/onboarding so a SHOP (not
+   just a renter) gets a connected account; store `shops.stripe_account_id` +
+   onboarded flag; surface onboarding on /admin (and the wizard later).
+2. Surcharge: compute the client card fee (Stripe est + ~1%, capped), add it
+   to the charge, disclose it on /pay/[token]. Artist/shop still receives
+   100% of ticket+tip. Set applicationFeeCents = the surcharge slice (drop the
+   hardcoded 0). Handle refunds (app fee refund) in /api/payments/refund.
+3. Get-paid-early (instant payout): Stripe Instant Payouts to the connected
+   account's debit card (needs payouts_enabled + a card on file). Add a "Get
+   paid early" action to the artist Pay screen (app + /admin/payouts). Charge
+   the ~1.5% fee (Stripe's instant fee is 1.5% min $0.50; mark up to profit).
+   NOTE: only applies to Stripe-paid artists (renters); payroll artists are
+   paid by Gusto, so get-paid-early is a renter feature — scope the UI so
+   payroll artists don't see a dead button.
+4. All of this can be BUILT + tested in Stripe TEST mode now; going live needs
+   the sk_live keys (still Scott's, below).
 
 ## Waiting on Scott (remind, don't nag)
-- STRIPE ACTIVATION -> paste sk_live -> flip server, record the $1 take
-  (docs/app-store-checklist.md has the one-take script), refund, flip back.
+- STRIPE LIVE KEYS -> paste sk_live, flip server; record the $1 take
+  (docs/app-store-checklist.md one-take script), refund, flip back. Payments
+  build can proceed in TEST mode without this.
+- The exact surcharge % and the get-paid-early fee % are SCOTT'S business
+  numbers (recommend surcharge ~= Stripe + 1%, capped ~3-4%; get-paid-early
+  ~1.5-2%). Confirm before shipping copy that states a number.
 - The real business numbers (docs/handoff-coo-bookkeeper.md): artist
   splits/rents, tax rate, bills, bank, payroll, 1099 yes/no.
-- App Store portal: App Privacy questionnaire (answers pre-written in the
-  checklist), privacy URL, then BUILD 21 GO (account deletion, iPhone-only,
-  roster scoping, coach deck, books toggle, chart scrub — store build must
-  be 21+).
+- App Store: App Privacy questionnaire + privacy URL, then BUILD 21 GO.
 - Supabase PAT in ~/.zshrc EXPIRES 2026-07-31 — regenerate at
   supabase.com/dashboard/account/tokens.
 - Older queued DDL: `grant select (books_closed) on artists to anon;`
   (supabase/2026-07-12-books-closed.sql; nothing breaks without it).
-- game_id column drop (supabase/2026-07-11-drop-game-id.sql) ONLY after
-  build 21 ships.
-- Thumb on real glass: arcade cabinet, coach swipe, chart scrub (his phone
-  has the local Xcode TTP build — fresh code needs a rebuild or build 21).
 
 ## How to work here (hard-won gotchas — trust these)
-- Scott's dev servers run already (:3002 web, :8081 Metro). NEVER kill
-  Metro. Shell cwd resets between calls — cd the repo first.
+- Scott's dev servers run already (:3002 web, :8081 Metro). NEVER kill Metro.
+  Shell cwd resets between calls — cd the repo first.
 - STALE TAILWIND: the webpack persistent cache poisons compiled CSS —
   restarts alone DON'T fix it. Kill :3002, `rm -rf .next`, restart
-  `npx next dev -p 3002`. (Web restarts fine; Metro never.) Also: dev-page
-  form state can be wiped by a late Fast Refresh after edits — refill.
+  `npx next dev -p 3002`. Also: dev-page form state can be wiped by a late
+  Fast Refresh after edits — refill.
 - Testing as another tenant WITHOUT touching Scott's session: sign in at
   http://127.0.0.1:3002/admin/login (separate cookie jar from localhost).
   App Review owner: phone (500) 555-0100, code 000000. Log out after.
 - Live DB DDL: `node scripts/apply-sql.mjs supabase/<file>.sql`. Additive
   columns pass; standalone grants/constraint swaps get classifier-blocked —
-  queue for shift+tab.
-- Tables with per-column grants (shops, artists): every NEW column needs
-  explicit grants or reads/writes silently fail. room_content has
-  full-table grants — new columns inherit there.
+  queue for shift+tab. Per-column-grant tables (shops, artists): every NEW
+  column needs explicit grants or reads/writes silently fail.
 - Roster reads on BOTH surfaces MUST scope to the viewer's shop: app-native
   via useAuth().shopId, web admin via useRole().shopId (RLS does not wall
   public-read tables between shops).
-- flash_pieces tracks `status` ('available'/'claimed'), NOT a `claimed`
-  boolean. Sorting status asc puts available first.
-- Reviewer session for Metro-web/API testing: test OTP (+15005550100 /
-  000000), inject into localStorage sb-humjddiwzzanvvqztypy-auth-token;
-  tokens die in 1h.
-- Metro web CANNOT click Next-API buttons (CORS) — curl with a Bearer.
-  Supabase-direct actions click fine. Grep served bundles to verify app
-  code: `curl -s "http://localhost:8081/app/(app)/<route>.bundle?platform=web&dev=true" | grep -c <string>`.
-- Verify UI in Chrome MCP (never computer-use). If the window won't resize
-  to phone width, inject same-origin 390px iframes on a localhost page and
-  screenshot (media queries track iframe width). To scroll inside an
-  injected iframe use its contentWindow.scrollTo, not wheel events.
-- readLegacyBlock rewrites CDN URLs + adds loading=lazy — template
-  assertions expect the rewritten form. Arcade changes: arcade-smoke.mjs +
-  vitest + ?touch=1 at phone width.
-- Artist slugs are full names (jd-pruitt). Demo tenant = /s/apple-review
-  (Sam Rivera = populated showcase, Max Doyle = empty-state showcase).
-  Wizard code: SHOP_WIZARD_CODE in .env.local.
+- Marketing screens: re-run scripts/marketing-shots*.mjs (need Metro on :8081
+  for the app ones). Verify UI in Chrome MCP (never computer-use). The
+  `og-shops.png` is force-tracked past .gitignore — if you regenerate it,
+  `git add -f` it. Metro web CANNOT click Next-API buttons (CORS) — curl a
+  Bearer; supabase-direct actions click fine.
+- Demo tenant = /s/apple-review (Sam Rivera = populated showcase incl. a
+  booked day, Max Doyle = empty-state showcase). Sam's real app login for
+  captures: sam.rivera@apple-review.demo / DemoArtist!2026 (created by
+  marketing-shots-artist.mjs). Wizard code: SHOP_WIZARD_CODE in .env.local.
+- iMessage/Safari cache link previews HARD — test share/preview changes with a
+  ?v=N cache-bust.
 
 ## Still Scott's (remind if asked, don't build)
 - Twilio auth token + trial upgrade, then FOLLOWUPS/RENT autosend flips.
-- Message-voice pass on the follow-up templates.
-- Domain move off Squarespace -> Resend verify.
-- GOOGLE_* keys for review tracking; Meta developer app (socials OAuth +
-  Social redesign); Gusto decision.
-- Sunset Square cutover button: build only when Scott says go.
-- The two Scott's-call items in docs/product-shape.md (proration timing,
-  move notice vs veto).
+- Domain move off Squarespace -> Resend verify. GOOGLE_* review keys; Meta
+  app (socials OAuth); Gusto decision. Sunset Square cutover button.
