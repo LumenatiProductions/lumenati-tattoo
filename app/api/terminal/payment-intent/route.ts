@@ -76,7 +76,6 @@ export async function POST(req: Request) {
   // checkout route, so it can only ever ADD to the pre-set service amount.
   const tipRaw = Math.round(Number(b.tipCents ?? 0));
   const tipCents = Number.isFinite(tipRaw) ? Math.min(Math.max(0, tipRaw), amountCents * 2) : 0;
-  const totalCents = amountCents + tipCents + taxCents;
 
   const admin = admin0;
 
@@ -116,10 +115,19 @@ export async function POST(req: Request) {
       .eq("shop_id", me.shopId);
   }
 
-  // Booth renters only: a 0-fee destination charge sends 100% (service + tip)
-  // to the renter's bank. Everyone else charges the platform (same rule as the
-  // web pay link).
-  const split = await connectChargeParams(admin, artistId ?? null, "ticket", amountCents);
+  // A ticket routes as a destination charge to the booth renter (their own sale)
+  // or the shop's account (payroll / shop income). The client covers the card
+  // fee as a SURCHARGE on the whole card charge (service + tip + tax); that
+  // surcharge is the Stripe application fee. No onboarded account -> platform
+  // charge, no surcharge (same rule as the web pay link).
+  const split = await connectChargeParams(admin, {
+    shopId: me.shopId,
+    artistId: artistId ?? null,
+    kind: "ticket",
+    baseCents: amountCents + tipCents + taxCents,
+  });
+  const surcharge = split?.surchargeCents ?? 0;
+  const totalCents = amountCents + tipCents + taxCents + surcharge;
 
   try {
     const pi = await stripe.paymentIntents.create(
@@ -131,13 +139,23 @@ export async function POST(req: Request) {
         ...(split
           ? { application_fee_amount: split.applicationFeeCents, transfer_data: { destination: split.destination } }
           : {}),
-        metadata: { payment_id: link.paymentId, pay_token: link.payToken, kind: "ticket", tip_cents: String(tipCents) },
+        metadata: {
+          payment_id: link.paymentId,
+          pay_token: link.payToken,
+          kind: "ticket",
+          tip_cents: String(tipCents),
+          surcharge_cents: String(surcharge),
+        },
       },
       { idempotencyKey: `terminal_${link.payToken}` },
     );
     await admin
       .from("payments")
-      .update({ stripe_payment_intent_id: pi.id })
+      .update({
+        stripe_payment_intent_id: pi.id,
+        surcharge_cents: surcharge,
+        app_fee_cents: split?.applicationFeeCents ?? 0,
+      })
       .eq("id", link.paymentId)
       .eq("shop_id", me.shopId);
 

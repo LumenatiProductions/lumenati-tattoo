@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStripeConfigured } from "@/lib/stripe/client";
-import { ensureAccount, onboardingLink, refreshOnboardStatus } from "@/lib/stripe/connect";
+import {
+  ensureAccount,
+  onboardingLink,
+  refreshOnboardStatus,
+  ensureShopAccount,
+  shopOnboardingLink,
+  refreshShopOnboardStatus,
+} from "@/lib/stripe/connect";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +43,8 @@ export async function GET() {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  // Only booth renters get Connect accounts — payroll artists are paid via
-  // Gusto and never route through Stripe transfers.
+  // Only booth renters get their OWN Connect account — payroll artists are paid
+  // via Gusto and route through the shop's account instead.
   const { data, error } = await admin
     .from("artists")
     .select("id, name, stripe_account_id, stripe_onboarded")
@@ -47,8 +54,17 @@ export async function GET() {
     .order("sort");
   if (error) return NextResponse.json({ error: error.message, artists: [] }, { status: 500 });
 
+  // The SHOP's own account catches payroll / shop-income card sales. Reading via
+  // service role (bypasses the per-column grants on `shops`).
+  const { data: s } = await admin
+    .from("shops")
+    .select("stripe_account_id, stripe_onboarded")
+    .eq("id", shopId)
+    .maybeSingle();
+
   return NextResponse.json({
     configured: isStripeConfigured,
+    shop: { hasAccount: !!s?.stripe_account_id, onboarded: !!s?.stripe_onboarded },
     artists: (data ?? []).map((a) => ({
       id: a.id,
       name: a.name,
@@ -72,7 +88,43 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  const b = (await req.json().catch(() => ({}))) as { artistId?: string; action?: string };
+  const b = (await req.json().catch(() => ({}))) as {
+    artistId?: string;
+    action?: string;
+    target?: "shop" | "artist";
+  };
+
+  // Shop-level onboarding (no artistId): stand up the SHOP's connected account so
+  // payroll / shop-income card sales land in the shop's balance, not Lumenati's.
+  if (b.target === "shop") {
+    if (b.action === "refresh") {
+      const status = await refreshShopOnboardStatus(admin, shopId);
+      return NextResponse.json(status);
+    }
+    const { data: shop } = await admin
+      .from("shops")
+      .select("id, name, stripe_account_id")
+      .eq("id", shopId)
+      .maybeSingle();
+    if (!shop) return NextResponse.json({ error: "Shop not found" }, { status: 404 });
+    try {
+      const accountId = await ensureShopAccount(admin, {
+        id: shop.id as string,
+        name: (shop.name as string) ?? "Lumenati Tattoo",
+        stripe_account_id: (shop.stripe_account_id as string | null) ?? null,
+      });
+      if (!accountId) return NextResponse.json({ error: "Could not create account." }, { status: 502 });
+      const url = await shopOnboardingLink(accountId, shopId);
+      if (!url) return NextResponse.json({ error: "Could not create link." }, { status: 502 });
+      return NextResponse.json({ url });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Stripe error." },
+        { status: 502 },
+      );
+    }
+  }
+
   if (!b.artistId) return NextResponse.json({ error: "Missing artistId" }, { status: 400 });
 
   // The artist must belong to the owner's shop before any Stripe call or update.

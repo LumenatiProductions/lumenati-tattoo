@@ -103,11 +103,19 @@ export async function startCheckout(
   const name = `${shopName} · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
   const tip = Math.max(0, Math.round(row.tip_cents ?? 0));
 
-  // Connect (POS-STARTER-5): a ticket for an onboarded BOOTH RENTER becomes a
-  // destination charge with a 0 application fee — 100% (service + tip) lands in
-  // the renter's bank. Deposits, payroll artists, and non-onboarded renters
-  // charge the platform normally (no transfer).
-  const split = await connectChargeParams(admin, row.artist_id, row.kind, row.amount_cents);
+  // Payments (2026-07-14): a ticket/other routes as a destination charge to the
+  // BOOTH RENTER (their own sale) or, failing that, the SHOP's account (payroll /
+  // shop income). The client covers the card fee as a SURCHARGE computed on
+  // service + tip; that surcharge is the Stripe application fee, so the receiving
+  // account keeps 100% of service + tip and Lumenati nets ~1% after Stripe's cut.
+  // Deposits and non-onboarded fallbacks charge the platform with no surcharge.
+  const split = await connectChargeParams(admin, {
+    shopId: row.shop_id,
+    artistId: row.artist_id,
+    kind: row.kind,
+    baseCents: row.amount_cents + tip,
+  });
+  const surcharge = split?.surchargeCents ?? 0;
   const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {
     metadata: { payment_id: row.id, pay_token: row.pay_token },
     ...(split
@@ -117,6 +125,12 @@ export async function startCheckout(
         }
       : {}),
   };
+  // Record what the client will cover + what Lumenati keeps, for the books and
+  // receipts. Best-effort: a missing column (pre-migration) must never block pay.
+  await admin
+    .from("payments")
+    .update({ surcharge_cents: surcharge, app_fee_cents: split?.applicationFeeCents ?? 0 })
+    .eq("id", row.id);
 
   try {
     const session = await stripe.checkout.sessions.create(
@@ -146,13 +160,34 @@ export async function startCheckout(
                 },
               ]
             : []),
+          // The card fee the client covers, disclosed as its own line so it's
+          // plainly itemized on Stripe's page + the receipt (surcharge rules
+          // require it to be shown before payment).
+          ...(surcharge > 0
+            ? [
+                {
+                  quantity: 1,
+                  price_data: {
+                    currency: row.currency || "usd",
+                    unit_amount: surcharge,
+                    product_data: { name: "Card processing fee" },
+                  },
+                },
+              ]
+            : []),
         ],
-        metadata: { payment_id: row.id, pay_token: row.pay_token, kind: row.kind, tip_cents: String(tip) },
+        metadata: {
+          payment_id: row.id,
+          pay_token: row.pay_token,
+          kind: row.kind,
+          tip_cents: String(tip),
+          surcharge_cents: String(surcharge),
+        },
         payment_intent_data: paymentIntentData,
       },
-      // Tip is part of the key: changing the tip mints a fresh session instead
-      // of reusing one priced at the old total.
-      { idempotencyKey: `checkout_${row.pay_token}_t${tip}` },
+      // Tip + surcharge are part of the key: changing either mints a fresh
+      // session instead of reusing one priced at the old total.
+      { idempotencyKey: `checkout_${row.pay_token}_t${tip}_s${surcharge}` },
     );
     await admin.from("payments").update({ stripe_session_id: session.id }).eq("id", row.id);
     return { ok: true as const, url: session.url };

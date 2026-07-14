@@ -7,6 +7,7 @@ import { useSettledStatements } from "@/lib/admin/settlements-context";
 import { fmt, type ArtistStatement } from "@/lib/admin/calc";
 import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
 import PayoutsConnect from "@/components/admin/connect/PayoutsConnect";
+import GetPaidEarly from "@/components/admin/connect/GetPaidEarly";
 
 // Pay (2026-07-08 rebuild). The shop cuts no checks and withholds nothing.
 // Two jobs live here:
@@ -82,6 +83,10 @@ export default function PayoutsPage() {
       {/* Stripe Connect — owner only. Onboarded renters get their card sales
           sent straight to their bank; the manual list below covers the rest. */}
       {role === "owner" && <PayoutsConnect />}
+
+      {/* Get-paid-early: instant payout of a renter's settled card sale. Only
+          renders when there's an eligible ticket, so it's invisible otherwise. */}
+      {role === "owner" && <GetPaidEarly />}
 
       {role !== "artist" && (
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">

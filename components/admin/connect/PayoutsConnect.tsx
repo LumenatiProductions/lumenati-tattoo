@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Card, SectionTitle, Badge } from "@/components/admin/ui";
 
 type ConnectArtist = { id: string; name: string; hasAccount: boolean; onboarded: boolean };
+type ShopStatus = { hasAccount: boolean; onboarded: boolean };
 
 // Owner-only: link each BOOTH RENTER's bank via Stripe Connect so their card
 // sales flow straight through to them (100%, zero fee — rent is billed
@@ -11,6 +12,7 @@ type ConnectArtist = { id: string; name: string; hasAccount: boolean; onboarded:
 // keys are set it shows a configure note; the rest of the page still works.
 export default function PayoutsConnect() {
   const [artists, setArtists] = useState<ConnectArtist[]>([]);
+  const [shop, setShop] = useState<ShopStatus>({ hasAccount: false, onboarded: false });
   const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -22,6 +24,7 @@ export default function PayoutsConnect() {
       const d = await r.json();
       if (r.ok) {
         setArtists(d.artists || []);
+        setShop(d.shop || { hasAccount: false, onboarded: false });
         setConfigured(!!d.configured);
         setError(null);
       } else {
@@ -33,6 +36,33 @@ export default function PayoutsConnect() {
       setLoading(false);
     }
   }, []);
+
+  // Stand up / re-check the SHOP's own connected account (payroll + shop-income
+  // card sales land in the shop's balance, and Lumenati takes its fee there).
+  const shopAction = useCallback(
+    async (action: "onboard" | "refresh") => {
+      setBusyId("shop");
+      setError(null);
+      try {
+        const r = await fetch("/api/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target: "shop", action }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (action === "onboard" && r.ok && d.url) {
+          window.location.href = d.url;
+          return;
+        }
+        if (!r.ok) setError(d.error || "Could not set up the shop account.");
+      } catch {
+        setError("Could not set up the shop account.");
+      }
+      setBusyId(null);
+      await load();
+    },
+    [load],
+  );
 
   const refresh = useCallback(
     async (artistId: string) => {
@@ -59,13 +89,17 @@ export default function PayoutsConnect() {
     [load],
   );
 
-  // On return from Stripe onboarding (?connect=return&artist=ID) re-check status.
+  // On return from Stripe onboarding re-check the account that came back
+  // (?connect=return&artist=ID for a renter, &shop=ID for the shop).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    const artist = p.get("artist");
-    if (p.get("connect") === "return" && artist) refresh(artist);
+    if (p.get("connect") === "return") {
+      const artist = p.get("artist");
+      if (artist) refresh(artist);
+      if (p.get("shop")) shopAction("refresh");
+    }
     load();
-  }, [load, refresh]);
+  }, [load, refresh, shopAction]);
 
   const onboard = async (artistId: string) => {
     setBusyId(artistId);
@@ -88,6 +122,60 @@ export default function PayoutsConnect() {
 
   return (
     <div className="mb-6">
+      <div className="mb-6">
+      <SectionTitle>Shop account · Stripe Connect</SectionTitle>
+      <Card>
+        <div className="border-b border-white/8 px-4 py-3 text-xs text-white/65">
+          {configured
+            ? "Your shop's own Stripe account. Card sales for payroll artists and the shop land here, in your balance — never held in Lumenati's. Clients cover the card fee at checkout, so you keep 100% of every rate."
+            : "Add Stripe keys to link your shop's account. Until then card sales charge the platform account."}
+        </div>
+        {error && busyId === "shop" && <div className="px-4 py-2 text-sm text-rose-400">{error}</div>}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-medium">This shop</span>
+            {shop.onboarded ? (
+              <Badge tone="good">Ready to take card sales</Badge>
+            ) : shop.hasAccount ? (
+              <Badge tone="warn">Onboarding incomplete</Badge>
+            ) : (
+              <Badge tone="neutral">Not set up</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {shop.onboarded ? (
+              <button
+                onClick={() => shopAction("refresh")}
+                disabled={busyId === "shop"}
+                className="text-xs text-white/55 hover:text-white/85 disabled:opacity-40"
+              >
+                Refresh
+              </button>
+            ) : (
+              <>
+                {shop.hasAccount && (
+                  <button
+                    onClick={() => shopAction("refresh")}
+                    disabled={busyId === "shop"}
+                    className="text-xs text-white/55 hover:text-white/85 disabled:opacity-40"
+                  >
+                    Check
+                  </button>
+                )}
+                <button
+                  onClick={() => shopAction("onboard")}
+                  disabled={!configured || busyId === "shop"}
+                  className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                >
+                  {busyId === "shop" ? "…" : shop.hasAccount ? "Finish setup" : "Link shop account"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+      </div>
+
       <SectionTitle>Renter bank links · Stripe Connect</SectionTitle>
       <Card>
         <div className="border-b border-white/8 px-4 py-3 text-xs text-white/65">

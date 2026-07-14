@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { surchargeCents } from "@/lib/stripe/fees";
 
 // Tip picker + pay button for the public payment portal. Percentages compute
 // off the service amount; the final price is still enforced server-side (the
@@ -16,10 +17,14 @@ export default function TipAndPay({
   token,
   amountCents,
   kind,
+  surcharged = false,
 }: {
   token: string;
   amountCents: number;
   kind: string;
+  /** When the payment routes to a connected account, the client covers the card
+   *  fee. Computed live from the same formula the server charges. */
+  surcharged?: boolean;
 }) {
   const tippable = kind === "ticket" || kind === "other";
   const [pct, setPct] = useState<number | "custom" | null>(tippable ? 20 : null);
@@ -32,7 +37,8 @@ export default function TipAndPay({
       : pct
         ? Math.round((amountCents * pct) / 100)
         : 0;
-  const total = amountCents + tipCents;
+  const feeCents = surcharged ? surchargeCents(amountCents + tipCents) : 0;
+  const total = amountCents + tipCents + feeCents;
 
   const chip = (active: boolean) =>
     `rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
@@ -76,6 +82,13 @@ export default function TipAndPay({
               {usd(amountCents)} + {usd(tipCents)} tip
             </div>
           )}
+        </div>
+      )}
+
+      {feeCents > 0 && (
+        <div className="mt-4 flex items-center justify-between border-t border-black/8 pt-3 text-xs text-black/50">
+          <span>Card processing fee</span>
+          <span className="tnum">{usd(feeCents)}</span>
         </div>
       )}
 

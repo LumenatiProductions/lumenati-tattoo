@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStripeConfigured } from "@/lib/stripe/client";
+import { connectChargeParams } from "@/lib/stripe/connect";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import TipAndPay from "./TipAndPay";
 
@@ -16,6 +17,7 @@ const KIND_LABEL: Record<string, string> = {
 
 type Row = {
   id: string;
+  shop_id: string;
   booking_id: string | null;
   artist_id: string | null;
   kind: string;
@@ -62,6 +64,19 @@ export default async function PayPage({
         .maybeSingle();
       serviceDesc = (data?.service_desc as string)?.trim() || null;
     }
+  }
+
+  // Does this payment route to a connected account? If so the client covers the
+  // card fee (surcharge), disclosed below and computed live as they pick a tip.
+  let surcharged = false;
+  if (admin && row && (row.kind === "ticket" || row.kind === "other")) {
+    const split = await connectChargeParams(admin, {
+      shopId: row.shop_id,
+      artistId: row.artist_id,
+      kind: row.kind,
+      baseCents: row.amount_cents,
+    });
+    surcharged = !!split;
   }
 
   const paid = row?.status === "paid" || returnStatus === "success";
@@ -117,7 +132,12 @@ export default async function PayPage({
               )}
 
               {isStripeConfigured ? (
-                <TipAndPay token={token} amountCents={row!.amount_cents} kind={row!.kind} />
+                <TipAndPay
+                  token={token}
+                  amountCents={row!.amount_cents}
+                  kind={row!.kind}
+                  surcharged={surcharged}
+                />
               ) : (
                 <div className="mt-5 rounded-lg bg-black/5 px-3 py-3 text-center text-xs text-black/50">
                   Payments aren&apos;t enabled yet. Please pay at the shop.
