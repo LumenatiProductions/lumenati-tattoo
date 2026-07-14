@@ -54,6 +54,21 @@ export async function onboardingLink(accountId: string, artistId: string): Promi
   return link.url;
 }
 
+// Same hosted onboarding, but for the ARTIST doing it from the app: Stripe can
+// only return to an https page (not a custom app scheme), so it lands on a small
+// public "you're all set" page that tells them to head back to the app (which
+// re-checks status on focus). Links are short-lived, so we mint fresh each time.
+export async function onboardingLinkForApp(accountId: string, artistId: string): Promise<string | null> {
+  if (!stripe) return null;
+  const link = await stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: `${siteUrl}/bank-linked?state=refresh&artist=${artistId}`,
+    return_url: `${siteUrl}/bank-linked?artist=${artistId}`,
+    type: "account_onboarding",
+  });
+  return link.url;
+}
+
 // Re-read the account and persist whether it can actually receive transfers.
 export async function refreshOnboardStatus(
   admin: SupabaseClient,

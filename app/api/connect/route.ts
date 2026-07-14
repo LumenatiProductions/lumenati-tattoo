@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveStaff } from "@/lib/api-auth";
 import { isStripeConfigured } from "@/lib/stripe/client";
 import {
   ensureAccount,
   onboardingLink,
+  onboardingLinkForApp,
   refreshOnboardStatus,
   ensureShopAccount,
   shopOnboardingLink,
@@ -13,35 +14,44 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// Connect onboarding is owner-only (it sets up how artists get paid + their tax
-// reporting). Reads/writes the artists' Connect columns via the service-role
-// client; Stripe calls go through the server SDK.
-async function owner() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { user: null, role: null as string | null, shopId: null as string | null };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, shop_id")
-    .eq("email", user.email!)
-    .maybeSingle();
-  return {
-    user,
-    role: profile?.role ?? null,
-    shopId: (profile?.shop_id as string | null) ?? null,
-  };
-}
+// Connect onboarding. Cookie-or-Bearer (resolveStaff): the OWNER manages every
+// renter + the shop account from the web admin; an ARTIST links their OWN bank
+// from the app (booth renters only — payroll artists are paid via Gusto).
+// Reads/writes the Connect columns via the service-role client; Stripe calls go
+// through the server SDK.
 
-// List the roster with each artist's Connect status. Owner only.
-export async function GET() {
-  const { user, role, shopId } = await owner();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Owners only" }, { status: 403 });
+// Status. Owner -> the roster + shop account; artist -> just their own bank link.
+export async function GET(req: Request) {
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const { role, shopId, artistId } = ctx;
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
+
+  // An artist sees only their own status. `eligible` = a booth renter (the only
+  // artists who link a bank); the app hides the button otherwise.
+  if (role === "artist") {
+    if (!artistId) return NextResponse.json({ configured: isStripeConfigured, me: null });
+    const { data: a } = await admin
+      .from("artists")
+      .select("pay_type, stripe_account_id, stripe_onboarded")
+      .eq("id", artistId)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+    return NextResponse.json({
+      configured: isStripeConfigured,
+      me: a
+        ? {
+            eligible: a.pay_type === "booth_rent",
+            hasAccount: !!a.stripe_account_id,
+            onboarded: !!a.stripe_onboarded,
+          }
+        : null,
+    });
+  }
+
+  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Owners only" }, { status: 403 });
 
   // Only booth renters get their OWN Connect account — payroll artists are paid
   // via Gusto and route through the shop's account instead.
@@ -74,16 +84,17 @@ export async function GET() {
   });
 }
 
-// POST { artistId, action: "onboard" | "refresh" }. Owner only.
+// POST { action: "onboard" | "refresh", target?, artistId? }.
 //  - onboard: create the Express account if needed, return a hosted onboarding URL
 //  - refresh: re-read the account and persist whether it can receive transfers
+// Owner may target the shop or any renter; an artist only ever acts on themselves.
 export async function POST(req: Request) {
-  const { user, role, shopId } = await owner();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!isStripeConfigured) {
     return NextResponse.json({ error: "Stripe is not configured yet." }, { status: 503 });
   }
+  const { role, shopId, artistId: myArtistId } = ctx;
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
@@ -93,6 +104,39 @@ export async function POST(req: Request) {
     action?: string;
     target?: "shop" | "artist";
   };
+
+  // ARTIST links their OWN bank from the app. Any artistId/target in the body is
+  // ignored — they can only ever act on their own chair, and only as a renter.
+  if (role === "artist") {
+    if (!myArtistId) return NextResponse.json({ error: "No chair linked to your account." }, { status: 403 });
+    const { data: me } = await admin
+      .from("artists")
+      .select("id, name, stripe_account_id, pay_type")
+      .eq("id", myArtistId)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+    if (!me) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
+    if (me.pay_type !== "booth_rent") {
+      return NextResponse.json(
+        { error: "Your pay is run through the shop — no bank link needed." },
+        { status: 400 },
+      );
+    }
+    if (b.action === "refresh") {
+      return NextResponse.json(await refreshOnboardStatus(admin, myArtistId));
+    }
+    try {
+      const accountId = await ensureAccount(admin, me);
+      if (!accountId) return NextResponse.json({ error: "Could not create account." }, { status: 502 });
+      const url = await onboardingLinkForApp(accountId, me.id);
+      if (!url) return NextResponse.json({ error: "Could not create link." }, { status: 502 });
+      return NextResponse.json({ url });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Stripe error." }, { status: 502 });
+    }
+  }
+
+  if (role !== "owner" || !shopId) return NextResponse.json({ error: "Owners only" }, { status: 403 });
 
   // Shop-level onboarding (no artistId): stand up the SHOP's connected account so
   // payroll / shop-income card sales land in the shop's balance, not Lumenati's.

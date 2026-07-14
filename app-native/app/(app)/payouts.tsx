@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import Svg, { Polyline } from "react-native-svg";
@@ -104,6 +104,9 @@ export default function Payouts() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [early, setEarly] = useState<EarlyRow[]>([]);
   const [earlyBusy, setEarlyBusy] = useState<string | null>(null);
+  // The signed-in artist's own bank-link status (renters only). null = N/A.
+  const [bank, setBank] = useState<{ eligible: boolean; hasAccount: boolean; onboarded: boolean } | null>(null);
+  const [bankBusy, setBankBusy] = useState(false);
 
   const canSettle = (role === "owner") && !preview;
 
@@ -161,6 +164,17 @@ export default function Payouts() {
     // eligible or Stripe isn't linked, so the section just hides itself.
     const earlyRes = await apiGet<{ eligible: EarlyRow[] }>("/api/payments/instant-payout");
     setEarly(earlyRes.ok ? earlyRes.data?.eligible ?? [] : []);
+
+    // The artist's own bank-link status, so a renter can link their bank right
+    // from the app. Owners manage this on the web, so skip the call for them.
+    if (role === "artist") {
+      const cs = await apiGet<{ me: { eligible: boolean; hasAccount: boolean; onboarded: boolean } | null }>(
+        "/api/connect",
+      );
+      setBank(cs.ok ? cs.data?.me ?? null : null);
+    } else {
+      setBank(null);
+    }
   }, [role, email, preview, shopId]);
 
   useEffect(() => {
@@ -211,6 +225,29 @@ export default function Payouts() {
         },
       ],
     );
+  };
+
+  // Link the artist's own bank via Stripe's hosted onboarding (opens the system
+  // browser; they return to the app and the status re-checks on refresh).
+  const linkBank = async () => {
+    setBankBusy(true);
+    setMsg(null);
+    const res = await apiPost<{ url?: string }>("/api/connect", { action: "onboard" });
+    setBankBusy(false);
+    if (res.ok && res.data?.url) {
+      Linking.openURL(res.data.url);
+      return;
+    }
+    setMsg(res.error ?? "Could not start bank setup.");
+  };
+
+  // Re-check with Stripe whether onboarding finished (for the "already did it?"
+  // nudge and after they come back from the browser).
+  const checkBank = async () => {
+    setBankBusy(true);
+    await apiPost("/api/connect", { action: "refresh" });
+    await load();
+    setBankBusy(false);
   };
 
   const payEarly = (row: EarlyRow) => {
@@ -267,6 +304,40 @@ export default function Payouts() {
             )}
 
             {msg ? <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 12 }}>{msg}</Text> : null}
+
+            {role === "artist" && bank?.eligible && !bank.onboarded && (
+              <>
+                <SectionTitle>Get paid</SectionTitle>
+                <Card>
+                  <Text style={{ color: theme.text, fontSize: 16, fontWeight: "700" }}>
+                    {bank.hasAccount ? "Finish linking your bank" : "Link your bank to get paid"}
+                  </Text>
+                  <Text style={{ color: theme.textDim, fontSize: 13, marginTop: 5, lineHeight: 19 }}>
+                    Your card sales land straight in your account, and you can cash out early right
+                    from here. Takes about a minute, handled securely by Stripe.
+                  </Text>
+                  <Pressable
+                    onPress={bankBusy ? undefined : linkBank}
+                    disabled={bankBusy}
+                    style={({ pressed }) => [
+                      styles.payBtn,
+                      { alignSelf: "flex-start", marginTop: 14 },
+                      pressed && { opacity: 0.7 },
+                      bankBusy && { opacity: 0.4 },
+                    ]}
+                  >
+                    <Text style={styles.payBtnText}>
+                      {bankBusy ? "Opening…" : bank.hasAccount ? "Finish setup" : "Link your bank"}
+                    </Text>
+                  </Pressable>
+                  {bank.hasAccount && (
+                    <Pressable onPress={bankBusy ? undefined : checkBank} style={{ marginTop: 12 }}>
+                      <Text style={{ color: theme.textDim, fontSize: 13 }}>Already did it? Check status</Text>
+                    </Pressable>
+                  )}
+                </Card>
+              </>
+            )}
 
             {early.length > 0 && (
               <>
