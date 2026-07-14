@@ -49,7 +49,9 @@ const DESKTOP_SCREENS = [
 // Plan comparison. Values are true (included), false (not), or a string.
 const COMPARE: { label: string; artist: string | boolean; shop: string | boolean }[] = [
   { label: "Best for", artist: "Solo & booth-rent artists", shop: "Shops with a crew" },
-  { label: "Card payments", artist: "4% flat", shop: "4% flat" },
+  { label: "Card fee", artist: "On the client", shop: "On the client" },
+  { label: "Keep 100% of your rate", artist: true, shop: true },
+  { label: "Get paid early", artist: true, shop: true },
   { label: "Booking, deposits & waivers", artist: true, shop: true },
   { label: "Texting, winbacks & reviews", artist: true, shop: true },
   { label: "The coach", artist: "Your chair", shop: "Shop + every artist" },
@@ -184,11 +186,11 @@ export default function ShopsMarketingPage() {
                 <span className="text-5xl font-black tracking-tight">$99</span>
                 <span className="text-lg font-semibold text-zinc-400">/mo</span>
               </div>
-              <div className="mt-2 text-sm text-zinc-400">Card payments 4% flat. No shop needed.</div>
+              <div className="mt-2 text-sm text-zinc-400">Clients cover the card fee, so you keep 100%. No shop needed.</div>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
-              Booking, deposits, waivers, texting, winbacks, reviews, the tax &amp; 1099 pack, and the
-              coach. Everything above, for one chair.
+              Booking, deposits, waivers, texting, winbacks, reviews, the tax &amp; 1099 pack, the
+              coach, and get-paid-early. Everything above, for one chair.
             </p>
             <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
               Get started
@@ -241,7 +243,7 @@ export default function ShopsMarketingPage() {
                 <span className="ml-1 text-3xl font-black text-brand">+ $79</span>
                 <span className="text-sm font-semibold text-zinc-400">per artist</span>
               </div>
-              <div className="mt-2 text-sm text-zinc-400">Card payments 4% flat.</div>
+              <div className="mt-2 text-sm text-zinc-400">Clients cover the card fee, so every artist keeps 100%.</div>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
               Everything in the artist plan, plus the shop finance layer: splits, booth rent,
