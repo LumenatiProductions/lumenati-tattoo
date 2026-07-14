@@ -24,15 +24,29 @@
    Command Center: violet bleeding from the top-left, brand pink hazing the
    top-right, electric blue pooling bottom-right, a blue-violet swell bottom-
    left, and a soft violet core. Fixed, so panels scroll over the ink. */
+/* The ink lives on a position:fixed layer instead of background-attachment:
+   fixed — iOS Safari repaints the latter badly (flicker, dropped CSS vars).
+   This keeps the ink put while content scrolls, cleanly. */
 .mkt-wash {
+  position: relative;
+  background: #08080e;
+}
+.mkt-wash::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background:
     radial-gradient(48% 40% at 10% 6%, rgba(124, 58, 190, 0.42), transparent 62%),
     radial-gradient(44% 38% at 94% 10%, rgba(255, 20, 147, 0.22), transparent 60%),
     radial-gradient(52% 46% at 90% 86%, rgba(0, 150, 210, 0.2), transparent 62%),
     radial-gradient(58% 50% at 12% 94%, rgba(60, 78, 168, 0.28), transparent 62%),
-    radial-gradient(70% 60% at 50% 48%, rgba(78, 48, 150, 0.16), transparent 72%),
-    #08080e;
-  background-attachment: fixed;
+    radial-gradient(70% 60% at 50% 48%, rgba(78, 48, 150, 0.16), transparent 72%);
+}
+.mkt-wash > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* The app's glass: lit top edge, faint fill, blur over the wash. */

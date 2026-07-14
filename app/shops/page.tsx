@@ -32,9 +32,9 @@ const SHOP_BENEFITS = [
 
 // The artist app screens (side by side on desktop, a carousel on mobile).
 const ARTIST_PHONES = [
-  { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Their day and their money." },
-  { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Goals, taxes set aside, rewards." },
-  { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in their corner." },
+  { img: "/marketing/app-artist-home.webp", alt: "An artist's day and earnings this month", cap: "Your day and your money." },
+  { img: "/marketing/app-artist-goals.webp", alt: "An artist's goal chart, tax reserve, and reward badges", cap: "Your goals, taxes set aside, rewards." },
+  { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in your corner." },
 ];
 
 // The desktop back-office screens in the shop slider.
@@ -139,8 +139,8 @@ export default function ShopsMarketingPage() {
             Run your chair like your own business.
           </h2>
           <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
-            The money app your crew will actually open. Their earnings, their goals, their taxes,
-            handled, with a coach in their corner.
+            The money app you&apos;ll actually want to open. Your earnings, your goals, your taxes,
+            handled, with a coach in your corner.
           </p>
 
           <ul className="mt-12 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
