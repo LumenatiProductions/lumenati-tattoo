@@ -23,6 +23,10 @@ export default function GetSetUp() {
   const [shop, setShop] = useState<Shop | null>(null);
   const [hidden, setHidden] = useState(true);
   const [copied, setCopied] = useState(false);
+  // Payments status comes from /api/connect (the onboarded flag is a server-only
+  // column with no client grant), so the "connect your bank" step retires itself
+  // once Stripe onboarding is done. `pay` null = not loaded / Stripe not set up.
+  const [pay, setPay] = useState<{ onboarded: boolean } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -45,6 +49,12 @@ export default function GetSetUp() {
           setHidden(false);
         }
       }
+      // Only surface the payments step when Stripe is actually configured, so a
+      // pre-keys environment doesn't nag about a bank link that can't happen yet.
+      const cr = await fetch("/api/connect")
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      if (cr?.configured && cr.shop) setPay({ onboarded: !!cr.shop.onboarded });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -59,12 +69,27 @@ export default function GetSetUp() {
   }).length;
 
   const steps = [
+    // The money step leads: right after signup, connecting your bank so you can
+    // take cards is the most important thing. Only shown once Stripe is set up.
+    ...(pay
+      ? [
+          {
+            done: pay.onboarded,
+            title: "Connect your bank to get paid",
+            sub: "Take cards with the money going straight to you. Clients cover the card fee, you keep 100%.",
+            href: "/admin/payouts",
+            cta: "Set up payments",
+            money: true,
+          },
+        ]
+      : []),
     {
       done: !!shop.logo_url,
       title: "Add your shop logo",
       sub: "It tops every artist page.",
       href: "/admin/staff",
       cta: "Team page",
+      money: false,
     },
     {
       done: crew.length > 0 && faced === crew.length,
@@ -72,6 +97,7 @@ export default function GetSetUp() {
       sub: crew.length ? `${faced} of ${crew.length} artists have a profile photo.` : "Add your crew first.",
       href: "/admin/room",
       cta: "My Page editor",
+      money: false,
     },
     {
       done: crew.length > 0 && showing === crew.length,
@@ -79,6 +105,7 @@ export default function GetSetUp() {
       sub: crew.length ? `${showing} of ${crew.length} portfolios have photos in them.` : "Add your crew first.",
       href: "/admin/room",
       cta: "My Page editor",
+      money: false,
     },
   ];
   if (steps.every((s) => s.done)) return null;
@@ -127,11 +154,19 @@ export default function GetSetUp() {
                 <div className={`text-sm font-semibold ${s.done ? "text-white/45 line-through" : ""}`}>{s.title}</div>
                 {!s.done && <div className="text-xs text-white/55">{s.sub}</div>}
               </div>
-              {!s.done && (
-                <Link href={s.href} className="flex-none text-sm font-semibold text-sky-300 hover:text-sky-200">
-                  {s.cta}
-                </Link>
-              )}
+              {!s.done &&
+                (s.money ? (
+                  <Link
+                    href={s.href}
+                    className="flex-none rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+                  >
+                    {s.cta}
+                  </Link>
+                ) : (
+                  <Link href={s.href} className="flex-none text-sm font-semibold text-sky-300 hover:text-sky-200">
+                    {s.cta}
+                  </Link>
+                ))}
             </li>
           ))}
           <li className="flex items-center gap-3 py-2.5 last:pb-0">
