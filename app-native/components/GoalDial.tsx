@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -45,11 +45,19 @@ export default function GoalDial({ value, min, max, step, format, caption, onCha
   // t = 0..1 around the sweep.
   const t = useSharedValue(max > min ? (value - min) / (max - min) : 0);
   const [shown, setShown] = useState(value);
+  // True while a finger is on the dial. The sync effect below must never move
+  // t.value during a drag — each detent updates the parent's `value`, and if the
+  // effect springs t.value back before `shown` catches up, the dial snaps out
+  // from under the finger. The finger owns the ring until release.
+  const dragging = useRef(false);
+  const setDragging = (v: boolean) => {
+    dragging.current = v;
+  };
 
-  // Re-sync when the caller switches modes or sets the value from outside
-  // (e.g. the "Use suggested" button). During a drag value === shown, so this
-  // never fights the finger.
+  // Re-sync when the caller sets the value from outside (e.g. the "Use suggested"
+  // button, or a mode switch). Skipped mid-drag so it can't fight the finger.
   useEffect(() => {
+    if (dragging.current) return;
     if (value !== shown) {
       t.value = withSpring(max > min ? (value - min) / (max - min) : 0, { damping: 18, stiffness: 140 });
       setShown(value);
@@ -72,6 +80,9 @@ export default function GoalDial({ value, min, max, step, format, caption, onCha
   };
 
   const pan = Gesture.Pan()
+    .onBegin(() => {
+      runOnJS(setDragging)(true);
+    })
     .onChange((e) => {
       // Angle of the finger from the dial center, normalized onto the sweep.
       const dx = e.x - CX;
@@ -87,6 +98,10 @@ export default function GoalDial({ value, min, max, step, format, caption, onCha
       const raw = min + t.value * (max - min);
       const snapped = Math.round(raw / step) * step;
       t.value = withSpring(max > min ? (snapped - min) / (max - min) : 0, { damping: 18, stiffness: 160 });
+    })
+    .onFinalize(() => {
+      // Finger is off — the sync effect may steer the dial again.
+      runOnJS(setDragging)(false);
     });
 
   const color = useDerivedValue(() =>
