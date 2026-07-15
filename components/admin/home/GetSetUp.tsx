@@ -142,7 +142,7 @@ export default function GetSetUp() {
       <Card>
         <ul className="divide-y divide-white/8">
           {steps.map((s) => (
-            <li key={s.title} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+            <li key={s.title} className="flex items-center gap-3 px-4 py-3">
               <span
                 className={`flex h-5 w-5 flex-none items-center justify-center rounded-full border text-[11px] font-bold ${
                   s.done ? "border-emerald-400/60 text-emerald-400" : "border-white/20 text-transparent"
@@ -152,30 +152,36 @@ export default function GetSetUp() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className={`text-sm font-semibold ${s.done ? "text-white/45 line-through" : ""}`}>{s.title}</div>
-                {!s.done && <div className="text-xs text-white/55">{s.sub}</div>}
+                {!s.done && <div className="mt-0.5 text-xs text-white/55">{s.sub}</div>}
               </div>
               {!s.done &&
                 (s.money ? (
                   <Link
                     href={s.href}
-                    className="flex-none rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+                    className="flex-none rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
                   >
                     {s.cta}
                   </Link>
                 ) : (
-                  <Link href={s.href} className="flex-none text-sm font-semibold text-sky-300 hover:text-sky-200">
+                  <Link
+                    href={s.href}
+                    className="flex-none rounded-lg border border-white/12 px-3 py-1.5 text-xs font-semibold text-white/75 hover:bg-white/5"
+                  >
                     {s.cta}
                   </Link>
                 ))}
             </li>
           ))}
-          <li className="flex items-center gap-3 py-2.5 last:pb-0">
+          <li className="flex items-center gap-3 px-4 py-3">
             <span className="h-5 w-5 flex-none" />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold">Share your pages</div>
               <div className="truncate text-xs text-white/55">{pageUrl}</div>
             </div>
-            <button onClick={copy} className="flex-none text-sm font-semibold text-sky-300 hover:text-sky-200">
+            <button
+              onClick={copy}
+              className="flex-none rounded-lg border border-white/12 px-3 py-1.5 text-xs font-semibold text-white/75 hover:bg-white/5"
+            >
               {copied ? "Copied" : "Copy link"}
             </button>
           </li>
