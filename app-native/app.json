@@ -7,6 +7,12 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "updates": {
+      "url": "https://u.expo.dev/2f6cfbd9-beb5-4f36-a5ec-827c55c622d2"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "icon": "./assets/icons/icon.png",
     "splash": {
       "image": "./assets/icons/splash-icon.png",
