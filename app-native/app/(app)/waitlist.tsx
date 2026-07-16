@@ -169,6 +169,17 @@ export default function Waitlist() {
 
           {note && <Text style={styles.note}>{note}</Text>}
 
+          {isStaff && rows && rows.length > 0 && (
+            // The whole shop's demand in one place. "Open to anyone" are the leads
+            // you can route to an artist who doesn't have their own waitlist.
+            <Text style={styles.summary}>
+              {rows.length} waiting
+              {rows.filter((r) => !r.artist_id).length > 0
+                ? ` · ${rows.filter((r) => !r.artist_id).length} open to any artist`
+                : ""}
+            </Text>
+          )}
+
           <SectionTitle>Waiting</SectionTitle>
           <Card style={{ padding: 0 }}>
             {rows === null ? (
@@ -323,6 +334,7 @@ const styles = StyleSheet.create({
   slotSub: { color: theme.textDim, fontSize: 13, marginTop: 3 },
   err: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   note: { color: theme.good, fontSize: 13.5, marginTop: 12, textAlign: "center" },
+  summary: { color: theme.textDim, fontSize: 13, marginTop: 14, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "flex-start", padding: 14 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
   rowTitle: { color: theme.text, fontSize: 16, fontWeight: "600" },
