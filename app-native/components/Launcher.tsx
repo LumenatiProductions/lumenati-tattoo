@@ -19,7 +19,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "artist"] },
       { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "artist"] },
       { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner"] },
-      { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner"] },
+      { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner", "artist"] },
       { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner"] },
       { href: "/social", label: "Social", icon: "image-outline", roles: ["owner"] },
     ],

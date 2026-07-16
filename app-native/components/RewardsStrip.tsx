@@ -20,14 +20,17 @@ export default function RewardsStrip({ snap, goals }: { snap: MoneySnapshot; goa
       contentContainerStyle={styles.strip}
     >
       {earned.map((b) => (
-        <View key={b.id} style={[styles.chip, { borderColor: TONE[b.tone] }]}>
-          <Ionicons name={b.icon as never} size={15} color={TONE[b.tone]} />
+        // Earned: tone-tinted fill + a check, so "met" is unmistakable regardless
+        // of the reward's own color.
+        <View key={b.id} style={[styles.chip, { borderColor: TONE[b.tone], backgroundColor: TONE[b.tone] + "1f" }]}>
+          <Ionicons name="checkmark-circle" size={15} color={TONE[b.tone]} />
           <Text style={styles.chipText}>{b.label}</Text>
         </View>
       ))}
       {next && (
+        // Not yet: dashed outline, locked, faint. Clearly still to chase.
         <View style={[styles.chip, styles.next]}>
-          <Ionicons name={next.icon as never} size={15} color={theme.textFaint} />
+          <Ionicons name="lock-closed-outline" size={14} color={theme.textFaint} />
           <Text style={[styles.chipText, { color: theme.textFaint }]}>Next: {next.label}</Text>
         </View>
       )}
