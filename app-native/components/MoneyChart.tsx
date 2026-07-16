@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, PanResponder, Text, View } from "react-native";
+import { Animated, Easing, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Svg, { Defs, LinearGradient, Path, Stop, Line, Circle } from "react-native-svg";
 import { theme, money } from "@/lib/theme";
 import { endStop, picked } from "@/lib/haptics";
@@ -68,7 +69,7 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
     }).start(() => setDrawn(true));
   }, [series, draw]);
 
-  const { linePath, areaPath, paceLine, pts, lastPt, ahead, deltaCents } = useMemo(() => {
+  const { linePath, areaPath, paceLine, pts, lastPt, total, ahead, deltaCents } = useMemo(() => {
     const n = Math.max(2, series.length);
     const vals = series.length ? series : [0, 0];
     const today = vals[vals.length - 1] ?? 0;
@@ -90,6 +91,7 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
       paceLine: goalCents ? { x1: 0, y1: y(0), x2: width, y2: y(goalCents) } : null,
       pts: points,
       lastPt: points[points.length - 1],
+      total: today,
       ahead: goalCents ? today >= paceToday : true,
       deltaCents: goalCents ? today - paceToday : 0,
     };
@@ -131,24 +133,26 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
 
   const pan = useMemo(
     () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (e) => {
+      Gesture.Pan()
+        // Callbacks touch React state + RN Animated values, so keep them on the
+        // JS thread (no reanimated worklet dance).
+        .runOnJS(true)
+        // A sideways drag scrubs the chart; a vertical drag is the page trying to
+        // scroll, so we bail and hand it to the ScrollView. This is the whole
+        // reason the old PanResponder felt broken — it fought the scroll and lost,
+        // so a scrub just scrolled the screen instead.
+        .activeOffsetX([-8, 8])
+        .failOffsetY([-14, 14])
+        .onStart((e) => {
           atEnd.current = false;
-          track(e.nativeEvent.locationX, true);
+          track(e.x, true);
           picked();
-        },
-        onPanResponderMove: (e) => track(e.nativeEvent.locationX, false),
-        onPanResponderRelease: () => {
+        })
+        .onUpdate((e) => track(e.x, false))
+        .onFinalize(() => {
           scrubRef.current = null;
           setScrubIdx(null);
-        },
-        onPanResponderTerminate: () => {
-          scrubRef.current = null;
-          setScrubIdx(null);
-        },
-      }),
+        }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pts, width],
   );
@@ -182,12 +186,22 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
             {scrubDate ? `through ${scrubDate}` : "so far"}
           </Text>
         </View>
-      ) : goalCents ? (
-        <Text style={{ color: ahead ? theme.good : theme.bad, fontSize: 14, fontWeight: "700", marginBottom: 8 }}>
-          {ahead ? "▲" : "▼"} {money(Math.abs(deltaCents))} {ahead ? "ahead of" : "behind"} pace
-        </Text>
-      ) : null}
-      <View {...pan.panHandlers}>
+      ) : (
+        // At rest: show the number itself — a chart with a blank readout until you
+        // touch it looked broken. Pace delta rides alongside when there's a goal.
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+          <Text style={{ color: theme.text, fontSize: 15, fontWeight: "800" }}>{money(total)}</Text>
+          {goalCents ? (
+            <Text style={{ color: ahead ? theme.good : theme.bad, fontSize: 12.5, fontWeight: "700" }}>
+              {ahead ? "▲" : "▼"} {money(Math.abs(deltaCents))} {ahead ? "ahead of" : "behind"} pace
+            </Text>
+          ) : (
+            <Text style={{ color: theme.textFaint, fontSize: 12.5 }}>so far</Text>
+          )}
+        </View>
+      )}
+      <GestureDetector gesture={pan}>
+        <View>
         <Svg width={width} height={H}>
           <Defs>
             <LinearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
@@ -261,7 +275,8 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
             </Animated.View>
           </>
         )}
-      </View>
+        </View>
+      </GestureDetector>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={{ color: theme.textFaint, fontSize: 11 }}>{startLabel}</Text>
         {goalCents ? (
