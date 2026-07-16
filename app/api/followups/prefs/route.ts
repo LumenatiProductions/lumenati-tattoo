@@ -4,7 +4,9 @@ import { resolveStaff } from "@/lib/api-auth";
 import { loadTemplates } from "@/lib/followups/job";
 import {
   ARTIST_FOLLOWUP_KINDS,
+  FOLLOWUP_KINDS,
   KIND_LABEL,
+  DEFAULT_TEMPLATES,
   overlayArtist,
   type FollowupKind,
   type Template,
@@ -12,45 +14,73 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// An artist controls the timing + copy of their OWN follow-ups. Overrides live in
-// followup_prefs (any field null = inherit the shop default). This resolves the
-// chain code default -> shop template -> artist override so the app can show
-// what's live, what the shop's default is, and whether the artist has changed it.
-// Cookie-or-Bearer; scoped to the caller's own artist_id. Owners manage the shop
-// templates on the web instead, so this is artist-only.
+// Follow-up control has TWO layers, both editable from the same app screen:
+//   • the OWNER edits the SHOP-LEVEL set (all kinds, including the promotional
+//     rebook/birthday ones for deals) — stored in followup_templates.
+//   • an ARTIST edits their OWN per-kind overrides on the visit-tied kinds —
+//     stored in followup_prefs, inheriting the shop default until changed.
+// An owner manages a specific chair by previewing it (passing artistId); with no
+// artistId, an owner is editing their own shop-level set. Both the daily job and
+// the send resolve: code default -> shop -> artist. Cookie-or-Bearer.
 
-function isArtistKind(k: string): k is FollowupKind {
-  return (ARTIST_FOLLOWUP_KINDS as string[]).includes(k);
+const fields = (t: { subject: string; body: string; lead_days: number; enabled: boolean }) => ({
+  subject: t.subject,
+  body: t.body,
+  lead_days: t.lead_days,
+  enabled: t.enabled,
+});
+
+function isKind(k: string, set: readonly FollowupKind[]): k is FollowupKind {
+  return (set as readonly string[]).includes(k);
 }
 
-// Whose follow-ups the caller may touch. An artist only ever their own; an owner
-// may name any artist in their shop (that's how they manage a chair via preview).
-// Returns the artist_id or null if not allowed / no chair in context.
+// The artist a caller may act on: an artist only their own; an owner any chair in
+// their shop. null = the owner is in shop-level mode (no chair named).
 async function targetArtist(
   admin: ReturnType<typeof createAdminClient>,
   ctx: { role: string; shopId: string; artistId: string | null },
   asked: string | null,
 ): Promise<string | null> {
   if (ctx.role !== "owner") return ctx.artistId ?? null;
-  const candidate = asked || ctx.artistId;
-  if (!candidate || !admin) return null;
-  const { data } = await admin.from("artists").select("id").eq("id", candidate).eq("shop_id", ctx.shopId).maybeSingle();
-  return data ? candidate : null;
+  if (!asked || !admin) return null;
+  const { data } = await admin.from("artists").select("id").eq("id", asked).eq("shop_id", ctx.shopId).maybeSingle();
+  return data ? asked : null;
 }
 
 export async function GET(req: Request) {
   const ctx = await resolveStaff(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
-  const artistId = await targetArtist(admin, ctx, new URL(req.url).searchParams.get("artistId"));
-  if (!artistId) {
-    return NextResponse.json({ error: "Pick a chair to manage follow-ups for." }, { status: 400 });
+  const shopTpl = await loadTemplates(admin, ctx.shopId);
+  const asked = new URL(req.url).searchParams.get("artistId");
+
+  // Owner with no chair named -> shop-level set (every kind).
+  if (ctx.role === "owner" && !asked) {
+    const items = FOLLOWUP_KINDS.map((kind) => {
+      const shop = shopTpl[kind];
+      const def = DEFAULT_TEMPLATES[kind];
+      return {
+        kind,
+        label: KIND_LABEL[kind],
+        effective: fields(shop),
+        shopDefault: fields(def), // for shop mode, "default" = the built-in copy
+        overridden: {
+          subject: shop.subject !== def.subject,
+          body: shop.body !== def.body,
+          lead_days: shop.lead_days !== def.lead_days,
+          enabled: shop.enabled !== def.enabled,
+        },
+      };
+    });
+    return NextResponse.json({ mode: "shop", items });
   }
 
-  const shopTpl = await loadTemplates(admin, ctx.shopId);
+  // Artist (own) or owner acting on a specific chair -> per-artist overrides.
+  const artistId = await targetArtist(admin, ctx, asked);
+  if (!artistId) return NextResponse.json({ error: "Pick a chair to manage follow-ups for." }, { status: 400 });
+
   const { data: rows } = await admin
     .from("followup_prefs")
     .select("kind, subject, body, lead_days, enabled")
@@ -64,21 +94,8 @@ export async function GET(req: Request) {
     return {
       kind,
       label: KIND_LABEL[kind],
-      // What the client actually gets (shop default with the artist's changes on top).
-      effective: {
-        subject: effective.subject,
-        body: effective.body,
-        lead_days: effective.lead_days,
-        enabled: effective.enabled,
-      },
-      // The shop's version, so the app can show "reset to shop default".
-      shopDefault: {
-        subject: shop.subject,
-        body: shop.body,
-        lead_days: shop.lead_days,
-        enabled: shop.enabled,
-      },
-      // Which fields the artist has actually overridden (null = inherited).
+      effective: fields(effective),
+      shopDefault: fields(shop),
       overridden: {
         subject: !!override?.subject?.trim(),
         body: !!override?.body?.trim(),
@@ -88,16 +105,12 @@ export async function GET(req: Request) {
     };
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ mode: "artist", items });
 }
 
-// Save (or clear) an override. Body: { kind, subject?, body?, lead_days?, enabled? }.
-// A field sent as null / "" clears that field's override (inherit the shop again).
-// When every field is inherited, the row is deleted entirely.
 export async function POST(req: Request) {
   const ctx = await resolveStaff(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
@@ -109,11 +122,6 @@ export async function POST(req: Request) {
     lead_days?: number | null;
     enabled?: boolean | null;
   };
-  const artistId = await targetArtist(admin, ctx, b.artistId ?? null);
-  if (!artistId) return NextResponse.json({ error: "Pick a chair to manage follow-ups for." }, { status: 400 });
-  if (!b.kind || !isArtistKind(b.kind)) {
-    return NextResponse.json({ error: "That follow-up can't be customized." }, { status: 400 });
-  }
 
   const subject = typeof b.subject === "string" && b.subject.trim() ? b.subject.trim().slice(0, 300) : null;
   const body = typeof b.body === "string" && b.body.trim() ? b.body.trim().slice(0, 4000) : null;
@@ -122,9 +130,49 @@ export async function POST(req: Request) {
       ? Math.max(0, Math.min(120, Math.round(b.lead_days)))
       : null;
   const enabled = typeof b.enabled === "boolean" ? b.enabled : null;
+  const allInherited = subject === null && body === null && lead_days === null && enabled === null;
 
-  // Nothing overridden -> drop the row so it fully inherits the shop default.
-  if (subject === null && body === null && lead_days === null && enabled === null) {
+  // Owner, no chair named -> edit the SHOP template for this kind.
+  if (ctx.role === "owner" && !b.artistId) {
+    if (!b.kind || !isKind(b.kind, FOLLOWUP_KINDS)) {
+      return NextResponse.json({ error: "Unknown follow-up." }, { status: 400 });
+    }
+    // Reset = delete the shop row so it falls back to the built-in default.
+    // Scoped by shop_id: never touches another shop's row.
+    if (allInherited) {
+      await admin.from("followup_templates").delete().eq("shop_id", ctx.shopId).eq("kind", b.kind);
+      return NextResponse.json({ ok: true, cleared: true });
+    }
+    // Safe update-or-insert scoped to this shop (followup_templates is keyed on
+    // kind alone, so we scope writes by shop_id by hand instead of upserting).
+    const { data: existing } = await admin
+      .from("followup_templates")
+      .select("kind")
+      .eq("shop_id", ctx.shopId)
+      .eq("kind", b.kind)
+      .maybeSingle();
+    const row = {
+      subject: subject ?? "",
+      body: body ?? "",
+      lead_days: lead_days ?? 0,
+      enabled: enabled ?? true,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = existing
+      ? await admin.from("followup_templates").update(row).eq("shop_id", ctx.shopId).eq("kind", b.kind)
+      : await admin.from("followup_templates").insert({ shop_id: ctx.shopId, kind: b.kind, ...row });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Artist (own) or owner on a specific chair -> per-artist override.
+  const artistId = await targetArtist(admin, ctx, b.artistId ?? null);
+  if (!artistId) return NextResponse.json({ error: "Pick a chair to manage follow-ups for." }, { status: 400 });
+  if (!b.kind || !isKind(b.kind, ARTIST_FOLLOWUP_KINDS)) {
+    return NextResponse.json({ error: "That follow-up can't be customized per artist." }, { status: 400 });
+  }
+
+  if (allInherited) {
     await admin.from("followup_prefs").delete().eq("artist_id", artistId).eq("kind", b.kind);
     return NextResponse.json({ ok: true, cleared: true });
   }

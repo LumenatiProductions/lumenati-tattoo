@@ -47,9 +47,16 @@ export default function MyFollowups() {
   const insets = useSafeAreaInsets();
   const { role, email } = useAuth();
   const { preview } = usePreview();
-  // Whose follow-ups: the previewed chair (owner) or the artist's own. undefined
-  // while we work it out; null = an owner who hasn't opened a chair yet.
-  const [artistId, setArtistId] = useState<string | null | undefined>(undefined);
+  const isOwner = role === "owner";
+  const previewArtist = preview?.artistId ?? null;
+  // The owner with no chair open edits the SHOP's own set; otherwise it's a
+  // specific artist (the previewed chair, or the signed-in artist's own).
+  const shopMode = isOwner && !previewArtist;
+  // ownArtist: undefined = still looking up (artists only). Owners don't have one.
+  const [ownArtist, setOwnArtist] = useState<string | null | undefined>(isOwner ? null : undefined);
+  const targetArtist = previewArtist ?? ownArtist ?? null;
+
+  const [mode, setMode] = useState<"shop" | "artist">(shopMode ? "shop" : "artist");
   const [items, setItems] = useState<Item[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [openKind, setOpenKind] = useState<string | null>(null);
@@ -58,27 +65,29 @@ export default function MyFollowups() {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      let aid = preview?.artistId ?? null;
-      if (!aid && role === "artist" && email) {
-        const { data } = await supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle();
-        aid = (data?.artist_id as string | null) ?? null;
-      }
-      setArtistId(aid);
-    })();
-  }, [role, email, preview]);
-
-  const load = useCallback(async () => {
-    if (artistId === undefined) return; // still resolving who
-    if (!artistId) {
-      setItems([]); // owner not previewing — the render prompts them to pick a chair
+    if (isOwner) {
+      setOwnArtist(null);
       return;
     }
-    const res = await apiGet<{ items: Item[] }>(`/api/followups/prefs?artistId=${encodeURIComponent(artistId)}`);
+    if (!email) return;
+    supabase
+      .from("profiles")
+      .select("artist_id")
+      .eq("email", email)
+      .maybeSingle()
+      .then(({ data }) => setOwnArtist((data?.artist_id as string | null) ?? null));
+  }, [isOwner, email]);
+
+  const load = useCallback(async () => {
+    // Wait for an artist's own-chair lookup; shop mode is ready immediately.
+    if (!shopMode && ownArtist === undefined) return;
+    const q = shopMode ? "" : `?artistId=${encodeURIComponent(targetArtist ?? "")}`;
+    const res = await apiGet<{ mode: "shop" | "artist"; items: Item[] }>(`/api/followups/prefs${q}`);
     // Always set items so it never spins forever; surface the error if any.
     setItems(res.ok ? res.data?.items ?? [] : []);
-    if (!res.ok) setMsg(res.error ?? "Could not load follow-ups.");
-  }, [artistId]);
+    if (res.ok) setMode(res.data?.mode ?? (shopMode ? "shop" : "artist"));
+    else setMsg(res.error ?? "Could not load follow-ups.");
+  }, [shopMode, ownArtist, targetArtist]);
 
   useEffect(() => {
     load();
@@ -102,7 +111,7 @@ export default function MyFollowups() {
     setBusy(true);
     setMsg(null);
     const res = await apiPost("/api/followups/prefs", {
-      artistId,
+      ...(shopMode ? {} : { artistId: targetArtist }),
       kind: openKind,
       subject: draft.subject,
       body: draft.body,
@@ -117,14 +126,15 @@ export default function MyFollowups() {
     setOpenKind(null);
     setDraft(null);
     await load();
-    setMsg("Saved. Your version is live.");
+    setMsg("Saved. It's live.");
   };
 
   const useShopDefault = async (kind: string) => {
     setBusy(true);
     setMsg(null);
-    // Clearing = an empty override, which the API deletes so it inherits again.
-    const res = await apiPost("/api/followups/prefs", { artistId, kind });
+    // Clearing = an empty override, which the API deletes so it inherits again
+    // (the shop default for an artist, the built-in default for the shop).
+    const res = await apiPost("/api/followups/prefs", { ...(shopMode ? {} : { artistId: targetArtist }), kind });
     setBusy(false);
     if (!res.ok) {
       setMsg(res.error ?? "Could not reset.");
@@ -133,7 +143,7 @@ export default function MyFollowups() {
     setOpenKind(null);
     setDraft(null);
     await load();
-    setMsg("Back to the shop's version.");
+    setMsg(shopMode ? "Back to the built-in default." : "Back to the shop's version.");
   };
 
   return (
@@ -145,19 +155,20 @@ export default function MyFollowups() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         <Text style={styles.intro}>
-          The messages clients get around a visit. Change the timing or the wording, or leave the
-          shop&apos;s version. Turn any of them off for this chair.
+          {mode === "shop"
+            ? "Your shop's follow-up messages — the defaults every artist starts from. Set the timing and wording, turn any off, and use rebook and birthday to send deals and win-backs."
+            : "The messages clients get around a visit. Change the timing or the wording, or leave the shop's version. Turn any of them off for this chair."}
         </Text>
         {msg ? <Text style={styles.msg}>{msg}</Text> : null}
 
-        {artistId === undefined ? (
+        {!shopMode && ownArtist === undefined ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
-        ) : artistId === null ? (
-          <Card>
-            <Empty>Open an artist&apos;s chair from Home (tap their tile) to manage their follow-ups.</Empty>
-          </Card>
         ) : items === null ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
+        ) : items.length === 0 ? (
+          <Card>
+            <Empty>Nothing to manage here yet.</Empty>
+          </Card>
         ) : (
           items.map((it) => {
             const anyOverride = Object.values(it.overridden).some(Boolean);
@@ -220,7 +231,9 @@ export default function MyFollowups() {
                       </View>
                       {anyOverride && (
                         <Pressable onPress={() => useShopDefault(it.kind)} style={{ marginTop: 12 }}>
-                          <Text style={styles.reset}>Use the shop&apos;s version instead</Text>
+                          <Text style={styles.reset}>
+                            {mode === "shop" ? "Reset to the built-in default" : "Use the shop's version instead"}
+                          </Text>
                         </Pressable>
                       )}
                     </View>
@@ -231,7 +244,7 @@ export default function MyFollowups() {
                           {it.effective.enabled ? timing(it.kind, it.effective.lead_days) : "Off for your chair"}
                         </Text>
                         <Text style={[styles.badge, anyOverride ? styles.badgeMine : styles.badgeShop]}>
-                          {anyOverride ? "Your version" : "Shop default"}
+                          {anyOverride ? (mode === "shop" ? "Customized" : "Your version") : mode === "shop" ? "Default" : "Shop default"}
                         </Text>
                       </View>
                       {it.effective.enabled && (
