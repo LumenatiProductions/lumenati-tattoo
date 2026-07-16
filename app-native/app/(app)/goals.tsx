@@ -124,6 +124,14 @@ export default function Goals() {
           </View>
         )}
 
+        {mode === "tax" && avgWeek > 0 && (
+          <View style={{ alignItems: "center", marginTop: 6 }}>
+            <Text style={styles.suggestWhy}>
+              About {money(Math.round((avgWeek * taxPct) / 100))} set aside on an average {money(avgWeek)}/week.
+            </Text>
+          </View>
+        )}
+
         {/* the other two at a glance */}
         <View style={styles.summary}>
           <Summary label="Weekly" value={weekly ? money(weekly) : "—"} on={mode === "weekly"} />

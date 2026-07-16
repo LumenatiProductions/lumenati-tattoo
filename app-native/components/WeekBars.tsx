@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { PanResponder, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { theme, money } from "@/lib/theme";
 import { picked } from "@/lib/haptics";
 
@@ -15,35 +16,35 @@ export default function WeekBars({ bars }: { bars: { label: string; cents: numbe
   const widthRef = useRef(0);
   const quietWeek = bars.every((b) => !b.cents);
 
-  const pan = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (e) => {
-          const w = widthRef.current || 1;
-          const i = Math.min(bars.length - 1, Math.max(0, Math.floor((e.nativeEvent.locationX / w) * bars.length)));
-          selRef.current = i;
-          setSel(i);
-          picked();
-        },
-        onPanResponderMove: (e) => {
-          const w = widthRef.current || 1;
-          const i = Math.min(bars.length - 1, Math.max(0, Math.floor((e.nativeEvent.locationX / w) * bars.length)));
-          if (i !== selRef.current) {
-            selRef.current = i;
-            setSel(i);
-            picked();
-          }
-        },
-      }),
-    [bars.length],
-  );
+  const pick = (localX: number) =>
+    Math.min(bars.length - 1, Math.max(0, Math.floor((localX / (widthRef.current || 1)) * bars.length)));
+  const setBar = (i: number) => {
+    if (i !== selRef.current) {
+      selRef.current = i;
+      setSel(i);
+      picked();
+    }
+  };
+  // Gesture-handler, not PanResponder: a sideways drag slides across the week, a
+  // vertical drag scrolls the page, and a tap still picks a single bar. The old
+  // PanResponder fought the ScrollView and the slide barely worked.
+  const gesture = useMemo(() => {
+    const drag = Gesture.Pan()
+      .runOnJS(true)
+      .activeOffsetX([-8, 8])
+      .failOffsetY([-14, 14])
+      .onStart((e) => setBar(pick(e.x)))
+      .onUpdate((e) => setBar(pick(e.x)));
+    const tap = Gesture.Tap().runOnJS(true).onEnd((e) => setBar(pick(e.x)));
+    return Gesture.Race(drag, tap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bars.length]);
 
   return (
     <View>
       {quietWeek && <Text style={styles.quietWeek}>Nothing rung up in the last 7 days yet.</Text>}
-      <View style={styles.bars} {...pan.panHandlers} onLayout={(e) => (widthRef.current = e.nativeEvent.layout.width)}>
+      <GestureDetector gesture={gesture}>
+      <View style={styles.bars} onLayout={(e) => (widthRef.current = e.nativeEvent.layout.width)}>
         {bars.map((b, i) => (
           <View key={i} style={styles.barCol} pointerEvents="none">
             <Text style={[styles.barValue, (sel !== i || !b.cents) && { opacity: 0 }]}>
@@ -65,13 +66,15 @@ export default function WeekBars({ bars }: { bars: { label: string; cents: numbe
           </View>
         ))}
       </View>
+      </GestureDetector>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   quietWeek: { color: theme.textFaint, fontSize: 12.5, marginBottom: 10 },
-  bars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 110 },
+  // paddingHorizontal keeps the first/last day's value bubble off the card edge.
+  bars: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 110, paddingHorizontal: 8 },
   barCol: { flex: 1, alignItems: "center" },
   barTrack: { height: 90, width: 14, justifyContent: "flex-end", borderRadius: 7, overflow: "hidden" },
   bar: { width: 14, borderRadius: 7, minHeight: 3 },

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, PanResponder, Pressable, StyleSheet, Text } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Pressable, StyleSheet, Text } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { tap } from "@/lib/haptics";
@@ -32,50 +33,55 @@ async function loadDismissed(): Promise<Record<string, number>> {
 function SwipeableCard({ tip, onDismiss, first }: { tip: DeckTip; onDismiss: () => void; first: boolean }) {
   const router = useRouter();
   const x = useRef(new Animated.Value(0)).current;
-  const pan = useRef(
-    PanResponder.create({
-      // Claim the gesture only for clearly horizontal drags so the page scroll wins otherwise.
-      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-      onPanResponderMove: (_e, g) => x.setValue(g.dx),
-      onPanResponderRelease: (_e, g) => {
-        if (Math.abs(g.dx) > 90 || Math.abs(g.vx) > 1.2) {
-          tap();
-          Animated.timing(x, {
-            toValue: g.dx > 0 ? 500 : -500,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(onDismiss);
-        } else {
-          Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
-        }
-      },
-      onPanResponderTerminate: () => {
-        Animated.spring(x, { toValue: 0, useNativeDriver: true }).start();
-      },
-    }),
-  ).current;
+  // Gesture-handler (not PanResponder) so a sideways swipe dismisses while a
+  // vertical drag falls through to the page scroll. The old PanResponder fought
+  // the ScrollView and lost, so the swipe never actually took.
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .activeOffsetX([-12, 12])
+        .failOffsetY([-14, 14])
+        .onUpdate((e) => x.setValue(e.translationX))
+        .onEnd((e) => {
+          if (Math.abs(e.translationX) > 90 || Math.abs(e.velocityX) > 1.2) {
+            tap();
+            Animated.timing(x, {
+              toValue: e.translationX > 0 ? 500 : -500,
+              duration: 180,
+              useNativeDriver: true,
+            }).start(onDismiss);
+          } else {
+            Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+          }
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const fade = x.interpolate({ inputRange: [-200, 0, 200], outputRange: [0.25, 1, 0.25] });
   return (
-    <Animated.View {...pan.panHandlers} style={{ transform: [{ translateX: x }], opacity: fade }}>
-      <Card style={{ marginTop: first ? 0 : 10 }}>
-        <Text style={styles.title}>{tip.title}</Text>
-        <Text style={styles.body}>{tip.body}</Text>
-        {tip.href ? (
-          <Pressable
-            onPress={() => {
-              tap();
-              router.push(tip.href as never);
-            }}
-            hitSlop={6}
-            style={{ marginTop: 8 }}
-          >
-            <Text style={styles.link}>Open →</Text>
-          </Pressable>
-        ) : null}
-        {first ? <Text style={styles.hint}>Swipe a tip away when you&apos;re done with it.</Text> : null}
-      </Card>
-    </Animated.View>
+    <GestureDetector gesture={pan}>
+      <Animated.View style={{ transform: [{ translateX: x }], opacity: fade }}>
+        <Card style={{ marginTop: first ? 0 : 10 }}>
+          <Text style={styles.title}>{tip.title}</Text>
+          <Text style={styles.body}>{tip.body}</Text>
+          {tip.href ? (
+            <Pressable
+              onPress={() => {
+                tap();
+                router.push(tip.href as never);
+              }}
+              hitSlop={6}
+              style={{ marginTop: 8 }}
+            >
+              <Text style={styles.link}>Open →</Text>
+            </Pressable>
+          ) : null}
+          {first ? <Text style={styles.hint}>Swipe a tip away when you&apos;re done with it.</Text> : null}
+        </Card>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -99,7 +105,15 @@ export default function CoachDeck({ tips, max = 3 }: { tips: DeckTip[]; max?: nu
 
   if (dismissed === null) return null;
   const visible = tips.filter((t) => !(t.title in dismissed)).slice(0, max);
-  if (visible.length === 0) return null;
+  // Swiped them all away: say so instead of leaving a blank gap.
+  if (visible.length === 0) {
+    return (
+      <Card>
+        <Text style={styles.title}>All caught up</Text>
+        <Text style={styles.body}>No tips right now. New ones land here as your numbers move.</Text>
+      </Card>
+    );
+  }
   return (
     <>
       {visible.map((tip, i) => (

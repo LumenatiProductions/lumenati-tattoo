@@ -9,13 +9,13 @@ import type { Role } from "@/lib/auth";
 // app reads/writes Supabase under RLS, so each role only sees what it can touch.
 // Grouped into the same categories as the web Command Center sidebar; a section
 // header only shows when the role can see at least one screen inside it.
-type Item = { href: string; label: string; icon: keyof typeof Ionicons.glyphMap; roles: Role[] };
+type Item = { href: string; label: string; ownerLabel?: string; icon: keyof typeof Ionicons.glyphMap; roles: Role[] };
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Front of house",
     items: [
       { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "artist"] },
-      { href: "/room", label: "My Page", icon: "color-palette-outline", roles: ["owner", "artist"] },
+      { href: "/room", label: "My Page", ownerLabel: "Artist pages", icon: "color-palette-outline", roles: ["owner", "artist"] },
       { href: "/bookings", label: "Bookings", icon: "calendar-outline", roles: ["owner", "artist"] },
       { href: "/waitlist", label: "Waitlist", icon: "hourglass-outline", roles: ["owner", "artist"] },
       { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner"] },
@@ -88,7 +88,9 @@ export default function Launcher({ role }: { role: Role | null }) {
                 <View style={styles.iconWrap}>
                   <Ionicons name={it.icon} size={18} color={theme.textDim} />
                 </View>
-                <Text style={styles.tileText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{it.label}</Text>
+                <Text style={styles.tileText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                  {role === "owner" && it.ownerLabel ? it.ownerLabel : it.label}
+                </Text>
                 <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
               </Pressable>
             ))}
