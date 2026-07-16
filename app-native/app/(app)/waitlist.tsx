@@ -10,6 +10,7 @@ import { ActionPill, Badge, Button, Card, Empty, SectionTitle } from "@/componen
 import { Chips, LabeledInput } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
 import InkWash from "@/components/InkWash";
+import BooksToggle from "@/components/BooksToggle";
 import { findClash } from "@/lib/clash";
 import { uid } from "@/lib/ids";
 import { success, trouble } from "@/lib/haptics";
@@ -145,6 +146,7 @@ export default function Waitlist() {
       <View style={{ flex: 1, backgroundColor: theme.bg }}>
         <InkWash />
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+          <BooksToggle />
           {slotISO && (
             <Card style={styles.slotBanner}>
               <Text style={styles.slotTitle}>

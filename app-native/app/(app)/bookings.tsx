@@ -21,6 +21,7 @@ import { theme } from "@/lib/theme";
 import { ActionPill, Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
+import BooksToggle from "@/components/BooksToggle";
 import { uid } from "@/lib/ids";
 import { apiPatch, apiPost } from "@/lib/appApi";
 import { findClash } from "@/lib/clash";
@@ -378,6 +379,7 @@ export default function Bookings() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <BooksToggle />
         {!calOn ? (
           <Pressable onPress={toggleCal} style={styles.calOffBanner}>
             <Ionicons name="calendar-outline" size={17} color={theme.textDim} />
