@@ -15,7 +15,7 @@ import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
 const ARTIST_BENEFITS = [
   { icon: "cash", title: "See what you actually made", body: "Earnings, tips, and tickets for today, this week, this month. In your pocket, not a shoebox." },
   { icon: "goal", title: "A goal to chase", body: "Pick a number and a chart races you against it every day, with streaks when you beat it." },
-  { icon: "shield", title: "Taxes, set aside for you", body: "A slice of every ticket held back automatically at your rate. No April surprise." },
+  { icon: "shield", title: "Never get caught by taxes", body: "The app tells you exactly what to set aside from every ticket at your rate, so April is never a surprise." },
   { icon: "chat", title: "Follow-ups on autopilot", body: "Aftercare and rebooking texts send themselves, so past clients keep coming back." },
   { icon: "clock", title: "Your real hourly rate", body: "Service divided by booked hours, finally a number you can see and grow." },
   { icon: "ribbon", title: "Rewards for hitting it", body: "Badges and milestones as you climb. Running your chair like a business, and enjoying it." },
