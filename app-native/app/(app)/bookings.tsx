@@ -120,6 +120,9 @@ export default function Bookings() {
   const [adding, setAdding] = useState(params.new === "1");
   const [editId, setEditId] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(false);
+  // Synced state collapses to a small chip so it stays out of daily operations;
+  // tap "Manage" to expand the calendar picker + turn-off.
+  const [calExpanded, setCalExpanded] = useState(false);
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
   const [calChoices, setCalChoices] = useState<{ id: string; title: string; source: string }[]>([]);
   const [calId, setCalId] = useState<string | null>(null);
@@ -382,6 +385,17 @@ export default function Bookings() {
               Sync bookings to my calendar
             </Text>
           </Pressable>
+        ) : !calExpanded ? (
+          // Synced: a compact chip, out of the way of daily operations.
+          <Pressable onPress={() => setCalExpanded(true)} style={styles.calChip}>
+            <View style={styles.calCheck}>
+              <Ionicons name="checkmark" size={13} color="#0c0c11" />
+            </View>
+            <Text style={styles.calChipText} numberOfLines={1}>
+              Synced to {calChoices.find((c) => c.id === calId)?.title ?? "your calendar"}
+            </Text>
+            <Text style={styles.calChipManage}>Manage</Text>
+          </Pressable>
         ) : (
           <View style={styles.calPick}>
             {/* Connected: provider logo + the actual calendar name, so it
@@ -394,8 +408,8 @@ export default function Bookings() {
                 <Text style={styles.calOnTitle}>Connected</Text>
                 <Text style={styles.calOnSub}>Every booking lands in your calendar automatically.</Text>
               </View>
-              <Pressable onPress={toggleCal} hitSlop={8}>
-                <Text style={styles.calOff}>Turn off</Text>
+              <Pressable onPress={() => setCalExpanded(false)} hitSlop={8}>
+                <Text style={styles.calPickLabel}>Done</Text>
               </Pressable>
             </View>
             <Pressable
@@ -424,6 +438,9 @@ export default function Bookings() {
                   {c.id === calId && <Ionicons name="checkmark" size={15} color={theme.good} />}
                 </Pressable>
               ))}
+            <Pressable onPress={toggleCal} hitSlop={8} style={{ paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4 }}>
+              <Text style={styles.calOff}>Turn off sync</Text>
+            </Pressable>
           </View>
         )}
         {freed && (
@@ -1114,6 +1131,21 @@ const styles = StyleSheet.create({
   },
   calPick: { marginBottom: 12, borderColor: "rgba(52,211,153,0.45)", borderWidth: 1, borderRadius: 14, backgroundColor: theme.goodSoft, overflow: "hidden" },
   calOnRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 12, paddingHorizontal: 14 },
+  calChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    alignSelf: "flex-start",
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    marginBottom: 14,
+  },
+  calChipText: { color: theme.textDim, fontSize: 13, fontWeight: "600", maxWidth: 190 },
+  calChipManage: { color: theme.text, fontSize: 12.5, fontWeight: "700" },
   calCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.good, alignItems: "center", justifyContent: "center" },
   calOnTitle: { color: theme.good, fontSize: 14.5, fontWeight: "800" },
   calOnSub: { color: theme.textDim, fontSize: 12, marginTop: 1 },
