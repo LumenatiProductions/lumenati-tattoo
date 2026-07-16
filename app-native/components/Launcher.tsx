@@ -39,6 +39,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/payouts", label: "Pay", icon: "swap-horizontal-outline", roles: ["artist"] },
       { href: "/my-clients", label: "My clients", icon: "people-circle-outline", roles: ["artist"] },
+      { href: "/my-followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["artist"] },
       { href: "/qr-card", label: "Booking card", icon: "qr-code-outline", roles: ["artist"] },
       { href: "/promos", label: "Promos", icon: "megaphone-outline", roles: ["artist"] },
       { href: "/healed-shots", label: "Healed shots", icon: "sparkles-outline", roles: ["artist"] },

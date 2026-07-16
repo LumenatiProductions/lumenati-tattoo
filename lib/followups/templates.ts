@@ -28,6 +28,17 @@ export const FOLLOWUP_KINDS: FollowupKind[] = [
   "birthday",
 ];
 
+// The kinds an artist can control the timing + copy of. Each is tied to a booking
+// (so it has an artist); rebook_nudge/birthday aren't one artist's visit and stay
+// shop-level. Order = how they read on the artist's Follow-ups screen.
+export const ARTIST_FOLLOWUP_KINDS: FollowupKind[] = [
+  "reminder_48h",
+  "reminder_24h",
+  "aftercare",
+  "review_request",
+  "healed_photo",
+];
+
 export const KIND_LABEL: Record<FollowupKind, string> = {
   aftercare: "Aftercare",
   review_request: "Review request",
@@ -196,6 +207,21 @@ export function resolveTemplate(
     body: row.body?.trim() ? row.body : base.body,
     lead_days: typeof row.lead_days === "number" ? row.lead_days : base.lead_days,
     enabled: typeof row.enabled === "boolean" ? row.enabled : base.enabled,
+  };
+}
+
+// Overlay an ARTIST'S override (followup_prefs row) on the already shop-resolved
+// template. Only the fields the artist actually set (non-null) win; the rest
+// inherit the shop's version. This is the full resolution chain:
+//   code default  ->  shop template  ->  artist override.
+export function overlayArtist(shopTpl: Template, pref?: Partial<Template> | null): Template {
+  if (!pref) return shopTpl;
+  return {
+    kind: shopTpl.kind,
+    subject: pref.subject?.trim() ? pref.subject : shopTpl.subject,
+    body: pref.body?.trim() ? pref.body : shopTpl.body,
+    lead_days: typeof pref.lead_days === "number" ? pref.lead_days : shopTpl.lead_days,
+    enabled: typeof pref.enabled === "boolean" ? pref.enabled : shopTpl.enabled,
   };
 }
 

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   resolveTemplate,
+  overlayArtist,
   renderEmail,
   renderSms,
   FOLLOWUP_KINDS,
@@ -45,9 +46,39 @@ async function loadTemplates(client: SupabaseClient, shopId?: string): Promise<T
   ) as TemplateMap;
 }
 
+// Per-artist overrides, keyed artist -> kind -> the followup_prefs row's fields.
+export type ArtistPrefs = Map<string, Map<FollowupKind, Partial<Template>>>;
+
+// Load every artist's follow-up overrides for the shop (or, on the cookie path,
+// whatever RLS scopes to). Used to resolve each follow-up's artist-specific
+// timing + copy on top of the shop template.
+async function loadArtistPrefs(client: SupabaseClient, shopId?: string): Promise<ArtistPrefs> {
+  let q = client.from("followup_prefs").select("artist_id, kind, subject, body, lead_days, enabled");
+  if (shopId) q = q.eq("shop_id", shopId);
+  const { data } = await q;
+  const map: ArtistPrefs = new Map();
+  for (const r of (data ?? []) as (Partial<Template> & { artist_id: string; kind: FollowupKind })[]) {
+    if (!map.has(r.artist_id)) map.set(r.artist_id, new Map());
+    map.get(r.artist_id)!.set(r.kind, r);
+  }
+  return map;
+}
+
+// The resolved template for a booking's artist: code default -> shop -> artist.
+function templateFor(
+  shopTpl: TemplateMap,
+  prefs: ArtistPrefs,
+  artistId: string | null | undefined,
+  kind: FollowupKind,
+): Template {
+  const pref = artistId ? prefs.get(artistId)?.get(kind) : null;
+  return overlayArtist(shopTpl[kind], pref);
+}
+
 type EnqueueRow = {
   booking_id: string | null;
   client_id: string | null;
+  artist_id?: string | null;
   kind: FollowupKind;
   channel: string;
   scheduled_for: string;
@@ -73,9 +104,10 @@ export async function enqueueForBooking(
   shopId: string,
 ): Promise<{ queued: FollowupKind[]; reason?: string }> {
   const tpl = await loadTemplates(client, shopId);
+  const prefs = await loadArtistPrefs(client, shopId);
   const { data: b } = await client
     .from("bookings")
-    .select("id, client_id, starts_at")
+    .select("id, client_id, starts_at, artist_id")
     .eq("id", bookingId)
     .eq("shop_id", shopId)
     .maybeSingle();
@@ -84,34 +116,41 @@ export async function enqueueForBooking(
 
   const t = today();
   const visitDay = (b.starts_at as string).slice(0, 10);
+  const artistId = (b.artist_id as string | null) ?? null;
+  // Resolve each kind for THIS booking's artist (their timing + copy, inheriting
+  // the shop default). Stamp the artist on the row so the send resolves the same.
+  const tf = (kind: FollowupKind) => templateFor(tpl, prefs, artistId, kind);
   const rows: EnqueueRow[] = [];
-  if (tpl.aftercare.enabled) {
+  if (tf("aftercare").enabled) {
     rows.push({
       booking_id: b.id as string,
       client_id: b.client_id as string,
+      artist_id: artistId,
       kind: "aftercare",
       channel: "email",
       scheduled_for: maxDate(t, visitDay),
       status: "pending",
     });
   }
-  if (tpl.review_request.enabled) {
+  if (tf("review_request").enabled) {
     rows.push({
       booking_id: b.id as string,
       client_id: b.client_id as string,
+      artist_id: artistId,
       kind: "review_request",
       channel: "email",
-      scheduled_for: maxDate(t, addDays(visitDay, tpl.review_request.lead_days)),
+      scheduled_for: maxDate(t, addDays(visitDay, tf("review_request").lead_days)),
       status: "pending",
     });
   }
-  if (tpl.healed_photo.enabled) {
+  if (tf("healed_photo").enabled) {
     rows.push({
       booking_id: b.id as string,
       client_id: b.client_id as string,
+      artist_id: artistId,
       kind: "healed_photo",
       channel: "email",
-      scheduled_for: maxDate(t, addDays(visitDay, tpl.healed_photo.lead_days)),
+      scheduled_for: maxDate(t, addDays(visitDay, tf("healed_photo").lead_days)),
       status: "pending",
     });
   }
@@ -135,68 +174,60 @@ export async function enqueueForBooking(
  */
 export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap, shopId?: string) {
   const t = today();
+  const prefs = await loadArtistPrefs(client, shopId);
   const rows: EnqueueRow[] = [];
 
-  // 1) aftercare + review_request + healed_photo off recently-completed bookings.
-  if (tpl.aftercare.enabled || tpl.review_request.enabled || tpl.healed_photo.enabled) {
-    // The healed-photo ask lands ~2 weeks out, so look back far enough that a
-    // booking completed before the photo was due still gets one.
-    const lookback = Math.max(ENQUEUE_LOOKBACK_DAYS, tpl.healed_photo.lead_days + 7);
+  // 1) aftercare + review_request + healed_photo off recently-completed bookings,
+  // resolved PER the booking's artist (their timing + on/off, inheriting the shop
+  // default). We always scan the window and decide per booking rather than a
+  // shop-wide gate, so an artist who turned a kind on that the shop left off is
+  // still honored.
+  {
+    // Look back far enough to still catch a booking whose healed-photo ask (the
+    // longest lead) hadn't come due — across the shop default AND any artist who
+    // pushed their healed lead out.
+    const healedLeads = [tpl.healed_photo.lead_days];
+    for (const byKind of prefs.values()) {
+      const l = byKind.get("healed_photo")?.lead_days;
+      if (typeof l === "number") healedLeads.push(l);
+    }
+    const lookback = Math.max(ENQUEUE_LOOKBACK_DAYS, Math.max(...healedLeads) + 7);
     const cutoff = addDays(t, -lookback);
     let bq = client
       .from("bookings")
-      .select("id, client_id, starts_at")
+      .select("id, client_id, starts_at, artist_id")
       .eq("status", "completed")
       .gte("starts_at", cutoff)
       .not("client_id", "is", null);
     if (shopId) bq = bq.eq("shop_id", shopId);
     const { data: bookings } = await bq;
 
-    for (const b of (bookings || []) as { id: string; client_id: string | null; starts_at: string }[]) {
+    for (const b of (bookings || []) as { id: string; client_id: string | null; starts_at: string; artist_id: string | null }[]) {
       if (!b.client_id) continue;
       const visitDay = b.starts_at.slice(0, 10);
-      if (tpl.aftercare.enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
-        rows.push({
-          booking_id: b.id,
-          client_id: b.client_id,
-          kind: "aftercare",
-          channel: "email",
-          // Immediately on detection — never before the visit day.
-          scheduled_for: maxDate(t, visitDay),
-          status: "pending",
-        });
+      const tf = (kind: FollowupKind) => templateFor(tpl, prefs, b.artist_id, kind);
+      const base = { booking_id: b.id, client_id: b.client_id, artist_id: b.artist_id ?? null, channel: "email", status: "pending" };
+      if (tf("aftercare").enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
+        // Immediately on detection — never before the visit day.
+        rows.push({ ...base, kind: "aftercare", scheduled_for: maxDate(t, visitDay) });
       }
-      if (tpl.review_request.enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
-        rows.push({
-          booking_id: b.id,
-          client_id: b.client_id,
-          kind: "review_request",
-          channel: "email",
-          scheduled_for: maxDate(t, addDays(visitDay, tpl.review_request.lead_days)),
-          status: "pending",
-        });
+      if (tf("review_request").enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
+        rows.push({ ...base, kind: "review_request", scheduled_for: maxDate(t, addDays(visitDay, tf("review_request").lead_days)) });
       }
-      if (tpl.healed_photo.enabled) {
-        rows.push({
-          booking_id: b.id,
-          client_id: b.client_id,
-          kind: "healed_photo",
-          channel: "email",
-          scheduled_for: maxDate(t, addDays(visitDay, tpl.healed_photo.lead_days)),
-          status: "pending",
-        });
+      if (tf("healed_photo").enabled) {
+        rows.push({ ...base, kind: "healed_photo", scheduled_for: maxDate(t, addDays(visitDay, tf("healed_photo").lead_days)) });
       }
     }
   }
 
   // 1b) pre-appointment reminders off upcoming scheduled bookings. lead_days =
-  // days BEFORE the visit. Texted when Twilio is on (channel is re-decided at
-  // send time based on what the client actually has on file).
-  if (tpl.reminder_48h.enabled || tpl.reminder_24h.enabled) {
+  // days BEFORE the visit, resolved per the booking's artist. Texted when Twilio
+  // is on (channel is re-decided at send time based on what the client has).
+  {
     const horizon = addDays(t, 4); // covers both reminder windows
     let uq = client
       .from("bookings")
-      .select("id, client_id, starts_at")
+      .select("id, client_id, starts_at, artist_id")
       .eq("status", "scheduled")
       .gte("starts_at", t)
       .lte("starts_at", `${horizon}T23:59:59.999`)
@@ -204,17 +235,19 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap,
     if (shopId) uq = uq.eq("shop_id", shopId);
     const { data: upcoming } = await uq;
 
-    for (const b of (upcoming || []) as { id: string; client_id: string | null; starts_at: string }[]) {
+    for (const b of (upcoming || []) as { id: string; client_id: string | null; starts_at: string; artist_id: string | null }[]) {
       if (!b.client_id) continue;
       const visitDay = b.starts_at.slice(0, 10);
       for (const kind of ["reminder_48h", "reminder_24h"] as const) {
-        if (!tpl[kind].enabled) continue;
-        const sendDay = addDays(visitDay, -tpl[kind].lead_days);
+        const resolved = templateFor(tpl, prefs, b.artist_id, kind);
+        if (!resolved.enabled) continue;
+        const sendDay = addDays(visitDay, -resolved.lead_days);
         // Skip reminders whose window has already passed (booked last-minute).
         if (sendDay < t) continue;
         rows.push({
           booking_id: b.id,
           client_id: b.client_id,
+          artist_id: b.artist_id ?? null,
           kind,
           channel: isSmsConfigured ? "sms" : "email",
           scheduled_for: sendDay,
@@ -358,6 +391,7 @@ type FollowupRow = {
   id: string;
   booking_id?: string | null;
   client_id: string | null;
+  artist_id?: string | null;
   kind: FollowupKind;
   channel: string;
   scheduled_for: string | null;
@@ -422,8 +456,12 @@ export async function sendFollowupRow(
   client: SupabaseClient,
   row: FollowupRow,
   tpl: TemplateMap,
+  prefs?: ArtistPrefs,
 ): Promise<{ status: "sent" | "skipped" | "failed"; result: string }> {
-  const template = tpl[row.kind];
+  // Render with the artist's copy (their subject/body override, inheriting the
+  // shop template). Callers that don't pass prefs (single manual send) fall back
+  // to the shop template — still correct, just not artist-personalized.
+  const template = templateFor(tpl, prefs ?? new Map(), row.artist_id, row.kind);
   if (!template.enabled) {
     return finalize(client, row.id, "skipped", "Template disabled");
   }
@@ -518,9 +556,10 @@ async function finalize(
 
 // Drain everything due today (pending + scheduled_for <= today, any channel).
 export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap, shopId?: string) {
+  const prefs = await loadArtistPrefs(client, shopId);
   let dq = client
     .from("followups")
-    .select("id, booking_id, client_id, kind, channel, scheduled_for, shop_id")
+    .select("id, booking_id, client_id, artist_id, kind, channel, scheduled_for, shop_id")
     .eq("status", "pending")
     .lte("scheduled_for", today());
   if (shopId) dq = dq.eq("shop_id", shopId);
@@ -530,7 +569,7 @@ export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap,
     skipped = 0,
     failed = 0;
   for (const row of (due || []) as FollowupRow[]) {
-    const r = await sendFollowupRow(client, row, tpl);
+    const r = await sendFollowupRow(client, row, tpl, prefs);
     if (r.status === "sent") sent++;
     else if (r.status === "skipped") skipped++;
     else failed++;
