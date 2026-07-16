@@ -13,8 +13,11 @@ import {
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiGet, apiPost } from "@/lib/appApi";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
-import { Button, Card, SectionTitle } from "@/components/ui";
+import { Button, Card, Empty, SectionTitle } from "@/components/ui";
 import { tap } from "@/lib/haptics";
 
 // The artist controls the timing + copy of their OWN follow-ups. Each one
@@ -42,6 +45,11 @@ function timing(kind: string, days: number): string {
 
 export default function MyFollowups() {
   const insets = useSafeAreaInsets();
+  const { role, email } = useAuth();
+  const { preview } = usePreview();
+  // Whose follow-ups: the previewed chair (owner) or the artist's own. undefined
+  // while we work it out; null = an owner who hasn't opened a chair yet.
+  const [artistId, setArtistId] = useState<string | null | undefined>(undefined);
   const [items, setItems] = useState<Item[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [openKind, setOpenKind] = useState<string | null>(null);
@@ -49,11 +57,28 @@ export default function MyFollowups() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    (async () => {
+      let aid = preview?.artistId ?? null;
+      if (!aid && role === "artist" && email) {
+        const { data } = await supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle();
+        aid = (data?.artist_id as string | null) ?? null;
+      }
+      setArtistId(aid);
+    })();
+  }, [role, email, preview]);
+
   const load = useCallback(async () => {
-    const res = await apiGet<{ items: Item[] }>("/api/followups/prefs");
-    if (res.ok) setItems(res.data?.items ?? []);
-    else setMsg(res.error ?? "Could not load your follow-ups.");
-  }, []);
+    if (artistId === undefined) return; // still resolving who
+    if (!artistId) {
+      setItems([]); // owner not previewing — the render prompts them to pick a chair
+      return;
+    }
+    const res = await apiGet<{ items: Item[] }>(`/api/followups/prefs?artistId=${encodeURIComponent(artistId)}`);
+    // Always set items so it never spins forever; surface the error if any.
+    setItems(res.ok ? res.data?.items ?? [] : []);
+    if (!res.ok) setMsg(res.error ?? "Could not load follow-ups.");
+  }, [artistId]);
 
   useEffect(() => {
     load();
@@ -77,6 +102,7 @@ export default function MyFollowups() {
     setBusy(true);
     setMsg(null);
     const res = await apiPost("/api/followups/prefs", {
+      artistId,
       kind: openKind,
       subject: draft.subject,
       body: draft.body,
@@ -98,7 +124,7 @@ export default function MyFollowups() {
     setBusy(true);
     setMsg(null);
     // Clearing = an empty override, which the API deletes so it inherits again.
-    const res = await apiPost("/api/followups/prefs", { kind });
+    const res = await apiPost("/api/followups/prefs", { artistId, kind });
     setBusy(false);
     if (!res.ok) {
       setMsg(res.error ?? "Could not reset.");
@@ -119,12 +145,18 @@ export default function MyFollowups() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         <Text style={styles.intro}>
-          The messages your clients get around a visit. Change the timing or the wording, or leave
-          the shop&apos;s version. Turn any of them off for your chair.
+          The messages clients get around a visit. Change the timing or the wording, or leave the
+          shop&apos;s version. Turn any of them off for this chair.
         </Text>
         {msg ? <Text style={styles.msg}>{msg}</Text> : null}
 
-        {items === null ? (
+        {artistId === undefined ? (
+          <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
+        ) : artistId === null ? (
+          <Card>
+            <Empty>Open an artist&apos;s chair from Home (tap their tile) to manage their follow-ups.</Empty>
+          </Card>
+        ) : items === null ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : (
           items.map((it) => {

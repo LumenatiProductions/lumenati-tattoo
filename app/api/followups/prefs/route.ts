@@ -23,19 +23,38 @@ function isArtistKind(k: string): k is FollowupKind {
   return (ARTIST_FOLLOWUP_KINDS as string[]).includes(k);
 }
 
+// Whose follow-ups the caller may touch. An artist only ever their own; an owner
+// may name any artist in their shop (that's how they manage a chair via preview).
+// Returns the artist_id or null if not allowed / no chair in context.
+async function targetArtist(
+  admin: ReturnType<typeof createAdminClient>,
+  ctx: { role: string; shopId: string; artistId: string | null },
+  asked: string | null,
+): Promise<string | null> {
+  if (ctx.role !== "owner") return ctx.artistId ?? null;
+  const candidate = asked || ctx.artistId;
+  if (!candidate || !admin) return null;
+  const { data } = await admin.from("artists").select("id").eq("id", candidate).eq("shop_id", ctx.shopId).maybeSingle();
+  return data ? candidate : null;
+}
+
 export async function GET(req: Request) {
   const ctx = await resolveStaff(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ctx.artistId) return NextResponse.json({ error: "No chair linked to your account." }, { status: 403 });
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
+
+  const artistId = await targetArtist(admin, ctx, new URL(req.url).searchParams.get("artistId"));
+  if (!artistId) {
+    return NextResponse.json({ error: "Pick a chair to manage follow-ups for." }, { status: 400 });
+  }
 
   const shopTpl = await loadTemplates(admin, ctx.shopId);
   const { data: rows } = await admin
     .from("followup_prefs")
     .select("kind, subject, body, lead_days, enabled")
-    .eq("artist_id", ctx.artistId);
+    .eq("artist_id", artistId);
   const byKind = new Map((rows ?? []).map((r) => [r.kind as FollowupKind, r as Partial<Template>]));
 
   const items = ARTIST_FOLLOWUP_KINDS.map((kind) => {
@@ -78,18 +97,20 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const ctx = await resolveStaff(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!ctx.artistId) return NextResponse.json({ error: "No chair linked to your account." }, { status: 403 });
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
   const b = (await req.json().catch(() => ({}))) as {
     kind?: string;
+    artistId?: string;
     subject?: string | null;
     body?: string | null;
     lead_days?: number | null;
     enabled?: boolean | null;
   };
+  const artistId = await targetArtist(admin, ctx, b.artistId ?? null);
+  if (!artistId) return NextResponse.json({ error: "Pick a chair to manage follow-ups for." }, { status: 400 });
   if (!b.kind || !isArtistKind(b.kind)) {
     return NextResponse.json({ error: "That follow-up can't be customized." }, { status: 400 });
   }
@@ -104,14 +125,14 @@ export async function POST(req: Request) {
 
   // Nothing overridden -> drop the row so it fully inherits the shop default.
   if (subject === null && body === null && lead_days === null && enabled === null) {
-    await admin.from("followup_prefs").delete().eq("artist_id", ctx.artistId).eq("kind", b.kind);
+    await admin.from("followup_prefs").delete().eq("artist_id", artistId).eq("kind", b.kind);
     return NextResponse.json({ ok: true, cleared: true });
   }
 
   const { error } = await admin.from("followup_prefs").upsert(
     {
       shop_id: ctx.shopId,
-      artist_id: ctx.artistId,
+      artist_id: artistId,
       kind: b.kind,
       subject,
       body,

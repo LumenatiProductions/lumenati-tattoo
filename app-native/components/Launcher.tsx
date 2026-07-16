@@ -21,6 +21,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { href: "/clients", label: "Clients", icon: "people-outline", roles: ["owner"] },
       { href: "/intake", label: "Intake", icon: "document-text-outline", roles: ["owner", "artist"] },
       { href: "/followups", label: "Follow-ups", icon: "chatbubble-ellipses-outline", roles: ["owner"] },
+      { href: "/my-followups", label: "Artist follow-ups", icon: "chatbubbles-outline", roles: ["owner"] },
       { href: "/social", label: "Social", icon: "image-outline", roles: ["owner"] },
     ],
   },
