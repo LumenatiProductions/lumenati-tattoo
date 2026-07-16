@@ -322,9 +322,19 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
 
   const saveGoal = async () => {
     if (!shopRow) return;
+    const prev = shopRow;
     setShopRow({ ...shopRow, goal_weekly_cents: draftGoal });
     setEditingGoal(false);
-    await supabase.from("shops").update({ goal_weekly_cents: draftGoal }).eq("id", shopRow.id);
+    const { error } = await supabase
+      .from("shops")
+      .update({ goal_weekly_cents: draftGoal })
+      .eq("id", shopRow.id);
+    // Never let the screen show a saved goal that didn't actually save: roll the
+    // optimistic update back and tell them, instead of failing silently.
+    if (error) {
+      setShopRow(prev);
+      Alert.alert("Couldn't save your goal", "Something went wrong. Give it another try.");
+    }
   };
 
   const tips = shopCoachTips({
@@ -358,10 +368,8 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
 
   return (
     <View>
-      <Text style={styles.greeting}>Hey {firstName}</Text>
-      <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
-
-      {/* What needs a decision leads the page (Scott, 2026-07-12). */}
+      {/* What needs a decision is the very first thing on the page (Scott,
+          2026-07-15) — above the greeting, above the numbers. */}
       <Text style={[styles.sectionLabel, { marginTop: 0 }]}>Needs attention</Text>
       {attention.length === 0 ? (
         <View style={styles.allClear}>
@@ -390,6 +398,9 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
           ))}
         </View>
       )}
+
+      <Text style={[styles.greeting, { marginTop: 24 }]}>Hey {firstName}</Text>
+      <Text style={styles.greetSub}>Here&apos;s the shop right now.</Text>
 
       {/* Range toggle — same mechanic as the artist page. */}
       <View style={[styles.rangeToggle, { marginTop: 22 }]}>
