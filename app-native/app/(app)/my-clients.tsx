@@ -62,6 +62,7 @@ export default function MyClients() {
   const [people, setPeople] = useState<Person[] | null>(null);
   const [bookingsByClient, setBookingsByClient] = useState<Map<string, BookingRow[]>>(new Map());
   const [openId, setOpenId] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
   const load = useCallback(async (aid: string) => {
     // Three RLS-scoped reads: my clients, every booking I have with anyone,
@@ -147,6 +148,17 @@ export default function MyClients() {
 
   const open = openId ? (people ?? []).find((p) => p.id === openId) ?? null : null;
 
+  const shownPeople = !q.trim()
+    ? people ?? []
+    : (people ?? []).filter((p) => {
+        const s = q.trim().toLowerCase();
+        return (
+          p.name.toLowerCase().includes(s) ||
+          (p.phone ?? "").toLowerCase().includes(s) ||
+          (p.instagram ?? "").toLowerCase().includes(s)
+        );
+      });
+
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "My clients", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
@@ -183,11 +195,24 @@ export default function MyClients() {
               )}
 
               <SectionTitle>Your people ({people.length})</SectionTitle>
+              {people.length > 5 && (
+                <TextInput
+                  value={q}
+                  onChangeText={setQ}
+                  placeholder="Search by name, phone, or Instagram"
+                  placeholderTextColor={theme.textFaint}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.search}
+                />
+              )}
               <Card style={{ padding: 0 }}>
                 {people.length === 0 ? (
                   <Empty>Your clients show up here after your first booking with them.</Empty>
+                ) : shownPeople.length === 0 ? (
+                  <Empty>No one matches &ldquo;{q.trim()}&rdquo;.</Empty>
                 ) : (
-                  people.map((p, i) => (
+                  shownPeople.map((p, i) => (
                     <Pressable key={p.id} onPress={() => setOpenId(p.id)} style={[styles.row, i > 0 && styles.border]}>
                       <View style={{ flex: 1, marginRight: 10 }}>
                         <Text style={styles.rowTitle}>{p.name}</Text>
@@ -320,6 +345,17 @@ function ClientSheet({
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", padding: 14 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
+  search: {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    color: theme.text,
+    fontSize: 15,
+    marginBottom: 10,
+  },
   rowTitle: { color: theme.text, fontSize: 16, fontWeight: "600" },
   rowSub: { color: theme.textDim, fontSize: 13, marginTop: 2 },
   emptyText: { color: theme.textDim, fontSize: 14.5, lineHeight: 21 },

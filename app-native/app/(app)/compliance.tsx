@@ -144,11 +144,24 @@ export default function Compliance() {
         ) : (
           <Card style={{ padding: 0 }}>
             {sorted.length === 0 ? (
-              <Text style={styles.empty}>
-                {isOwner
-                  ? "Nothing tracked yet — add the shop's licenses and permits above."
-                  : "Nothing on file yet — add your license and scan it with your camera."}
-              </Text>
+              <>
+                <Text style={styles.empty}>
+                  {isOwner
+                    ? "Nothing tracked yet — add the shop's licenses and permits above."
+                    : "Nothing on file yet — add your license and scan it with your camera."}
+                </Text>
+                {!isOwner && (
+                  <View style={styles.mock}>
+                    <View style={styles.mockPhoto} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.mockHead}>STATE TATTOO LICENSE</Text>
+                      <View style={styles.mockLine} />
+                      <View style={[styles.mockLine, { width: "55%" }]} />
+                      <Text style={styles.mockCap}>Example. Yours appears here once you snap a photo.</Text>
+                    </View>
+                  </View>
+                )}
+              </>
             ) : (
               sorted.map((it, i) => (
                 <View key={it.id} style={[styles.row, i > 0 && styles.border]}>
@@ -335,6 +348,22 @@ const styles = StyleSheet.create({
   errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, gap: 10 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
+  mock: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderStyle: "dashed",
+    backgroundColor: theme.surface,
+  },
+  mockPhoto: { width: 52, height: 66, borderRadius: 6, backgroundColor: theme.surfaceRaised },
+  mockHead: { color: theme.textDim, fontSize: 11, fontWeight: "800", letterSpacing: 1 },
+  mockLine: { height: 8, borderRadius: 4, backgroundColor: theme.surfaceRaised, marginTop: 8, width: "80%" },
+  mockCap: { color: theme.textFaint, fontSize: 11.5, marginTop: 10 },
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },
   sub: { color: theme.textDim, fontSize: 12, marginTop: 2 },
   status: { fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
