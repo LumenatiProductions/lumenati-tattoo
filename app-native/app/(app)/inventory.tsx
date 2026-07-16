@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
-import { theme } from "@/lib/theme";
+import { theme, money } from "@/lib/theme";
 import { Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import { snapInventory, type InventoryItem as Detected } from "@/lib/vision";
@@ -11,9 +11,12 @@ import { snapInventory, type InventoryItem as Detected } from "@/lib/vision";
 const CATS = ["needle", "ink", "glove", "tube", "aftercare", "disposable", "other"];
 const UNITS = ["each", "box", "bottle"];
 
-type Item = { id: string; name: string; brand: string | null; category: string; qty: number; reorder_at: number; unit: string };
+type Item = { id: string; name: string; brand: string | null; category: string; qty: number; reorder_at: number; unit: string; price_cents: number | null };
 
 const isLow = (i: Item) => Number(i.qty) <= Number(i.reorder_at);
+// Merch = an item with a shelf price (it shows up in Take payment). Everything
+// else is a supply.
+const isMerch = (i: Item) => Number(i.price_cents ?? 0) > 0;
 
 // Inventory ported to the app (POS 6e) + the snap-to-count from 6d wired in.
 // Reads/writes inventory_items directly under RLS (admin). Artists get
@@ -31,7 +34,7 @@ export default function Inventory() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("inventory_items")
-      .select("id, name, brand, category, qty, reorder_at, unit")
+      .select("id, name, brand, category, qty, reorder_at, unit, price_cents")
       .order("category")
       .order("name");
     setItems((data ?? []) as Item[]);
@@ -80,6 +83,8 @@ export default function Inventory() {
   };
 
   const low = items.filter(isLow);
+  const merch = items.filter(isMerch);
+  const supplies = items.filter((i) => !isMerch(i));
 
   return (
     <>
@@ -149,12 +154,21 @@ export default function Inventory() {
               </>
             )}
 
-            <Text style={styles.section}>All stock</Text>
+            <Text style={styles.section}>Merch for sale</Text>
             <Card style={{ padding: 0 }}>
-              {items.length === 0 ? (
-                <Text style={styles.empty}>No items yet. Snap a shelf or add on the web.</Text>
+              {merch.length === 0 ? (
+                <Text style={styles.empty}>Nothing for sale yet. Add an item with a sale price and it shows up here and in Take payment.</Text>
               ) : (
-                items.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} onEdit={(x) => { setAdding(false); setEditing(x); }} border={i > 0} />)
+                merch.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} onEdit={(x) => { setAdding(false); setEditing(x); }} border={i > 0} />)
+              )}
+            </Card>
+
+            <Text style={styles.section}>Supplies</Text>
+            <Card style={{ padding: 0 }}>
+              {supplies.length === 0 ? (
+                <Text style={styles.empty}>No supplies yet. Snap a shelf or add one above.</Text>
+              ) : (
+                supplies.map((it, i) => <ItemRow key={it.id} it={it} onAdjust={adjust} onRemove={remove} onEdit={(x) => { setAdding(false); setEditing(x); }} border={i > 0} />)
               )}
             </Card>
           </>
@@ -170,6 +184,7 @@ function ItemForm({ existing, onSaved }: { existing?: Item; onSaved: () => void 
   const [unit, setUnit] = useState(existing?.unit ?? "each");
   const [qty, setQty] = useState(existing ? String(existing.qty) : "");
   const [reorderAt, setReorderAt] = useState(existing ? String(existing.reorder_at) : "");
+  const [price, setPrice] = useState(existing?.price_cents ? String(existing.price_cents / 100) : "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -180,7 +195,17 @@ function ItemForm({ existing, onSaved }: { existing?: Item; onSaved: () => void 
     }
     setBusy(true);
     setErr(null);
-    const fields = { name: name.trim(), category, unit, qty: Number(qty) || 0, reorder_at: Number(reorderAt) || 0, updated_at: new Date().toISOString() };
+    // A sale price makes it merch (sellable in Take payment); blank = a supply.
+    const cents = price.trim() ? Math.round(Number(price) * 100) : null;
+    const fields = {
+      name: name.trim(),
+      category,
+      unit,
+      qty: Number(qty) || 0,
+      reorder_at: Number(reorderAt) || 0,
+      price_cents: cents && cents > 0 ? cents : null,
+      updated_at: new Date().toISOString(),
+    };
     const { error } = existing
       ? await supabase.from("inventory_items").update(fields).eq("id", existing.id)
       : await supabase.from("inventory_items").insert(fields);
@@ -202,6 +227,13 @@ function ItemForm({ existing, onSaved }: { existing?: Item; onSaved: () => void 
           <LabeledInput label="Reorder at" value={reorderAt} onChange={setReorderAt} keyboardType="numeric" placeholder="0" />
         </View>
       </View>
+      <LabeledInput
+        label="Sale price (blank = supply, not for sale)"
+        value={price}
+        onChange={setPrice}
+        keyboardType="numeric"
+        placeholder="e.g. 25"
+      />
       {err && <Text style={styles.errText}>{err}</Text>}
       <Button label={busy ? "Saving…" : existing ? "Save changes" : "Save item"} onPress={save} disabled={busy} />
     </Card>
@@ -230,7 +262,7 @@ function ItemRow({
             {it.name}
           </Text>
           <Text style={[styles.sub, isLow(it) && { color: theme.warn }]}>
-            {it.category}
+            {isMerch(it) ? `${money(it.price_cents ?? 0)} each` : it.category}
             {isLow(it) ? " · low" : ""}
           </Text>
         </Pressable>
