@@ -121,9 +121,9 @@ export default function Bookings() {
   const [adding, setAdding] = useState(params.new === "1");
   const [editId, setEditId] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(false);
-  // Synced state collapses to a small chip so it stays out of daily operations;
-  // tap "Manage" to expand the calendar picker + turn-off.
-  const [calExpanded, setCalExpanded] = useState(false);
+  // Calendar sync lives behind a small header icon (not in the daily view). The
+  // icon shows synced state at a glance; tapping opens this sheet to manage it.
+  const [syncOpen, setSyncOpen] = useState(false);
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
   const [calChoices, setCalChoices] = useState<{ id: string; title: string; source: string }[]>([]);
   const [calId, setCalId] = useState<string | null>(null);
@@ -377,74 +377,23 @@ export default function Bookings() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: "Bookings",
+          headerStyle: { backgroundColor: theme.bg },
+          headerTintColor: theme.text,
+          // Calendar sync as a small header icon: green calendar when synced,
+          // grey outline when not. Tap to manage. Out of the daily view.
+          headerRight: () => (
+            <Pressable onPress={() => setSyncOpen(true)} hitSlop={12} style={{ paddingHorizontal: 4 }}>
+              <Ionicons name={calOn ? "calendar" : "calendar-outline"} size={22} color={calOn ? theme.good : theme.textDim} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <BooksToggle />
-        {!calOn ? (
-          <Pressable onPress={toggleCal} style={styles.calOffBanner}>
-            <Ionicons name="calendar-outline" size={17} color={theme.textDim} />
-            <Text style={{ color: theme.textDim, fontSize: 14, fontWeight: "600" }}>
-              Sync bookings to my calendar
-            </Text>
-          </Pressable>
-        ) : !calExpanded ? (
-          // Synced: a compact chip, out of the way of daily operations.
-          <Pressable onPress={() => setCalExpanded(true)} style={styles.calChip}>
-            <View style={styles.calCheck}>
-              <Ionicons name="checkmark" size={13} color="#0c0c11" />
-            </View>
-            <Text style={styles.calChipText} numberOfLines={1}>
-              Synced to {calChoices.find((c) => c.id === calId)?.title ?? "your calendar"}
-            </Text>
-            <Text style={styles.calChipManage}>Manage</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.calPick}>
-            {/* Connected: provider logo + the actual calendar name, so it
-                FEELS wired up, not just a green border (bug 17a45485). */}
-            <View style={styles.calOnRow}>
-              <View style={styles.calCheck}>
-                <Ionicons name="checkmark" size={15} color="#0c0c11" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.calOnTitle}>Connected</Text>
-                <Text style={styles.calOnSub}>Every booking lands in your calendar automatically.</Text>
-              </View>
-              <Pressable onPress={() => setCalExpanded(false)} hitSlop={8}>
-                <Text style={styles.calPickLabel}>Done</Text>
-              </Pressable>
-            </View>
-            <Pressable
-              onPress={() => calChoices.length > 1 && setPickingCal((v) => !v)}
-              style={styles.calPickRow}
-            >
-              <Ionicons name={calProviderIcon(calChoices.find((c) => c.id === calId)?.source)} size={16} color={theme.text} />
-              <Text style={styles.calPickValue}>
-                {calChoices.find((c) => c.id === calId)?.title ?? "Default calendar"}
-              </Text>
-              {(calChoices.find((c) => c.id === calId)?.source ?? "") !== "" && (
-                <Text style={styles.calPickSource}>{calChoices.find((c) => c.id === calId)?.source}</Text>
-              )}
-              {calChoices.length > 1 && (
-                <Text style={styles.calPickLabel}>{pickingCal ? "close" : "change"}</Text>
-              )}
-            </Pressable>
-            {pickingCal &&
-              calChoices.map((c) => (
-                <Pressable key={c.id} onPress={() => pickCalendar(c.id)} style={styles.calOption}>
-                  <Ionicons name={calProviderIcon(c.source)} size={15} color={c.id === calId ? theme.good : theme.textDim} />
-                  <Text style={[styles.calOptionText, c.id === calId && { color: theme.good, fontWeight: "700" }]}>
-                    {c.title}
-                    {c.source ? ` (${c.source})` : ""}
-                  </Text>
-                  {c.id === calId && <Ionicons name="checkmark" size={15} color={theme.good} />}
-                </Pressable>
-              ))}
-            <Pressable onPress={toggleCal} hitSlop={8} style={{ paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4 }}>
-              <Text style={styles.calOff}>Turn off sync</Text>
-            </Pressable>
-          </View>
-        )}
         {freed && (
           <Card style={styles.freedCard}>
             <Text style={styles.freedTitle}>
@@ -535,6 +484,47 @@ export default function Bookings() {
           </>
         )}
       </ScrollView>
+
+      {/* Calendar sync management — opened from the header icon, never in the way. */}
+      <Modal visible={syncOpen} transparent animationType="slide" onRequestClose={() => setSyncOpen(false)}>
+        <Pressable style={styles.syncBackdrop} onPress={() => setSyncOpen(false)}>
+          <Pressable style={styles.syncSheet} onPress={() => {}}>
+            <Text style={styles.syncTitle}>Calendar sync</Text>
+            {!calOn ? (
+              <>
+                <Text style={styles.syncSub}>Add every booking to your phone&apos;s calendar automatically.</Text>
+                <View style={{ marginTop: 16 }}>
+                  <Button label="Sync my calendar" onPress={toggleCal} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.syncSub}>
+                  Synced to {calChoices.find((c) => c.id === calId)?.title ?? "your calendar"}. Every booking lands there
+                  automatically.
+                </Text>
+                {calChoices.length > 1 &&
+                  calChoices.map((c) => (
+                    <Pressable key={c.id} onPress={() => pickCalendar(c.id)} style={styles.calOption}>
+                      <Ionicons name={calProviderIcon(c.source)} size={15} color={c.id === calId ? theme.good : theme.textDim} />
+                      <Text style={[styles.calOptionText, c.id === calId && { color: theme.good, fontWeight: "700" }]}>
+                        {c.title}
+                        {c.source ? ` (${c.source})` : ""}
+                      </Text>
+                      {c.id === calId && <Ionicons name="checkmark" size={15} color={theme.good} />}
+                    </Pressable>
+                  ))}
+                <Pressable onPress={toggleCal} hitSlop={8} style={{ marginTop: 16 }}>
+                  <Text style={styles.calOff}>Turn off sync</Text>
+                </Pressable>
+              </>
+            )}
+            <Pressable onPress={() => setSyncOpen(false)} style={{ marginTop: 18 }}>
+              <Text style={styles.syncClose}>Close</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {editId &&
         (() => {
@@ -1133,21 +1123,11 @@ const styles = StyleSheet.create({
   },
   calPick: { marginBottom: 12, borderColor: "rgba(52,211,153,0.45)", borderWidth: 1, borderRadius: 14, backgroundColor: theme.goodSoft, overflow: "hidden" },
   calOnRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 12, paddingHorizontal: 14 },
-  calChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    alignSelf: "flex-start",
-    paddingVertical: 7,
-    paddingHorizontal: 11,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.surface,
-    marginBottom: 14,
-  },
-  calChipText: { color: theme.textDim, fontSize: 13, fontWeight: "600", maxWidth: 190 },
-  calChipManage: { color: theme.text, fontSize: 12.5, fontWeight: "700" },
+  syncBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  syncSheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 22, paddingBottom: 34, borderTopWidth: 1, borderColor: theme.border },
+  syncTitle: { color: theme.text, fontSize: 18, fontWeight: "800", marginBottom: 8 },
+  syncSub: { color: theme.textDim, fontSize: 14, lineHeight: 20 },
+  syncClose: { color: theme.textDim, fontSize: 14, fontWeight: "600", textAlign: "center" },
   calCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.good, alignItems: "center", justifyContent: "center" },
   calOnTitle: { color: theme.good, fontSize: 14.5, fontWeight: "800" },
   calOnSub: { color: theme.textDim, fontSize: 12, marginTop: 1 },
