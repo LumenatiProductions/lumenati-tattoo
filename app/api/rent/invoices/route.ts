@@ -170,5 +170,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (b.action === "void") {
+    if (!b.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const { data: inv } = await supabase.from("rent_invoices").select("status").eq("id", b.id).maybeSingle();
+    if (!inv) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    if (inv.status === "paid") {
+      return NextResponse.json({ error: "That invoice is already paid — it can't be voided." }, { status: 409 });
+    }
+    // status filter keeps it idempotent (an already-void invoice is a no-op).
+    const { error } = await supabase
+      .from("rent_invoices")
+      .update({ status: "void" })
+      .eq("id", b.id)
+      .eq("status", "pending");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }

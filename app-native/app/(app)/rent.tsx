@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Linking, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -75,6 +75,29 @@ export default function Rent() {
     load();
   };
 
+  // Resend the renter their hosted pay link by email (API action "email").
+  const resendLink = async (id: string) => {
+    const r = await apiPost<{ sentTo?: string }>("/api/rent/invoices", { action: "email", id });
+    setNote(r.ok ? `Pay link sent${r.data?.sentTo ? ` to ${r.data.sentTo}` : ""}.` : r.error ?? "Could not send the link.");
+  };
+
+  // Void a pending invoice (mistake / waived rent). Confirmed — it clears it off
+  // the books. Paid invoices can't be voided.
+  const voidInvoice = (id: string) => {
+    Alert.alert("Void this invoice?", "It comes off the books and stops counting as owed. This can't be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Void it",
+        style: "destructive",
+        onPress: async () => {
+          const r = await apiPost("/api/rent/invoices", { action: "void", id });
+          setNote(r.ok ? "Invoice voided." : r.error ?? "Could not void it.");
+          load();
+        },
+      },
+    ]);
+  };
+
   const period = new Date().toISOString().slice(0, 7);
   const current = (rows ?? []).filter((r) => r.period === period);
   const past = (rows ?? []).filter((r) => r.period !== period);
@@ -93,9 +116,17 @@ export default function Rent() {
       right={
         r.status === "pending" ? (
           isAdmin ? (
-            <Text onPress={() => markPaid(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
-              Mark paid
-            </Text>
+            <View style={{ alignItems: "flex-end", gap: 8 }}>
+              <Text onPress={() => markPaid(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
+                Mark paid
+              </Text>
+              <Text onPress={() => resendLink(r.id)} style={{ color: theme.textDim, fontSize: 13, fontWeight: "600" }}>
+                Resend link
+              </Text>
+              <Text onPress={() => voidInvoice(r.id)} style={{ color: theme.textFaint, fontSize: 13, fontWeight: "600" }}>
+                Void
+              </Text>
+            </View>
           ) : (
             <View style={{ alignItems: "flex-end", gap: 8 }}>
               <Text onPress={() => payCard(r.id)} style={{ color: theme.brand, fontSize: 13.5, fontWeight: "700" }}>
