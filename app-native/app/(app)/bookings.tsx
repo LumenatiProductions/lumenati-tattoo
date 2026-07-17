@@ -121,9 +121,6 @@ export default function Bookings() {
   const [adding, setAdding] = useState(params.new === "1");
   const [editId, setEditId] = useState<string | null>(null);
   const [calOn, setCalOn] = useState(false);
-  // Calendar sync lives behind a small header icon (not in the daily view). The
-  // icon shows synced state at a glance; tapping opens this sheet to manage it.
-  const [syncOpen, setSyncOpen] = useState(false);
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
   const [calChoices, setCalChoices] = useState<{ id: string; title: string; source: string }[]>([]);
   const [calId, setCalId] = useState<string | null>(null);
@@ -377,21 +374,7 @@ export default function Bookings() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: "Bookings",
-          headerStyle: { backgroundColor: theme.bg },
-          headerTintColor: theme.text,
-          // Calendar sync as a small header icon: green calendar when synced,
-          // grey outline when not. Tap to manage. Out of the daily view.
-          headerRight: () => (
-            <Pressable onPress={() => setSyncOpen(true)} hitSlop={12} style={{ paddingHorizontal: 4 }}>
-              <Ionicons name={calOn ? "calendar" : "calendar-outline"} size={22} color={calOn ? theme.good : theme.textDim} />
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
       <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <BooksToggle />
         {freed && (
@@ -481,50 +464,41 @@ export default function Bookings() {
                 ))
               )}
             </Card>
+
+            {/* Calendar sync: a plain card at the bottom, out of the daily flow.
+                No modal (which deadlocked with the OS permission prompt), no glass. */}
+            <Text style={styles.section}>Calendar sync</Text>
+            <Pressable onPress={toggleCal} style={styles.syncCard}>
+              <Ionicons name={calOn ? "calendar" : "calendar-outline"} size={20} color={calOn ? theme.good : theme.textDim} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.syncCardTitle}>{calOn ? "Synced" : "Not synced"}</Text>
+                <Text style={styles.syncCardSub}>
+                  {calOn
+                    ? `Bookings land in ${calChoices.find((c) => c.id === calId)?.title ?? "your calendar"} automatically.`
+                    : "Add every booking to your phone's calendar automatically."}
+                </Text>
+              </View>
+              <Text style={[styles.syncCardAction, { color: calOn ? theme.textFaint : theme.brand }]}>
+                {calOn ? "Turn off" : "Turn on"}
+              </Text>
+            </Pressable>
+            {calOn && calChoices.length > 1 && (
+              <Card style={{ padding: 0, marginTop: 8 }}>
+                {calChoices.map((c) => (
+                  <Pressable key={c.id} onPress={() => pickCalendar(c.id)} style={styles.calOption}>
+                    <Ionicons name={calProviderIcon(c.source)} size={15} color={c.id === calId ? theme.good : theme.textDim} />
+                    <Text style={[styles.calOptionText, c.id === calId && { color: theme.good, fontWeight: "700" }]}>
+                      {c.title}
+                      {c.source ? ` (${c.source})` : ""}
+                    </Text>
+                    {c.id === calId && <Ionicons name="checkmark" size={15} color={theme.good} />}
+                  </Pressable>
+                ))}
+              </Card>
+            )}
           </>
         )}
       </ScrollView>
-
-      {/* Calendar sync management — opened from the header icon, never in the way. */}
-      <Modal visible={syncOpen} transparent animationType="slide" onRequestClose={() => setSyncOpen(false)}>
-        <Pressable style={styles.syncBackdrop} onPress={() => setSyncOpen(false)}>
-          <Pressable style={styles.syncSheet} onPress={() => {}}>
-            <Text style={styles.syncTitle}>Calendar sync</Text>
-            {!calOn ? (
-              <>
-                <Text style={styles.syncSub}>Add every booking to your phone&apos;s calendar automatically.</Text>
-                <View style={{ marginTop: 16 }}>
-                  <Button label="Sync my calendar" onPress={toggleCal} />
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.syncSub}>
-                  Synced to {calChoices.find((c) => c.id === calId)?.title ?? "your calendar"}. Every booking lands there
-                  automatically.
-                </Text>
-                {calChoices.length > 1 &&
-                  calChoices.map((c) => (
-                    <Pressable key={c.id} onPress={() => pickCalendar(c.id)} style={styles.calOption}>
-                      <Ionicons name={calProviderIcon(c.source)} size={15} color={c.id === calId ? theme.good : theme.textDim} />
-                      <Text style={[styles.calOptionText, c.id === calId && { color: theme.good, fontWeight: "700" }]}>
-                        {c.title}
-                        {c.source ? ` (${c.source})` : ""}
-                      </Text>
-                      {c.id === calId && <Ionicons name="checkmark" size={15} color={theme.good} />}
-                    </Pressable>
-                  ))}
-                <Pressable onPress={toggleCal} hitSlop={8} style={{ marginTop: 16 }}>
-                  <Text style={styles.calOff}>Turn off sync</Text>
-                </Pressable>
-              </>
-            )}
-            <Pressable onPress={() => setSyncOpen(false)} style={{ marginTop: 18 }}>
-              <Text style={styles.syncClose}>Close</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {editId &&
         (() => {
@@ -1123,11 +1097,10 @@ const styles = StyleSheet.create({
   },
   calPick: { marginBottom: 12, borderColor: "rgba(52,211,153,0.45)", borderWidth: 1, borderRadius: 14, backgroundColor: theme.goodSoft, overflow: "hidden" },
   calOnRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 12, paddingHorizontal: 14 },
-  syncBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  syncSheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 22, paddingBottom: 34, borderTopWidth: 1, borderColor: theme.border },
-  syncTitle: { color: theme.text, fontSize: 18, fontWeight: "800", marginBottom: 8 },
-  syncSub: { color: theme.textDim, fontSize: 14, lineHeight: 20 },
-  syncClose: { color: theme.textDim, fontSize: 14, fontWeight: "600", textAlign: "center" },
+  syncCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: theme.radius.md, padding: 14 },
+  syncCardTitle: { color: theme.text, fontSize: 15, fontWeight: "700" },
+  syncCardSub: { color: theme.textDim, fontSize: 12.5, marginTop: 2, lineHeight: 17 },
+  syncCardAction: { fontSize: 13.5, fontWeight: "700" },
   calCheck: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.good, alignItems: "center", justifyContent: "center" },
   calOnTitle: { color: theme.good, fontSize: 14.5, fontWeight: "800" },
   calOnSub: { color: theme.textDim, fontSize: 12, marginTop: 1 },
