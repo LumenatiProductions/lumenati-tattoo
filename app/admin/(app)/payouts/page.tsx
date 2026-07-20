@@ -38,9 +38,15 @@ export default function PayoutsPage() {
   const payroll = visible
     .filter((s) => s.artist.pay.type === "payroll_split" && s.gustoWages > 0)
     .sort((a, b) => b.gustoWages - a.gustoWages);
+  // Split CONTRACTORS are paid directly by the shop (1099 at $600+), so they get
+  // their own list — filing them under Gusto payroll would be the wrong treatment.
+  const contractors = visible
+    .filter((s) => s.artist.pay.type === "contractor_split" && s.contractorOwed > 0)
+    .sort((a, b) => b.contractorOwed - a.contractorOwed);
 
   const settle = async (st: ArtistStatement) => {
     const isRenter = st.artist.pay.type === "booth_rent";
+    const isContractor = st.artist.pay.type === "contractor_split";
     setMsg(null);
     const r = await fetch("/api/settlements", {
       method: "POST",
@@ -50,7 +56,9 @@ export default function PayoutsPage() {
         amountCents: st.net,
         note: isRenter
           ? `pass-through · card ${fmt(st.cardService)} svc + ${fmt(st.cardTips)} tips`
-          : `Gusto entry · ${fmt(st.artistEarnings)} wages (${fmt(st.grossService)} svc, shop cut ${fmt(st.shopCut)}, tips ${fmt(st.grossTips)})`,
+          : isContractor
+            ? `contractor paid · ${fmt(st.artistEarnings)} (${fmt(st.grossService)} svc, shop cut ${fmt(st.shopCut)}, tips ${fmt(st.grossTips)}) — 1099 basis`
+            : `Gusto entry · ${fmt(st.artistEarnings)} wages (${fmt(st.grossService)} svc, shop cut ${fmt(st.shopCut)}, tips ${fmt(st.grossTips)})`,
       }),
     });
     const d = await r.json().catch(() => ({}));
@@ -61,7 +69,9 @@ export default function PayoutsPage() {
     setMsg(
       (isRenter
         ? `${st.artist.name}'s sales passed through — clean through today.`
-        : `${st.artist.name} entered into Gusto through today.`) +
+        : isContractor
+          ? `${st.artist.name} paid through today. It counts toward their 1099.`
+          : `${st.artist.name} entered into Gusto through today.`) +
         (d.receipt?.sent ? " Receipt emailed." : ""),
     );
     await refreshSettlements();
@@ -161,6 +171,30 @@ export default function PayoutsPage() {
             The wages number is the artist&apos;s share of service plus all tips. Type it into
             Gusto, run payroll there, then mark it entered.
           </p>
+
+          {contractors.length > 0 && (
+            <div className="mt-5">
+              <SectionTitle>Contractors to pay</SectionTitle>
+              <Card>
+                <div className="divide-y divide-white/8">
+                  {contractors.map((s) => (
+                    <SettleRow
+                      key={s.artist.id}
+                      st={s}
+                      kind="contractor"
+                      canSettle={role !== "artist" && settleConfigured}
+                      onSettle={settle}
+                    />
+                  ))}
+                </div>
+              </Card>
+              <p className="mt-2 px-1 text-xs text-white/55">
+                You collected the client&apos;s money and keep your cut, so this is their share to
+                pay out directly. No withholding. It counts toward their 1099 once they clear $600
+                for the year.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -174,7 +208,7 @@ function SettleRow({
   onSettle,
 }: {
   st: ArtistStatement;
-  kind: "passthrough" | "payroll";
+  kind: "passthrough" | "payroll" | "contractor";
   canSettle: boolean;
   onSettle: (st: ArtistStatement) => Promise<boolean>;
 }) {
@@ -184,7 +218,9 @@ function SettleRow({
     const q =
       kind === "passthrough"
         ? `Record that ${fmt(st.passThroughOwed)} was handed over to ${st.artist.name} and clear their sales through today?`
-        : `Record that ${st.artist.name}'s ${fmt(st.gustoWages)} in wages was entered into Gusto through today?`;
+        : kind === "contractor"
+          ? `Record that you paid ${st.artist.name} ${fmt(st.contractorOwed)} and clear their sales through today? It counts toward their 1099.`
+          : `Record that ${st.artist.name}'s ${fmt(st.gustoWages)} in wages was entered into Gusto through today?`;
     if (!window.confirm(q)) return;
     setBusy(true);
     await onSettle(st);
@@ -207,7 +243,7 @@ function SettleRow({
       <div className="flex items-center gap-3">
         <span
           className={`tnum text-sm font-semibold ${
-            kind === "passthrough" ? "text-amber-400" : "text-sky-300"
+            kind === "passthrough" ? "text-amber-400" : kind === "contractor" ? "text-emerald-300" : "text-sky-300"
           }`}
         >
           {fmt(st.net)}
@@ -220,10 +256,18 @@ function SettleRow({
             title={
               kind === "passthrough"
                 ? "Record the hand-off and reset this row"
-                : "Record the Gusto entry and reset this row"
+                : kind === "contractor"
+                  ? "Record the payment and reset this row"
+                  : "Record the Gusto entry and reset this row"
             }
           >
-            {busy ? "Saving…" : kind === "passthrough" ? "Mark passed through" : "Mark entered"}
+            {busy
+              ? "Saving…"
+              : kind === "passthrough"
+                ? "Mark passed through"
+                : kind === "contractor"
+                  ? "Mark paid"
+                  : "Mark entered"}
           </button>
         )}
       </div>

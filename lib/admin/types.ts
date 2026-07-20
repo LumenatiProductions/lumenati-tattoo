@@ -10,7 +10,7 @@ export type Role = "owner" | "artist";
 export const normalizeRole = (raw: string | null | undefined): Role =>
   raw === "artist" ? "artist" : raw === "owner" || raw === "bookkeeper" || raw === "frontdesk" ? "owner" : "artist";
 
-export type PayType = "payroll_salary" | "payroll_split" | "booth_rent";
+export type PayType = "payroll_salary" | "payroll_split" | "booth_rent" | "contractor_split";
 
 /**
  * How an artist is paid (2026-07-08 rebuild — see PAGE-WALK-NOTES 2/11/15).

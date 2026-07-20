@@ -36,13 +36,15 @@ export interface ArtistStatement {
   artistEarnings: number; // renter: everything; split: wages basis; salary: 0
   passThroughOwed: number; // booth_rent only: card svc + tips the shop is holding
   gustoWages: number; // payroll_split only: wages to enter into Gusto
+  contractorOwed: number; // contractor_split only: pay the contractor directly (1099)
   net: number; // what clears when the row is settled (pass-through or Gusto entry)
 }
 
 export function statementFor(artist: Artist, sales: Sale[]): ArtistStatement {
   const mine = sales.filter((s) => s.artistId === artist.id);
   const type = artist.pay.type;
-  const split = type === "payroll_split" ? (artist.pay.shopSplitPct ?? 0) : 0;
+  const isSplit = type === "payroll_split" || type === "contractor_split";
+  const split = isSplit ? (artist.pay.shopSplitPct ?? 0) : 0;
 
   let grossService = 0,
     grossTips = 0,
@@ -67,15 +69,21 @@ export function statementFor(artist: Artist, sales: Sale[]): ArtistStatement {
   let artistEarnings = 0;
   let passThroughOwed = 0;
   let gustoWages = 0;
+  let contractorOwed = 0;
 
   if (type === "booth_rent") {
     // Their money, all of it. The shop only holds what its reader collected.
     artistEarnings = grossService + grossTips;
     passThroughOwed = cardService + cardTips;
-  } else if (type === "payroll_split") {
+  } else if (isSplit) {
+    // Same math either way: the shop keeps its cut, the artist's share goes out.
+    // The DIFFERENCE is how it goes out — payroll_split becomes W-2 wages via
+    // Gusto; contractor_split is paid straight to a contractor (1099 at $600+),
+    // so it must never land in the Gusto column.
     shopCut = Math.round(grossService * split);
     artistEarnings = grossService - shopCut + grossTips;
-    gustoWages = artistEarnings;
+    if (type === "payroll_split") gustoWages = artistEarnings;
+    else contractorOwed = artistEarnings;
   } else {
     // payroll_salary: the owner — his tickets are shop revenue, he's paid a
     // salary in Gusto, and nothing is ever owed either way in the app.
@@ -95,7 +103,8 @@ export function statementFor(artist: Artist, sales: Sale[]): ArtistStatement {
     artistEarnings,
     passThroughOwed,
     gustoWages,
-    net: passThroughOwed + gustoWages,
+    contractorOwed,
+    net: passThroughOwed + gustoWages + contractorOwed,
   };
 }
 
@@ -104,7 +113,8 @@ export interface ShopSummary {
   serviceRevenue: number; // service only
   splitRevenue: number; // shop's take from tickets: split cuts + owner's sales
   renterPassThrough: number; // renters' card sales — moves through, never income
-  gustoWagesDue: number; // wages to enter into Gusto for split artists
+  gustoWagesDue: number; // wages to enter into Gusto for payroll-split artists
+  contractorsDue: number; // owed to split CONTRACTORS, paid direct (1099)
   cardTotal: number;
   cashTotal: number;
 }
@@ -127,6 +137,7 @@ export function shopSummary(artists: Artist[], sales: Sale[]): ShopSummary {
     splitRevenue,
     renterPassThrough: statements.reduce((a, st) => a + st.passThroughOwed, 0),
     gustoWagesDue: statements.reduce((a, st) => a + st.gustoWages, 0),
+    contractorsDue: statements.reduce((a, st) => a + st.contractorOwed, 0),
     cardTotal,
     cashTotal,
   };
@@ -137,5 +148,7 @@ export function payTypeLabel(artist: Artist): string {
   if (p.type === "booth_rent") return `Booth rent · ${fmt(p.rentCents ?? 0)}/mo`;
   if (p.type === "payroll_split")
     return `${Math.round((p.shopSplitPct ?? 0) * 100)}% split · Gusto payroll`;
+  if (p.type === "contractor_split")
+    return `${Math.round((p.shopSplitPct ?? 0) * 100)}% split · contractor (1099)`;
   return "Owner salary · Gusto";
 }

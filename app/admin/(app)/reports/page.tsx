@@ -82,14 +82,27 @@ function ReportsInner() {
     );
   };
 
+  // 1099s go to contractors the SHOP PAYS — i.e. split contractors, where the
+  // shop collects the client's money and hands over their share. Booth renters
+  // pay the shop (money flows the other way), so the shop issues them nothing.
+  const needs1099 = (a: { payType: string }) => a.payType === "contractor_split";
+  // Reportable at $600+ for the year; below that, no form is required.
+  const THRESHOLD_1099 = 60000;
+
   const export1099 = () => {
     if (!data) return;
     downloadCsv(
       `lumenati-1099-${year}.csv`,
-      ["Contractor", "Pay arrangement", "Gross earned (service + tips)", "Tickets"],
+      ["Contractor", "Pay arrangement", "Paid by the shop (their share + tips)", "Tickets", "At $600 threshold"],
       data.artists
-        .filter((a) => a.payType === "booth_rent")
-        .map((a) => [a.name, payLabel(a), dollars(a.artistEarnings), a.saleCount]),
+        .filter(needs1099)
+        .map((a) => [
+          a.name,
+          payLabel(a),
+          dollars(a.artistEarnings),
+          a.saleCount,
+          a.artistEarnings >= THRESHOLD_1099 ? "yes" : "no",
+        ]),
     );
   };
 
@@ -244,16 +257,16 @@ function ReportsInner() {
             )}
           </Card>
 
-          {/* ── 1099 prep — booth renters only ── */}
+          {/* ── 1099 prep — contractors the shop PAYS ── */}
           <SectionTitle
             action={
               <button
                 onClick={export1099}
-                disabled={!data.artists.some((a) => a.payType === "booth_rent")}
+                disabled={!data.artists.some(needs1099)}
                 title={
-                  data.artists.some((a) => a.payType === "booth_rent")
-                    ? "Download renter totals for 1099 prep"
-                    : "No renters in this range"
+                  data.artists.some(needs1099)
+                    ? "Download contractor totals for 1099 prep"
+                    : "Nobody the shop pays directly in this range"
                 }
                 className="rounded-lg border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
               >
@@ -265,35 +278,44 @@ function ReportsInner() {
           </SectionTitle>
           <Card className="mb-6 ring-1 ring-brand/20">
             <div className="px-4 py-3 text-xs text-white/65">
-              Booth renters only — the shop passes their sales through, so they&apos;re the only
-              contractors here. Payroll artists are paid through Gusto, which handles their tax
-              forms. Confirm with your accountant exactly which figure belongs on the 1099-NEC
-              before filing.
+              Contractors the shop pays. You collect the client&apos;s money and hand over their
+              share, so the money leaves you and a 1099-NEC is due once they clear $600 for the
+              year. Booth renters are not here on purpose: they pay the shop, so nothing goes out
+              and you issue them nothing. Payroll artists get a W-2 through Gusto. Confirm the
+              exact figure with your accountant before filing.
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-white/10 text-left text-xs uppercase tracking-wide text-white/60">
-                  <th className="px-4 py-2 font-medium">Renter</th>
+                  <th className="px-4 py-2 font-medium">Contractor</th>
                   <th className="px-4 py-2 font-medium">Arrangement</th>
                   <th className="px-4 py-2 font-medium">Tickets</th>
-                  <th className="px-4 py-2 font-medium">Gross earned</th>
+                  <th className="px-4 py-2 font-medium">Paid by the shop</th>
                 </tr>
               </thead>
               <tbody>
-                {data.artists
-                  .filter((a) => a.payType === "booth_rent")
-                  .map((a) => (
-                    <tr key={a.id} className="border-b border-white/8 last:border-0">
-                      <td className="px-4 py-2.5 font-medium">{a.name}</td>
-                      <td className="px-4 py-2.5 text-white/70">{payLabel(a)}</td>
-                      <td className="px-4 py-2.5 tnum text-white/75">{a.saleCount}</td>
-                      <td className="px-4 py-2.5 tnum font-medium">{fmtPrecise(a.artistEarnings)}</td>
-                    </tr>
-                  ))}
-                {!data.artists.some((a) => a.payType === "booth_rent") && (
+                {data.artists.filter(needs1099).map((a) => (
+                  <tr key={a.id} className="border-b border-white/8 last:border-0">
+                    <td className="px-4 py-2.5 font-medium">{a.name}</td>
+                    <td className="px-4 py-2.5 text-white/70">{payLabel(a)}</td>
+                    <td className="px-4 py-2.5 tnum text-white/75">{a.saleCount}</td>
+                    <td className="px-4 py-2.5 tnum font-medium">
+                      {fmtPrecise(a.artistEarnings)}
+                      {a.artistEarnings >= THRESHOLD_1099 ? (
+                        <span className="ml-2 rounded bg-brand/15 px-1.5 py-0.5 text-[10px] font-semibold text-brand">
+                          1099 due
+                        </span>
+                      ) : (
+                        <span className="ml-2 text-[10px] text-white/40">under $600</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!data.artists.some(needs1099) && (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-sm text-white/55">
-                      No booth renters with tickets in this period.
+                      Nobody the shop pays directly in this period. Booth renters pay you, so they
+                      don&apos;t belong here.
                     </td>
                   </tr>
                 )}
