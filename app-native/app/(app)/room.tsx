@@ -351,9 +351,14 @@ export default function MyRoom() {
               <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
             ) : (
             <>
-            {/* Same tactile lock as Bookings + Waitlist — one control everywhere. */}
-            <SectionTitle>Books</SectionTitle>
-            <BooksToggle />
+            {/* Same tactile lock as Bookings + Waitlist — one control everywhere.
+                Pass the picked artist: My Page has its own roster picker. */}
+            {artistId ? (
+              <>
+                <SectionTitle>Books</SectionTitle>
+                <BooksToggle artistId={artistId} />
+              </>
+            ) : null}
 
             <SectionTitle>Identity</SectionTitle>
             <Card>

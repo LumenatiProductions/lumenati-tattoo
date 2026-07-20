@@ -13,7 +13,7 @@ import { endStop, success, trouble } from "@/lib/haptics";
 // then a confirming pulse. Closed books route new requests onto the waitlist
 // (server-side, /api/artist/books). Renders only when there's a specific artist:
 // the artist themselves, or an owner previewing one.
-export default function BooksToggle() {
+export default function BooksToggle({ artistId: forcedArtistId }: { artistId?: string | null } = {}) {
   const { role, email } = useAuth();
   const { preview } = usePreview();
   const [artistId, setArtistId] = useState<string | null>(null);
@@ -22,13 +22,16 @@ export default function BooksToggle() {
   const [busy, setBusy] = useState(false);
 
   const resolveArtist = useCallback(async () => {
+    // An explicit artistId wins — My Page has its own roster picker, so the
+    // owner editing a chair there manages THAT chair's books.
+    if (forcedArtistId) return forcedArtistId;
     if (preview?.artistId) return preview.artistId;
     if (role === "artist" && email) {
       const { data } = await supabase.from("profiles").select("artist_id").eq("email", email).maybeSingle();
       return (data?.artist_id as string | null) ?? null;
     }
     return null;
-  }, [role, email, preview]);
+  }, [role, email, preview, forcedArtistId]);
 
   useEffect(() => {
     (async () => {
