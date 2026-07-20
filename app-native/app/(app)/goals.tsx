@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
 import { Button } from "@/components/ui";
@@ -108,19 +109,33 @@ export default function Goals() {
           onChange={set}
         />
 
-        {mode === "weekly" && suggested > 0 && weekly !== suggested && (
-          <View style={{ alignItems: "center", marginTop: 6 }}>
-            <Button
-              label={`Use suggested · ${money(suggested)}/week`}
-              tone="ghost"
-              onPress={() => {
-                milestone();
-                setLinkedWeekly(suggested);
-              }}
-            />
-            <Text style={styles.suggestWhy}>
-              Your average week lately is {money(avgWeek)} — this is that plus a stretch.
-            </Text>
+        {mode === "weekly" && suggested > 0 && (
+          // Keep this slot filled whether or not you're on the suggested number,
+          // so the layout doesn't flash when the dial lands on it. On it = a
+          // little win instead of the copy vanishing.
+          <View style={{ alignItems: "center", marginTop: 6, minHeight: 64, justifyContent: "center" }}>
+            {weekly !== suggested ? (
+              <>
+                <Button
+                  label={`Use suggested · ${money(suggested)}/week`}
+                  tone="ghost"
+                  onPress={() => {
+                    milestone();
+                    setLinkedWeekly(suggested);
+                  }}
+                />
+                <Text style={styles.suggestWhy}>
+                  Your average week lately is {money(avgWeek)}, this is that plus a stretch.
+                </Text>
+              </>
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                <Ionicons name="checkmark-circle" size={18} color={theme.good} />
+                <Text style={[styles.suggestWhy, { color: theme.good, marginTop: 0 }]}>
+                  Right on the recommended pace
+                </Text>
+              </View>
+            )}
           </View>
         )}
 

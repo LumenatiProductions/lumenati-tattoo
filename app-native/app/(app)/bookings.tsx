@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -104,6 +105,7 @@ const todayKey = () => {
 // staff can mark complete / no-show by writing under RLS — no API needed.
 export default function Bookings() {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const router = useRouter();
   const { role, email, shopId } = useAuth();
   const { preview } = usePreview();
@@ -375,7 +377,17 @@ export default function Bookings() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
+      <ScrollView
+        style={{ backgroundColor: theme.bg }}
+        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         <BooksToggle />
         {freed && (
           <Card style={styles.freedCard}>
@@ -499,6 +511,7 @@ export default function Bookings() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {editId &&
         (() => {
