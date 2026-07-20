@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import BooksToggle from "@/components/BooksToggle";
 import { Stack, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -103,43 +105,6 @@ export default function MyRoom() {
   // columns, those sections simply don't render and saves don't touch them.
   const [arcadeReady, setArcadeReady] = useState(false);
   const [titleReady, setTitleReady] = useState(false);
-  const [booksClosed, setBooksClosed] = useState<boolean | null>(null);
-  const [booksBusy, setBooksBusy] = useState(false);
-  useEffect(() => {
-    if (!artistId) return;
-    setBooksClosed(null);
-    supabase
-      .from("artists")
-      .select("books_closed")
-      .eq("id", artistId)
-      .maybeSingle()
-      .then(({ data }) => setBooksClosed(!!(data as { books_closed?: boolean } | null)?.books_closed));
-  }, [artistId]);
-
-  const toggleBooks = async (closed: boolean) => {
-    if (!artistId || booksBusy) return;
-    setBooksBusy(true);
-    const prev = booksClosed;
-    setBooksClosed(closed);
-    const r = await apiPost<{ booksClosed: boolean; waiting: number }>("/api/artist/books", { closed, artistId });
-    setBooksBusy(false);
-    if (!r.ok) {
-      setBooksClosed(prev);
-      Alert.alert("Couldn't update your books", r.error ?? "Try again in a minute.");
-      return;
-    }
-    const waiting = r.data?.waiting ?? 0;
-    if (!closed && waiting > 0) {
-      Alert.alert(
-        "Books are open",
-        `${waiting} ${waiting === 1 ? "person is" : "people are"} on your waitlist — fill the calendar first.`,
-        [
-          { text: "Later", style: "cancel" },
-          { text: "Open waitlist", onPress: () => router.push("/waitlist") },
-        ],
-      );
-    }
-  };
   useEffect(() => {
     (async () => {
       if (!artistId) return;
@@ -386,31 +351,13 @@ export default function MyRoom() {
               <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
             ) : (
             <>
+            {/* Same tactile lock as Bookings + Waitlist — one control everywhere. */}
             <SectionTitle>Books</SectionTitle>
-            <Card>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600" }}>
-                    {booksClosed ? "Books closed" : "Books open"}
-                  </Text>
-                  <Text style={{ color: theme.textDim, fontSize: 13, lineHeight: 18, marginTop: 3 }}>
-                    {booksClosed
-                      ? "Your page says Waitlist — new asks line up instead of booking."
-                      : "Close your books and new bookers join your waitlist until you reopen."}
-                  </Text>
-                </View>
-                <Switch
-                  value={!!booksClosed}
-                  disabled={booksClosed === null || booksBusy}
-                  onValueChange={(v) => toggleBooks(v)}
-                />
-              </View>
-            </Card>
+            <BooksToggle />
 
             <SectionTitle>Identity</SectionTitle>
             <Card>
               <LabeledInput label="Tagline" value={room.tagline} onChange={(v) => set("tagline", v)} placeholder="skater // gamer // bold color tattoos" />
-              <LabeledInput label="Instagram handle" value={room.ig_handle} onChange={(v) => set("ig_handle", v)} autoCapitalize="none" placeholder="your.handle" />
               <LabeledInput label="Bio" value={room.bio} onChange={(v) => set("bio", v)} placeholder="Tell them who you are…" />
             </Card>
 
@@ -419,16 +366,30 @@ export default function MyRoom() {
               <Text style={[styles.note, { marginBottom: 10 }]}>
                 Handles or links — each one you fill in shows up on your public page.
               </Text>
+              {/* Instagram lives here with the rest (it used to be stranded under
+                  Identity) and still saves to its own ig_handle column. Each row
+                  wears its real brand logo + color. */}
+              <SocialField
+                icon="logo-instagram"
+                color="#E1306C"
+                label="Instagram"
+                value={room.ig_handle}
+                onChange={(v) => set("ig_handle", v)}
+                placeholder="your.handle"
+              />
               {([
-                ["tiktok", "TikTok", "@your.handle"],
-                ["x", "X", "@your.handle"],
-                ["youtube", "YouTube", "@your.channel"],
-                ["facebook", "Facebook", "your page name or link"],
-                ["website", "Website", "yoursite.com"],
-              ] as const).map(([key, label, ph]) => (
-                <LabeledInput
+                ["tiktok", "TikTok", "@your.handle", "logo-tiktok", "#ffffff"],
+                ["x", "X", "@your.handle", "logo-twitter", "#1DA1F2"],
+                ["youtube", "YouTube", "@your.channel", "logo-youtube", "#FF0000"],
+                ["facebook", "Facebook", "your page name or link", "logo-facebook", "#1877F2"],
+                ["website", "Website", "yoursite.com", "globe-outline", "#9CA3AF"],
+              ] as const).map(([key, label, ph, icon, color]) => (
+                <SocialField
                   key={key}
+                  icon={icon}
+                  color={color}
                   label={label}
+                  placeholder={ph}
                   value={room.socials?.[key] ?? ""}
                   onChange={(v) => {
                     const next = { ...(room.socials ?? {}) };
@@ -436,8 +397,6 @@ export default function MyRoom() {
                     else delete next[key];
                     set("socials", Object.keys(next).length ? next : null);
                   }}
-                  autoCapitalize="none"
-                  placeholder={ph}
                 />
               ))}
             </Card>
@@ -670,6 +629,45 @@ function moveItem<T extends { id: string }>(items: T[], id: string, dir: -1 | 1)
 
 // A row-per-photo editor: thumbnail, caption field, up/down/remove. Simple
 // beats drag-and-drop on a phone; the order here IS the public order.
+// One social row: the platform's real logo in its brand color, then the field.
+// Filled rows light their logo up so you can see at a glance what's live.
+function SocialField({
+  icon,
+  color,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  const on = !!value.trim();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+      <View style={[styles.socialIcon, on && { backgroundColor: `${color}22`, borderColor: `${color}66` }]}>
+        <Ionicons name={icon} size={19} color={on ? color : theme.textFaint} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.socialLabel}>{label}</Text>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={theme.textFaint}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.socialInput}
+        />
+      </View>
+    </View>
+  );
+}
+
 function PhotoGrid({
   items,
   textLabel,
@@ -721,6 +719,25 @@ function PhotoGrid({
 }
 
 const styles = StyleSheet.create({
+  socialIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.surfaceRaised,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  socialLabel: { color: theme.textDim, fontSize: 11.5, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
+  socialInput: {
+    color: theme.text,
+    fontSize: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
   gridInput: {
     backgroundColor: "rgba(255,255,255,0.06)",
     borderColor: "rgba(255,255,255,0.12)",
