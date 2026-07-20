@@ -6,6 +6,7 @@ import * as Crypto from "expo-crypto";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Badge, Button, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 import { todayLocal } from "@/lib/dates";
@@ -181,8 +182,9 @@ export default function Intake() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Intake", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >

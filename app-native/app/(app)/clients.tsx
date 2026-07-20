@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, Button } from "@/components/ui";
 import { LabeledInput } from "@/components/form";
@@ -60,7 +61,8 @@ export default function Clients() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Clients", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <View style={{ marginBottom: 12 }}>
           <Button
             label={adding || editing ? "Cancel" : "New client"}

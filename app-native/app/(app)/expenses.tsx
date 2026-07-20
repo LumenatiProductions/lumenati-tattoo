@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Button, Card } from "@/components/ui";
 import { addExpense, deleteExpense, loadExpenses, expensesYtd, type Expense } from "@/lib/personal";
 import { snapReceipt } from "@/lib/vision";
@@ -66,7 +67,8 @@ export default function Expenses() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Deductions", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <Card>
           <Text style={styles.ytd}>{money(expensesYtd(expenses))}</Text>
           <Text style={styles.ytdLabel}>deducted this year</Text>

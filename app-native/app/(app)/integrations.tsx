@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { apiPost } from "@/lib/appApi";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Badge, Button, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 import { Chips } from "@/components/form";
 
@@ -58,6 +59,7 @@ export default function Integrations() {
       <>
         <Stack.Screen options={{ headerShown: true, title: "Integrations", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
+          <InkWash />
           <Card>
             <Empty>Admins only.</Empty>
           </Card>
@@ -88,8 +90,9 @@ export default function Integrations() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Integrations", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >

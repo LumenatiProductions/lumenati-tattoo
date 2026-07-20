@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Button, Card, Empty, SectionTitle } from "@/components/ui";
 import { tap } from "@/lib/haptics";
 
@@ -149,14 +150,15 @@ export default function MyFollowups() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Follow-ups", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
         <Text style={styles.intro}>
           {mode === "shop"
-            ? "Your shop's follow-up messages — the defaults every artist starts from. Set the timing and wording, turn any off, and use rebook and birthday to send deals and win-backs."
+            ? "Your shop's follow-up messages, the defaults every artist starts from. Set the timing and wording, turn any off, and use rebook and birthday to send deals and win-backs."
             : "The messages clients get around a visit. Change the timing or the wording, or leave the shop's version. Turn any of them off for this chair."}
         </Text>
         {msg ? <Text style={styles.msg}>{msg}</Text> : null}

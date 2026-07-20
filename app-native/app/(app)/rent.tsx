@@ -7,6 +7,7 @@ import { apiPost } from "@/lib/appApi";
 import { useAuth } from "@/lib/auth";
 import { todayLocal } from "@/lib/dates";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Badge, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 
 // Booth rent (parity with /admin/rent): who's paid this month, who hasn't.
@@ -147,8 +148,9 @@ export default function Rent() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Booth rent", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >

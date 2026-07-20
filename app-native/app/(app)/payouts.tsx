@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { apiGet, apiPost } from "@/lib/appApi";
 import { pageAll } from "@/lib/personal";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Badge, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 
 // Pay (parity with /admin/payouts, 2026-07-08 rebuild). The shop cuts no
@@ -286,8 +287,9 @@ export default function Payouts() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Pay", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >

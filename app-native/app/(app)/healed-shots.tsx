@@ -8,6 +8,7 @@ import * as Clipboard from "expo-clipboard";
 import { supabase } from "@/lib/supabase";
 import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { tap, success } from "@/lib/haptics";
 import { Card, SectionTitle } from "@/components/ui";
 
@@ -101,8 +102,9 @@ export default function HealedShots() {
       <Stack.Screen
         options={{ headerShown: true, title: "Healed shots", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }}
       />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
       >
         <Text style={styles.lede}>

@@ -8,6 +8,7 @@ import { apiPost } from "@/lib/appApi";
 import { capture, snapCash } from "@/lib/vision";
 import { success } from "@/lib/haptics";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { ActionPill, Badge, Button, Card, Empty, ListRow, SectionTitle, Stat } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 import RebookCard from "@/components/RebookCard";
@@ -171,8 +172,9 @@ export default function Cash() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: isAdmin ? "Shop cash" : "My cash", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >

@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Button } from "@/components/ui";
 import { Chips } from "@/components/form";
 import GoalDial from "@/components/GoalDial";
@@ -93,7 +94,8 @@ export default function Goals() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Goals", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <View style={{ alignItems: "center", marginBottom: 8 }}>
           <Chips value={mode} options={["weekly", "monthly", "tax"] as Mode[]} display={(m) => MODE_LABEL[m]} onChange={setMode} />
         </View>

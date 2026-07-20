@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import { snapInventory, type InventoryItem as Detected } from "@/lib/vision";
@@ -89,7 +90,8 @@ export default function Inventory() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Inventory", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}>
             <Button label={scanning ? "Reading…" : "Snap to count"} tone="ghost" onPress={scan} disabled={scanning} />

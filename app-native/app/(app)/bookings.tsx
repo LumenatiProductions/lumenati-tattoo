@@ -19,6 +19,7 @@ import {
   type Conflict,
 } from "@/lib/calendar";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { ActionPill, Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 import DateTimeField from "@/components/DateTimeField";
@@ -377,13 +378,14 @@ export default function Bookings() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Bookings", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={headerHeight}
       >
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"

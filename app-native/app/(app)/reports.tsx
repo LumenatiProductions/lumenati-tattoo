@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Dimensions } from "react-native";
 import { theme, money } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Card, Empty, Stat } from "@/components/ui";
 import { apiGet } from "@/lib/appApi";
 import { useAuth } from "@/lib/auth";
@@ -88,6 +89,7 @@ export default function ReportsScreen() {
       <>
         <Stack.Screen options={{ headerShown: true, title: "Reports", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
+          <InkWash />
           <Card>
             <Empty>Admins only.</Empty>
           </Card>
@@ -99,7 +101,8 @@ export default function ReportsScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Reports", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         {loading ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 40 }} />
         ) : error ? (

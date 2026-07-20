@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Button, Card, SectionTitle } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 import { apiPost } from "@/lib/appApi";
@@ -320,7 +321,8 @@ export default function MyRoom() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "My Page", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}>
         {loading ? (
           <ActivityIndicator color={theme.textDim} style={{ marginTop: 60 }} />
         ) : !artistId ? (

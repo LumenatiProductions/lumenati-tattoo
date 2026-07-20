@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiGet } from "@/lib/appApi";
 import { useAuth } from "@/lib/auth";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Badge, Card, Empty, SectionTitle, Stat } from "@/components/ui";
 
 // Reconciliation (parity with /admin/reconcile): Stripe's ledger next to our
@@ -63,6 +64,7 @@ export default function Reconcile() {
       <>
         <Stack.Screen options={{ headerShown: true, title: "Reconciliation", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
+          <InkWash />
           <Card>
             <Empty>Admins only.</Empty>
           </Card>
@@ -86,8 +88,9 @@ export default function Reconcile() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Reconciliation", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >

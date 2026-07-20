@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { ActionPill, Badge, Card, Button } from "@/components/ui";
 import { LabeledInput, Chips } from "@/components/form";
 
@@ -115,7 +116,8 @@ export default function Compliance() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: isOwner ? "Compliance" : "My license", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
-      <ScrollView style={{ backgroundColor: theme.bg }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <InkWash />
+      <ScrollView style={{ flex: 1, backgroundColor: "transparent" }} contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <View style={{ marginBottom: 12 }}>
           <Button
             label={adding || editing ? "Cancel" : isOwner ? "Add license / permit" : "Add my license / cert"}

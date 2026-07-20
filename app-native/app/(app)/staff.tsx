@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, type Role } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
+import InkWash from "@/components/InkWash";
 import { Badge, Button, Card, Empty, ListRow, SectionTitle } from "@/components/ui";
 import { Chips, LabeledInput } from "@/components/form";
 
@@ -126,6 +127,7 @@ export default function Staff() {
       <>
         <Stack.Screen options={{ headerShown: true, title: "Staff", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
         <View style={{ flex: 1, backgroundColor: theme.bg, padding: 20 }}>
+          <InkWash />
           <Card>
             <Empty>Admins only.</Empty>
           </Card>
@@ -186,8 +188,9 @@ export default function Staff() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Staff", headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.text }} />
+      <InkWash />
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.textDim} />}
       >
