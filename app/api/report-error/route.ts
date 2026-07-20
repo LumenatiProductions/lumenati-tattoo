@@ -12,7 +12,11 @@ let sentWindowStart = 0;
 export async function POST(req: Request) {
   const origin = req.headers.get("origin") ?? "";
   const host = req.headers.get("host") ?? "";
-  if (origin && host && !origin.endsWith(`//${host}`)) {
+  // Same-origin only. The error boundary is a browser fetch, which always sends
+  // an Origin header, so a MISSING origin means a non-browser caller (curl) and
+  // is dropped too — previously an absent Origin skipped the check entirely and
+  // let anyone relay text to the alert webhook.
+  if (!origin || !host || !origin.endsWith(`//${host}`)) {
     return NextResponse.json({ ok: true });
   }
   const now = Date.now();

@@ -193,7 +193,11 @@ export async function POST(req: Request) {
       .from("payments")
       .update({ instant_payout_id: payout.id, instant_fee_cents: fee })
       .eq("id", row.id)
-      .eq("shop_id", shopId);
+      .eq("shop_id", shopId)
+      // Only claim the row if it hasn't already been recorded as paid out. The
+      // real double-drain guard is the Stripe idempotency key on the payout
+      // above; this keeps the DB row from being written twice under a race.
+      .is("instant_payout_id", null);
 
     const usd = (payoutAmount / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
     await pushEvent(

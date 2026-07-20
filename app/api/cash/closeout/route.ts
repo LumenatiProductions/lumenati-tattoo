@@ -31,6 +31,11 @@ export async function POST(req: Request) {
   if (!Number.isFinite(serviceCents) || serviceCents <= 0) {
     return NextResponse.json({ error: "Amount is required." }, { status: 400 });
   }
+  // Ceiling on both fields so a single cash closeout can't book a
+  // multi-million-dollar sale/tip (matches the $20k cap on card charges).
+  if (serviceCents > 2_000_000 || tipCents > 2_000_000) {
+    return NextResponse.json({ error: "Amount is out of range." }, { status: 400 });
+  }
 
   const artistId = me.role === "owner" ? b.artistId || me.artistId : me.artistId;
   if (!artistId) return NextResponse.json({ error: "No artist on this account." }, { status: 400 });

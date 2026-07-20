@@ -62,6 +62,12 @@ export async function POST(req: Request) {
   if (!Number.isFinite(amountCents) || amountCents === 0) {
     return NextResponse.json({ error: "Amount is required." }, { status: 400 });
   }
+  // A cash entry can be negative (an "out" adjustment) but a single one over
+  // $20k is a mistake, not a tattoo. Bound the magnitude to keep garbage /
+  // hostile values out of the ledger.
+  if (Math.abs(amountCents) > 2_000_000) {
+    return NextResponse.json({ error: "Amount is out of range." }, { status: 400 });
+  }
   // Sales tax INCLUDED in the amount (taxable product sales). It's the state's
   // money, not income: the ledger books the sale net of it, and the tax as its
   // own row so the remittance figure is one SUM.

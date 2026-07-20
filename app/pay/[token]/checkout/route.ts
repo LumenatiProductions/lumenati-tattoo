@@ -28,6 +28,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     .maybeSingle<PaymentRow>();
   if (!row) return NextResponse.redirect(`${back}?status=notfound`, { status: 303 });
   if (row.status === "paid") return NextResponse.redirect(`${back}?status=success`, { status: 303 });
+  // Anything past pending (e.g. refunded) is closed: bail BEFORE the tip write /
+  // session mint so a stale link can't re-charge or mutate a settled row.
+  if (row.status !== "pending") return NextResponse.redirect(`${back}?status=closed`, { status: 303 });
 
   const tipRaw = Math.round(Number(new URL(req.url).searchParams.get("tip") ?? 0));
   const tip = Number.isFinite(tipRaw) ? Math.min(Math.max(0, tipRaw), row.amount_cents * 2) : 0;

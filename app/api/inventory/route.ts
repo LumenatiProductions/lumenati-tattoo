@@ -56,6 +56,9 @@ const num = (v: number | string | null | undefined) => {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
+// Money fields (cost/retail price) get a $20k ceiling so a bad or hostile value
+// can't post an absurd cost or a live multi-million-dollar POS price.
+const money = (v: number | string | null | undefined) => Math.min(Math.round(num(v)), 2_000_000);
 
 // List the whole stock list, A→Z within the grouping the page does itself.
 export async function GET() {
@@ -96,9 +99,9 @@ export async function POST(req: Request) {
     qty: num(b.qty),
     reorder_at: num(b.reorderAt),
     reorder_qty: num(b.reorderQty),
-    cost_cents: Math.round(num(b.costCents)),
+    cost_cents: money(b.costCents),
     // Retail price: > 0 makes the item sellable at the POS; 0/empty stays null.
-    price_cents: Math.round(num(b.priceCents)) > 0 ? Math.round(num(b.priceCents)) : null,
+    price_cents: money(b.priceCents) > 0 ? money(b.priceCents) : null,
     supplier: orNull(b.supplier),
     supplier_url: orNull(b.supplierUrl),
     updated_at: new Date().toISOString(),
@@ -172,9 +175,9 @@ export async function PATCH(req: Request) {
   if (b.qty !== undefined) patch.qty = num(b.qty);
   if (b.reorderAt !== undefined) patch.reorder_at = num(b.reorderAt);
   if (b.reorderQty !== undefined) patch.reorder_qty = num(b.reorderQty);
-  if (b.costCents !== undefined) patch.cost_cents = Math.round(num(b.costCents));
+  if (b.costCents !== undefined) patch.cost_cents = money(b.costCents);
   if (b.priceCents !== undefined) {
-    patch.price_cents = Math.round(num(b.priceCents)) > 0 ? Math.round(num(b.priceCents)) : null;
+    patch.price_cents = money(b.priceCents) > 0 ? money(b.priceCents) : null;
   }
   if (b.supplier !== undefined) patch.supplier = orNull(b.supplier);
   if (b.supplierUrl !== undefined) patch.supplier_url = orNull(b.supplierUrl);

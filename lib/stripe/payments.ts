@@ -96,7 +96,12 @@ export async function startCheckout(
   label?: string,
 ) {
   if (!stripe) return { ok: false as const, error: "Stripe is not configured." };
+  // Only a pending payment may open checkout. Guarding on "paid" alone let a
+  // REFUNDED token be paid again (status is neither "pending" nor "paid"),
+  // creating a fresh live charge against a payment the shop already reversed in
+  // the books. Any terminal state (paid, refunded) is closed here.
   if (row.status === "paid") return { ok: false as const, error: "Already paid." };
+  if (row.status !== "pending") return { ok: false as const, error: "This payment is closed." };
 
   const { data: shop } = await admin.from("shops").select("name").eq("id", row.shop_id).maybeSingle();
   const shopName = (shop?.name as string | undefined)?.trim() || "Lumenati Tattoo";
@@ -215,14 +220,22 @@ export async function settlePayment(
   if (row.status === "paid") return { settled: false, reason: "already paid" };
 
   const paidAt = new Date().toISOString();
-  await admin
+  // Compare-and-swap the settle: only flip pending -> paid, and require the
+  // update to actually claim the row. Two concurrent webhook deliveries
+  // (checkout.session.completed + payment_intent.succeeded, or a retry) both read
+  // status !== "paid" above; without this only ONE wins the conditional update,
+  // so the side-effects below (notification, stock decrement) run exactly once.
+  const { data: claimed } = await admin
     .from("payments")
     .update({
       status: "paid",
       paid_at: paidAt,
       ...(match.paymentIntentId ? { stripe_payment_intent_id: match.paymentIntentId } : {}),
     })
-    .eq("id", row.id);
+    .eq("id", row.id)
+    .eq("status", "pending")
+    .select("id");
+  if (!claimed || claimed.length === 0) return { settled: false, reason: "already settled" };
 
   // ── Dual-write to the canonical ledger (money source of truth, staged rollout).
   // Idempotent per payment via stable external ids + unique(source, external_id)

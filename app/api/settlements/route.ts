@@ -75,6 +75,13 @@ export async function POST(req: Request) {
   if (!Number.isFinite(amountCents)) {
     return NextResponse.json({ error: "Amount is required." }, { status: 400 });
   }
+  // A settlement can be negative (artist owes the shop) or positive (shop pays
+  // the artist), so bound the magnitude rather than the sign. $100k per row is
+  // far above any real period payout and stops a fat-finger or a hijacked owner
+  // login from booking a bogus multi-million-dollar statement.
+  if (Math.abs(amountCents) > 10_000_000) {
+    return NextResponse.json({ error: "Amount is out of range." }, { status: 400 });
+  }
   const settledThrough = /^\d{4}-\d{2}-\d{2}$/.test(b.settledThrough ?? "")
     ? b.settledThrough
     : new Date().toISOString().slice(0, 10);
