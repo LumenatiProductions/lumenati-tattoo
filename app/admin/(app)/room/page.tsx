@@ -1,17 +1,28 @@
 "use client";
 
-import { useState, type ChangeEvent } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useRole } from "@/lib/admin/role-context";
 import {
   useRoomContent,
   SONGS,
   COLOR_PRESETS,
-  songLabel,
 } from "@/lib/admin/room-content";
 import { useArtists } from "@/lib/admin/artists-context";
+import { createClient } from "@/lib/supabase/browser";
 import { uploadPhoto } from "@/lib/admin/room-data";
-import type { RoomContent, Polaroid, PortfolioItem } from "@/lib/admin/types";
+import type { RoomContent } from "@/lib/admin/types";
 import { Card, SectionTitle } from "@/components/admin/ui";
+
+// The other networks live in room.socials; Instagram stays on its own igHandle
+// field (the public page reads socials.instagram ?? igHandle). Same set the
+// phone app edits, so the two surfaces finally match.
+const SOCIAL_FIELDS: { key: string; label: string; placeholder: string }[] = [
+  { key: "tiktok", label: "TikTok", placeholder: "@handle" },
+  { key: "x", label: "X", placeholder: "@handle" },
+  { key: "youtube", label: "YouTube", placeholder: "@channel or URL" },
+  { key: "facebook", label: "Facebook", placeholder: "page or URL" },
+  { key: "website", label: "Website", placeholder: "yoursite.com" },
+];
 
 // Stable-ish id without Math.random/Date in render paths that could surprise us.
 let uid = 0;
@@ -35,13 +46,34 @@ export default function RoomEditorPage() {
   const set = <K extends keyof RoomContent>(key: K, val: RoomContent[K]) =>
     update(artistId, { [key]: val } as Partial<RoomContent>);
 
+  // Write one social handle into room.socials, pruning blanks so the record
+  // stays clean (null when nothing is set).
+  const socials = room.socials ?? {};
+  const setSocial = (key: string, val: string) => {
+    const next = { ...socials, [key]: val };
+    if (!val.trim()) delete next[key];
+    set("socials", Object.keys(next).length ? next : null);
+  };
+
+  // The live preview is an iframe of the REAL public page, so it always matches
+  // the shop's actual skin. Bump a tick whenever a save lands (and when the
+  // picked artist changes) to reload it.
+  const [previewTick, setPreviewTick] = useState(0);
+  useEffect(() => {
+    if (saveState === "saved") setPreviewTick((t) => t + 1);
+  }, [saveState]);
+
   return (
     <div>
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">My Page</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {role === "owner" ? "Artist Pages" : "My Page"}
+          </h1>
           <p className="text-sm text-white/65">
-            Edit what shows on your page. Changes go live right away.
+            {role === "owner"
+              ? "Edit any artist's public page. Pick a page on the right; changes go live right away."
+              : "Edit what shows on your page. Changes go live right away."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -114,6 +146,31 @@ export default function RoomEditorPage() {
                     onChange={(e) => set("bio", e.target.value)}
                   />
                 </Field>
+              </div>
+            </Card>
+          </section>
+
+          <section>
+            <SectionTitle>Bookings</SectionTitle>
+            <Card>
+              <BooksToggle artistId={artistId} />
+            </Card>
+          </section>
+
+          <section>
+            <SectionTitle>Socials</SectionTitle>
+            <Card>
+              <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
+                {SOCIAL_FIELDS.map((s) => (
+                  <Field key={s.key} label={s.label}>
+                    <input
+                      className="inp"
+                      value={socials[s.key] ?? ""}
+                      onChange={(e) => setSocial(s.key, e.target.value)}
+                      placeholder={s.placeholder}
+                    />
+                  </Field>
+                ))}
               </div>
             </Card>
           </section>
@@ -284,12 +341,89 @@ export default function RoomEditorPage() {
           </p>
         </div>
 
-        {/* ── Live preview ── */}
+        {/* ── Live preview: the REAL public page, per the shop's actual skin ── */}
         <div className="lg:sticky lg:top-7 lg:self-start">
           <SectionTitle>Live preview</SectionTitle>
-          <RoomPreview room={room} name={artist.name} />
+          <Card className="overflow-hidden p-0">
+            <iframe
+              key={`${artistId}-${previewTick}`}
+              src={`/${artist.slug}`}
+              title="Live page preview"
+              className="h-[760px] w-full border-0 bg-black"
+            />
+          </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Open/close an artist's books. Closed books flip their public page's Book CTA
+// to the waitlist. Reads the current state on mount and writes through the
+// shared /api/artist/books endpoint (owner may toggle any chair in their shop).
+function BooksToggle({ artistId }: { artistId: string }) {
+  const [closed, setClosed] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setClosed(null);
+    createClient()
+      .from("artists")
+      .select("books_closed")
+      .eq("id", artistId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive) setClosed(!!(data as { books_closed?: boolean } | null)?.books_closed);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [artistId]);
+
+  const toggle = async () => {
+    if (closed === null || busy) return;
+    const next = !closed;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/artist/books", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ closed: next, artistId }),
+      });
+      if (r.ok) setClosed(next);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const open = closed === false;
+  return (
+    <div className="flex items-center justify-between p-4">
+      <div>
+        <div className="text-sm font-medium">
+          {closed === null ? "Books" : open ? "Books are open" : "Books are closed"}
+        </div>
+        <div className="text-xs text-white/60">
+          {open
+            ? "New requests book straight in."
+            : "New requests go to the waitlist instead of booking."}
+        </div>
+      </div>
+      <button
+        onClick={toggle}
+        disabled={closed === null || busy}
+        className={`relative h-7 w-12 rounded-full transition-colors ${
+          open ? "bg-brand" : "bg-white/15"
+        } ${closed === null || busy ? "opacity-50" : ""}`}
+        aria-label="Toggle books open or closed"
+      >
+        <span
+          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition-all ${
+            open ? "left-[22px]" : "left-0.5"
+          }`}
+        />
+      </button>
     </div>
   );
 }
@@ -373,80 +507,3 @@ function UploadButton({
   );
 }
 
-// A compact Y2K-styled mirror of how the room reads with the current content.
-function RoomPreview({ room, name }: { room: RoomContent; name: string }) {
-  const c = room.accentColor;
-  return (
-    <div
-      className="overflow-hidden rounded-xl ring-1 ring-white/15"
-      style={{ background: `linear-gradient(135deg, ${c} 0%, #1a1320 85%)` }}
-    >
-      <div className="p-4">
-        <div className="mb-3 flex items-center gap-3">
-          <img
-            src={room.profilePhoto}
-            alt=""
-            className="h-14 w-14 rounded-lg object-cover ring-2 ring-white/70"
-          />
-          <div className="text-white">
-            <div className="text-lg font-black leading-tight drop-shadow">{name}</div>
-            <div className="text-[11px] opacity-90">
-              @{room.igHandle} // {room.tagline}
-            </div>
-          </div>
-        </div>
-
-        {/* buddy info window */}
-        <div className="rounded border border-white/35 bg-[#c8c8c8] shadow">
-          <div
-            className="flex items-center justify-between px-2 py-1 text-[11px] font-bold text-white"
-            style={{ backgroundColor: "#1a4ea8" }}
-          >
-            <span>{room.igHandle} — Buddy Info</span>
-            <span className="opacity-80">_ □ ×</span>
-          </div>
-          <div className="px-3 py-2 font-mono text-[11px] leading-snug text-white/90">
-            {room.bio || <span className="text-white/55">no bio yet…</span>}
-          </div>
-        </div>
-
-        {/* polaroids */}
-        {room.polaroids.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {room.polaroids.map((p: Polaroid) => (
-              <div key={p.id} className="rotate-[-2deg] bg-white/6 p-1 pb-3 shadow">
-                <img src={p.src} alt="" className="h-14 w-14 object-cover" />
-                <div className="mt-0.5 text-center font-mono text-[9px] text-white/85">
-                  {p.caption}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* portfolio window */}
-        <div className="mt-3 rounded border border-white/35 bg-[#c8c8c8] shadow">
-          <div className="px-2 py-1 text-[11px] font-bold text-white" style={{ backgroundColor: "#1a4ea8" }}>
-            C:\{name.split(" ")[0]}\My Pictures
-          </div>
-          <div className="grid grid-cols-4 gap-1 p-2">
-            {room.portfolio.length === 0 && (
-              <div className="col-span-4 py-2 text-center font-mono text-[10px] text-white/55">
-                add photos to fill the wall
-              </div>
-            )}
-            {room.portfolio.map((p: PortfolioItem) => (
-              <img key={p.id} src={p.src} alt={p.alt} className="aspect-square w-full object-cover" />
-            ))}
-          </div>
-        </div>
-
-        {/* now playing */}
-        <div className="mt-3 flex items-center gap-2 rounded bg-black/40 px-2 py-1.5 font-mono text-[10px] text-[#7CFC00]">
-          <span className="animate-pulse">♪</span>
-          NOW PLAYING: {songLabel(room.songId)}
-        </div>
-      </div>
-    </div>
-  );
-}

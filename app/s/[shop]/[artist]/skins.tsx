@@ -178,44 +178,22 @@ export function MinimalSkin(p: SkinProps) {
   const { accent, shots, flash, promo, booksClosed, bookHref, cta, artist, shop } = p;
   const availableFlash = flash.filter((f) => !f.claimed);
   return (
-    <div className="book-bar-pad min-h-screen text-zinc-100" style={{ background: "#0b0b10" }}>
+    <div className="book-bar-pad ink-bg min-h-screen text-zinc-100">
       {promo && <PromoBanner promo={promo} accent={accent} />}
+      <div className="artist-shell">
+      <div className="artist-rail">
       <ArtistHeader {...p} variant="minimal" />
+      </div>
 
-      <main className="mx-auto max-w-3xl px-5 pb-16">
-        {shots.length > 0 ? (
-          <>
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">The work</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {shots.map((s, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={`${s.src}-${i}`}
-                  src={s.src}
-                  alt={s.label || artist.name}
-                  loading={i > 5 ? "lazy" : undefined}
-                  className="aspect-square w-full rounded-xl object-cover"
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
-            <div className="text-base font-bold">New page, fresh needle.</div>
-            <p className="mt-1 text-sm text-zinc-500">
-              {artist.name.split(" ")[0]} is filling this portfolio now — the booking line is open.
-            </p>
-          </div>
-        )}
-
+      <main className="artist-body mx-auto max-w-3xl px-5 pb-16 lg:mx-0 lg:max-w-none lg:px-0">
         {availableFlash.length > 0 && (
           <>
-            <h2 className="mb-4 mt-12 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">
               Flash — first come, first inked
             </h2>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
               {availableFlash.map((f) => (
-                <a key={f.id} href={`${bookHref}&flash=${f.id}`} className="relative block overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                <a key={f.id} href={`${bookHref}&flash=${f.id}`} className="ink-tile relative block overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={f.src} alt={f.title || "flash"} className="aspect-square w-full object-cover" />
                   {f.priceCents ? (
@@ -229,13 +207,39 @@ export function MinimalSkin(p: SkinProps) {
           </>
         )}
 
-        <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center">
+        {shots.length > 0 ? (
+          <>
+            <h2 className={`mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 ${availableFlash.length > 0 ? "mt-12" : ""}`}>The work</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {shots.map((s, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={`${s.src}-${i}`}
+                  src={s.src}
+                  alt={s.label || artist.name}
+                  loading={i > 5 ? "lazy" : undefined}
+                  className="ink-tile aspect-square w-full object-cover"
+                />
+              ))}
+            </div>
+          </>
+        ) : availableFlash.length === 0 ? (
+          <div className="ink-card p-8 text-center">
+            <div className="text-base font-bold">New page, fresh needle.</div>
+            <p className="mt-1 text-sm text-zinc-500">
+              {artist.name.split(" ")[0]} is filling this portfolio now — the booking line is open.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="ink-card mt-12 p-6 text-center">
           <div className="text-lg font-bold">{booksClosed ? "Get in line early." : "Ready when you are."}</div>
           <a href={bookHref} className="mt-4 inline-block rounded-xl px-8 py-3.5 text-base font-bold text-white" style={{ background: accent }}>
             {cta}
           </a>
         </div>
       </main>
+      </div>
 
       <PageFooter shopName={shop.name} />
       <BookBar bookHref={bookHref} cta={cta} accent={accent} />
@@ -251,40 +255,18 @@ export function DarkSkin(p: SkinProps) {
   return (
     <div className="book-bar-pad ink-bg min-h-screen text-zinc-100">
       {promo && <PromoBanner promo={promo} accent={accent} />}
+      <div className="artist-shell">
+      <div className="artist-rail">
       <ArtistHeader {...p} variant="dark" />
+      </div>
 
-      <main className="mx-auto max-w-3xl px-5 pb-16">
-        {shots.length > 0 ? (
-          <>
-            <h2 className="ink-rule mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">The work</h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {shots.map((s, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={`${s.src}-${i}`}
-                  src={s.src}
-                  alt={s.label || artist.name}
-                  loading={i > 5 ? "lazy" : undefined}
-                  className="ink-tile aspect-square w-full object-cover"
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="ink-card p-8 text-center">
-            <div className="ink-name text-base font-bold">New page, fresh needle.</div>
-            <p className="mt-1 text-sm text-zinc-500">
-              {artist.name.split(" ")[0]} is filling this portfolio now — the booking line is open.
-            </p>
-          </div>
-        )}
-
+      <main className="artist-body mx-auto max-w-3xl px-5 pb-16 lg:mx-0 lg:max-w-none lg:px-0">
         {availableFlash.length > 0 && (
           <>
-            <h2 className="ink-rule mb-4 mt-12 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">
+            <h2 className="ink-rule mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">
               Flash — first come, first inked
             </h2>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
               {availableFlash.map((f) => (
                 <a key={f.id} href={`${bookHref}&flash=${f.id}`} className="ink-tile relative block overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -300,6 +282,31 @@ export function DarkSkin(p: SkinProps) {
           </>
         )}
 
+        {shots.length > 0 ? (
+          <>
+            <h2 className={`ink-rule mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 ${availableFlash.length > 0 ? "mt-12" : ""}`}>The work</h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {shots.map((s, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={`${s.src}-${i}`}
+                  src={s.src}
+                  alt={s.label || artist.name}
+                  loading={i > 5 ? "lazy" : undefined}
+                  className="ink-tile aspect-square w-full object-cover"
+                />
+              ))}
+            </div>
+          </>
+        ) : availableFlash.length === 0 ? (
+          <div className="ink-card p-8 text-center">
+            <div className="ink-name text-base font-bold">New page, fresh needle.</div>
+            <p className="mt-1 text-sm text-zinc-500">
+              {artist.name.split(" ")[0]} is filling this portfolio now — the booking line is open.
+            </p>
+          </div>
+        ) : null}
+
         <div className="ink-card mt-12 p-6 text-center">
           <div className="ink-name text-lg font-bold">{booksClosed ? "Get in line early." : "Ready when you are."}</div>
           <a href={bookHref} className="ink-btn mt-4 inline-block px-8 py-3.5 text-base font-bold text-white" style={{ background: accent }}>
@@ -307,6 +314,7 @@ export function DarkSkin(p: SkinProps) {
           </a>
         </div>
       </main>
+      </div>
 
       <PageFooter shopName={shop.name} />
       <BookBar bookHref={bookHref} cta={cta} accent={accent} />
@@ -321,11 +329,14 @@ export function FlashSkin(p: SkinProps) {
   const available = flash.filter((f) => !f.claimed);
   const claimed = flash.filter((f) => f.claimed);
   return (
-    <div className="book-bar-pad min-h-screen text-zinc-100" style={{ background: "#0b0b10" }}>
+    <div className="book-bar-pad ink-bg min-h-screen text-zinc-100">
       {promo && <PromoBanner promo={promo} accent={accent} />}
+      <div className="artist-shell">
+      <div className="artist-rail">
       <ArtistHeader {...p} variant="flash" />
+      </div>
 
-      <main className="mx-auto max-w-3xl px-4 pb-16">
+      <main className="artist-body mx-auto max-w-3xl px-4 pb-16 lg:mx-0 lg:max-w-none lg:px-0">
         <div className="mb-4 flex items-baseline justify-between">
           <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">The flash sheet</h2>
           {available.length > 0 ? (
@@ -337,9 +348,9 @@ export function FlashSkin(p: SkinProps) {
 
         {flash.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {available.map((f) => (
-                <a key={f.id} href={`${bookHref}&flash=${f.id}`} className="relative block overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                <a key={f.id} href={`${bookHref}&flash=${f.id}`} className="ink-tile relative block overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={f.src} alt={f.title || "flash"} className="aspect-square w-full object-cover" />
                   <span className="flash-claim">
@@ -353,7 +364,7 @@ export function FlashSkin(p: SkinProps) {
                 </a>
               ))}
               {claimed.map((f) => (
-                <div key={f.id} className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                <div key={f.id} className="ink-tile relative overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={f.src} alt={f.title || "flash"} className="aspect-square w-full object-cover opacity-60" />
                   <span className="flash-stamp">
@@ -367,7 +378,7 @@ export function FlashSkin(p: SkinProps) {
             </p>
           </>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+          <div className="ink-card p-8 text-center">
             <div className="text-base font-bold">The next sheet is being drawn.</div>
             <p className="mt-1 text-sm text-zinc-500">
               New flash lands here first — or bring {artist.name.split(" ")[0]} your own idea below.
@@ -378,7 +389,7 @@ export function FlashSkin(p: SkinProps) {
         {shots.length > 0 && (
           <>
             <h2 className="mb-4 mt-12 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">Healed + custom work</h2>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
               {shots.map((s, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -386,20 +397,21 @@ export function FlashSkin(p: SkinProps) {
                   src={s.src}
                   alt={s.label || artist.name}
                   loading={i > 5 ? "lazy" : undefined}
-                  className="aspect-square w-full rounded-xl object-cover"
+                  className="ink-tile aspect-square w-full object-cover"
                 />
               ))}
             </div>
           </>
         )}
 
-        <div className="mt-12 rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center">
+        <div className="ink-card mt-12 p-6 text-center">
           <div className="text-lg font-bold">{booksClosed ? "Get in line early." : "Want something custom?"}</div>
           <a href={bookHref} className="mt-4 inline-block rounded-xl px-8 py-3.5 text-base font-bold text-white" style={{ background: accent }}>
             {cta}
           </a>
         </div>
       </main>
+      </div>
 
       <PageFooter shopName={shop.name} />
       <BookBar bookHref={bookHref} cta={cta} accent={accent} />

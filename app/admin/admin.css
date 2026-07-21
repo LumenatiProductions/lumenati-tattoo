@@ -30,13 +30,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Glass surface — the phone app's exact tint (app-native/lib/theme.ts): a
+   blue-white translucent panel lit from the top edge, not a flat white wash.
+   Used by the shared Card so every panel reads the same as the app. */
+.glass {
+  border: 1px solid rgba(170, 185, 235, 0.14);
+  border-top-color: rgba(205, 220, 255, 0.28);
+  background: rgba(165, 180, 235, 0.07);
+}
+
 /* Shared form input — glass, lit top edge, neutral focus (pink is money-only). */
 .inp {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-top-color: rgb(255 255 255 / 0.22);
-  background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgba(170, 185, 235, 0.14);
+  border-top-color: rgba(205, 220, 255, 0.28);
+  background: rgba(165, 180, 235, 0.07);
   color: var(--color-ink);
   padding: 0.5rem 0.625rem;
   font-size: 0.875rem;
