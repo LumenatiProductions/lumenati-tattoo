@@ -36,10 +36,15 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: "Front of house",
     items: [
       { href: "/admin/bookings", label: "Bookings", roles: ["owner", "artist"] },
+      { href: "/admin/waitlist", label: "Waitlist", roles: ["artist"] },
       { href: "/admin/clients", label: "Clients", roles: ["owner"] },
+      { href: "/admin/my-clients", label: "Clients", roles: ["artist"] },
       { href: "/admin/intake", label: "Intake", roles: ["owner"] },
       { href: "/admin/followups", label: "Follow-ups", roles: ["owner"] },
+      { href: "/admin/my-followups", label: "Follow-ups", roles: ["artist"] },
       { href: "/admin/social", label: "Social", roles: ["owner"] },
+      { href: "/admin/healed", label: "Healed Shots", roles: ["artist"] },
+      { href: "/admin/qr", label: "QR Card", roles: ["artist"] },
     ],
   },
   {
