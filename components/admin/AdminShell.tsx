@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { RoleProvider, useRole, ROLE_LABELS, ASSIGNABLE_ROLES } from "@/lib/admin/role-context";
 import { RoomContentProvider } from "@/lib/admin/room-content";
@@ -48,6 +48,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner"] },
       { href: "/admin/reports", label: "Reports", roles: ["owner"] },
       { href: "/admin/payouts", label: "Pay", roles: ["owner", "artist"] },
+      { href: "/admin/goals", label: "Goals", roles: ["artist"] },
       { href: "/admin/rent", label: "Booth Rent", roles: ["owner"] },
       { href: "/admin/cash", label: "Cash Log", roles: ["owner"] },
       { href: "/admin/expenses", label: "Expenses", roles: ["owner"] },
@@ -76,6 +77,15 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { artists } = useArtists();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Previewing as an artist without a chosen chair left asArtistId empty, so
+  // every artist-scoped page (Overview, Goals, My Page) resolved no artist and
+  // rendered blank. Default to the first artist the moment the pick is invalid.
+  useEffect(() => {
+    if (role === "artist" && artists.length && !artists.some((a) => a.id === asArtistId)) {
+      setAsArtistId(artists[0].id);
+    }
+  }, [role, artists, asArtistId, setAsArtistId]);
   const sections = NAV_SECTIONS.map((s) => ({
     ...s,
     items: s.items.filter((n) => n.roles.includes(role)),
