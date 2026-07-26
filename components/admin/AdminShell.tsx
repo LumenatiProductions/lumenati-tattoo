@@ -73,9 +73,15 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/admin/staff", label: "Staff", roles: ["owner"] },
       { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
+      { href: "/admin/billing", label: "Billing", roles: ["owner"] },
     ],
   },
 ];
+
+// Membership state, resolved server-side in the layout (billing columns are
+// server-only). locked = trial over + no live subscription -> the shell shows
+// only the Billing page.
+export type BillingShellState = { locked: boolean; trialDaysLeft: number | null };
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { role, setRole, asArtistId, setAsArtistId, canPreview, email } = useRole();
@@ -209,10 +215,48 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 
+// The full-screen stop when the free month runs out. The owner can still reach
+// Billing (and nothing else); an artist is pointed at their owner. The REAL
+// wall is the layout's server check — this is just the face of it.
+function BillingLock() {
+  const { realRole } = useRole();
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="max-w-md rounded-2xl border border-white/10 bg-white/6 p-8 text-center">
+        <div className="text-lg font-semibold text-white">Your free month has ended</div>
+        {realRole === "owner" ? (
+          <>
+            <p className="mt-2 text-sm text-white/70">
+              Everything is saved and safe — bookings, clients, money history, all of it.
+              Pick a plan and the shop comes right back.
+            </p>
+            <Link
+              href="/admin/billing"
+              className="mt-5 inline-block rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Choose a plan
+            </Link>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-white/70">
+            The shop&apos;s membership has lapsed. Ask the shop owner to renew it — your work is
+            saved and comes right back when they do.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Desktop: permanent sidebar rail. Phone: sticky top bar + slide-over drawer
 // (same Sidebar, so preview-as / logout ride along).
-function ShellFrame({ children }: { children: React.ReactNode }) {
+function ShellFrame({ children, billing }: { children: React.ReactNode; billing: BillingShellState | null }) {
   const [navOpen, setNavOpen] = useState(false);
+  const { realRole } = useRole();
+  const pathname = usePathname();
+  const locked = !!billing?.locked && pathname !== "/admin/billing";
+  const trialNudge =
+    !billing?.locked && billing?.trialDaysLeft != null && billing.trialDaysLeft <= 7 && realRole === "owner";
   return (
     <div className="admin-wash flex min-h-screen text-ink antialiased">
       <div className="cc-desktop-rail">
@@ -234,7 +278,19 @@ function ShellFrame({ children }: { children: React.ReactNode }) {
             Menu
           </button>
         </header>
-        <main className="cc-main flex-1 overflow-x-hidden px-8 py-7">{children}</main>
+        {trialNudge && (
+          <div className="border-b border-white/10 bg-white/6 px-8 py-2 text-center text-xs text-white/75">
+            {billing!.trialDaysLeft === 0
+              ? "Last day of your free month."
+              : `${billing!.trialDaysLeft} day${billing!.trialDaysLeft === 1 ? "" : "s"} left on your free month.`}{" "}
+            <Link href="/admin/billing" className="font-semibold text-white underline underline-offset-2">
+              Pick a plan
+            </Link>
+          </div>
+        )}
+        <main className="cc-main flex-1 overflow-x-hidden px-8 py-7">
+          {locked ? <BillingLock /> : children}
+        </main>
       </div>
       {navOpen && (
         <div className="cc-drawer">
@@ -255,6 +311,7 @@ export default function AdminShell({
   email,
   fullName,
   shopId,
+  billing = null,
   children,
 }: {
   realRole: Role;
@@ -262,6 +319,7 @@ export default function AdminShell({
   email: string;
   fullName: string | null;
   shopId: string | null;
+  billing?: BillingShellState | null;
   children: React.ReactNode;
 }) {
   return (
@@ -278,7 +336,7 @@ export default function AdminShell({
                  <InventoryProvider>
                   <FollowupsProvider>
                    <CashProvider>
-                    <ShellFrame>{children}</ShellFrame>
+                    <ShellFrame billing={billing}>{children}</ShellFrame>
                    </CashProvider>
                   </FollowupsProvider>
                  </InventoryProvider>

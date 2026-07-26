@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { settlePayment } from "@/lib/stripe/payments";
+import { applySubscription } from "@/lib/stripe/billing";
+import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -42,9 +44,21 @@ export async function POST(req: Request) {
       case "checkout.session.completed": {
         const s = event.data.object as {
           id: string;
+          mode: string;
+          subscription: string | Stripe.Subscription | null;
           payment_intent: string | null;
           payment_status: string;
         };
+        // A subscription checkout is the SHOP paying Lumenati (billing), not a
+        // client paying the shop — write billing state, never the sales ledger.
+        if (s.mode === "subscription") {
+          const subId = typeof s.subscription === "string" ? s.subscription : s.subscription?.id;
+          if (subId) {
+            const sub = await stripe.subscriptions.retrieve(subId);
+            await applySubscription(admin, sub);
+          }
+          break;
+        }
         // Only settle a session that actually paid.
         if (s.payment_status === "paid") {
           await settlePayment(admin, {
@@ -66,6 +80,13 @@ export async function POST(req: Request) {
         // In-person Tap to Pay (POS 6c): no Checkout session, settle by the PI id.
         const pi = event.data.object as { id: string };
         await settlePayment(admin, { paymentIntentId: pi.id });
+        break;
+      }
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        // Renewals, seat changes, card failures, cancels — the billing columns
+        // follow Stripe's word for the life of the subscription.
+        await applySubscription(admin, event.data.object as Stripe.Subscription);
         break;
       }
       default:

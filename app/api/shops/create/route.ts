@@ -137,6 +137,10 @@ export async function POST(req: Request) {
     template,
     accent,
     tagline: (b.tagline ?? "").trim(),
+    // Every new shop opens with a free month on the clock — no card at signup.
+    // /admin/billing takes it from here; the admin locks when this runs out.
+    billing_status: "trial",
+    billing_period_end: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   };
   let { error: shopErr } = await admin.from("shops").insert(shopRow);
   if (shopErr && template !== "standard" && /check|constraint/i.test(shopErr.message)) {

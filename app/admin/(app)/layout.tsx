@@ -2,9 +2,11 @@ import "../admin.css";
 import "../phone.css";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import AdminShell from "@/components/admin/AdminShell";
+import { createAdminClient } from "@/lib/supabase/admin";
+import AdminShell, { type BillingShellState } from "@/components/admin/AdminShell";
 import NoAccess from "@/components/admin/NoAccess";
 import { normalizeRole } from "@/lib/admin/types";
+import { SHOP_BILLING_COLS, type ShopBilling, shopIsOpen, trialDaysLeft } from "@/lib/stripe/billing";
 
 // Auth gate for the whole dashboard. Middleware already bounces anonymous
 // visitors to /admin/login; here we load the profile (role) and block anyone
@@ -28,8 +30,27 @@ export default async function AppLayout({
 
   if (!profile) return <NoAccess email={user.email!} />;
 
+  // Membership check (server-side; the billing columns have no client grants).
+  // Fails OPEN — a hiccup here must never lock a paying shop out of its books.
+  let billing: BillingShellState | null = null;
+  if (profile.shop_id) {
+    const admin = createAdminClient();
+    if (admin) {
+      const { data: shop } = await admin
+        .from("shops")
+        .select(SHOP_BILLING_COLS)
+        .eq("id", profile.shop_id)
+        .maybeSingle();
+      if (shop) {
+        const s = shop as unknown as ShopBilling;
+        billing = { locked: !shopIsOpen(s), trialDaysLeft: trialDaysLeft(s) };
+      }
+    }
+  }
+
   return (
     <AdminShell
+      billing={billing}
       realRole={normalizeRole(profile.role)}
       realArtistId={profile.artist_id}
       shopId={profile.shop_id ?? null}
