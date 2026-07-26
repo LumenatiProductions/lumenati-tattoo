@@ -1,0 +1,14 @@
+{
+  "manifest_version": 1,
+  "product": "Lumenati Tattoo",
+  "repo": "LumenatiProductions/lumenati-tattoo",
+  "maturity": "beta",
+  "stack": {
+    "stage_split": false,
+    "mobile_ota": true,
+    "ai_features": true,
+    "paid_apis": true,
+    "external_api_clients": false
+  },
+  "maturity_set": { "by": ["Scott", "Travis"], "date": "2026-07-26", "where": "build session" }
+}
