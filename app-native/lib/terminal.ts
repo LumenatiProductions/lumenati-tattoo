@@ -19,7 +19,10 @@ export function tapToPayAvailable(): boolean {
 // The connection token the SDK needs comes from our Bearer-authed endpoint.
 export async function getConnectionToken(): Promise<string> {
   const r = await apiPost<{ secret: string }>("/api/terminal/connection-token");
-  if (!r.ok || !r.data?.secret) throw new Error(r.error || "No connection token");
+  if (!r.ok || !r.data?.secret) {
+    console.error("connection-token failed:", JSON.stringify(r));
+    throw new Error(r.error || "No connection token");
+  }
   return r.data.secret;
 }
 
