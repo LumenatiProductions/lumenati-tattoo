@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       const plan = (["artist", "shop", "founding"] as Plan[]).find((p) => p === b.plan);
       if (!plan) return NextResponse.json({ error: "Pick a plan" }, { status: 400 });
       if (shop.stripe_subscription_id && shop.billing_status !== "canceled") {
-        return NextResponse.json({ error: "Already subscribed — use Manage billing" }, { status: 409 });
+        return NextResponse.json({ error: "Already subscribed. Use Manage billing." }, { status: 409 });
       }
       const url = await subscriptionCheckoutUrl(admin, shop, plan, ctx.email);
       return NextResponse.json({ url });

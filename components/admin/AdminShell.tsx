@@ -227,7 +227,7 @@ function BillingLock() {
         {realRole === "owner" ? (
           <>
             <p className="mt-2 text-sm text-white/70">
-              Everything is saved and safe — bookings, clients, money history, all of it.
+              Everything is saved and safe: bookings, clients, money history, all of it.
               Pick a plan and the shop comes right back.
             </p>
             <Link
@@ -239,7 +239,7 @@ function BillingLock() {
           </>
         ) : (
           <p className="mt-2 text-sm text-white/70">
-            The shop&apos;s membership has lapsed. Ask the shop owner to renew it — your work is
+            The shop&apos;s membership has lapsed. Ask the shop owner to renew it. Your work is
             saved and comes right back when they do.
           </p>
         )}

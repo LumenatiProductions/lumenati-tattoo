@@ -192,7 +192,7 @@ export async function subscriptionCheckoutUrl(
   const seats = await activeSeatCount(admin, shop.id);
 
   // A multi-chair shop can't ride the solo plan.
-  if (plan === "artist" && seats > 1) throw new Error("The Artist plan covers one chair — pick the Shop plan.");
+  if (plan === "artist" && seats > 1) throw new Error("The Artist plan covers one chair. Pick the Shop plan.");
   if (plan === "founding") {
     const used = await foundingSeatsUsed(admin);
     if (used + seats > FOUNDING_SEAT_CAP) throw new Error("The Founding 100 is full.");

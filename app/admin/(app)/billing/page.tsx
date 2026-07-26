@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
   trial: "Free month",
   trialing: "Free month",
   active: "Active",
-  past_due: "Card problem — retrying",
+  past_due: "Card problem, retrying",
   canceled: "Canceled",
   unpaid: "Lapsed",
   incomplete: "Payment incomplete",
@@ -114,7 +114,7 @@ export default function BillingPage() {
 
       {justPaid && (
         <Card className="mb-4 border-emerald-400/30 p-4 text-sm text-emerald-300">
-          Payment confirmed — welcome aboard. {state.status !== "active" && "Finalizing with Stripe…"}
+          Payment confirmed. Welcome aboard. {state.status !== "active" && "Finalizing with Stripe…"}
         </Card>
       )}
       {err && <Card className="mb-4 border-red-400/30 p-4 text-sm text-red-300">{err}</Card>}
@@ -132,8 +132,8 @@ export default function BillingPage() {
               <div className="mt-1 text-sm text-white/65">
                 {state.status === "trial" && state.trialDaysLeft != null
                   ? state.trialDaysLeft > 0
-                    ? `${state.trialDaysLeft} day${state.trialDaysLeft === 1 ? "" : "s"} left on your free month — pick a plan below whenever you're ready.`
-                    : "Your free month has ended — pick a plan below and everything comes right back."
+                    ? `${state.trialDaysLeft} day${state.trialDaysLeft === 1 ? "" : "s"} left on your free month. Pick a plan below whenever you're ready.`
+                    : "Your free month has ended. Pick a plan below and everything comes right back."
                   : subscribed
                     ? `${state.plan === "founding" ? "Founding 100" : state.plan === "shop" ? "Shop plan" : "Artist plan"} · ${
                         state.billedSeats ?? state.seats
@@ -195,7 +195,7 @@ export default function BillingPage() {
               </div>
               <p className="mt-2 text-sm text-white/65">
                 {solo
-                  ? "One chair, the whole toolkit — your books, goals, follow-ups, payments."
+                  ? "One chair, the whole toolkit: your books, goals, follow-ups, payments."
                   : `$199 base + $79 per artist. Covers your ${state.seats} artists today; the price follows your roster automatically.`}
               </p>
               <button
@@ -208,7 +208,7 @@ export default function BillingPage() {
             </Card>
           </div>
           <p className="mt-4 text-xs text-white/50">
-            Checkout and card details are handled by Stripe. Cancel anytime — your data stays put.
+            Checkout and card details are handled by Stripe. Cancel anytime, your data stays put.
           </p>
         </>
       )}
