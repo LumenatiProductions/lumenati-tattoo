@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, RefreshControl, ScrollView, Text, View } from
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
+import { apiGet, apiPatch } from "@/lib/appApi";
 import { theme } from "@/lib/theme";
 import InkWash from "@/components/InkWash";
 import { Badge, Button, Card, Empty, SectionTitle } from "@/components/ui";
@@ -23,6 +24,9 @@ type Photo = {
 export default function Social() {
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<Photo[] | null>(null);
+  // Private bucket: stored paths become short signed URLs via the API.
+  const [signed, setSigned] = useState<Record<string, string>>({});
+  const [note, setNote] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -32,7 +36,13 @@ export default function Social() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(40);
-    setRows((data ?? []) as unknown as Photo[]);
+    const photos = (data ?? []) as unknown as Photo[];
+    setRows(photos);
+    const need = photos.filter((p) => !/^https?:\/\//i.test(p.url)).map((p) => p.id);
+    if (need.length) {
+      const r = await apiGet<{ urls: Record<string, string> }>(`/api/healed/photo?ids=${need.join(",")}`);
+      if (r.ok && r.data?.urls) setSigned(r.data.urls);
+    }
   }, []);
 
   useEffect(() => {
@@ -45,9 +55,17 @@ export default function Social() {
     setRefreshing(false);
   }, [load]);
 
+  // Through the API, not a direct row update: approving also copies the photo
+  // into the public bucket and appends it to the artist's portfolio — the
+  // server owns that whole move (same path the web queue takes).
   const judge = async (id: string, status: "approved" | "dismissed") => {
-    await supabase.from("healed_photos").update({ status }).eq("id", id);
-    setRows((r) => (r ?? []).filter((p) => p.id !== id));
+    setNote(null);
+    const r = await apiPatch("/api/healed", { id, action: status === "approved" ? "approve" : "dismiss" });
+    if (!r.ok) {
+      setNote(r.error || "That didn't stick — try again.");
+      return;
+    }
+    setRows((rows_) => (rows_ ?? []).filter((p) => p.id !== id));
   };
 
   return (
@@ -66,6 +84,7 @@ export default function Social() {
             <SectionTitle right={<Badge label={`${rows.length} waiting`} tone={rows.length ? "brand" : "good"} />}>
               Healed photo approvals
             </SectionTitle>
+            {note && <Text style={{ color: theme.warn, fontSize: 13, marginBottom: 10 }}>{note}</Text>}
             {rows.length === 0 ? (
               <Card>
                 <Empty>No healed photos waiting. The queue refills as clients upload.</Empty>
@@ -73,7 +92,11 @@ export default function Social() {
             ) : (
               rows.map((p) => (
                 <Card key={p.id} style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}>
-                  <Image source={{ uri: p.url }} style={{ width: "100%", aspectRatio: 1 }} resizeMode="cover" />
+                  <Image
+                    source={{ uri: /^https?:\/\//i.test(p.url) ? p.url : signed[p.id] }}
+                    style={{ width: "100%", aspectRatio: 1 }}
+                    resizeMode="cover"
+                  />
                   <View style={{ padding: 14 }}>
                     <Text style={{ color: theme.text, fontSize: 15.5, fontWeight: "600" }}>
                       {p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Client"}

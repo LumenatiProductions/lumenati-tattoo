@@ -107,7 +107,7 @@ export default function RequestForm({
             body: JSON.stringify({ imageBase64: dataUrl }),
           });
           const d = await r.json().catch(() => ({}));
-          if (r.ok && d.url) referenceUrls.push(d.url);
+          if (r.ok && (d.path || d.url)) referenceUrls.push(d.path || d.url);
           else refWarning = d.error || "Some reference photos didn't upload.";
         } catch {
           refWarning = "Some reference photos didn't upload.";

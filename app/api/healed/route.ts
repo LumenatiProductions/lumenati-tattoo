@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveStaff } from "@/lib/api-auth";
+import { signPhoto, publishHealedShot } from "@/lib/storage/photos";
 
 export const dynamic = "force-dynamic";
 
-// Healed-photo flow (healed-photos-schema.sql).
+// Healed-photo flow (healed-photos-schema.sql; private buckets 2026-07-26).
 //   GET ?token=<followup-id>  — public: validate the link, return greeting context
 //   POST { token, imageBase64 } — public: upload one healed shot (max 3/followup)
-//   PATCH { id, action }      — staff: approve (-> artist room portfolio) or dismiss
+//   PATCH { id, action }      — staff (cookie or app Bearer): approve or dismiss
 // The followup row's uuid IS the capability token: random, unguessable, and it
 // only works for a healed_photo follow-up younger than the window below.
+// The bucket is PRIVATE: rows store the storage path; staff reads get signed
+// URLs; approving copies the file into the public bucket for the portfolio.
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const WINDOW_DAYS = 60; // links go stale after this
@@ -72,7 +76,17 @@ export async function GET(req: Request) {
       }
       return NextResponse.json({ error: error.message, photos: [] }, { status: 500 });
     }
-    return NextResponse.json({ configured: true, photos: data ?? [] });
+    // Private bucket: hand the queue signed URLs so consumers keep rendering .url.
+    const admin = createAdminClient();
+    const photos = admin
+      ? await Promise.all(
+          (data ?? []).map(async (p) => ({
+            ...p,
+            url: (await signPhoto(admin, "healed-photos", p.url as string)) ?? (p.url as string),
+          })),
+        )
+      : (data ?? []);
+    return NextResponse.json({ configured: true, photos });
   }
 
   const { admin, followup } = await loadFollowup(token);
@@ -145,8 +159,6 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: "Upload failed — try again." }, { status: 500 });
   }
-  const { data: pub } = admin.storage.from("healed-photos").getPublicUrl(path);
-
   let artistId: string | null = null;
   if (followup.booking_id) {
     const { data: bk } = await admin.from("bookings").select("artist_id").eq("id", followup.booking_id).maybeSingle();
@@ -158,7 +170,8 @@ export async function POST(req: Request) {
     booking_id: followup.booking_id,
     client_id: followup.client_id,
     artist_id: artistId,
-    url: pub.publicUrl,
+    // The bucket is private: store the PATH; readers sign it on demand.
+    url: path,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
@@ -176,43 +189,58 @@ async function staffGate() {
   return { supabase, user, role: profile?.role ?? null };
 }
 
+// Cookie (web) OR Bearer (app) — the app's Social screen approves through here
+// too, so the portfolio append + public copy happen no matter where the call
+// is made from.
 export async function PATCH(req: Request) {
-  const { supabase, user, role } = await staffGate();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (!role || !STAFF.includes(role as (typeof STAFF)[number])) {
+  const ctx = await resolveStaff(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!STAFF.includes(ctx.role as (typeof STAFF)[number])) {
     return NextResponse.json({ error: "Staff only" }, { status: 403 });
   }
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: "Service role not set." }, { status: 500 });
 
   const b = (await req.json().catch(() => ({}))) as { id?: string; action?: "approve" | "dismiss" };
   if (!b.id || !b.action) return NextResponse.json({ error: "Missing id/action" }, { status: 400 });
 
-  const { data: photo } = await supabase.from("healed_photos").select("*").eq("id", b.id).maybeSingle();
+  // Service-role read, pinned to the caller's shop (Bearer callers bypass RLS).
+  const { data: photo } = await admin
+    .from("healed_photos")
+    .select("*")
+    .eq("id", b.id)
+    .eq("shop_id", ctx.shopId)
+    .maybeSingle();
   if (!photo) return NextResponse.json({ error: "Photo not found" }, { status: 404 });
   if (photo.status !== "pending") return NextResponse.json({ error: `Already ${photo.status}.` }, { status: 409 });
 
   if (b.action === "approve" && photo.artist_id) {
-    // Append to the artist's room portfolio (jsonb array of {id, src, alt}).
-    const admin = createAdminClient();
-    if (admin) {
-      const { data: room } = await admin
-        .from("room_content")
-        .select("portfolio")
-        .eq("artist_id", photo.artist_id)
-        .maybeSingle();
-      const portfolio = Array.isArray(room?.portfolio) ? room.portfolio : [];
-      portfolio.push({
-        id: `healed-${(photo.id as string).slice(0, 8)}`,
-        src: photo.url,
-        alt: "Healed client tattoo",
-      });
-      await admin.from("room_content").update({ portfolio }).eq("artist_id", photo.artist_id);
+    // The portfolio is public, the bucket is private — copy the file into the
+    // public bucket and publish THAT url. If the copy fails, refuse the
+    // approve rather than push a broken image onto the artist's page.
+    const publicUrl = await publishHealedShot(admin, photo.id as string, photo.url as string);
+    if (!publicUrl) {
+      return NextResponse.json({ error: "Could not publish the photo — try again." }, { status: 502 });
     }
+    const { data: room } = await admin
+      .from("room_content")
+      .select("portfolio")
+      .eq("artist_id", photo.artist_id)
+      .maybeSingle();
+    const portfolio = Array.isArray(room?.portfolio) ? room.portfolio : [];
+    portfolio.push({
+      id: `healed-${(photo.id as string).slice(0, 8)}`,
+      src: publicUrl,
+      alt: "Healed client tattoo",
+    });
+    await admin.from("room_content").update({ portfolio }).eq("artist_id", photo.artist_id);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("healed_photos")
     .update({ status: b.action === "approve" ? "approved" : "dismissed" })
     .eq("id", b.id)
+    .eq("shop_id", ctx.shopId)
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

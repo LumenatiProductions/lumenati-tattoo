@@ -31,6 +31,12 @@ const captionFor = (handle: string) =>
     "#healedtattoo #tattoo #tattooartist",
   ].join(" ");
 
+// The bucket is private (2026-07-26): rows store paths, so images render
+// through the signing endpoint (cookie auth rides along). Legacy rows that
+// still hold a full URL render directly.
+const photoSrc = (shot: Shot) =>
+  /^https?:\/\//i.test(shot.url) ? shot.url : `/api/healed/photo?id=${shot.id}&redirect=1`;
+
 export default function HealedPage() {
   const { asArtistId } = useRole();
   const [shots, setShots] = useState<Shot[] | null>(null);
@@ -85,7 +91,7 @@ export default function HealedPage() {
       } catch {
         /* clipboard can fail without a user gesture — still let the download run */
       }
-      const res = await fetch(shot.url);
+      const res = await fetch(photoSrc(shot));
       const blob = await res.blob();
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -152,7 +158,7 @@ export default function HealedPage() {
               <Card key={s.id} className="overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={s.url}
+                  src={photoSrc(s)}
                   alt="Healed tattoo"
                   className="aspect-square w-full rounded-t-xl object-cover"
                 />

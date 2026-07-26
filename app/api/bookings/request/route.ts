@@ -8,6 +8,7 @@ import { isStripeConfigured } from "@/lib/stripe/client";
 import { pushEvent } from "@/lib/push/send";
 import { renderY2kEmail } from "@/lib/email/y2k";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
+import { signPhoto } from "@/lib/storage/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -92,11 +93,19 @@ export async function POST(req: Request) {
     booksClosed = !!a?.books_closed;
   }
 
-  // Reference images: only URLs minted by our own upload route (request-refs
-  // bucket) are kept — anything else in the array is dropped, max 3.
-  const refPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/request-refs/`;
+  // Reference images: only paths shaped exactly like our own upload route
+  // mints them (request-refs is a PRIVATE bucket; rows store paths and staff
+  // views sign them on read). A stale cached form may still send the old full
+  // public URL — strip it down to the path. Anything else is dropped, max 3.
+  const legacyPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/request-refs/`;
+  const REF_PATH_RE = /^\d{4}-\d{2}-\d{2}\/[A-Za-z0-9_-]{8,}\.(jpg|png|webp)$/;
   const referenceUrls = (Array.isArray(b.referenceUrls) ? b.referenceUrls : [])
-    .filter((u): u is string => typeof u === "string" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && u.startsWith(refPrefix))
+    .map((u) =>
+      typeof u === "string" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && u.startsWith(legacyPrefix)
+        ? u.slice(legacyPrefix.length)
+        : u,
+    )
+    .filter((u): u is string => typeof u === "string" && REF_PATH_RE.test(u))
     .slice(0, 3);
 
   // Closed books: the ask lands on that artist's waitlist instead of the
@@ -174,7 +183,22 @@ export async function GET(req: Request) {
     if (isMissingTable(error.message)) return NextResponse.json({ configured: false, requests: [] });
     return NextResponse.json({ error: error.message, requests: [] }, { status: 500 });
   }
-  return NextResponse.json({ configured: true, requests: data ?? [] });
+  // request-refs is a private bucket: rows hold paths, the inbox gets 15-min
+  // signed URLs. Signing needs the service role; without it, thumbnails just
+  // don't render (the request text still does).
+  const admin = createAdminClient();
+  const requests = admin
+    ? await Promise.all(
+        (data ?? []).map(async (r) => {
+          if (!Array.isArray(r.reference_urls) || r.reference_urls.length === 0) return r;
+          const signed = await Promise.all(
+            (r.reference_urls as string[]).map((v) => signPhoto(admin, "request-refs", v)),
+          );
+          return { ...r, reference_urls: signed.filter(Boolean) };
+        }),
+      )
+    : (data ?? []);
+  return NextResponse.json({ configured: true, requests });
 }
 
 export async function PATCH(req: Request) {

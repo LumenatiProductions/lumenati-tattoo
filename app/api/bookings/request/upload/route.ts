@@ -7,8 +7,9 @@ export const dynamic = "force-dynamic";
 // Public upload for /request reference images. The browser downscales before
 // sending (so a phone photo arrives well under Vercel's body limit); this route
 // still enforces its own caps and sniffs the magic bytes — the client's
-// mediaType claim is never trusted. Files land in the public-read
-// `request-refs` bucket under an unguessable name via the service role.
+// mediaType claim is never trusted. Files land in the PRIVATE `request-refs`
+// bucket (2026-07-26 lockdown) under an unguessable name via the service role;
+// the form gets the storage PATH back and staff views sign it on demand.
 
 const MAX_BYTES = 4 * 1024 * 1024; // post-downscale this is generous
 
@@ -65,6 +66,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Upload failed — try again." }, { status: 500 });
   }
 
-  const { data } = admin.storage.from("request-refs").getPublicUrl(path);
-  return NextResponse.json({ url: data.publicUrl });
+  // The bucket is private — the path IS the reference; no public URL exists.
+  return NextResponse.json({ path });
 }

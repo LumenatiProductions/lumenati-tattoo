@@ -3,6 +3,12 @@ import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import { Icon } from "@/components/marketing/Icon";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { FOUNDING_SEAT_CAP, foundingSeatsUsed } from "@/lib/stripe/billing";
+
+// The founding-seat counter re-counts every few minutes; the page is
+// otherwise static.
+export const revalidate = 300;
 
 // The marketing page. Lumenati is the business brain for a tattoo shop, sold
 // to two buyers: the ARTIST (run your chair like a business — money, goals,
@@ -68,7 +74,16 @@ function PlanCell({ value }: { value: string | boolean }) {
   return <span className="text-zinc-600">—</span>;
 }
 
-export default function ShopsMarketingPage() {
+export default async function ShopsMarketingPage() {
+  // Live "seats left" for the Founding 100 deal. Pure decoration on this page:
+  // any hiccup and it just doesn't render.
+  let foundingLeft: number | null = null;
+  try {
+    const admin = createAdminClient();
+    if (admin) foundingLeft = Math.max(0, FOUNDING_SEAT_CAP - (await foundingSeatsUsed(admin)));
+  } catch {
+    foundingLeft = null;
+  }
   return (
     <div className="mkt-wash min-h-screen text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 pt-6">
@@ -263,6 +278,13 @@ export default function ShopsMarketingPage() {
             Compare plans
           </div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Two plans. One number each.</h2>
+          {foundingLeft !== null && foundingLeft > 0 && (
+            <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 rounded-full border border-brand/40 bg-brand/[0.08] px-5 py-2 text-sm">
+              <span className="font-bold text-brand">Founding 100</span>
+              <span className="text-zinc-300">$49 per artist, locked for life</span>
+              <span className="font-semibold">{foundingLeft} of 100 seats left</span>
+            </div>
+          )}
         </div>
         {/* Desktop: side-by-side table. */}
         <div className="mkt-glass mt-10 hidden sm:block">
@@ -348,7 +370,9 @@ export default function ShopsMarketingPage() {
             Set up your shop
           </Link>
           <p className="mt-4 text-xs text-zinc-500">
-            Founding shops lock <span className="font-semibold text-zinc-300">$49 per artist for life</span>. Invite-only while we onboard the first cohort, ask us for a code.
+            Founding shops lock <span className="font-semibold text-zinc-300">$49 per artist for life</span>
+            {foundingLeft !== null && foundingLeft > 0 && <> ({foundingLeft} of 100 seats left)</>}. Invite-only
+            while we onboard the first cohort, ask us for a code.
           </p>
         </div>
       </section>

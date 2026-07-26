@@ -6,6 +6,7 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import { supabase } from "@/lib/supabase";
+import { apiGet } from "@/lib/appApi";
 import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
 import InkWash from "@/components/InkWash";
@@ -33,6 +34,9 @@ export default function HealedShots() {
   const insets = useSafeAreaInsets();
   const { preview } = usePreview();
   const [shots, setShots] = useState<Shot[] | null>(null);
+  // The bucket is private: paths in DB rows become short signed URLs via the
+  // API. Keyed by shot id; missing entries just render the placeholder tile.
+  const [signed, setSigned] = useState<Record<string, string>>({});
   const [handle, setHandle] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -48,7 +52,15 @@ export default function HealedShots() {
       .limit(60);
     if (preview) q = q.eq("artist_id", preview.artistId);
     const { data } = await q;
-    setShots((data ?? []) as Shot[]);
+    const rows = (data ?? []) as Shot[];
+    setShots(rows);
+
+    // Exchange stored paths for signed URLs (legacy full URLs pass through).
+    const need = rows.filter((s) => !/^https?:\/\//i.test(s.url)).map((s) => s.id);
+    if (need.length) {
+      const r = await apiGet<{ urls: Record<string, string> }>(`/api/healed/photo?ids=${need.join(",")}`);
+      if (r.ok && r.data?.urls) setSigned(r.data.urls);
+    }
 
     // The artist's IG handle feeds the caption.
     const ids = [...new Set(((data ?? []) as Shot[]).map((s) => s.artist_id).filter(Boolean))] as string[];
@@ -75,8 +87,13 @@ export default function HealedShots() {
     try {
       // Caption first — it's on the clipboard before the share sheet opens.
       await Clipboard.setStringAsync(caption());
+      const src = /^https?:\/\//i.test(shot.url) ? shot.url : signed[shot.id];
+      if (!src) {
+        setNote("Could not load that photo — try again.");
+        return;
+      }
       const dest = `${FileSystem.cacheDirectory}healed-${shot.id}.jpg`;
-      const { uri } = await FileSystem.downloadAsync(shot.url, dest);
+      const { uri } = await FileSystem.downloadAsync(src, dest);
       if (!(await Sharing.isAvailableAsync())) {
         setNote("Sharing isn't available on this device.");
         return;
@@ -137,7 +154,10 @@ export default function HealedShots() {
                   disabled={busyId === s.id}
                   style={({ pressed }) => [styles.cell, pressed && { opacity: 0.8 }]}
                 >
-                  <Image source={{ uri: s.url }} style={styles.img} />
+                  <Image
+                    source={{ uri: /^https?:\/\//i.test(s.url) ? s.url : signed[s.id] }}
+                    style={styles.img}
+                  />
                   <View style={styles.cellFoot}>
                     <Text style={[styles.badge, s.status === "approved" ? styles.badgeGood : styles.badgePending]}>
                       {s.status === "approved" ? "in portfolio" : "pending approval"}
