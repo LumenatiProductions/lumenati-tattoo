@@ -130,13 +130,50 @@ function Sidebar({
     router.refresh();
   };
 
-  // One sidebar. Sections stack down it with small headers; collapsing hides the
-  // labels and narrows to an icon rail. The account controls (View as, View site,
-  // Log out) live pinned at the bottom, where they belong — no second panel.
-  const pad = collapsed ? "justify-center px-0" : "px-3";
+  // Sections fold. Only the section you're in needs to be open; the rest collapse
+  // to a single header line, so the whole nav fits without a marathon scroll. Open
+  // sections are remembered; navigating into a folded section opens it.
+  const sectionOf = (path: string) =>
+    NAV_SECTIONS.find((s) => s.title && s.items.some((n) => n.href === path))?.title ?? null;
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let saved: string[] | null = null;
+    try {
+      const raw = localStorage.getItem("lum-nav-sections");
+      if (raw) saved = JSON.parse(raw) as string[];
+    } catch {
+      /* ignore */
+    }
+    if (saved) setOpenSections(new Set(saved));
+    else {
+      const cur = sectionOf(pathname);
+      setOpenSections(cur ? new Set([cur]) : new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const cur = sectionOf(pathname);
+    if (cur) setOpenSections((prev) => (prev.has(cur) ? prev : new Set(prev).add(cur)));
+  }, [pathname]);
+  const toggleSection = (t: string) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      try {
+        localStorage.setItem("lum-nav-sections", JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+
+  // One sidebar. Compact rows; collapsing narrows to an icon rail. The account
+  // controls (View as, View site, Log out) live pinned at the bottom — no panel.
+  const pad = collapsed ? "justify-center px-0" : "px-2.5";
   const rowCls = (active: boolean) =>
-    `flex items-center gap-3 rounded-lg py-2 text-sm transition ${pad} ${
-      active ? "bg-white/12 font-semibold text-white" : "text-white/75 hover:bg-white/6"
+    `flex items-center gap-2.5 rounded-lg py-1.5 text-[13px] transition ${pad} ${
+      active ? "bg-white/12 font-semibold text-white" : "text-white/70 hover:bg-white/6"
     }`;
 
   return (
@@ -160,18 +197,13 @@ function Sidebar({
         )}
       </div>
 
-      {/* Nav: sections stacked, each with a header (hidden when collapsed). */}
-      <nav className="flex flex-1 flex-col overflow-y-auto px-2 pb-2">
-        {sections.map((s, si) => (
-          <div key={s.title ?? "top"} className={si > 0 ? "mt-3" : ""}>
-            {s.title &&
-              (collapsed ? (
-                <div className="mx-2 mb-2 border-t border-white/8" />
-              ) : (
-                <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
-                  {s.title}
-                </div>
-              ))}
+      {/* Nav: top items always shown; titled sections fold to a header line. When
+          collapsed to icons, folding doesn't apply — every icon is shown. */}
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+        {sections.map((s, si) => {
+          const isTop = !s.title;
+          const isOpen = collapsed || isTop || openSections.has(s.title!);
+          const rows = (
             <div className="flex flex-col gap-0.5">
               {s.items.map((n) => {
                 const active = pathname === n.href;
@@ -185,7 +217,7 @@ function Sidebar({
                     title={collapsed ? n.label : undefined}
                     className={`${rowCls(active)}${n.soon ? " cursor-default text-white/40 hover:bg-transparent" : ""}`}
                   >
-                    <NavIcon name={n.icon} className={`h-[18px] w-[18px] shrink-0 ${active ? "text-white" : "text-white/55"}`} />
+                    <NavIcon name={n.icon} className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-white/50"}`} />
                     {!collapsed && <span className="truncate">{n.label}</span>}
                     {!collapsed && n.soon && (
                       <span className="ml-auto rounded bg-white/7 px-1.5 py-0.5 text-[10px] font-medium text-white/50">soon</span>
@@ -194,8 +226,23 @@ function Sidebar({
                 );
               })}
             </div>
-          </div>
-        ))}
+          );
+          return (
+            <div key={s.title ?? "top"} className={si > 0 && collapsed ? "mt-1" : ""}>
+              {s.title && collapsed && si > 0 && <div className="mx-2 mb-1 border-t border-white/8" />}
+              {s.title && !collapsed && (
+                <button
+                  onClick={() => toggleSection(s.title!)}
+                  className="mt-1.5 flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/40 hover:text-white/75"
+                >
+                  <span>{s.title}</span>
+                  <NavIcon name="collapse" className={`h-3 w-3 transition-transform ${isOpen ? "-rotate-90" : "rotate-180"}`} />
+                </button>
+              )}
+              {isOpen && rows}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Account: preview-as (owner), then the utility rows, pinned at the bottom. */}
@@ -238,11 +285,11 @@ function Sidebar({
           title={collapsed ? "View site" : undefined}
           className={rowCls(false)}
         >
-          <NavIcon name="viewsite" className="h-[18px] w-[18px] shrink-0 text-white/55" />
+          <NavIcon name="viewsite" className="h-4 w-4 shrink-0 text-white/55" />
           {!collapsed && <span>View site</span>}
         </a>
         <button onClick={logout} title={collapsed ? "Log out" : undefined} className={`w-full ${rowCls(false)}`}>
-          <NavIcon name="logout" className="h-[18px] w-[18px] shrink-0 text-white/55" />
+          <NavIcon name="logout" className="h-4 w-4 shrink-0 text-white/55" />
           {!collapsed && <span>Log out</span>}
         </button>
         {!collapsed && email && (
