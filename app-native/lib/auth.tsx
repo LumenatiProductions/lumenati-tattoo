@@ -34,6 +34,15 @@ const Ctx = createContext<AuthState>({
   signOut: async () => {},
 });
 
+// Cold launches must never hang on the network: every bootstrap call races a
+// deadline, and losing the race falls back rather than blocking first paint.
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 // Resolve the signed-in user's role + name from `profiles` (same lookup as the
 // web, just client-side under RLS). Falls back to "artist" if it can't be read.
 async function fetchProfile(
@@ -64,7 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const apply = async (s: Session | null) => {
       setSession(s);
       if (s) {
-        const p = await fetchProfile(s.user.email ?? null);
+        const p = await withTimeout(
+          fetchProfile(s.user.email ?? null),
+          6000,
+          { role: "artist" as Role, fullName: null, shopId: null },
+        );
         setRole(p.role);
         setFullName(p.fullName);
         setShopId(p.shopId);
@@ -75,7 +88,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
     (async () => {
-      const { data } = await supabase.auth.getSession();
+      // A hung session restore (expired token + flaky refresh call) was the
+      // "spins until you force quit" launch bug — never wait more than 6s.
+      // If the real session lands later, onAuthStateChange applies it.
+      const { data } = await withTimeout(
+        supabase.auth.getSession(),
+        6000,
+        { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
+      );
       if (!alive) return;
       await apply(data.session);
       setLoading(false);
