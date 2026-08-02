@@ -273,6 +273,8 @@ export default function TapToPayPos() {
           totals={merch.totals}
           taxBps={merch.taxBps}
           disabled={busy}
+          loadFailed={merch.loadFailed}
+          reload={merch.reload}
         />
       )}
 

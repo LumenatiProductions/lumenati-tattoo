@@ -27,16 +27,24 @@ export function useMerch() {
   const [products, setProducts] = useState<Product[]>([]);
   const [taxBps, setTaxBps] = useState(0);
   const [cart, setCart] = useState<Record<string, number>>({});
+  // A failed load must not look like "this shop has no merch" — the shelf
+  // hides on empty, so without this flag a network error hides real products.
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  const reload = useCallback(async () => {
+    const r = await apiGet<{ items: Product[]; taxBps: number }>("/api/pos/products");
+    if (r.ok && r.data) {
+      setProducts(r.data.items ?? []);
+      setTaxBps(r.data.taxBps ?? 0);
+      setLoadFailed(false);
+    } else {
+      setLoadFailed(true);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      const r = await apiGet<{ items: Product[]; taxBps: number }>("/api/pos/products");
-      if (r.ok && r.data) {
-        setProducts(r.data.items ?? []);
-        setTaxBps(r.data.taxBps ?? 0);
-      }
-    })();
-  }, []);
+    reload();
+  }, [reload]);
 
   const add = useCallback((id: string) => {
     setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
@@ -78,5 +86,5 @@ export function useMerch() {
 
   const cartItems = useMemo(() => Object.entries(cart).map(([id, qty]) => ({ id, qty })), [cart]);
 
-  return { products, taxBps, cart, cartItems, add, remove, clear, totals, recordCash };
+  return { products, taxBps, cart, cartItems, add, remove, clear, totals, recordCash, loadFailed, reload };
 }

@@ -121,6 +121,8 @@ function Fallback() {
         totals={merch.totals}
         taxBps={merch.taxBps}
         disabled={busy}
+        loadFailed={merch.loadFailed}
+        reload={merch.reload}
       />
       {myArtistId && cents > 0 && !cashOpen && (
         <View style={{ marginTop: 12 }}>

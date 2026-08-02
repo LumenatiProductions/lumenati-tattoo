@@ -15,6 +15,8 @@ export default function MerchShelf({
   totals,
   taxBps,
   disabled,
+  loadFailed,
+  reload,
 }: {
   products: Product[];
   cart: Record<string, number>;
@@ -23,8 +25,20 @@ export default function MerchShelf({
   totals: MerchTotals | null;
   taxBps: number;
   disabled?: boolean;
+  loadFailed?: boolean;
+  reload?: () => void;
 }) {
-  if (products.length === 0) return null;
+  if (products.length === 0) {
+    // No products is invisible on purpose; a failed load must not be.
+    if (!loadFailed) return null;
+    return (
+      <View style={styles.wrap}>
+        <Pressable onPress={() => reload?.()} style={styles.failedRow} hitSlop={8}>
+          <Text style={styles.failedText}>Shop merch didn't load. Tap to try again.</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.wrap}>
@@ -107,6 +121,15 @@ export default function MerchShelf({
 
 const styles = StyleSheet.create({
   wrap: { marginTop: 16 },
+  failedRow: {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  failedText: { color: theme.textDim, fontSize: 13 },
   label: {
     color: theme.textDim,
     fontSize: 11,
