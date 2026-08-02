@@ -58,7 +58,9 @@ export default function PrivacyPage() {
         <h2 style={S.h2}>What we don&apos;t do</h2>
         <p style={S.p}>
           No ads, no selling or sharing data with data brokers, no third-party analytics or
-          tracking SDKs, and no tracking you across other apps or websites.
+          tracking SDKs, and no tracking you across other apps or websites. Your phone
+          number and your consent to receive texts are never shared with third parties or
+          affiliates for their marketing.
         </p>
 
         <h2 style={S.h2}>Who we share with</h2>
