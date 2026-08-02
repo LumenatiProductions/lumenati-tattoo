@@ -45,6 +45,10 @@ const MAP = {
   staff: "id-card-outline",
   integrations: "link-outline",
   billing: "card-outline",
+  bug: "bug-outline",
+  logout: "log-out-outline",
+  viewsite: "open-outline",
+  collapse: "chevron-back-outline",
 };
 
 const entries = Object.entries(MAP).map(([name, file]) => {

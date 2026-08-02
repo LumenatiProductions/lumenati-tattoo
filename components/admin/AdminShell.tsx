@@ -140,8 +140,9 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   useEffect(() => {
     if (currentCat) setOpenCat(currentCat);
   }, [currentCat]);
-  const open =
-    catSections.find((s) => s.title === openCat) ?? catSections[0] ?? null;
+  // openCat null = collapsed to just the slim rail. Clicking a category opens its
+  // flyout; clicking the open one (or the collapse chevron) closes it again.
+  const open = openCat ? (catSections.find((s) => s.title === openCat) ?? null) : null;
 
   return (
     <aside className="flex h-full shrink-0 border-r border-white/10 bg-white/6">
@@ -175,7 +176,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             return (
               <button
                 key={s.title}
-                onClick={() => setOpenCat(s.title)}
+                onClick={() => setOpenCat((c) => (c === s.title ? null : s.title))}
                 title={s.title ?? ""}
                 className={`flex flex-col items-center gap-1 rounded-lg py-2 ${
                   isOpen
@@ -193,14 +194,51 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             );
           })}
         </nav>
+        {/* Always-on utilities: reachable whether the flyout is open or collapsed. */}
+        <div className="flex flex-col gap-1 border-t border-white/10 px-1.5 py-2">
+          <BugReporter variant="rail" />
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            title="View site"
+            className="flex flex-col items-center gap-1 rounded-lg py-2 text-white/65 hover:bg-white/6"
+          >
+            <NavIcon name="viewsite" className="h-[18px] w-[18px]" />
+            <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
+              View site
+            </span>
+          </a>
+          <button
+            onClick={logout}
+            title="Log out"
+            className="flex flex-col items-center gap-1 rounded-lg py-2 text-white/65 hover:bg-white/6"
+          >
+            <NavIcon name="logout" className="h-[18px] w-[18px]" />
+            <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
+              Log out
+            </span>
+          </button>
+        </div>
       </div>
 
+      {open && (
       <div className="flex w-48 flex-col">
         <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 pb-2 pt-5">
           {open && (
             <>
-              <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/50">
-                {open.title}
+              <div className="mb-1 flex items-center justify-between pl-3 pr-1">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
+                  {open.title}
+                </span>
+                <button
+                  onClick={() => setOpenCat(null)}
+                  title="Collapse"
+                  aria-label="Collapse menu"
+                  className="rounded p-1 text-white/40 hover:bg-white/6 hover:text-white/70"
+                >
+                  <NavIcon name="collapse" className="h-3.5 w-3.5" />
+                </button>
               </div>
               <div className="flex flex-col gap-0.5">
                 {open.items.map((n) => {
@@ -274,24 +312,9 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <div className="truncate px-1 text-[11px] text-white/60" title={email}>
           {email}
         </div>
-        <div className="mt-1.5 flex items-center justify-between">
-          <button
-            onClick={logout}
-            className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6"
-          >
-            Log out
-          </button>
-          <a
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-            className="px-1 text-xs text-white/55 hover:text-white/85"
-          >
-            View site ↗
-          </a>
-        </div>
       </div>
       </div>
+      )}
     </aside>
   );
 }
@@ -382,7 +405,6 @@ function ShellFrame({ children, billing }: { children: React.ReactNode; billing:
           <button aria-label="Close menu" onClick={() => setNavOpen(false)} className="cc-drawer-backdrop" />
         </div>
       )}
-      <BugReporter />
     </div>
   );
 }
