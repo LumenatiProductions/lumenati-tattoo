@@ -68,18 +68,35 @@ export async function GET(req: Request) {
   // ledger; this is only the per-client rollup.
   const clients = data;
   // Same 1000-row clamp applies here, and this SUM feeds lifetime value.
+  // A refunded sale must not count: the original row still has reverses=null
+  // (the REVERSING row carries the pointer, under kind 'refund'), so collect
+  // the reversed ids first and skip those originals — same rule as the P&L.
+  const reversedIds = new Set<string>();
+  for (let start = 0; start < 50000; start += 1000) {
+    const { data: rev } = await supabase
+      .from("ledger")
+      .select("reverses")
+      .not("reverses", "is", null)
+      .order("id", { ascending: true })
+      .range(start, start + 999);
+    for (const r of (rev ?? []) as { reverses: string | null }[]) {
+      if (r.reverses) reversedIds.add(r.reverses);
+    }
+    if (!rev || rev.length < 1000) break;
+  }
   const byClient = new Map<string, number>();
   for (let start = 0; start < 50000; start += 1000) {
     const { data: led } = await supabase
       .from("ledger")
-      .select("client_id, amount_cents")
+      .select("id, client_id, amount_cents")
       .not("client_id", "is", null)
       .in("kind", ["sale", "tip"])
       .eq("direction", "in")
       .is("reverses", null)
       .order("id", { ascending: true })
       .range(start, start + 999);
-    for (const r of (led ?? []) as { client_id: string | null; amount_cents: number }[]) {
+    for (const r of (led ?? []) as { id: string; client_id: string | null; amount_cents: number }[]) {
+      if (reversedIds.has(r.id)) continue;
       if (r.client_id) byClient.set(r.client_id, (byClient.get(r.client_id) ?? 0) + (r.amount_cents ?? 0));
     }
     if (!led || led.length < 1000) break;

@@ -52,13 +52,35 @@ export async function POST(req: Request) {
   // Cash rent: confirming the stack IS confirming the rent.
   let rentPaid = false;
   if (entry.rent_invoice_id) {
-    const { error: rentErr } = await me.db
+    const { data: paidInv, error: rentErr } = await me.db
       .from("rent_invoices")
       .update({ status: "paid", paid_at: new Date().toISOString() })
       .eq("id", entry.rent_invoice_id)
       .eq("shop_id", me.shopId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("id, amount_cents, artist_id, period")
+      .maybeSingle();
     rentPaid = !rentErr;
+    // Book the rent in the canonical ledger — the web "mark paid" path does
+    // this, and handoff-board rent must land identically or the P&L never
+    // sees cash rent. Same external_id as mark_paid, so whichever path runs
+    // first wins and the other is a no-op.
+    if (paidInv) {
+      await me.db.from("ledger").upsert(
+        {
+          shop_id: me.shopId,
+          source: "cash",
+          kind: "rent",
+          direction: "in",
+          amount_cents: paidInv.amount_cents,
+          artist_id: paidInv.artist_id,
+          external_id: `rentinv_${paidInv.id}`,
+          created_by: me.email,
+          note: `Booth rent ${paidInv.period} received in cash`,
+        },
+        { onConflict: "source,external_id", ignoreDuplicates: true },
+      );
+    }
   }
 
   return NextResponse.json({ ok: true, rentPaid });

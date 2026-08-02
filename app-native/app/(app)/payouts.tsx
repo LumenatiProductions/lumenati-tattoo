@@ -67,19 +67,22 @@ function statementFor(artist: ArtistRow, sales: SaleRow[], since: string | undef
   let grossService = 0,
     grossTips = 0,
     cardService = 0,
-    cardTips = 0;
+    cardTips = 0,
+    // Rounded per sale to match the web statements + P&L to the penny.
+    splitCut = 0;
   for (const s of sales) {
     if (s.artist_id !== artist.id) continue;
     if (since && (s.created_at ?? "").slice(0, 10) <= since) continue;
     grossService += s.service_cents ?? 0;
     grossTips += s.tip_cents ?? 0;
+    if (!isRenter) splitCut += Math.round((s.service_cents ?? 0) * split);
     if (s.method !== "cash") {
       cardService += s.service_cents ?? 0;
       cardTips += s.tip_cents ?? 0;
     }
   }
 
-  const shopCut = isRenter ? 0 : Math.round(grossService * split);
+  const shopCut = isRenter ? 0 : splitCut;
   return {
     artist,
     kind: isRenter ? "passthrough" : "payroll",

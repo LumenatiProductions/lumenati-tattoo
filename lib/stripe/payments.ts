@@ -107,18 +107,25 @@ export async function startCheckout(
   const shopName = (shop?.name as string | undefined)?.trim() || "Lumenati Tattoo";
   const name = `${shopName} · ${label?.trim() || KIND_LABEL[row.kind] || "Payment"}`;
   const tip = Math.max(0, Math.round(row.tip_cents ?? 0));
+  // A terminal-minted merch payment carries sales tax + a cart; its pay link is
+  // still live (the tap may have failed and staff sent the link instead), so
+  // this path must charge the tax too — settle books a tax row and takes stock
+  // down from the SAME row either way, so an uncharged tax would still land on
+  // the books as "collected".
+  const tax = Math.max(0, Math.round(row.tax_cents ?? 0));
 
   // Payments (2026-07-14): a ticket/other routes as a destination charge to the
   // BOOTH RENTER (their own sale) or, failing that, the SHOP's account (payroll /
   // shop income). The client covers the card fee as a SURCHARGE computed on
-  // service + tip; that surcharge is the Stripe application fee, so the receiving
+  // service + tip (+ tax on a merch cart — same base as the Tap to Pay intent);
+  // that surcharge is the Stripe application fee, so the receiving
   // account keeps 100% of service + tip and Lumenati nets ~1% after Stripe's cut.
   // Deposits and non-onboarded fallbacks charge the platform with no surcharge.
   const split = await connectChargeParams(admin, {
     shopId: row.shop_id,
     artistId: row.artist_id,
     kind: row.kind,
-    baseCents: row.amount_cents + tip,
+    baseCents: row.amount_cents + tip + tax,
   });
   const surcharge = split?.surchargeCents ?? 0;
   const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {
@@ -165,6 +172,19 @@ export async function startCheckout(
                 },
               ]
             : []),
+          // Sales tax on a merch cart, itemized like the register receipt.
+          ...(tax > 0
+            ? [
+                {
+                  quantity: 1,
+                  price_data: {
+                    currency: row.currency || "usd",
+                    unit_amount: tax,
+                    product_data: { name: "Sales tax" },
+                  },
+                },
+              ]
+            : []),
           // The card fee the client covers, disclosed as its own line so it's
           // plainly itemized on Stripe's page + the receipt (surcharge rules
           // require it to be shown before payment).
@@ -186,14 +206,29 @@ export async function startCheckout(
           pay_token: row.pay_token,
           kind: row.kind,
           tip_cents: String(tip),
+          tax_cents: String(tax),
           surcharge_cents: String(surcharge),
         },
         payment_intent_data: paymentIntentData,
       },
-      // Tip + surcharge are part of the key: changing either mints a fresh
-      // session instead of reusing one priced at the old total.
-      { idempotencyKey: `checkout_${row.pay_token}_t${tip}_s${surcharge}` },
+      // Tip + surcharge (+ tax) are part of the key: changing any of them mints
+      // a fresh session instead of reusing one priced at the old total. Tax is
+      // appended only when present so existing tax-free keys stay stable.
+      { idempotencyKey: `checkout_${row.pay_token}_t${tip}_s${surcharge}${tax > 0 ? `_x${tax}` : ""}` },
     );
+    // A repriced tap (tip changed) mints a NEW session while the one minted at
+    // the old price is still open on Stripe for 24h — two live sessions for one
+    // payment means the second one paid would be a real charge the books never
+    // see (settle no-ops once the row is paid). Close the superseded session;
+    // best-effort, and a same-price re-tap returns the SAME session id so it
+    // never expires the one it's about to hand back.
+    if (row.stripe_session_id && row.stripe_session_id !== session.id) {
+      try {
+        await stripe.checkout.sessions.expire(row.stripe_session_id);
+      } catch {
+        // already completed or expired — nothing to close
+      }
+    }
     await admin.from("payments").update({ stripe_session_id: session.id }).eq("id", row.id);
     return { ok: true as const, url: session.url };
   } catch (e) {

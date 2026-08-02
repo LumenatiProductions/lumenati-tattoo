@@ -14,7 +14,8 @@ export type OpsKind =
   | "email_failed"
   | "webhook_error"
   | "cron_error"
-  | "client_error";
+  | "client_error"
+  | "instant_payout_fee";
 
 export type OpsSeverity = "info" | "warn" | "error";
 

@@ -23,8 +23,13 @@ async function load(offerId: string, entryId: string) {
   }
   const [{ data: offer }, { data: entry }] = await Promise.all([
     admin.from("slot_offers").select("*").eq("id", offerId).maybeSingle(),
-    admin.from("waitlist").select("id, name, phone, client_id, want, active").eq("id", entryId).maybeSingle(),
+    admin.from("waitlist").select("id, shop_id, name, phone, client_id, want, active").eq("id", entryId).maybeSingle(),
   ]);
+  // The two capability ids must belong to the SAME shop — a link can't pair
+  // one shop's offer with another shop's waitlist entry.
+  if (offer && entry && entry.shop_id !== offer.shop_id) {
+    return { admin, offer: null, entry: null };
+  }
   return { admin, offer, entry };
 }
 

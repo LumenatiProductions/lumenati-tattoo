@@ -47,7 +47,11 @@ export async function reverseRefundBooks(
       origLedger.map((o) => ({
         shop_id: shopId,
         source: "stripe",
-        kind: "refund",
+        // Tax + rent reversals keep their kind so the P&L remittance / rent
+        // figures net out (same convention as the cash-entry delete path);
+        // sale/tip reversals stay 'refund' — ledger_sales excludes them by
+        // the `reverses` pointer, not by kind.
+        kind: o.kind === "tax" || o.kind === "rent" ? o.kind : "refund",
         direction: "out",
         amount_cents: o.amount_cents,
         artist_id: o.artist_id,

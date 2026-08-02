@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { userFromBearer } from "@/lib/api-auth";
 import { toCsv } from "@/lib/books/export";
+import { shopDay, shopDayEndUtc, ledgerShopDay } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -157,7 +158,11 @@ export async function GET(req: Request) {
     : new Date().toISOString().slice(0, 10);
   const g = url.searchParams.get("group");
   const group: Group = g === "quarter" || g === "year" ? g : "month";
-  const toEnd = `${to}T23:59:59.999`;
+  // Pull wide enough for BOTH occurred_at conventions (cash rows sit at UTC
+  // midnight of their bare date; Stripe instants run to the shop's midnight),
+  // then filter per row on the shop-calendar day it belongs to.
+  const toEnd = shopDayEndUtc(to);
+  const inRange = (day: string) => day >= from && day <= to;
 
   try {
     // Artists (ALL, not just active — a former split artist's history must
@@ -186,7 +191,8 @@ export async function GET(req: Request) {
       // Reversing rows can land outside the window (a refund months later), so
       // they're pulled un-windowed to exclude their originals, like the view.
       pullAllReversals(db, shopId),
-      // Rent + tax live in the raw ledger (reversals net out via `reverses`).
+      // Rent + tax live in the raw ledger (reversals net out via `reverses` —
+      // tax/rent reversing rows keep their kind and carry direction 'out').
       pullAll<{ occurred_at: string; kind: string; direction: string; amount_cents: number; reverses: string | null }>(
         db, "ledger", "occurred_at, kind, direction, amount_cents, reverses", "occurred_at", from, toEnd,
         (q) => q.eq("shop_id", shopId).in("kind", ["rent", "tax"])),
@@ -223,7 +229,9 @@ export async function GET(req: Request) {
     };
 
     for (const s of sales) {
-      const p = at(s.created_at.slice(0, 10));
+      const day = ledgerShopDay(s.created_at); // bucket on the shop's calendar
+      if (!inRange(day)) continue;
+      const p = at(day);
       const svc = s.service_cents ?? 0;
       const tip = s.tip_cents ?? 0;
       p.grossCollected += svc + tip;
@@ -244,13 +252,19 @@ export async function GET(req: Request) {
     }
 
     for (const row of ledgerExtras) {
-      const p = at(row.occurred_at.slice(0, 10));
+      const day = ledgerShopDay(row.occurred_at);
+      if (!inRange(day)) continue;
+      const p = at(day);
       const sign = row.direction === "in" ? 1 : -1; // reversing rows net out
       if (row.kind === "rent") p.rentIncome += sign * row.amount_cents;
       else if (row.kind === "tax") p.taxCollected += sign * row.amount_cents;
     }
 
-    for (const b of bookings) at(b.starts_at.slice(0, 10)).forfeitedDeposits += b.deposit_cents ?? 0;
+    for (const b of bookings) {
+      const day = shopDay(b.starts_at); // real instants, no bare-date convention
+      if (!inRange(day)) continue;
+      at(day).forfeitedDeposits += b.deposit_cents ?? 0;
+    }
     for (const e of expenses) {
       const p = at(e.date);
       p.expensesByCategory[e.category] = (p.expensesByCategory[e.category] ?? 0) + e.amount_cents;

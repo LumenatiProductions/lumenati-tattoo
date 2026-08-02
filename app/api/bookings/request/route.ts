@@ -244,18 +244,42 @@ export async function PATCH(req: Request) {
   const stamp = { handled_by: ctx.email ?? null, handled_at: new Date().toISOString() };
 
   if (b.action === "decline") {
+    // Conditional on pending so two racing handlers can't both act on it.
     const { data, error } = await admin
       .from("booking_requests")
       .update({ status: "declined", ...stamp })
       .eq("id", b.id)
+      .eq("status", "pending")
       .select()
-      .single();
+      .maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data) return NextResponse.json({ error: "Already handled." }, { status: 409 });
     return NextResponse.json({ request: data });
   }
 
   if (b.action === "accept") {
     if (!b.startsAt) return NextResponse.json({ error: "Pick a date and time first." }, { status: 400 });
+
+    // Claim the request FIRST — the pending check above is read-then-act, so a
+    // double-tap (or two admins racing) would otherwise both pass it and book
+    // the client twice, texting two deposit links. The conditional update
+    // picks exactly one winner; a failure below releases the claim so the
+    // desk can retry.
+    const { data: claimedReq, error: claimErr } = await admin
+      .from("booking_requests")
+      .update({ status: "accepted", ...stamp })
+      .eq("id", b.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+    if (claimErr) return NextResponse.json({ error: claimErr.message }, { status: 500 });
+    if (!claimedReq) return NextResponse.json({ error: "Already handled." }, { status: 409 });
+    const releaseClaim = () =>
+      admin
+        .from("booking_requests")
+        .update({ status: "pending", handled_by: null, handled_at: null })
+        .eq("id", b.id)
+        .eq("status", "accepted");
 
     // Find-or-create the client: match email first, then phone.
     let clientId: string | null = null;
@@ -283,7 +307,10 @@ export async function PATCH(req: Request) {
         })
         .select("id")
         .single();
-      if (cErr) return NextResponse.json({ error: `Could not create the client: ${cErr.message}` }, { status: 500 });
+      if (cErr) {
+        await releaseClaim();
+        return NextResponse.json({ error: `Could not create the client: ${cErr.message}` }, { status: 500 });
+      }
       clientId = c.id;
     }
 
@@ -328,11 +355,14 @@ export async function PATCH(req: Request) {
       })
       .select()
       .single();
-    if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
+    if (bErr) {
+      await releaseClaim();
+      return NextResponse.json({ error: bErr.message }, { status: 500 });
+    }
 
     const { data, error } = await admin
       .from("booking_requests")
-      .update({ status: "accepted", booking_id: booking.id, ...stamp })
+      .update({ booking_id: booking.id })
       .eq("id", b.id)
       .select()
       .single();

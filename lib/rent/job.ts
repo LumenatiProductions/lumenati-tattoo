@@ -4,6 +4,7 @@ import { isStripeConfigured, siteUrl } from "@/lib/stripe/client";
 import { isSmsConfigured, sendSms } from "@/lib/sms";
 import { logOpsEvent } from "@/lib/ops-events";
 import { streamEnabledMap } from "@/lib/messaging/streams";
+import { shopDay } from "@/lib/dates";
 
 // In-house rent generation (rent-invoices-schema.sql). Runs in the daily ops
 // fan-out AND behind the Rent page's Generate button: for every active booth
@@ -12,7 +13,10 @@ import { streamEnabledMap } from "@/lib/messaging/streams";
 // against the renter's sales). Idempotent via the (artist_id, period) unique
 // index.
 
-export const currentPeriod = () => new Date().toISOString().slice(0, 7); // YYYY-MM
+// Shop-clock month, not UTC: on the last evening of a month Denver is still
+// in the old month while UTC has rolled over — a Generate tap then would mint
+// next month's invoices hours early.
+export const currentPeriod = () => shopDay().slice(0, 7); // YYYY-MM
 
 export async function generateRentInvoices(client: SupabaseClient) {
   const period = currentPeriod();
@@ -125,7 +129,7 @@ function nudgeCopy(tone: RentNudge["tone"], name: string, amount: number, period
 export async function nudgeRentInvoices(client: SupabaseClient) {
   const autosend = process.env.RENT_AUTOSEND === "true";
   const canSend = autosend && (isSmsConfigured || !!process.env.RESEND_API_KEY);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = shopDay(); // rung math on the shop's calendar, not UTC
 
   const { data: pending, error } = await client
     .from("rent_invoices")

@@ -94,6 +94,20 @@ describe("statementFor — booth renter", () => {
   });
 });
 
+describe("statementFor — split rounding", () => {
+  it("rounds the shop cut PER SALE so statements match the P&L at any grouping", () => {
+    // 30% of $11.15 is 334.5c. Per-sale rounding books 335c on each ticket
+    // (the P&L convention); rounding the summed service would book 669c
+    // total and the statement would drift a penny from the P&L.
+    const st = statementFor(splitArtist, [
+      sale("a1", 1115, 0, "card"),
+      sale("a1", 1115, 0, "cash"),
+    ]);
+    expect(st.shopCut).toBe(670);
+    expect(st.gustoWages).toBe(2230 - 670);
+  });
+});
+
 describe("statementFor — salaried owner", () => {
   it("his tickets are entirely shop money and his statement never owes anything", () => {
     const st = statementFor(ownerSalary, [

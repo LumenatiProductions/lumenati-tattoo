@@ -51,11 +51,17 @@ export function statementFor(artist: Artist, sales: Sale[]): ArtistStatement {
     cardService = 0,
     cardTips = 0,
     cashService = 0,
-    cashTips = 0;
+    cashTips = 0,
+    // Rounded PER SALE, not on the summed service — the P&L rounds each
+    // ticket's cut, and per-sale rounding is the only scheme where every
+    // grouping (statement range, P&L month/quarter/year) lands on the same
+    // penny.
+    splitCut = 0;
 
   for (const s of mine) {
     grossService += s.serviceCents;
     grossTips += s.tipCents;
+    if (isSplit) splitCut += Math.round(s.serviceCents * split);
     if (s.method === "card") {
       cardService += s.serviceCents;
       cardTips += s.tipCents;
@@ -80,7 +86,7 @@ export function statementFor(artist: Artist, sales: Sale[]): ArtistStatement {
     // The DIFFERENCE is how it goes out — payroll_split becomes W-2 wages via
     // Gusto; contractor_split is paid straight to a contractor (1099 at $600+),
     // so it must never land in the Gusto column.
-    shopCut = Math.round(grossService * split);
+    shopCut = splitCut;
     artistEarnings = grossService - shopCut + grossTips;
     if (type === "payroll_split") gustoWages = artistEarnings;
     else contractorOwed = artistEarnings;

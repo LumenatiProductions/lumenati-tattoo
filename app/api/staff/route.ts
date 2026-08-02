@@ -79,6 +79,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Pick which artist this login belongs to." }, { status: 400 });
   }
 
+  // A login is anchored to ONE shop. If this email already has a profile in
+  // ANOTHER shop, refuse before touching anything — the upsert below keys on
+  // email, so it would otherwise rewrite their shop_id/role (and the auth
+  // update would attach a caller-supplied phone to their login): a cross-shop
+  // account steal.
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("shop_id")
+    .eq("email", email)
+    .maybeSingle();
+  if (existingProfile && existingProfile.shop_id !== shopId) {
+    return NextResponse.json(
+      { error: "That email already has a login at another shop." },
+      { status: 409 },
+    );
+  }
+
   // Auth user: create confirmed with both identifiers, or attach the phone to
   // the existing one. Confirmed = they can sign in immediately, no invite email.
   const existing = await findAuthUser(admin, email);

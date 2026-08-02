@@ -7,6 +7,7 @@ import { shopSummary, statementFor } from "@/lib/admin/calc";
 import { fetchRentInvoices, isSquareConfigured } from "@/lib/square/client";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 import type { Sale } from "@/lib/admin/types";
+import { shopDay, shopDayEndUtc, ledgerShopDay } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +128,7 @@ async function ledgerSalesForShop(
 const rowToSale = (r: SaleRow): Sale => ({
   id: r.id,
   artistId: r.artist_id ?? "",
-  date: (r.created_at || "").slice(0, 10),
+  date: r.created_at ? ledgerShopDay(r.created_at) : "",
   serviceCents: r.service_cents ?? 0,
   tipCents: r.tip_cents ?? 0,
   method: r.method === "cash" ? "cash" : "card",
@@ -156,7 +157,11 @@ export async function GET(req: Request) {
   const def = defaultRange();
   const from = isISODate(url.searchParams.get("from")) ? url.searchParams.get("from")! : def.from;
   const to = isISODate(url.searchParams.get("to")) ? url.searchParams.get("to")! : def.to;
-  const toExclusiveEnd = `${to}T23:59:59.999`; // make `to` inclusive of its whole day
+  // Pull to the SHOP's midnight (an evening sale on the last day still counts;
+  // cash rows sit at UTC midnight and are covered by the plain `from` bound),
+  // then filter per row on the shop-calendar day.
+  const toExclusiveEnd = shopDayEndUtc(to);
+  const inRange = (day: string) => day >= from && day <= to;
 
   // ── Pull the real rows in the window (service-role: admins see all) ──
   // PostgREST clamps any single select to 1000 rows regardless of .limit(),
@@ -185,7 +190,7 @@ export async function GET(req: Request) {
   ]);
 
   const artists = (artistsRes.data ?? []).map(rowToArtist);
-  const sales = salesRows.map(rowToSale);
+  const sales = salesRows.map(rowToSale).filter((s) => inRange(s.date));
 
   // ── Shop + per-artist money math (reused from calc.ts, same as the Pay page) ──
   // Rent is billed out of band (invoices, below) and never nets against sales.
@@ -215,6 +220,7 @@ export async function GET(req: Request) {
   // ── Deposits from bookings in the window ──
   const deposits = { held: 0, applied: 0, forfeited: 0, count: 0 };
   for (const b of bookingRows) {
+    if (!inRange(shopDay(b.starts_at))) continue;
     const c = (b.deposit_cents as number) ?? 0;
     if (c <= 0) continue;
     if (b.deposit_status === "held") deposits.held += c;

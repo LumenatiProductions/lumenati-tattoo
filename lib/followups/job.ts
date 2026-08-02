@@ -11,6 +11,7 @@ import {
 } from "./templates";
 import { isSmsConfigured, normalizePhone, sendSms } from "@/lib/sms";
 import { logOpsEvent } from "@/lib/ops-events";
+import { shopDay } from "@/lib/dates";
 
 // Don't backfill ancient history: only completed bookings within this window get
 // auto-enqueued, so the first run can't blast months of old clients.
@@ -19,8 +20,11 @@ const ENQUEUE_LOOKBACK_DAYS = 14;
 const BIRTHDAY_WINDOW_DAYS = 2;
 
 // --- small date helpers (DB `date` columns are YYYY-MM-DD strings) ---
+// Day math runs on the SHOP's calendar, not UTC: a 7pm Denver visit is
+// already "tomorrow" in UTC, which used to push reminders a day early and
+// aftercare a day late for every evening appointment.
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
-const today = () => isoDate(new Date());
+const today = () => shopDay();
 const addDays = (dateStr: string, n: number) => {
   const d = new Date(`${dateStr}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
@@ -116,7 +120,7 @@ export async function enqueueForBooking(
   if (!b.client_id) return { queued: [], reason: "No client on the booking — nobody to message" };
 
   const t = today();
-  const visitDay = (b.starts_at as string).slice(0, 10);
+  const visitDay = shopDay(b.starts_at as string);
   const artistId = (b.artist_id as string | null) ?? null;
   // Resolve each kind for THIS booking's artist (their timing + copy, inheriting
   // the shop default). Stamp the artist on the row so the send resolves the same.
@@ -205,7 +209,7 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap,
 
     for (const b of (bookings || []) as { id: string; client_id: string | null; starts_at: string; artist_id: string | null }[]) {
       if (!b.client_id) continue;
-      const visitDay = b.starts_at.slice(0, 10);
+      const visitDay = shopDay(b.starts_at);
       const tf = (kind: FollowupKind) => templateFor(tpl, prefs, b.artist_id, kind);
       const base = { booking_id: b.id, client_id: b.client_id, artist_id: b.artist_id ?? null, channel: "email", status: "pending" };
       if (tf("aftercare").enabled && visitDay >= addDays(t, -ENQUEUE_LOOKBACK_DAYS)) {
@@ -238,7 +242,7 @@ export async function enqueueFollowups(client: SupabaseClient, tpl: TemplateMap,
 
     for (const b of (upcoming || []) as { id: string; client_id: string | null; starts_at: string; artist_id: string | null }[]) {
       if (!b.client_id) continue;
-      const visitDay = b.starts_at.slice(0, 10);
+      const visitDay = shopDay(b.starts_at);
       for (const kind of ["reminder_48h", "reminder_24h"] as const) {
         const resolved = templateFor(tpl, prefs, b.artist_id, kind);
         if (!resolved.enabled) continue;

@@ -4,6 +4,7 @@ import { resolveStaff } from "@/lib/api-auth";
 import { stripe, isStripeConfigured } from "@/lib/stripe/client";
 import { instantPayoutFeeCents } from "@/lib/stripe/fees";
 import { pushEvent } from "@/lib/push/send";
+import { logOpsEvent } from "@/lib/ops-events";
 
 export const dynamic = "force-dynamic";
 
@@ -167,14 +168,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Reclaim Lumenati's service fee from the renter's balance (idempotent key).
-    await stripe.transfers.createReversal(
-      transferId,
-      { amount: fee, metadata: { payment_id: row.id, reason: "instant_payout_fee" } },
-      { idempotencyKey: `ipfee_${row.id}` },
-    );
-
-    // Pay the rest to the renter's default debit card, right now.
+    // Pay the renter FIRST, then reclaim the fee. The payout is the step that
+    // can fail for reasons outside our control (no debit card on the account,
+    // instant balance not available) — if the fee were reversed first and the
+    // payout then failed, the renter would be out the fee with no payout
+    // delivered. This order can only ever fail in Lumenati's direction, and
+    // the fee reclaim retries safely under its idempotency key.
     const payout = await stripe.payouts.create(
       {
         amount: payoutAmount,
@@ -185,13 +184,35 @@ export async function POST(req: Request) {
       { stripeAccount: acct, idempotencyKey: `ipout_${row.id}` },
     );
 
+    // Reclaim Lumenati's service fee from the renter's balance (idempotent
+    // key). The payout above left exactly the fee behind, so the reversal has
+    // its funds; if it still fails, the renter got paid and Lumenati is owed
+    // the fee — page it so it isn't silently lost.
+    let feeReclaimed = true;
+    try {
+      await stripe.transfers.createReversal(
+        transferId,
+        { amount: fee, metadata: { payment_id: row.id, reason: "instant_payout_fee" } },
+        { idempotencyKey: `ipfee_${row.id}` },
+      );
+    } catch (feeErr) {
+      feeReclaimed = false;
+      await logOpsEvent(admin, {
+        shopId,
+        kind: "instant_payout_fee",
+        severity: "error",
+        summary: "Get-paid-early fee was not reclaimed",
+        detail: `Payout ${payout.id} went out but the ${fee}c fee reversal on transfer ${transferId} (payment ${row.id}) failed: ${feeErr instanceof Error ? feeErr.message : String(feeErr)}. Reverse it manually in Stripe.`,
+      });
+    }
+
     // Record the early payout on the payment. The fee is Lumenati's (it left the
     // renter's balance to the platform), NOT the shop's income, so it's tracked
     // here on the payment row and deliberately NOT written to the shop ledger —
     // writing an 'in' row there would inflate the shop's books.
     await admin
       .from("payments")
-      .update({ instant_payout_id: payout.id, instant_fee_cents: fee })
+      .update({ instant_payout_id: payout.id, instant_fee_cents: feeReclaimed ? fee : 0 })
       .eq("id", row.id)
       .eq("shop_id", shopId)
       // Only claim the row if it hasn't already been recorded as paid out. The
