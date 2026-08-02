@@ -53,8 +53,11 @@ export default function OwnerHome() {
         action={
           <Link
             href="/admin/clients"
-            className="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-semibold text-white/85 hover:bg-white/5"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/12 border-t-white/25 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white/90 shadow-sm transition hover:border-white/20 hover:bg-white/[0.11]"
           >
+            <svg viewBox="0 0 24 24" className="h-4 w-4 text-white/60" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
             New client
           </Link>
         }
