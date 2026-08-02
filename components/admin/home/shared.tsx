@@ -33,7 +33,9 @@ export function WeekTile({
 }) {
   return (
     <div className="px-4 py-3 text-center">
-      <div className={`tnum ${strong ? "text-base font-bold text-brand" : "text-sm font-semibold"}`}>
+      {/* Sized to match StatCard's text-2xl values — this row leads the page,
+          so it can't read smaller than the cards below it. */}
+      <div className={`tnum ${strong ? "text-2xl font-bold text-brand" : "text-2xl font-semibold"}`}>
         {value}
       </div>
       <div className="text-[11px] uppercase tracking-wide text-white/55">{label}</div>
