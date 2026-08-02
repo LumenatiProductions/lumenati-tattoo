@@ -76,6 +76,8 @@ const SENSITIVE = [
   "square_team_members",// staff mapping
   "square_sync",        // sync bookkeeping
   "followup_templates", // outreach copy
+  "message_streams",    // per-shop auto-send switches (server-only)
+  "blasts",             // marketing blast history: subjects, bodies, counts
   "bug_reports",        // reporter emails + notes that may quote client/money data
 ];
 
