@@ -148,7 +148,7 @@ export async function PATCH(req: Request) {
       enabled: b.enabled ?? ((existing?.enabled as boolean | null) ?? base.enabled),
       updated_at: new Date().toISOString(),
     };
-    const { error } = await admin.from("followup_templates").upsert(row, { onConflict: "kind" });
+    const { error } = await admin.from("followup_templates").upsert(row, { onConflict: "shop_id,kind" });
     if (error) {
       if (isMissingTable(error.message)) {
         return NextResponse.json({ error: "This switch is not ready yet." }, { status: 503 });

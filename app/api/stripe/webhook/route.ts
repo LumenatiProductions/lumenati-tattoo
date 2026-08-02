@@ -60,6 +60,22 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: "Service role not configured" }, { status: 500 });
 
+  // Replay / duplicate backstop. Claim this event id before handling it. A
+  // unique-violation means we already processed this exact event (a Stripe
+  // re-delivery, or a captured-and-replayed signed body) — ack and skip so push
+  // notifications and books aren't doubled. If the table isn't there yet
+  // (migration not applied), fail open and handle the event as before.
+  let claimed = false;
+  {
+    const { error: claimErr } = await admin
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id, type: event.type });
+    if (claimErr?.code === "23505") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    claimed = !claimErr;
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -166,6 +182,11 @@ export async function POST(req: Request) {
         break;
     }
   } catch (e) {
+    // Release the claim so Stripe's retry can reprocess this event; the handlers
+    // are individually idempotent, so a reprocess is safe.
+    if (claimed) {
+      await admin.from("stripe_webhook_events").delete().eq("event_id", event.id);
+    }
     // Returning 500 makes Stripe retry; only do so for genuine processing errors.
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Webhook processing error" },
