@@ -47,6 +47,7 @@ const MAP = {
   billing: "card-outline",
   settings: "cog-outline",
   health: "pulse-outline",
+  chevrondown: "chevron-down-outline",
   bug: "bug-outline",
   logout: "log-out-outline",
   viewsite: "open-outline",

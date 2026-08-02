@@ -182,19 +182,9 @@ function Sidebar({
         collapsed ? "w-16" : "w-60"
       }`}
     >
-      {/* Header: logo + collapse toggle on one line, so nothing gets boxed in. */}
-      <div className={`flex items-center gap-2 py-4 ${collapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-        {!collapsed && <LumenatiLogo bg="dark" className="w-24" />}
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-            title={collapsed ? "Expand" : "Collapse"}
-            className="rounded-md p-1.5 text-white/45 hover:bg-white/8 hover:text-white/85"
-          >
-            <NavIcon name="collapse" className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
-          </button>
-        )}
+      {/* Header: just the logo. The collapse control lives in the footer. */}
+      <div className={`flex items-center py-4 ${collapsed ? "justify-center px-2" : "px-4"}`}>
+        <LumenatiLogo bg="dark" className={collapsed ? "w-9" : "w-24"} />
       </div>
 
       {/* Nav: top items always shown; titled sections fold to a header line. When
@@ -236,10 +226,25 @@ function Sidebar({
                   className="mt-1.5 flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/40 hover:text-white/75"
                 >
                   <span>{s.title}</span>
-                  <NavIcon name="collapse" className={`h-3 w-3 transition-transform ${isOpen ? "-rotate-90" : "rotate-180"}`} />
+                  {/* Chevron points right when folded, rotates down when open. */}
+                  <NavIcon
+                    name="chevrondown"
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ease-out ${isOpen ? "" : "-rotate-90"}`}
+                  />
                 </button>
               )}
-              {isOpen && rows}
+              {/* Slick open/close: grid-rows 0fr→1fr animates the real height. */}
+              {collapsed ? (
+                rows
+              ) : (
+                <div
+                  className={`grid transition-all duration-200 ease-out ${
+                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">{rows}</div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -292,6 +297,19 @@ function Sidebar({
           <NavIcon name="logout" className="h-4 w-4 shrink-0 text-white/55" />
           {!collapsed && <span>Log out</span>}
         </button>
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            title={collapsed ? "Expand menu" : "Collapse menu"}
+            className={`w-full ${rowCls(false)}`}
+          >
+            <NavIcon
+              name="collapse"
+              className={`h-4 w-4 shrink-0 text-white/55 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
+            />
+            {!collapsed && <span>Collapse</span>}
+          </button>
+        )}
         {!collapsed && email && (
           <div className="truncate px-3 pt-2 text-[11px] text-white/45" title={email}>
             {email}
