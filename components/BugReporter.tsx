@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { NavIcon } from "@/components/admin/NavIcon";
 
-// Floating "Report a bug" pill for the admin. Tapping it grabs a screenshot of
-// the current screen (best-effort — a capture failure still sends the note),
-// then opens a small sheet for a one-line description. Posts to /api/bugs, which
-// stores it and pings Slack. Mirrors the app's reporter so both feel the same.
+// "Report a bug" for the admin. Tapping it grabs a screenshot of the current
+// screen (best-effort — a capture failure still sends the note), then opens a
+// small sheet for a one-line description. Posts to /api/bugs, which stores it
+// and pings Slack. Mirrors the app's reporter so both feel the same.
+//
+// variant="rail" renders the trigger as a sidebar item (icon + tiny label) so it
+// lives in the nav instead of floating over the page; "float" is the legacy pill.
 
 type Phase = "idle" | "capturing" | "sheet" | "sending" | "done" | "error";
 
-export default function BugReporter() {
+export default function BugReporter({ variant = "float" }: { variant?: "float" | "rail" }) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("idle");
   const [note, setNote] = useState("");
@@ -107,21 +111,45 @@ export default function BugReporter() {
     boxShadow: "0 6px 24px rgba(0,0,0,0.4)",
   };
 
-  if (phase === "done") {
-    return (
-      <div data-bug-reporter="1" style={{ ...pill, cursor: "default", color: "#34d399" }}>
-        Thanks — sent.
-      </div>
-    );
-  }
-
-  if (phase === "idle" || phase === "capturing") {
-    return (
-      <button data-bug-reporter="1" style={pill} onClick={open} disabled={phase === "capturing"}>
-        <span style={{ fontSize: 14, lineHeight: 1 }}>◎</span>
-        {phase === "capturing" ? "Grabbing screen…" : "Report a bug"}
-      </button>
-    );
+  // Sidebar trigger: matches the slim-rail buttons (icon + tiny uppercase label).
+  if (variant === "rail") {
+    if (phase === "sheet" || phase === "sending") {
+      // fall through to the shared sheet below
+    } else {
+      const done = phase === "done";
+      return (
+        <button
+          data-bug-reporter="1"
+          onClick={open}
+          disabled={phase === "capturing"}
+          title="Report a bug"
+          className={`flex w-full flex-col items-center gap-1 rounded-lg py-2 ${
+            done ? "text-emerald-400" : "text-white/65 hover:bg-white/6"
+          }`}
+        >
+          <NavIcon name="bug" className="h-[18px] w-[18px]" />
+          <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
+            {phase === "capturing" ? "Wait…" : done ? "Sent" : "Report bug"}
+          </span>
+        </button>
+      );
+    }
+  } else {
+    if (phase === "done") {
+      return (
+        <div data-bug-reporter="1" style={{ ...pill, cursor: "default", color: "#34d399" }}>
+          Thanks — sent.
+        </div>
+      );
+    }
+    if (phase === "idle" || phase === "capturing") {
+      return (
+        <button data-bug-reporter="1" style={pill} onClick={open} disabled={phase === "capturing"}>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>◎</span>
+          {phase === "capturing" ? "Grabbing screen…" : "Report a bug"}
+        </button>
+      );
+    }
   }
 
   // sheet / sending
