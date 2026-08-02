@@ -145,7 +145,9 @@ export async function POST(req: Request) {
 // deposit cascades unless `depositStatus` is given explicitly:
 //   completed -> a held deposit is APPLIED   (+ optional saleId links the ticket)
 //   no_show   -> a held deposit is FORFEITED
-//   cancelled -> a held deposit is REFUNDED
+//   cancelled -> a held deposit STAYS HELD (Scott, 2026-08-02) — the shop still
+//                has the money; "refunded" is only ever written by an actual
+//                refund (the payments refund path cascades it correctly).
 export async function PATCH(req: Request) {
   const { supabase, user, role } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
@@ -226,7 +228,9 @@ export async function PATCH(req: Request) {
       const held = cur?.deposit_status === "held";
       if (held && b.status === "completed") patch.deposit_status = "applied";
       else if (held && b.status === "no_show") patch.deposit_status = "forfeited";
-      else if (held && b.status === "cancelled") patch.deposit_status = "refunded";
+      // cancelled: the deposit stays HELD — no money moved, so the books
+      // don't claim it did. An actual refund (payments page / Stripe
+      // dashboard) flips it to refunded via reverseRefundBooks.
     }
   }
   if (b.depositStatus !== undefined) patch.deposit_status = b.depositStatus;
