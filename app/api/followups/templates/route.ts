@@ -16,13 +16,19 @@ async function staff() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
+  if (!user)
+    return { supabase, user: null, role: null as string | null, shopId: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
+  return {
+    supabase,
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 
 const isKind = (k: unknown): k is FollowupKind =>
@@ -47,10 +53,13 @@ export async function GET() {
 
 // Save one template. Body: { kind, subject, body, lead_days, enabled }.
 export async function PUT(req: Request) {
-  const { supabase, user, role } = await staff();
+  const { supabase, user, role, shopId } = await staff();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!role || !WRITE_ROLES.includes(role)) {
     return NextResponse.json({ error: "Staff only" }, { status: 403 });
+  }
+  if (!shopId) {
+    return NextResponse.json({ error: "No shop for this account" }, { status: 403 });
   }
 
   const b = (await req.json().catch(() => ({}))) as {
@@ -66,6 +75,7 @@ export async function PUT(req: Request) {
 
   const row = {
     kind: b.kind,
+    shop_id: shopId,
     subject: (b.subject ?? "").trim(),
     body: (b.body ?? "").trim(),
     lead_days: Math.max(0, Math.round(b.lead_days ?? 0)),
@@ -75,7 +85,7 @@ export async function PUT(req: Request) {
 
   const { error } = await supabase
     .from("followup_templates")
-    .upsert(row, { onConflict: "kind" });
+    .upsert(row, { onConflict: "shop_id,kind" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Echo the resolved template (defaults fill any field left blank).
