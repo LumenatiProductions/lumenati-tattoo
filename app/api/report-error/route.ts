@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { reportError } from "@/lib/report-error";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { logOpsEvent } from "@/lib/ops-events";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,14 @@ export async function POST(req: Request) {
   const message = String(b.message ?? "").slice(0, 800);
   if (message) {
     sentCount++;
-    await reportError(where, new Error(message));
+    // Record the app crash so it shows on the Health page; error severity also
+    // pings the Slack alert webhook in real time.
+    await logOpsEvent(createAdminClient(), {
+      kind: "client_error",
+      severity: "error",
+      summary: `App error: ${message.slice(0, 120)}`,
+      detail: `where: ${where}\n${message}`,
+    });
   }
   return NextResponse.json({ ok: true });
 }

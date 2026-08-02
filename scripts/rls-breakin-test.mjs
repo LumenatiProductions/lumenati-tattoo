@@ -78,6 +78,7 @@ const SENSITIVE = [
   "followup_templates", // outreach copy
   "message_streams",    // per-shop auto-send switches (server-only)
   "blasts",             // marketing blast history: subjects, bodies, counts
+  "ops_events",         // early-warning failures: may quote errors/PII (server-only)
   "bug_reports",        // reporter emails + notes that may quote client/money data
 ];
 

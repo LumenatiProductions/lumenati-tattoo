@@ -10,6 +10,7 @@ import {
   SHOP_NAME,
 } from "./templates";
 import { isSmsConfigured, normalizePhone, sendSms } from "@/lib/sms";
+import { logOpsEvent } from "@/lib/ops-events";
 
 // Don't backfill ancient history: only completed bookings within this window get
 // auto-enqueued, so the first run can't blast months of old clients.
@@ -599,6 +600,15 @@ export async function runDailyJob(admin: unknown) {
     const sent = canSend
       ? await sendDueFollowups(client, tpl, s.id)
       : { sent: 0, skipped: 0, failed: 0, due: 0 };
+    if (sent.failed > 0) {
+      await logOpsEvent(client, {
+        shopId: s.id,
+        kind: "sms_failed",
+        severity: "warn",
+        summary: `${sent.failed} client follow-up${sent.failed === 1 ? "" : "s"} failed to send`,
+        detail: `Nightly follow-up run: ${sent.sent} sent, ${sent.failed} failed of ${sent.due} due.`,
+      });
+    }
     results.push({ shop: s.id, ...enqueued, sent });
   }
 

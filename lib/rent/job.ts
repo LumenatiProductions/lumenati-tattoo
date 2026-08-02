@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured, siteUrl } from "@/lib/stripe/client";
 import { isSmsConfigured, sendSms } from "@/lib/sms";
+import { logOpsEvent } from "@/lib/ops-events";
 import { streamEnabledMap } from "@/lib/messaging/streams";
 
 // In-house rent generation (rent-invoices-schema.sql). Runs in the daily ops
@@ -154,6 +155,7 @@ export async function nudgeRentInvoices(client: SupabaseClient) {
   let sent = 0;
   let unreachable = 0;
   let switchedOff = 0;
+  const failedByShop = new Map<string, number>();
   const wouldSend: string[] = [];
   for (const inv of rows) {
     if (streamByShop.get(inv.shop_id as string) === false) {
@@ -182,11 +184,14 @@ export async function nudgeRentInvoices(client: SupabaseClient) {
       continue;
     }
     let delivered = false;
+    let attempted = false;
     if (isSmsConfigured && who.phone) {
+      attempted = true;
       const r = await sendSms(who.phone as string, body);
       delivered = r.ok;
     }
     if (!delivered && who.email && process.env.RESEND_API_KEY) {
+      attempted = true;
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
@@ -205,7 +210,21 @@ export async function nudgeRentInvoices(client: SupabaseClient) {
         .from("rent_invoices")
         .update({ nudge_count: due.rung, last_nudged_at: new Date().toISOString() })
         .eq("id", inv.id);
+    } else if (attempted) {
+      const sid = inv.shop_id as string;
+      failedByShop.set(sid, (failedByShop.get(sid) ?? 0) + 1);
     }
+  }
+
+  // Surface any delivery failures on the Health page (per shop).
+  for (const [shopId, count] of failedByShop) {
+    await logOpsEvent(client, {
+      shopId,
+      kind: "sms_failed",
+      severity: "warn",
+      summary: `${count} booth-rent reminder${count === 1 ? "" : "s"} failed to send`,
+      detail: `Rent nudge run: ${count} of ${rows.length} checked did not deliver by text or email.`,
+    });
   }
 
   return {

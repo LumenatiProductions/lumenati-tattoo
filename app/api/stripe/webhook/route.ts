@@ -5,6 +5,7 @@ import { settlePayment } from "@/lib/stripe/payments";
 import { applySubscription } from "@/lib/stripe/billing";
 import { reverseRefundBooks, type RefundablePayment } from "@/lib/stripe/refund-books";
 import { pushEvent } from "@/lib/push/send";
+import { logOpsEvent } from "@/lib/ops-events";
 import type Stripe from "stripe";
 
 // Look up our payment row for a Stripe payment intent. Returns null for
@@ -157,6 +158,13 @@ export async function POST(req: Request) {
           "Payment disputed",
           `A client's bank is disputing ${usd(d.amount)}. Respond in the Stripe dashboard before the deadline or the money goes back automatically.`,
         );
+        await logOpsEvent(admin, {
+          shopId: row.shop_id,
+          kind: "dispute",
+          severity: "warn",
+          summary: `A client is disputing ${usd(d.amount)}`,
+          detail: "Respond in the Stripe dashboard before the deadline, or the bank claws the money back automatically.",
+        });
         break;
       }
       case "charge.dispute.closed": {
@@ -191,6 +199,14 @@ export async function POST(req: Request) {
     if (claimed) {
       await admin.from("stripe_webhook_events").delete().eq("event_id", event.id);
     }
+    // A payment event we couldn't process is a real problem — record it (error
+    // severity also pages Slack) so it isn't lost behind Stripe's silent retries.
+    await logOpsEvent(admin, {
+      kind: "webhook_error",
+      severity: "error",
+      summary: `Stripe webhook failed to process (${event.type})`,
+      detail: e instanceof Error ? `${e.message}\n${(e.stack ?? "").slice(0, 600)}` : String(e),
+    });
     // Returning 500 makes Stripe retry; only do so for genuine processing errors.
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Webhook processing error" },

@@ -84,6 +84,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: "Admin",
     items: [
       { href: "/admin/settings", label: "Settings", roles: ["owner"], icon: "settings" },
+      { href: "/admin/health", label: "Health", roles: ["owner"], icon: "health" },
       { href: "/admin/staff", label: "Staff", roles: ["owner"], icon: "staff" },
       { href: "/admin/integrations", label: "Integrations", roles: ["owner"], icon: "integrations" },
       { href: "/admin/billing", label: "Billing", roles: ["owner"], icon: "billing" },
