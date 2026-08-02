@@ -2,19 +2,18 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
-import { SALES as MOCK_SALES } from "./mock-data";
 import type { Sale } from "./types";
 
 // Sales come from the Supabase `sales` table: Square's mirror PLUS native
-// Stripe charges (Tap to Pay + pay-link tickets, written by settlePayment). Until
-// there are any rows the user can see, we fall back to the mock dataset so the
-// dashboard is never empty during setup. RLS scopes rows per role (owners see
-// all, an artist sees only their own).
+// Stripe charges (Tap to Pay + pay-link tickets, written by settlePayment).
+// A shop with no sales yet sees honest zeros - never invented numbers; the
+// coach and stat surfaces are volume-gated and stay quiet until money is
+// real. RLS scopes rows per role (owners see all, an artist sees their own).
 type SalesCtx = { sales: Sale[]; real: boolean; loading: boolean };
-const Ctx = createContext<SalesCtx>({ sales: MOCK_SALES, real: false, loading: true });
+const Ctx = createContext<SalesCtx>({ sales: [], real: false, loading: true });
 
 export function SalesProvider({ children }: { children: React.ReactNode }) {
-  const [sales, setSales] = useState<Sale[]>(MOCK_SALES);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [real, setReal] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -62,7 +61,7 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
           setReal(true);
         }
       } catch {
-        /* keep mock */
+        /* keep empty - a fetch hiccup shows zeros, never invented numbers */
       } finally {
         if (alive) setLoading(false);
       }
