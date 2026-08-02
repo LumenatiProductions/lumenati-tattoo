@@ -21,6 +21,9 @@ type Draft = {
   rentDollars: string;
   splitPct: string;
   guest: boolean;
+  giveLogin: boolean;
+  loginEmail: string;
+  loginPhone: string;
 };
 const blankDraft = (): Draft => ({
   name: "",
@@ -30,6 +33,9 @@ const blankDraft = (): Draft => ({
   rentDollars: "",
   splitPct: "",
   guest: false,
+  giveLogin: false,
+  loginEmail: "",
+  loginPhone: "",
 });
 
 export default function ArtistsPage() {
@@ -61,6 +67,10 @@ export default function ArtistsPage() {
     e.preventDefault();
     setMsg(null);
     if (!draft.name.trim()) return;
+    if (draft.giveLogin && !draft.loginEmail.trim()) {
+      setMsg("An email is needed to give them a login, or uncheck it.");
+      return;
+    }
     setBusy(true);
     const id = slugify(draft.name);
     const row = draftToRow(draft);
@@ -83,9 +93,32 @@ export default function ArtistsPage() {
       polaroids: [],
       portfolio: [],
     });
+    // Same act, one stop: if asked, create their app login tied to this chair.
+    // The page already exists, so a login hiccup is reported, never a blocker.
+    let loginNote = "";
+    if (draft.giveLogin && draft.loginEmail.trim()) {
+      const res = await fetch("/api/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: draft.loginEmail.trim(),
+          phone: draft.loginPhone.trim() || undefined,
+          name: draft.name.trim(),
+          role: "artist",
+          artistId: id,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        loginNote = ` (added to the roster, but the login didn't set: ${j.error ?? "try Staff"})`;
+      } else {
+        loginNote = " Their app login is set.";
+      }
+    }
     setDraft(blankDraft());
     setAdding(false);
     setBusy(false);
+    setMsg(`${row.name} added.${loginNote}`);
     await refresh();
   };
 
@@ -99,6 +132,9 @@ export default function ArtistsPage() {
       rentDollars: a.pay.rentCents ? String(a.pay.rentCents / 100) : "",
       splitPct: a.pay.shopSplitPct ? String(Math.round(a.pay.shopSplitPct * 100)) : "",
       guest: !!a.guest,
+      giveLogin: false,
+      loginEmail: "",
+      loginPhone: "",
     });
   };
 
@@ -160,6 +196,21 @@ export default function ArtistsPage() {
               <label className="ml-2 flex items-center gap-1.5 text-sm text-white/75">
                 <input type="checkbox" checked={draft.guest} onChange={(e) => setDraft({ ...draft, guest: e.target.checked })} /> Guest artist
               </label>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/4 p-3 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-white/85">
+                <input type="checkbox" checked={draft.giveLogin} onChange={(e) => setDraft({ ...draft, giveLogin: e.target.checked })} />
+                Give them an app login now
+              </label>
+              <p className="mt-1 text-xs text-white/55">
+                Sign in with a text code to their phone. Skip it for a guest who just needs a page.
+              </p>
+              {draft.giveLogin && (
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field label="Email"><input className="inp" type="email" value={draft.loginEmail} onChange={(e) => setDraft({ ...draft, loginEmail: e.target.value })} placeholder="artist@email.com" /></Field>
+                  <Field label="Mobile (optional)"><input className="inp" value={draft.loginPhone} onChange={(e) => setDraft({ ...draft, loginPhone: e.target.value })} placeholder="(303) 555-0199" /></Field>
+                </div>
+              )}
             </div>
             <div className="sm:col-span-2">
               <button type="submit" disabled={busy} className="rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
