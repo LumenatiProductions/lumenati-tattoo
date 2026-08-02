@@ -23,6 +23,29 @@ export const dynamic = "force-dynamic";
 // sequential loop inside a request.
 const MAX_RECIPIENTS = 500;
 
+// Per-shop daily ceilings (trailing 24h) so a compromised or runaway owner
+// session can't loop 500-recipient blasts without bound. Read off the blasts
+// history table, so no new state. Fails open if the table isn't there yet.
+const MAX_BLASTS_PER_DAY = 20;
+const MAX_RECIPIENTS_PER_DAY = 2000;
+
+// How many blasts the shop has fired and how many recipients they reached in the
+// trailing 24h. sent+failed = actually attempted (skipped never got a message).
+async function last24h(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  shopId: string,
+): Promise<{ blasts: number; recipients: number }> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await admin
+    .from("blasts")
+    .select("sent_count, failed_count")
+    .eq("shop_id", shopId)
+    .gte("created_at", since);
+  if (error || !data) return { blasts: 0, recipients: 0 };
+  const recipients = data.reduce((n, r) => n + (r.sent_count ?? 0) + (r.failed_count ?? 0), 0);
+  return { blasts: data.length, recipients };
+}
+
 const isMissingTable = (msg: string) => /relation .* does not exist|42P01/i.test(msg);
 
 async function shopNameFor(admin: NonNullable<ReturnType<typeof createAdminClient>>, shopId: string) {
@@ -114,6 +137,25 @@ export async function POST(req: Request) {
         error: `That group is ${members.length} people, over the ${MAX_RECIPIENTS} person limit for one blast. Pick a smaller group.`,
       },
       { status: 400 },
+    );
+  }
+
+  // Daily ceilings: stop a runaway loop before it sends the next batch.
+  const day = await last24h(admin, ctx.shopId);
+  if (day.blasts >= MAX_BLASTS_PER_DAY) {
+    return NextResponse.json(
+      {
+        error: `You've sent ${day.blasts} blasts in the last 24 hours, which is the daily limit. Try again tomorrow.`,
+      },
+      { status: 429 },
+    );
+  }
+  if (day.recipients + members.length > MAX_RECIPIENTS_PER_DAY) {
+    return NextResponse.json(
+      {
+        error: `This would put you over ${MAX_RECIPIENTS_PER_DAY} people reached in 24 hours. Wait a bit before sending more.`,
+      },
+      { status: 429 },
     );
   }
 

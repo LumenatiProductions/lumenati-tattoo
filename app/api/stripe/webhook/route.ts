@@ -127,6 +127,10 @@ export async function POST(req: Request) {
         const row = await paymentByIntent(admin, ch.payment_intent);
         if (!row || row.status !== "paid") break;
         if (ch.refunded) {
+          // Fully refunded. reverseRefundBooks reverses the BOOKED amount
+          // (service + tip), deliberately NOT ch.amount_refunded — the Stripe
+          // gross also includes the card surcharge, which was never booked as
+          // shop income, so reversing our booked rows is the correct figure.
           await reverseRefundBooks(admin, row);
         } else {
           // Partial refund: the books have no partial concept, so leave them —
