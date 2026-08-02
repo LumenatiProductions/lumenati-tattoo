@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe, isStripeConfigured } from "@/lib/stripe/client";
-import { pushEvent } from "@/lib/push/send";
+import { reverseRefundBooks } from "@/lib/stripe/refund-books";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     status: string;
     booking_id: string | null;
     artist_id: string | null;
+    shop_id: string;
     amount_cents: number;
     tip_cents: number | null;
     stripe_payment_intent_id: string | null;
@@ -90,51 +91,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // Books: payment -> refunded, drop the mirrored sale, cascade a deposit.
-  await admin.from("payments").update({ status: "refunded" }).eq("id", row.id).eq("shop_id", shopId);
-  if (row.kind === "ticket" || row.kind === "other") {
-    await admin.from("sales").delete().eq("id", `lum_${row.id}`).eq("shop_id", shopId);
-  }
+  // Books: shared with the webhook so dashboard refunds land identically.
+  const { refundedCents } = await reverseRefundBooks(admin, row);
 
-  // Reverse this payment's ledger rows (append-only: a correction is a new row
-  // pointing at the original, which ledger_sales then excludes). Idempotent.
-  const { data: origLedger } = await admin
-    .from("ledger")
-    .select("id, kind, amount_cents, artist_id, client_id, booking_id, external_id")
-    .eq("source", "stripe")
-    .eq("shop_id", shopId)
-    .like("external_id", `pay_${row.id}_%`)
-    .is("reverses", null);
-  if (origLedger?.length) {
-    await admin.from("ledger").upsert(
-      origLedger.map((o) => ({
-        shop_id: shopId,
-        source: "stripe",
-        kind: "refund",
-        direction: "out",
-        amount_cents: o.amount_cents,
-        artist_id: o.artist_id,
-        client_id: o.client_id,
-        booking_id: o.booking_id,
-        reverses: o.id,
-        external_id: `${o.external_id}_rev`,
-        created_by: "refund",
-      })),
-      { onConflict: "source,external_id", ignoreDuplicates: true },
-    );
-  }
-  if (row.kind === "deposit" && row.booking_id) {
-    await admin
-      .from("bookings")
-      .update({ deposit_status: "refunded" })
-      .eq("id", row.booking_id)
-      .eq("shop_id", shopId)
-      .in("deposit_status", ["held", "applied"]);
-  }
-
-  const total = row.amount_cents + Math.max(0, Math.round(row.tip_cents ?? 0));
-  const usd = (total / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
-  await pushEvent(admin, { roles: ["owner"], artistId: row.artist_id, shopId }, "Refund issued", `${usd} refunded`);
-
-  return NextResponse.json({ ok: true, refundedCents: total });
+  return NextResponse.json({ ok: true, refundedCents });
 }
