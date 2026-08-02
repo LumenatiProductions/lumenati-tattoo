@@ -55,24 +55,22 @@ export default function ShopBranding() {
   }, [myEmail]);
 
   if (loading) return null;
-  // Lumenati runs the hardcoded Y2K site, so there's no logo/style to set here.
-  // Say so instead of leaving the page blank.
-  if (!shop || shop.template === "y2k") {
+  if (!shop) {
     return (
       <Card>
-        <p className="p-4 text-sm text-white/65">
-          This shop uses the custom Lumenati site, so there&apos;s no logo or page-style setting here. The look is
-          built in.
-        </p>
+        <p className="p-4 text-sm text-white/65">Couldn&apos;t load the shop. Refresh and try again.</p>
       </Card>
     );
   }
+  // Lumenati runs the hardcoded Y2K site, so its logo/style aren't editable — but
+  // show the real controls greyed out so it's clear what other shops set up.
+  const readOnly = shop.template === "y2k";
   const publicSlug = artistSlug?.startsWith(`${shop.slug}--`) ? artistSlug.slice(shop.slug.length + 2) : artistSlug;
 
   const pickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || busy) return;
+    if (readOnly || !file || busy) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -92,7 +90,7 @@ export default function ShopBranding() {
   };
 
   const pickTemplate = async (next: string) => {
-    if (next === shop.template || busy) return;
+    if (readOnly || next === shop.template || busy) return;
     const prev = shop.template;
     setShop({ ...shop, template: next });
     setMsg(null);
@@ -105,6 +103,13 @@ export default function ShopBranding() {
 
   return (
     <div className="max-w-xl">
+      {readOnly && (
+        <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-4 py-3 text-sm text-white/70">
+          Preview only. This is the setup every other shop gets. Your Lumenati site is the custom Y2K build, so
+          these controls are off for you.
+        </div>
+      )}
+      <div className={readOnly ? "pointer-events-none select-none opacity-55" : ""} aria-hidden={readOnly}>
       <SectionTitle>Shop logo</SectionTitle>
       <Card>
         <div className="space-y-4 p-4">
@@ -135,7 +140,8 @@ export default function ShopBranding() {
         <Card>
           <div className="space-y-2 p-4">
             {TEMPLATES.map((t) => {
-              const active = shop.template === t.key;
+              // Y2K has no template of its own, so show Minimal as the sample default.
+              const active = readOnly ? t.key === "standard" : shop.template === t.key;
               return (
                 <button
                   key={t.key}
@@ -167,6 +173,7 @@ export default function ShopBranding() {
             {msg && <p className="text-xs text-white/70">{msg}</p>}
           </div>
         </Card>
+      </div>
       </div>
     </div>
   );

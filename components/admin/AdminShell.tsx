@@ -78,12 +78,12 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/admin/room", label: "Artist pages", roles: ["owner"], icon: "artistpages" },
       { href: "/admin/inventory", label: "Inventory", roles: ["owner"], icon: "inventory" },
       { href: "/admin/compliance", label: "Compliance", roles: ["owner"], icon: "compliance" },
-      { href: "/admin/settings", label: "Settings", roles: ["owner"], icon: "settings" },
     ],
   },
   {
     title: "Admin",
     items: [
+      { href: "/admin/settings", label: "Settings", roles: ["owner"], icon: "settings" },
       { href: "/admin/staff", label: "Staff", roles: ["owner"], icon: "staff" },
       { href: "/admin/integrations", label: "Integrations", roles: ["owner"], icon: "integrations" },
       { href: "/admin/billing", label: "Billing", roles: ["owner"], icon: "billing" },
