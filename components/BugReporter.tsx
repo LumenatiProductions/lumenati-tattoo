@@ -129,9 +129,9 @@ export default function BugReporter({
           onClick={open}
           disabled={phase === "capturing"}
           title={collapsed ? "Report a bug" : undefined}
-          className={`flex w-full items-center gap-3 rounded-lg py-2 text-sm ${
-            collapsed ? "justify-center px-0" : "px-3"
-          } ${done ? "text-emerald-400" : "text-white/75 hover:bg-white/6"}`}
+          className={`flex w-full items-center gap-2.5 rounded-lg py-1.5 text-[13px] ${
+            collapsed ? "justify-center px-0" : "px-2.5"
+          } ${done ? "text-emerald-400" : "text-white/70 hover:bg-white/6"}`}
         >
           <NavIcon name="bug" className="h-[18px] w-[18px] shrink-0" />
           {!collapsed && <span>{phase === "capturing" ? "Grabbing…" : done ? "Sent, thanks" : "Report a bug"}</span>}
