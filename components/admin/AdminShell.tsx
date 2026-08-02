@@ -223,11 +223,11 @@ function Sidebar({
               {s.title && !collapsed && (
                 <button
                   onClick={() => toggleSection(s.title!)}
-                  className="mt-1.5 flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/40 hover:text-white/75"
+                  className={`nav-sec mt-1.5 flex w-full items-center rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest ${
+                    isOpen ? "nav-sec-open" : ""
+                  }`}
                 >
-                  <span>{s.title}</span>
-                  {/* Chevron points right when folded, rotates down when open. */}
-                  <NavIcon name="chevrondown" className={`nav-chevron h-3.5 w-3.5 ${isOpen ? "" : "nav-chevron-folded"}`} />
+                  {s.title}
                 </button>
               )}
               {/* Slick open/close: max-height + fade so folding actually collapses. */}

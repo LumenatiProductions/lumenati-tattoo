@@ -56,11 +56,32 @@
 .nav-chevron {
   transition: transform 0.2s ease;
 }
-.nav-chevron-folded {
-  transform: rotate(-90deg);
-}
 .nav-flip {
   transform: rotate(180deg);
+}
+
+/* Section headers carry the open/closed state themselves — bright when open,
+   dim when folded, brighter on hover — so no dropdown carrots are needed. A hair-
+   thin accent bar sits under the open one for a little polish. */
+.nav-sec {
+  position: relative;
+  color: rgba(235, 238, 255, 0.34);
+  transition: color 0.15s ease;
+}
+.nav-sec:hover {
+  color: rgba(235, 238, 255, 0.72);
+}
+.nav-sec-open {
+  color: rgba(235, 238, 255, 0.66);
+}
+.nav-sec-open::after {
+  content: "";
+  position: absolute;
+  left: 0.625rem;
+  right: 0.625rem;
+  bottom: 0.15rem;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(205, 220, 255, 0.35), rgba(205, 220, 255, 0));
 }
 
 .cc-mobile-bar {
