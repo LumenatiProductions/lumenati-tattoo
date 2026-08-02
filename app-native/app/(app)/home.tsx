@@ -11,6 +11,7 @@ import { theme, money } from "@/lib/theme";
 import { Button, Card, ProgressBar, SectionTitle, Stat } from "@/components/ui";
 import InkWash from "@/components/InkWash";
 import ArtistMoney from "@/components/ArtistMoney";
+import ArtistSetup from "@/components/ArtistSetup";
 import TabToggle from "@/components/TabToggle";
 import Launcher from "@/components/Launcher";
 import MoneyChart from "@/components/MoneyChart";
@@ -130,7 +131,10 @@ export default function Home() {
           )}
         </>
       ) : (
-        <ArtistMoney firstName={firstName} reloadKey={reloadKey} />
+        <>
+          <ArtistSetup reloadKey={reloadKey} />
+          <ArtistMoney firstName={firstName} reloadKey={reloadKey} />
+        </>
       )}
 
       {!previewArtist && <Launcher role={role} />}
