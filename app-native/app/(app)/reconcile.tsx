@@ -105,15 +105,15 @@ export default function Reconcile() {
             {/* The headline IS the diff: do the two sides agree? */}
             <Stat
               label="Difference (Stripe vs us)"
-              value={diff === null ? "—" : usd(Math.abs(diff))}
-              sub={diff === null ? "Stripe not connected" : square ? "square — books agree" : diff > 0 ? "Stripe has more" : "we have more"}
+              value={diff === null ? "–" : usd(Math.abs(diff))}
+              sub={diff === null ? "Stripe not connected" : square ? "square, books agree" : diff > 0 ? "Stripe has more" : "we have more"}
               warn={diff !== null && !square}
               hero
             />
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
               <Stat
                 label="Stripe charged"
-                value={data.stripe.chargesCents !== undefined ? usd(data.stripe.chargesCents) : "—"}
+                value={data.stripe.chargesCents !== undefined ? usd(data.stripe.chargesCents) : "–"}
                 sub="per Stripe, this month"
               />
               <Stat
@@ -123,7 +123,7 @@ export default function Reconcile() {
               />
               <Stat
                 label="Stripe fees"
-                value={data.stripe.feesCents !== undefined ? usd(data.stripe.feesCents) : "—"}
+                value={data.stripe.feesCents !== undefined ? usd(data.stripe.feesCents) : "–"}
                 sub="this month"
               />
               <Stat
@@ -185,7 +185,7 @@ export default function Reconcile() {
             {data.recorded.pendingCount > 0 && (
               <Text style={{ color: theme.warn, fontSize: 13, marginTop: 14, lineHeight: 18 }}>
                 {data.recorded.pendingCount} payment link{data.recorded.pendingCount === 1 ? "" : "s"} still
-                pending — unpaid links are normal, but stale ones are worth voiding.
+                pending. Unpaid links are normal, but stale ones are worth voiding.
               </Text>
             )}
           </>

@@ -32,7 +32,7 @@ export default function Expenses() {
       if (r.receipt.amountCents) setAmount((r.receipt.amountCents / 100).toFixed(2));
       if (r.receipt.vendor) setVendor(r.receipt.vendor);
       if (r.receipt.category) setCategory(r.receipt.category);
-      setScanNote("Read your receipt — check the fields and tap Add.");
+      setScanNote("Read your receipt, check the fields and tap Add.");
     } else if (r.error && r.error !== "canceled") {
       setScanNote(r.error);
     }
@@ -106,7 +106,7 @@ export default function Expenses() {
 
         <Text style={styles.section}>Logged</Text>
         {expenses.length === 0 ? (
-          <Text style={styles.empty}>Nothing logged yet. Ink, needles, booth rent, classes — it all counts.</Text>
+          <Text style={styles.empty}>Nothing logged yet. Ink, needles, booth rent, classes. It all counts.</Text>
         ) : (
           <Card style={{ padding: 0 }}>
             {expenses.map((e, i) => (

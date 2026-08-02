@@ -92,7 +92,7 @@ function calProviderIcon(source?: string): keyof typeof Ionicons.glyphMap {
 const STATUS_TONE: Record<string, string> = {
   scheduled: theme.textDim,
   completed: theme.good,
-  no_show: "#fb7185",
+  no_show: theme.bad,
   cancelled: theme.textFaint,
 };
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -279,11 +279,11 @@ export default function Bookings() {
     }
     const d = r.data!;
     if (!d.smsReady) {
-      setOfferNote("Texting isn't switched on yet (Twilio) — fill it by hand for now.");
+      setOfferNote("Texting isn't switched on yet (Twilio), fill it by hand for now.");
     } else if (d.texted === 0) {
-      setOfferNote(d.note ?? "No texts went out — fill it by hand for now.");
+      setOfferNote(d.note ?? "No texts went out, fill it by hand for now.");
     } else {
-      setOfferNote(`Texted ${d.texted} ${d.texted === 1 ? "person" : "people"} — first tap gets it. You'll see it land on the books.`);
+      setOfferNote(`Texted ${d.texted} ${d.texted === 1 ? "person" : "people"}. First tap gets it. You'll see it land on the books.`);
     }
   };
 
@@ -336,7 +336,7 @@ export default function Bookings() {
                 Alert.alert(
                   "Mark this a no-show?",
                   b.deposit_status === "held"
-                    ? "They didn't make it — their deposit stays with the shop."
+                    ? "They didn't make it. Their deposit stays with the shop."
                     : "They didn't make it. If anyone's waiting you can offer the freed slot.",
                   [
                     { text: "Keep it", style: "cancel" },
@@ -397,12 +397,12 @@ export default function Bookings() {
               {dayLabel(freed.startsAt)} at {clock(freed.startsAt)} just opened up
             </Text>
             <Text style={styles.freedSub}>
-              {freed.waiting} {freed.waiting === 1 ? "person is" : "people are"} on the waitlist — fill it before it goes cold.
+              {freed.waiting} {freed.waiting === 1 ? "person is" : "people are"} on the waitlist, fill it before it goes cold.
             </Text>
             <View style={{ height: 10 }} />
             {freed.artistId ? (
               <Button
-                label={offering ? "Texting the list…" : "Text the list — first tap gets it"}
+                label={offering ? "Texting the list…" : "Text the list, first tap gets it"}
                 onPress={offerSlot}
                 disabled={offering}
               />
@@ -652,7 +652,7 @@ function EditBooking({
         <Text style={styles.sheetLabel}>Confirmation</Text>
         <Pressable onPress={toggleConfirm} disabled={busy} style={[styles.toggleRow, confirmed && styles.toggleOn]}>
           <Text style={[styles.toggleText, confirmed && { color: theme.good }]}>
-            {confirmed ? "Confirmed ✓ — tap to undo" : "Mark confirmed"}
+            {confirmed ? "Confirmed ✓, tap to undo" : "Mark confirmed"}
           </Text>
         </Pressable>
 
@@ -664,7 +664,7 @@ function EditBooking({
                 <Text style={styles.depBtnText}>Apply to ticket</Text>
               </Pressable>
               <Pressable onPress={() => setDeposit("forfeited")} disabled={busy} style={styles.depBtn}>
-                <Text style={[styles.depBtnText, { color: "#fb7185" }]}>Forfeit</Text>
+                <Text style={[styles.depBtnText, { color: theme.bad }]}>Forfeit</Text>
               </Pressable>
             </View>
             <Text style={styles.depNote}>Refunds are handled from the web admin.</Text>
@@ -837,7 +837,7 @@ function ClientPicker({
         </View>
       )}
       {q.length > 0 && matches.length === 0 && (
-        <Text style={pickerStyles.noMatch}>No client named "{query.trim()}" — book them as a walk-in and add them after.</Text>
+        <Text style={pickerStyles.noMatch}>No client named "{query.trim()}". Book them as a walk-in and add them after.</Text>
       )}
     </View>
   );
@@ -975,8 +975,8 @@ function UpForGrabs({ myArtistId, onBooked }: { myArtistId: string; onBooked: ()
     setNote(
       link
         ? link.sent
-          ? `Booked — deposit link ${link.via === "sms" ? "texted" : "emailed"} to the client.`
-          : "Booked — the deposit link couldn't be sent; the desk can pass it along."
+          ? `Booked, deposit link ${link.via === "sms" ? "texted" : "emailed"} to the client.`
+          : "Booked. The deposit link couldn't be sent; the desk can pass it along."
         : "Booked.",
     );
     setOpenId(null);
@@ -995,7 +995,7 @@ function UpForGrabs({ myArtistId, onBooked }: { myArtistId: string; onBooked: ()
     Array.isArray(q.reference_urls) && q.reference_urls.length ? (
       <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
         {q.reference_urls.map((u, i) => (
-          <Image key={i} source={{ uri: u }} style={{ width: 56, height: 56, borderRadius: 8, backgroundColor: "#1a1a22" }} />
+          <Image key={i} source={{ uri: u }} style={{ width: 56, height: 56, borderRadius: 8, backgroundColor: theme.surfaceRaised }} />
         ))}
       </View>
     ) : null;
@@ -1056,7 +1056,7 @@ function UpForGrabs({ myArtistId, onBooked }: { myArtistId: string; onBooked: ()
 }
 
 const styles = StyleSheet.create({
-  err: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  err: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   grabGood: { color: theme.good, fontSize: 13, marginBottom: 10 },
   freedCard: { marginBottom: 12, borderColor: "rgba(52,211,153,0.4)" },
   freedTitle: { color: theme.good, fontSize: 16, fontWeight: "700" },
@@ -1127,5 +1127,5 @@ const styles = StyleSheet.create({
   calOption: { flexDirection: "row", alignItems: "center", gap: 8, borderTopColor: "rgba(52,211,153,0.25)", borderTopWidth: 1, paddingVertical: 11, paddingHorizontal: 14 },
   calOptionText: { color: theme.textDim, fontSize: 13.5, flex: 1 },
   cancelBtn: { borderColor: "rgba(251,113,133,0.4)", borderWidth: 1, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#fb7185", fontSize: 14, fontWeight: "600" },
+  cancelText: { color: theme.bad, fontSize: 14, fontWeight: "600" },
 });

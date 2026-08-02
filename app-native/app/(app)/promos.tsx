@@ -107,7 +107,7 @@ export default function Promos() {
   const goLive = async () => {
     if (!me) return;
     if (!offer.trim()) {
-      setErr("Say what the deal is — that line is the promo.");
+      setErr("Say what the deal is, that line is the promo.");
       return;
     }
     setBusy(true);
@@ -151,7 +151,7 @@ export default function Promos() {
     ].filter(Boolean);
     await Clipboard.setStringAsync(bits.join(" "));
     success();
-    setNote("Caption copied — paste it into a story or DM.");
+    setNote("Caption copied, paste it into a story or DM.");
   };
 
   const expired = (c: Campaign) => !!c.ends_at && c.ends_at < localDate(new Date());
@@ -166,7 +166,7 @@ export default function Promos() {
           {missing ? (
             <Card>
               <Text style={styles.emptyText}>
-                No public page is tied to this login yet — the shop can link you on Artists &amp; Pay.
+                No public page is tied to this login yet. The shop can link you on Artists &amp; Pay.
               </Text>
             </Card>
           ) : !me || rows === null ? (
@@ -196,7 +196,7 @@ export default function Promos() {
                   {err && <Text style={styles.err}>{err}</Text>}
                   <Button label={busy ? "Publishing…" : "Go live on my page"} onPress={goLive} disabled={busy} />
                   <Text style={styles.hint}>
-                    Goes straight onto {SITE.replace(/^https?:\/\//, "")}/{me.slug} — the page your QR card opens.
+                    Goes straight onto {SITE.replace(/^https?:\/\//, "")}/{me.slug}, the page your QR card opens.
                   </Text>
                 </Card>
               )}

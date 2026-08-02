@@ -186,7 +186,7 @@ export default function MyFollowups() {
                         <Switch
                           value={draft!.enabled}
                           onValueChange={(v) => setDraft({ ...draft!, enabled: v })}
-                          trackColor={{ true: theme.brand, false: "rgba(255,255,255,0.15)" }}
+                          trackColor={{ true: "rgba(235,240,255,0.35)", false: "rgba(255,255,255,0.15)" }}
                           thumbColor="#fff"
                         />
                       </View>

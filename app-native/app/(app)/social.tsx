@@ -62,7 +62,7 @@ export default function Social() {
     setNote(null);
     const r = await apiPatch("/api/healed", { id, action: status === "approved" ? "approve" : "dismiss" });
     if (!r.ok) {
-      setNote(r.error || "That didn't stick — try again.");
+      setNote(r.error || "That didn't stick, try again.");
       return;
     }
     setRows((rows_) => (rows_ ?? []).filter((p) => p.id !== id));

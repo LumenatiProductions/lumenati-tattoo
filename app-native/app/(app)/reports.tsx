@@ -147,7 +147,7 @@ export default function ReportsScreen() {
                       </Text>
                     </View>
                     <View style={{ alignItems: "flex-end" }}>
-                      <Text style={styles.net}>{a.payType === "payroll_salary" ? "—" : money(a.artistEarnings)}</Text>
+                      <Text style={styles.net}>{a.payType === "payroll_salary" ? "–" : money(a.artistEarnings)}</Text>
                       <Text style={styles.sub}>shop {money(a.shopCut)}</Text>
                     </View>
                   </View>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },
   sub: { color: theme.textDim, fontSize: 12, marginTop: 2 },
   net: { color: theme.text, fontSize: 15, fontWeight: "700" },
-  err: { color: "#fb7185", fontSize: 14, padding: 4 },
+  err: { color: theme.bad, fontSize: 14, padding: 4 },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
   note: { color: theme.textFaint, fontSize: 13, marginTop: 18, lineHeight: 18 },
 });

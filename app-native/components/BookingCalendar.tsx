@@ -181,7 +181,7 @@ export default function BookingCalendar({ artistId, reloadKey = 0 }: { artistId?
         {view === "next" && (
           <View>
             {nextUp.length === 0 ? (
-              <Text style={styles.empty}>Nothing coming up — the chair is open.</Text>
+              <Text style={styles.empty}>Nothing coming up, the chair is open.</Text>
             ) : (
               nextUp.map((b, i) => (
                 <Pressable

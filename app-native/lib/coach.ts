@@ -79,7 +79,7 @@ export function practiceInsights(sales: SaleRow[], bookings: BookingRow[]): Coac
   if (seen.size >= 5 && rebooked.size / seen.size < 0.5) {
     tips.push({
       title: "The rebook happens in the chair",
-      body: `${rebooked.size} of the ${seen.size} clients you've seen in the last two months have their next session on the books. The artists who stay booked ask while they're wrapping the piece — the client is never more sold than that moment. At your ${usd(
+      body: `${rebooked.size} of the ${seen.size} clients you've seen in the last two months have their next session on the books. The artists who stay booked ask while they're wrapping the piece. The client is never more sold than that moment. At your ${usd(
         avgTicket,
       )} average ticket, one extra rebook a week is real money you don't have to chase.`,
     });
@@ -103,7 +103,7 @@ export function practiceInsights(sales: SaleRow[], bookings: BookingRow[]): Coac
       title: `${openAhead} of your next 7 days are open`,
       body: `On a day you work, you average ${usd(dailyAvg)}. That's ${usd(
         dailyAvg * openAhead,
-      )} of open chair this week. Two healed shots on your page (Healed shots tab — caption's already written) is the cheapest way to fill one.`,
+      )} of open chair this week. Two healed shots on your page (Healed shots tab, caption's already written) is the cheapest way to fill one.`,
     });
   }
 
@@ -120,7 +120,7 @@ export function practiceInsights(sales: SaleRow[], bookings: BookingRow[]): Coac
   if (best > 0 && cur > best * 0.6 && cur < best && (dow >= 4 || dow === 0)) {
     tips.push({
       title: `${usd(best - cur)} from your best week this year`,
-      body: `Your best week so far is ${usd(best)}. You're at ${usd(cur)} with days left. One walk-in or a flash piece closes it — weeks like this are how the average moves.`,
+      body: `Your best week so far is ${usd(best)}. You're at ${usd(cur)} with days left. One walk-in or a flash piece closes it. Weeks like this are how the average moves.`,
     });
   }
 
@@ -143,7 +143,7 @@ export function practiceInsights(sales: SaleRow[], bookings: BookingRow[]): Coac
     const top = dayAvgs[0];
     tips.push({
       title: `${DAY_NAMES[top.dow]}s are your engine`,
-      body: `An average ${DAY_NAMES[top.dow]} brings you ${usd(top.avg)} — well above your quiet days. Protect it: put your biggest pieces there, and treat a ${DAY_NAMES[top.dow]} cancellation as a fire to put out same-day.`,
+      body: `An average ${DAY_NAMES[top.dow]} brings you ${usd(top.avg)}, well above your quiet days. Protect it: put your biggest pieces there, and treat a ${DAY_NAMES[top.dow]} cancellation as a fire to put out same-day.`,
     });
   }
 
@@ -155,9 +155,9 @@ export function practiceInsights(sales: SaleRow[], bookings: BookingRow[]): Coac
   if (month.length >= 5 && svc > 0 && tip / svc < 0.12) {
     tips.push({
       title: "Your tip rate is leaving money behind",
-      body: `Tips added ${usd(tip)} in the last month — about ${Math.round(
+      body: `Tips added ${usd(tip)} in the last month, about ${Math.round(
         (tip / svc) * 100,
-      )}% on top of service. Most artists land 15–20% when every card goes through the tap screen, because it asks so you don't have to. And log cash tips — they count toward every number in here.`,
+      )}% on top of service. Most artists land 15–20% when every card goes through the tap screen, because it asks so you don't have to. And log cash tips, they count toward every number in here.`,
     });
   }
 
@@ -186,16 +186,16 @@ export function coachTips(opts: {
   if (is1099) {
     tips.push({
       title: "Nobody is withholding for you",
-      body: `As a booth renter you're a contractor (1099) — everything you're handed is GROSS, before tax. The shop holds nothing back (your card sales pass through 100%), and neither does this app. ${
+      body: `As a booth renter you're a contractor (1099). Everything you're handed is GROSS, before tax. The shop holds nothing back (your card sales pass through 100%), and neither does this app. ${
         opts.taxPct != null
           ? `Move ${Math.round(opts.taxPct * 100)}% of every payment into a separate savings account the day you get it. Right now that account should hold about ${usd(opts.reserveCents)}.`
-          : "Pick your set-aside % in Goals — 25-30% is a common starting point, but it's your number (your tax pro knows it best)."
+          : "Pick your set-aside % in Goals. 25-30% is a common starting point, but it's your number (your tax pro knows it best)."
       }`,
     });
   } else {
     tips.push({
-      title: "Gusto withholds on your wages — not your cash",
-      body: "You're paid through Gusto payroll — tax comes out of your paychecks based on the W-4 you set there (adjust it in Gusto if you keep owing or over-paying; check your stub, not this app). But cash tips and side work usually have NOTHING withheld — report them, and keep a set-aside for the tax they'll add.",
+      title: "Gusto withholds on your wages, not your cash",
+      body: "You're paid through Gusto payroll. Tax comes out of your paychecks based on the W-4 you set there (adjust it in Gusto if you keep owing or over-paying; check your stub, not this app). But cash tips and side work usually have NOTHING withheld. Report them, and keep a set-aside for the tax they'll add.",
     });
   }
 
@@ -204,14 +204,14 @@ export function coachTips(opts: {
       title: "Set a goal you can feel",
       body: `Your average week over the last two months is ${usd(avg)}. A goal of ${usd(
         suggestion,
-      )}/week is a stretch you can actually hit — set it and the chart races you against it.`,
+      )}/week is a stretch you can actually hit. Set it and the chart races you against it.`,
     });
   } else if (opts.weeklyGoalCents && avg && opts.weeklyGoalCents > avg * 2) {
     tips.push({
       title: "That goal might be demoralizing",
       body: `Your goal is ${usd(opts.weeklyGoalCents)}/week but your real average is ${usd(
         avg,
-      )}. Goals you never hit stop meaning anything — try ${usd(suggestion)} and raise it when you beat it.`,
+      )}. Goals you never hit stop meaning anything. Try ${usd(suggestion)} and raise it when you beat it.`,
     });
   }
 
@@ -222,7 +222,7 @@ export function coachTips(opts: {
   if (is1099 && opts.ytdCents > 0 && recentDeductions.length === 0) {
     tips.push({
       title: "You're leaving deductions on the table",
-      body: "No deductions logged in 30 days. Needles, ink, gloves, machine parts, conventions, even part of your phone — every dollar you log lowers the income you're taxed on. Snap the receipt the moment you buy.",
+      body: "No deductions logged in 30 days. Needles, ink, gloves, machine parts, conventions, even part of your phone. Every dollar you log lowers the income you're taxed on. Snap the receipt the moment you buy.",
     });
   }
 

@@ -11,6 +11,7 @@ import { theme, money } from "@/lib/theme";
 import { Button, Card, ProgressBar, SectionTitle, Stat } from "@/components/ui";
 import InkWash from "@/components/InkWash";
 import ArtistMoney from "@/components/ArtistMoney";
+import TabToggle from "@/components/TabToggle";
 import Launcher from "@/components/Launcher";
 import MoneyChart from "@/components/MoneyChart";
 import WeekBars from "@/components/WeekBars";
@@ -374,7 +375,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
       {attention.length === 0 ? (
         <View style={styles.allClear}>
           <Ionicons name="checkmark-circle-outline" size={18} color={theme.good} />
-          <Text style={styles.allClearText}>All clear — nothing needs a decision.</Text>
+          <Text style={styles.allClearText}>All clear, nothing needs a decision.</Text>
         </View>
       ) : (
         <View style={{ gap: 8 }}>
@@ -404,11 +405,11 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
 
       {/* Range toggle — same mechanic as the artist page. */}
       <View style={[styles.rangeToggle, { marginTop: 22 }]}>
-        {RANGES.map((r) => (
-          <Pressable key={r} onPress={() => setRange(r)} style={[styles.rangeTab, range === r && styles.rangeTabOn]}>
-            <Text style={[styles.rangeTabText, range === r && { color: "#fff" }]}>{RANGE_LABEL[r]}</Text>
-          </Pressable>
-        ))}
+        <TabToggle
+          options={RANGES.map((r) => ({ key: r, label: RANGE_LABEL[r] }))}
+          value={range}
+          onChange={(k) => setRange(k as Range)}
+        />
       </View>
 
       <View style={styles.grid}>
@@ -501,7 +502,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
                 </View>
                 <ProgressBar pct={goalPct} tone={theme.good} />
                 <Text style={styles.goalNote}>
-                  {goalPct >= 1 ? "Goal hit — the whole room did that." : `${Math.round(goalPct * 100)}% there`}
+                  {goalPct >= 1 ? "Goal hit, the whole room did that." : `${Math.round(goalPct * 100)}% there`}
                 </Text>
               </>
             ) : range === "year" && weeklyGoal > 0 ? null : (
@@ -655,10 +656,7 @@ const styles = StyleSheet.create({
   homeTabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
   homeTabText: { color: theme.textDim, fontSize: 13.5, fontWeight: "600" },
   homeTabTextOn: { color: "#fff" },
-  rangeToggle: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  rangeTab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
-  rangeTabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
-  rangeTabText: { color: theme.textDim, fontSize: 13, fontWeight: "600" },
+  rangeToggle: { marginBottom: 16 },
   editLink: { color: theme.text, fontSize: 13, fontWeight: "700" },
   goalRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 12, marginBottom: 10 },
   goalNow: { color: theme.text, fontSize: 24, fontWeight: "800" },

@@ -149,8 +149,8 @@ export default function Compliance() {
               <>
                 <Text style={styles.empty}>
                   {isOwner
-                    ? "Nothing tracked yet — add the shop's licenses and permits above."
-                    : "Nothing on file yet — add your license and scan it with your camera."}
+                    ? "Nothing tracked yet. Add the shop's licenses and permits above."
+                    : "Nothing on file yet. Add your license and scan it with your camera."}
                 </Text>
                 {!isOwner && (
                   <View style={styles.mock}>
@@ -194,8 +194,8 @@ export default function Compliance() {
         )}
         <Text style={styles.note}>
           {isOwner
-            ? "Scans attach right here or on the web admin — either way they're saved to the item."
-            : "Snap your physical license when you add or edit it — the shop sees it instantly."}
+            ? "Scans attach right here or on the web admin. Either way they're saved to the item."
+            : "Snap your physical license when you add or edit it. The shop sees it instantly."}
         </Text>
       </ScrollView>
     </>
@@ -242,7 +242,7 @@ function ComplianceForm({
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        setErr("Camera access is off for Lumenati — turn it on in Settings.");
+        setErr("Camera access is off for Lumenati, turn it on in Settings.");
         return;
       }
       res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
@@ -321,7 +321,7 @@ function ComplianceForm({
             <Image source={{ uri: docPreview }} style={styles.scanThumb} />
           ) : (
             <View style={[styles.scanThumb, { alignItems: "center", justifyContent: "center" }]}>
-              <Text style={{ color: theme.textFaint, fontSize: 10 }}>on file</Text>
+              <Text style={{ color: theme.textDim, fontSize: 12 }}>on file</Text>
             </View>
           )}
           <View style={{ flex: 1 }}>
@@ -347,7 +347,7 @@ function ComplianceForm({
 }
 
 const styles = StyleSheet.create({
-  errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  errText: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, gap: 10 },
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
   mock: {

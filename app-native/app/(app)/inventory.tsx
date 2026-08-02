@@ -65,7 +65,7 @@ export default function Inventory() {
     setScanning(false);
     if (r.ok && r.items) {
       setDetected(r.items);
-      if (!r.items.length) setNote("Didn't spot anything to add — try a closer photo.");
+      if (!r.items.length) setNote("Didn't spot anything to add, try a closer photo.");
     } else if (r.error && r.error !== "canceled") {
       setNote(r.error);
     }
@@ -121,7 +121,7 @@ export default function Inventory() {
 
         {detected.length > 0 && (
           <Card style={{ marginTop: 12 }}>
-            <Text style={styles.section}>Spotted — tap to add</Text>
+            <Text style={styles.section}>Spotted, tap to add</Text>
             {detected.map((d, i) => (
               <View key={i} style={[styles.row, i > 0 && styles.border]}>
                 <View style={{ flex: 1 }}>
@@ -299,6 +299,6 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: theme.surfaceRaised, borderWidth: 1, borderColor: theme.borderStrong, borderRadius: 9, paddingVertical: 8, paddingHorizontal: 14 },
   addText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
-  errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  errText: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   remove: { color: theme.textFaint, fontSize: 11, marginTop: 4 },
 });

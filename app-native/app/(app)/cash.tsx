@@ -185,7 +185,7 @@ export default function Cash() {
             {/* The box, live: what's been received and not yet counted down. */}
             <Stat label="In the box" value={money(sum(inBox))} hero sub={`${money(todayTotal)} moved today`} />
 
-            <SectionTitle>Incoming — tap when the stack is in your hand</SectionTitle>
+            <SectionTitle>Incoming, tap when the stack is in your hand</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
               {inTransit.length === 0 ? (
                 <Empty>Nothing in transit.</Empty>
@@ -252,7 +252,7 @@ export default function Cash() {
                       setCountNote(
                         [breakdown ? `Saw ${breakdown} = ${money(r.cash.totalCents)}` : "No bills found.", r.cash.caveat]
                           .filter(Boolean)
-                          .join(" — "),
+                          .join(" · "),
                       );
                     }}
                   />
@@ -305,7 +305,7 @@ export default function Cash() {
             <SectionTitle>Hand these to an admin</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
               {atChairs.length === 0 ? (
-                <Empty>Nothing to hand off — log cash on Take payment when a client pays.</Empty>
+                <Empty>Nothing to hand off. Log cash on Take payment when a client pays.</Empty>
               ) : (
                 atChairs.map((r, i) => (
                   <ListRow

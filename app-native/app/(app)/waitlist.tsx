@@ -126,8 +126,8 @@ export default function Waitlist() {
   const textThem = (e: Entry) => {
     if (!e.phone) return;
     const msg = slotISO
-      ? `Hey ${e.name.split(" ")[0]}, it's Lumenati Tattoo — a spot just opened ${dayLabel(slotISO)} at ${clock(slotISO)}. Want it?`
-      : `Hey ${e.name.split(" ")[0]}, it's Lumenati Tattoo — a spot opened up. Want in?`;
+      ? `Hey ${e.name.split(" ")[0]}, it's Lumenati Tattoo, a spot just opened ${dayLabel(slotISO)} at ${clock(slotISO)}. Want it?`
+      : `Hey ${e.name.split(" ")[0]}, it's Lumenati Tattoo, a spot opened up. Want in?`;
     const sep = Platform.OS === "ios" ? "&" : "?";
     Linking.openURL(`sms:${e.phone}${sep}body=${encodeURIComponent(msg)}`).catch(() => {
       setNote("Could not open Messages on this device.");
@@ -187,7 +187,7 @@ export default function Waitlist() {
             {rows === null ? (
               <ActivityIndicator color={theme.textDim} style={{ marginVertical: 30 }} />
             ) : rows.length === 0 ? (
-              <Empty>Nobody waiting. Add walk-ins you had to turn away — they're tomorrow's filled slots.</Empty>
+              <Empty>Nobody waiting. Add walk-ins you had to turn away. They're tomorrow's filled slots.</Empty>
             ) : (
               rows.map((e, i) => (
                 <View key={e.id} style={[styles.row, i > 0 && styles.border]}>
@@ -206,7 +206,7 @@ export default function Waitlist() {
                         slotISO={slotISO}
                         onDone={(when) => {
                           setBookingId(null);
-                          setNote(`${e.name} booked — ${dayLabel(when)} at ${clock(when)}.`);
+                          setNote(`${e.name} booked, ${dayLabel(when)} at ${clock(when)}.`);
                           load();
                         }}
                         onCancel={() => setBookingId(null)}

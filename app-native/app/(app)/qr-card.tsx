@@ -99,7 +99,7 @@ export default function QrCard() {
           {missing ? (
             <Card>
               <Text style={styles.empty}>
-                No public page is tied to this login yet — the shop can link you on Artists &amp; Pay.
+                No public page is tied to this login yet. The shop can link you on Artists &amp; Pay.
               </Text>
             </Card>
           ) : !me ? (
@@ -137,7 +137,7 @@ export default function QrCard() {
               <Button label="Copy my booking link" tone="ghost" onPress={copyLink} />
               {note && <Text style={styles.note}>{note}</Text>}
               <Text style={styles.hint}>
-                Point a camera at the screen and it books — or save the QR and put it on
+                Point a camera at the screen and it books, or save the QR and put it on
                 flash sheets, stories, and the mirror by your station.
               </Text>
             </>

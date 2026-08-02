@@ -50,7 +50,7 @@ export default function TapToPayPos() {
   const merch = useMerch();
   const [cashBusy, setCashBusy] = useState(false);
   const [serviceCashOpen, setServiceCashOpen] = useState(false);
-  const [doneSub, setDoneSub] = useState("Recorded — it's already on your numbers.");
+  const [doneSub, setDoneSub] = useState("Recorded, it's already on your numbers.");
 
   const {
     initialize,
@@ -118,7 +118,7 @@ export default function TapToPayPos() {
       await new Promise((r) => setTimeout(r, 250));
     }
     const reader = readerRef.current;
-    if (!reader) throw new Error("This iPhone's reader didn't come up — Tap to Pay needs iPhone XS or newer.");
+    if (!reader) throw new Error("This iPhone's reader didn't come up. Tap to Pay needs iPhone XS or newer.");
     await cancelDiscovering();
     const { error: connErr } = await connectReader({
       discoveryMethod: "tapToPay",
@@ -152,10 +152,10 @@ export default function TapToPayPos() {
       setPaidCents(totalCents); // what the card was actually charged (incl. tip or tax)
       setDoneSub(
         merchTotals
-          ? "Shop sale — the books and the stock count are updated."
+          ? "Shop sale. The books and the stock count are updated."
           : who === "shop"
             ? "Booked to the shop."
-            : "Recorded — it's already on your numbers.",
+            : "Recorded, it's already on your numbers.",
       );
       setPhase("done");
       setAmount("");
@@ -187,7 +187,7 @@ export default function TapToPayPos() {
     }
     armed();
     setPaidCents(r.totalCents ?? merchTotals.totalCents);
-    setDoneSub("Cash sale — the books and the stock count are updated.");
+    setDoneSub("Cash sale. The books and the stock count are updated.");
     setPhase("done");
     merch.clear();
     setTimeout(() => setFx(true), 650);
@@ -278,7 +278,7 @@ export default function TapToPayPos() {
 
       {__DEV__ && !connectedReader && (
         <Chips
-          label="Reader (dev only — test mode declines real cards)"
+          label="Reader (dev only, test mode declines real cards)"
           value={simulated ? "simulated" : "real"}
           options={["real", "simulated"]}
           display={(v) => (v === "real" ? "Real tap" : "Simulated tap")}
@@ -410,7 +410,7 @@ export default function TapToPayPos() {
       )}
       {busy && <ActivityIndicator color={theme.textDim} style={{ marginTop: 16 }} />}
       <Text style={styles.note}>
-        Card collected on this phone — nothing is typed. The shop&apos;s cut comes off
+        Card collected on this phone, nothing is typed. The shop&apos;s cut comes off
         automatically; the rest is yours.
       </Text>
     </>

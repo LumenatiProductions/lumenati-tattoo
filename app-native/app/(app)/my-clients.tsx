@@ -168,7 +168,7 @@ export default function MyClients() {
           {missing ? (
             <Card>
               <Text style={styles.emptyText}>
-                No artist is tied to this login yet — the shop can link you on Artists &amp; Pay.
+                No artist is tied to this login yet. The shop can link you on Artists &amp; Pay.
               </Text>
             </Card>
           ) : people === null ? (

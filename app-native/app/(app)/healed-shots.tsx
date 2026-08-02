@@ -89,7 +89,7 @@ export default function HealedShots() {
       await Clipboard.setStringAsync(caption());
       const src = /^https?:\/\//i.test(shot.url) ? shot.url : signed[shot.id];
       if (!src) {
-        setNote("Could not load that photo — try again.");
+        setNote("Could not load that photo, try again.");
         return;
       }
       const dest = `${FileSystem.cacheDirectory}healed-${shot.id}.jpg`;
@@ -100,9 +100,9 @@ export default function HealedShots() {
       }
       success();
       await Sharing.shareAsync(uri, { mimeType: "image/jpeg", dialogTitle: "Share your healed shot" });
-      setNote("Caption is on your clipboard — paste it into the post.");
+      setNote("Caption is on your clipboard, paste it into the post.");
     } catch {
-      setNote("Could not load that photo — try again.");
+      setNote("Could not load that photo, try again.");
     } finally {
       setBusyId(null);
     }
@@ -126,7 +126,7 @@ export default function HealedShots() {
       >
         <Text style={styles.lede}>
           Clients send these through the healed-photo follow-up. Approved shots are already in your
-          portfolio — tap one to share it to Instagram with the caption ready to paste.
+          portfolio, tap one to share it to Instagram with the caption ready to paste.
         </Text>
         <Pressable onPress={copyCaption} style={({ pressed }) => pressed && { opacity: 0.7 }}>
           <Text style={styles.captionLink}>Copy caption only</Text>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   img: { width: "100%", height: CELL, backgroundColor: theme.surfaceRaised },
   cellFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 10 },
-  badge: { fontSize: 10.5, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
+  badge: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   badgeGood: { color: theme.good },
   badgePending: { color: theme.warn },
   shareText: { color: theme.text, fontSize: 13, fontWeight: "700" },

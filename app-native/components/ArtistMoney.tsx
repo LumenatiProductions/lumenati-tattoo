@@ -3,6 +3,7 @@ import { Dimensions, Linking, Pressable, StyleSheet, Text, View } from "react-na
 import { Link, useRouter } from "expo-router";
 import { apiPost } from "@/lib/appApi";
 import BookingCalendar from "@/components/BookingCalendar";
+import TabToggle from "@/components/TabToggle";
 import { theme, money } from "@/lib/theme";
 import { success, tap } from "@/lib/haptics";
 import { Button, Card, Stat, SectionTitle, ProgressBar } from "@/components/ui";
@@ -138,25 +139,21 @@ export default function ArtistMoney({
 
       {/* Range toggle */}
       <View style={styles.toggle}>
-        {RANGES.map((r) => (
-          <Pressable
-            key={r}
-            onPress={() => setRange(r)}
-            style={[styles.tab, range === r && styles.tabOn]}
-          >
-            <Text style={[styles.tabText, range === r && styles.tabTextOn]}>{RANGE_LABEL[r]}</Text>
-          </Pressable>
-        ))}
+        <TabToggle
+          options={RANGES.map((r) => ({ key: r, label: RANGE_LABEL[r] }))}
+          value={range}
+          onChange={(k) => setRange(k as Range)}
+        />
       </View>
 
       <View style={styles.grid}>
         {/* THE number — full-width hero, ticks up, glass not pink. */}
         <Stat label="You earned" value={money(e.total)} countTo={e.total} sub={`${money(e.tips)} tips`} hero />
-        <Stat label="Hourly rate" value={hourly == null ? "—" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
+        <Stat label="Hourly rate" value={hourly == null ? "–" : `${money(hourly)}/hr`} sub="service ÷ booked hrs" />
         <Stat label="Tickets" value={String(e.tickets)} />
         <Stat
           label="Tax reserve"
-          value={taxPct == null ? "—" : money(reserve)}
+          value={taxPct == null ? "–" : money(reserve)}
           sub={taxPct == null ? "pick your % in Goals" : `${Math.round(taxPct * 100)}% set-aside`}
           warn={taxPct != null}
         />
@@ -188,8 +185,8 @@ export default function ArtistMoney({
                   );
                 })}
                 <Text style={styles.taxNote}>
-                  Owed to the shop{rent.unpaid.length > 1 ? ` — ${money(rent.unpaid.reduce((a, i) => a + i.amount_cents, 0))} total` : ""}.
-                  Rent is billed on its own — it is never taken out of your sales, and your card
+                  Owed to the shop{rent.unpaid.length > 1 ? `, ${money(rent.unpaid.reduce((a, i) => a + i.amount_cents, 0))} total` : ""}.
+                  Rent is billed on its own. It is never taken out of your sales, and your card
                   money passes through to you 100%.
                 </Text>
                 <RentCoachLine rent={rent} bookings={snap.bookings} />
@@ -199,7 +196,7 @@ export default function ArtistMoney({
             )}
             {rentOnTimeStreak(rent.history) >= 2 && (
               <Text style={styles.streakLine}>
-                {rentOnTimeStreak(rent.history)} months paid on time — keep the run alive.
+                {rentOnTimeStreak(rent.history)} months paid on time, keep the run alive.
               </Text>
             )}
           </Card>
@@ -229,7 +226,7 @@ export default function ArtistMoney({
             </View>
             <ProgressBar pct={goalPct} tone={theme.good} />
             <Text style={styles.goalNote}>
-              {goalPct >= 1 ? "Goal hit — nice." : `${Math.round(goalPct * 100)}% there`}
+              {goalPct >= 1 ? "Goal hit, nice." : `${Math.round(goalPct * 100)}% there`}
               {streak >= 2 ? `  ·  ${streak} weeks straight over goal` : ""}
             </Text>
           </>
@@ -273,15 +270,15 @@ export default function ArtistMoney({
           <>
             <Row label="Set aside for taxes" value={money(reserve)} strong />
             <Text style={styles.taxNote}>
-              Estimate only — not tax advice. Next quarterly estimate: {nextQuarterly()}.
+              Estimate only, not tax advice. Next quarterly estimate: {nextQuarterly()}.
             </Text>
           </>
         ) : (
           <>
             <Text style={styles.taxNote}>
               {taxStatus === "1099"
-                ? "Nothing is withheld for you anywhere — pick a set-aside % and this tracks the dollars for you. 25-30% is a common starting point; your number is your call."
-                : "Gusto withholds from your paychecks. If you want a set-aside for cash tips and side work, pick a % — your call."}
+                ? "Nothing is withheld for you anywhere. Pick a set-aside % and this tracks the dollars for you. 25-30% is a common starting point; your number is your call."
+                : "Gusto withholds from your paychecks. If you want a set-aside for cash tips and side work, pick a %, your call."}
             </Text>
             <View style={{ height: 10 }} />
             <Button label="Set your tax %" tone="ghost" onPress={() => router.push("/goals?mode=tax")} />
@@ -321,7 +318,7 @@ function PayRentButton({
     setBusy(false);
     if (r.ok && r.data?.url) {
       Linking.openURL(r.data.url);
-      if (unpaid.length > 1) setNote("Paying oldest month first — the next one unlocks here after.");
+      if (unpaid.length > 1) setNote("Paying oldest month first, the next one unlocks here after.");
     } else {
       setNote(r.error ?? "Could not fetch your pay link.");
     }
@@ -360,14 +357,14 @@ function RentCoachLine({
   if (upcoming === 0) {
     return (
       <Text style={styles.taxNote}>
-        Nothing on the book this month yet — every session you add chips {money(owed)} down.
+        Nothing on the book this month yet. Every session you add chips {money(owed)} down.
       </Text>
     );
   }
   const per = Math.ceil(owed / upcoming / 100) * 100;
   return (
     <Text style={styles.taxNote}>
-      {upcoming} session{upcoming === 1 ? "" : "s"} on the book this month — set aside about {money(per)} from
+      {upcoming} session{upcoming === 1 ? "" : "s"} on the book this month. Set aside about {money(per)} from
       each and rent takes care of itself.
     </Text>
   );
@@ -416,11 +413,7 @@ function nextQuarterly(): string {
 const styles = StyleSheet.create({
   dim: { color: theme.textDim, marginTop: 40, textAlign: "center" },
   greeting: { color: theme.text, fontSize: 28, fontWeight: "700", marginTop: 8, marginBottom: 20 },
-  toggle: { flexDirection: "row", gap: 8, marginTop: 16, marginBottom: 16 },
-  tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderColor: theme.border, borderWidth: 1 },
-  tabOn: { backgroundColor: "rgba(235,240,255,0.16)", borderColor: "rgba(235,240,255,0.4)" },
-  tabText: { color: theme.textDim, fontSize: 13, fontWeight: "600" },
-  tabTextOn: { color: "#fff" },
+  toggle: { marginTop: 16, marginBottom: 16 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   goalRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 10 },
   goalNow: { color: theme.text, fontSize: 24, fontWeight: "800" },

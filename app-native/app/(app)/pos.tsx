@@ -82,7 +82,7 @@ function Fallback() {
       <Card>
         <Text style={styles.doneCheck}>✓</Text>
         <Text style={styles.doneTitle}>Paid {money(soldCents)}</Text>
-        <Text style={styles.doneSub}>Cash sale — the books and the stock count are updated.</Text>
+        <Text style={styles.doneSub}>Cash sale. The books and the stock count are updated.</Text>
         <View style={{ height: 14 }} />
         <Button label="New sale" tone="ghost" onPress={() => setSoldCents(null)} />
       </Card>
@@ -107,10 +107,10 @@ function Fallback() {
       <Card style={{ marginTop: 8 }}>
         <Text style={styles.heads}>
           {Platform.OS === "web"
-            ? "Tap to Pay runs on the phone app. Open Lumenati on your iPhone to tap a card here — or send the client a pay link from the web admin."
+            ? "Tap to Pay runs on the phone app. Open Lumenati on your iPhone to tap a card here, or send the client a pay link from the web admin."
             : Platform.OS === "android"
-              ? "Tap to Pay on Android isn't enrolled yet — use an iPhone or send a pay link from the web admin."
-              : "Tap to Pay is in Apple\u2019s final review (flow videos) — it lights up here the day they approve. Until then, send a pay link from the web admin."}
+              ? "Tap to Pay on Android isn't enrolled yet, use an iPhone or send a pay link from the web admin."
+              : "Tap to Pay is in Apple\u2019s final review (flow videos). It lights up here the day they approve. Until then, send a pay link from the web admin."}
         </Text>
       </Card>
       <MerchShelf

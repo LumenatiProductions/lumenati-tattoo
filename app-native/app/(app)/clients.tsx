@@ -178,7 +178,7 @@ function ClientForm({ existing, onSaved }: { existing?: Client; onSaved: () => v
 }
 
 const styles = StyleSheet.create({
-  errText: { color: "#fb7185", fontSize: 13, marginBottom: 10 },
+  errText: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   search: {
     backgroundColor: theme.surface,
     borderColor: theme.border,

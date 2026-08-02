@@ -96,7 +96,7 @@ export default function BugReporter() {
       meta: { route: pathname },
     });
     if (!r.ok) {
-      setErr(r.error ?? "Could not send — try again.");
+      setErr(r.error ?? "Could not send, try again.");
       setPhase("sheet");
       return;
     }
@@ -152,7 +152,7 @@ export default function BugReporter() {
           >
             {phase === "done" ? (
               <Text style={{ color: theme.good, fontSize: 16, fontWeight: "700", textAlign: "center", paddingVertical: 20 }}>
-                Thanks — sent.
+                Thanks, sent.
               </Text>
             ) : (
               <>
@@ -173,7 +173,7 @@ export default function BugReporter() {
                   </ScrollView>
                 ) : (
                   <Text style={{ color: theme.textFaint, fontSize: 12, marginBottom: 12 }}>
-                    No screenshot this time — your note still comes through.
+                    No screenshot this time, your note still comes through.
                   </Text>
                 )}
 

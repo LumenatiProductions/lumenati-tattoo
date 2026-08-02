@@ -151,8 +151,8 @@ export default function Goals() {
 
         {/* the other two at a glance */}
         <View style={styles.summary}>
-          <Summary label="Weekly" value={weekly ? money(weekly) : "—"} on={mode === "weekly"} />
-          <Summary label="Monthly" value={monthly ? money(monthly) : "—"} on={mode === "monthly"} />
+          <Summary label="Weekly" value={weekly ? money(weekly) : "–"} on={mode === "weekly"} />
+          <Summary label="Monthly" value={monthly ? money(monthly) : "–"} on={mode === "monthly"} />
           <Summary label="Tax" value={`${taxPct}%`} on={mode === "tax"} />
         </View>
 
@@ -161,7 +161,7 @@ export default function Goals() {
             {payType ? (
               <Text style={styles.help}>
                 {taxStatus === "1099"
-                  ? "You're a booth renter, so you're a contractor (1099): nothing is withheld for you. The set-aside % is your tax money — move it to its own account every time you're paid."
+                  ? "You're a booth renter, so you're a contractor (1099): nothing is withheld for you. The set-aside % is your tax money. Move it to its own account every time you're paid."
                   : "You're on Gusto payroll: tax comes out of your paychecks (your W-4 in Gusto controls how much). Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
               </Text>
             ) : (
@@ -175,8 +175,8 @@ export default function Goals() {
                 />
                 <Text style={styles.help}>
                   {taxStatus === "1099"
-                    ? "Contractors have nothing withheld: the set-aside % is your tax money — move it to its own account every time you're paid."
-                    : "Employees get payroll withholding on wages — your W-4 in Gusto controls how much. Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
+                    ? "Contractors have nothing withheld: the set-aside % is your tax money. Move it to its own account every time you're paid."
+                    : "Employees get payroll withholding on wages. Your W-4 in Gusto controls how much. Keep a smaller set-aside here for cash tips and side work, which usually have nothing withheld."}
                 </Text>
               </>
             )}
@@ -184,10 +184,10 @@ export default function Goals() {
         )}
 
         <Text style={styles.help}>
-          Weekly and monthly stay in sync — they&apos;re one goal, two views.{" "}
+          Weekly and monthly stay in sync. They&apos;re one goal, two views.{" "}
           {taxStatus === "w2"
-            ? "Gusto already withholds tax from your paychecks — this set-aside is just for cash tips and side work. Adjust with your tax pro — this app estimates, it doesn't file."
-            : "A common tax starting point is 25–30%; adjust with your tax pro — this app estimates, it doesn't file."}
+            ? "Gusto already withholds tax from your paychecks. This set-aside is just for cash tips and side work. Adjust with your tax pro. This app estimates, it doesn't file."
+            : "A common tax starting point is 25–30%; adjust with your tax pro. This app estimates, it doesn't file."}
         </Text>
         {error && <Text style={styles.error}>{error}</Text>}
         <View style={{ height: 14 }} />

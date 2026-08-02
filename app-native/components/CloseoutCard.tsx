@@ -69,7 +69,7 @@ export default function CloseoutCard({ artistId }: { artistId: string }) {
     );
     setBusyId(null);
     if (!r.ok || !r.data) {
-      setErr(r.error ?? "Could not close it out — mark it completed on Bookings.");
+      setErr(r.error ?? "Could not close it out, mark it completed on Bookings.");
       return;
     }
     success();

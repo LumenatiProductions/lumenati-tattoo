@@ -168,7 +168,7 @@ export default function Staff() {
   const remove = (p: Profile) => {
     // Don't let the owner lock themselves out with one stray tap.
     if (p.email === myEmail) {
-      setMsg("You can't remove yourself — have another owner do it.");
+      setMsg("You can't remove yourself, have another owner do it.");
       return;
     }
     Alert.alert("Remove from team?", `${p.email} loses web + app access immediately.`, [
@@ -205,7 +205,7 @@ export default function Staff() {
                   <Image source={{ uri: logoUrl }} style={{ width: 72, height: 44 }} resizeMode="contain" />
                 ) : (
                   <View style={{ width: 72, height: 44, borderRadius: 8, borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: theme.textFaint, fontSize: 10 }}>none</Text>
+                    <Text style={{ color: theme.textDim, fontSize: 12 }}>none</Text>
                   </View>
                 )}
                 <View style={{ flex: 1 }}>

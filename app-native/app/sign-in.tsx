@@ -43,7 +43,7 @@ export default function SignIn() {
     if (mode === "phone") {
       const p = e164(phone);
       if (!p) {
-        setError("That number doesn't look right — use 10 digits.");
+        setError("That number doesn't look right, use 10 digits.");
         return;
       }
       setBusy(true);
@@ -55,7 +55,7 @@ export default function SignIn() {
       if (error) {
         setError(
           /signups not allowed|not found/i.test(error.message)
-            ? "That number isn't on the team yet — ask an admin to add you."
+            ? "That number isn't on the team yet, ask an admin to add you."
             : error.message,
         );
       } else setStep("code");
@@ -156,7 +156,7 @@ export default function SignIn() {
             <Button label={busy ? "Verifying…" : "Verify"} onPress={verify} disabled={busy} />
             <Pressable onPress={resend} disabled={busy || resent}>
               <Text style={[styles.link, resent && { opacity: 0.4 }]}>
-                {resent ? `Code sent — check your ${mode === "phone" ? "texts" : "email"}` : "Send a new code"}
+                {resent ? `Code sent, check your ${mode === "phone" ? "texts" : "email"}` : "Send a new code"}
               </Text>
             </Pressable>
             <Pressable onPress={() => { setCode(""); setStep("id"); }}>

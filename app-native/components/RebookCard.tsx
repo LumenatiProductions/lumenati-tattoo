@@ -175,7 +175,7 @@ export default function RebookCard({
       return;
     }
     success();
-    setBooked(`${name || "They're"} on the books — ${prettyDay(date)} at ${time}.`);
+    setBooked(`${name || "They're"} on the books, ${prettyDay(date)} at ${time}.`);
   };
 
   if (booked) {
@@ -193,8 +193,8 @@ export default function RebookCard({
         <Button label="Book their next session" big onPress={() => setOpen(true)} />
         <Text style={styles.hint}>
           {pinnedClientId
-            ? "On the books beats in your head — take ten seconds."
-            : "They're right there — lock in the next one before they walk out."}
+            ? "On the books beats in your head, take ten seconds."
+            : "They're right there, lock in the next one before they walk out."}
         </Text>
       </View>
     );

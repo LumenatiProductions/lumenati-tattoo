@@ -88,8 +88,8 @@ export default function CashCloseout({
     const drip = kinds.length ? ` Drip started: ${kinds.join(", ")}.` : "";
     setDone(
       r.data.isRenter
-        ? `Booked ${money(serviceCents + tipCents)} — your money, nothing to hand off.${drip}`
-        : `Booked ${money(serviceCents + tipCents)}. You're holding it for the shop — hand the stack to an admin and they'll tap Got it.${drip}`,
+        ? `Booked ${money(serviceCents + tipCents)}. Your money, nothing to hand off.${drip}`
+        : `Booked ${money(serviceCents + tipCents)}. You're holding it for the shop. Hand the stack to an admin and they'll tap Got it.${drip}`,
     );
   };
 
@@ -106,7 +106,7 @@ export default function CashCloseout({
 
   return (
     <Card style={{ marginTop: 12 }}>
-      <Text style={styles.title}>Cash — {money(serviceCents)} service</Text>
+      <Text style={styles.title}>Cash · {money(serviceCents)} service</Text>
       <Text style={styles.sub}>Which appointment was it?</Text>
       <View style={styles.chips}>
         <Chip label="Walk-in" on={bookingId === null} onPress={() => setBookingId(null)} />

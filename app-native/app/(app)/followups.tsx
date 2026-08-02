@@ -104,7 +104,7 @@ export default function Followups() {
           <>
             <SectionTitle right={<Badge label={`${due.length} due`} tone={due.length ? "warn" : "good"} />}>Due now</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
-              {due.length === 0 ? <Empty>Nothing due — the queue is clear.</Empty> : due.map(renderRow)}
+              {due.length === 0 ? <Empty>Nothing due, the queue is clear.</Empty> : due.map(renderRow)}
             </Card>
 
             <SectionTitle>Upcoming</SectionTitle>

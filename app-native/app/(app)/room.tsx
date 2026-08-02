@@ -160,7 +160,7 @@ export default function MyRoom() {
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
-    setMsg(error ? error.message : "Saved — your page is live.");
+    setMsg(error ? error.message : "Saved, your page is live.");
   }, [room, arcadeReady, titleReady]);
 
   // Pick from the library and land it in the public room-photos bucket.
@@ -219,7 +219,7 @@ export default function MyRoom() {
       return;
     }
     if (asset.fileSize && asset.fileSize > 60 * 1024 * 1024) {
-      setMsg("That clip is over 60MB — trim it down and try again.");
+      setMsg("That clip is over 60MB, trim it down and try again.");
       return;
     }
     setSaving(true);
@@ -238,7 +238,7 @@ export default function MyRoom() {
       }
       const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
       set("video_url", data.publicUrl);
-      setMsg("Video uploaded — tap Save to put it on your page.");
+      setMsg("Video uploaded, tap Save to put it on your page.");
     } catch {
       setMsg("Could not read that video.");
     } finally {
@@ -254,21 +254,21 @@ export default function MyRoom() {
     setPhotoPreview(null);
     if (!url) return;
     set("profile_photo", url);
-    setMsg("Photo's in — tap Save to make it live.");
+    setMsg("Photo's in, tap Save to make it live.");
   }, [uploadFromLibrary]);
 
   const addPolaroid = useCallback(async () => {
     const url = await uploadFromLibrary(false);
     if (!url || !room) return;
     set("polaroids", [...room.polaroids, { id: `p-${Date.now()}`, src: url, caption: "" }]);
-    setMsg("Polaroid added — caption it and tap Save.");
+    setMsg("Polaroid added, caption it and tap Save.");
   }, [uploadFromLibrary, room]);
 
   const addPoster = useCallback(async () => {
     const url = await uploadFromLibrary(false);
     if (!url || !room) return;
     set("posters", [...(room.posters ?? []), { id: `wp-${Date.now()}`, src: url }].slice(0, 4));
-    setMsg("Poster up — tap Save to make it live.");
+    setMsg("Poster up, tap Save to make it live.");
   }, [uploadFromLibrary, room]);
 
   // ── Flash wall pieces (their own table; the public /flash-wall renders them) ──
@@ -291,7 +291,7 @@ export default function MyRoom() {
     const url = await uploadFromLibrary(false);
     if (!url || !artistId) return;
     const { error } = await supabase.from("flash_pieces").insert({ artist_id: artistId, src: url });
-    setMsg(error ? error.message : "Pinned to the flash wall — set a price below.");
+    setMsg(error ? error.message : "Pinned to the flash wall, set a price below.");
     loadFlash();
   }, [uploadFromLibrary, artistId, loadFlash]);
 
@@ -315,7 +315,7 @@ export default function MyRoom() {
     const url = await uploadFromLibrary(false);
     if (!url || !room) return;
     set("portfolio", [...room.portfolio, { id: `w-${Date.now()}`, src: url, alt: "" }]);
-    setMsg("Added to your portfolio — tap Save to make it live.");
+    setMsg("Added to your portfolio, tap Save to make it live.");
   }, [uploadFromLibrary, room]);
 
   return (
@@ -328,7 +328,7 @@ export default function MyRoom() {
         ) : !artistId ? (
           <Card>
             <Text style={styles.note}>
-              No page is linked to this login yet — ask the shop owner to link your artist profile.
+              No page is linked to this login yet. Ask the shop owner to link your artist profile.
             </Text>
           </Card>
         ) : (
@@ -371,7 +371,7 @@ export default function MyRoom() {
             <SectionTitle>Socials</SectionTitle>
             <Card>
               <Text style={[styles.note, { marginBottom: 10 }]}>
-                Handles or links — each one you fill in shows up on your public page.
+                Handles or links. Each one you fill in shows up on your public page.
               </Text>
               {/* Instagram lives here with the rest (it used to be stranded under
                   Identity) and still saves to its own ig_handle column. Each row
@@ -484,7 +484,7 @@ export default function MyRoom() {
                           onPress={() => {
                             set("video_url", null);
                             set("video_title", null);
-                            setMsg("Video removed — tap Save to make it official.");
+                            setMsg("Video removed, tap Save to make it official.");
                           }}
                           disabled={saving}
                         />
@@ -498,7 +498,7 @@ export default function MyRoom() {
             <SectionTitle>Stickers</SectionTitle>
             <Card>
               <Text style={styles.note}>
-                Slap up to seven on your walls — tap to toggle.{room.stickers === null ? " (Using the classic set until you pick.)" : ""}
+                Slap up to seven on your walls, tap to toggle.{room.stickers === null ? " (Using the classic set until you pick.)" : ""}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
                 {STICKERS.map((st) => {
@@ -542,7 +542,7 @@ export default function MyRoom() {
 
             <SectionTitle>Polaroids</SectionTitle>
             <Card>
-              <Text style={[styles.note, { marginBottom: 12 }]}>The snapshots taped around your room — you, the crew, the shop life.</Text>
+              <Text style={[styles.note, { marginBottom: 12 }]}>The snapshots taped around your room. You, the crew, the shop life.</Text>
               <PhotoGrid
                 items={room.polaroids.map((p) => ({ id: p.id, src: p.src, text: p.caption }))}
                 textLabel="Caption"
@@ -570,8 +570,8 @@ export default function MyRoom() {
 
             <SectionTitle>Flash wall</SectionTitle>
             <Card style={{ borderColor: "rgba(255,20,147,0.45)", borderWidth: 1.5, backgroundColor: "rgba(255,20,147,0.05)" }}>
-              <Text style={{ color: "#FF1493", fontWeight: "700", fontSize: 13.5, lineHeight: 19, marginBottom: 4 }}>
-                Live the second you pin it — no save needed.
+              <Text style={{ color: theme.text, fontWeight: "700", fontSize: 13.5, lineHeight: 19, marginBottom: 4 }}>
+                Live the second you pin it, no save needed.
               </Text>
               <Text style={[styles.note, { marginBottom: 12 }]}>
                 Your flash on the shop's public wall. Mark a piece claimed the moment someone grabs it.
@@ -582,13 +582,13 @@ export default function MyRoom() {
                 <View style={{ gap: 12, marginBottom: 12 }}>
                   {flash.map((f) => (
                     <View key={f.id} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-                      <Image source={{ uri: imgSrc(f.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: "#1a1a22" }} />
+                      <Image source={{ uri: imgSrc(f.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: theme.surfaceRaised }} />
                       <View style={{ flex: 1 }}>
                         <TextInput
                           value={f.price_cents > 0 ? String(f.price_cents / 100) : ""}
                           onChangeText={(t) => patchFlash(f.id, { price_cents: Math.max(0, Math.round((Number(t) || 0) * 100)) })}
                           placeholder="Price ($)"
-                          placeholderTextColor="#6b7280"
+                          placeholderTextColor={theme.textFaint}
                           keyboardType="numeric"
                           style={styles.gridInput}
                         />
@@ -597,9 +597,9 @@ export default function MyRoom() {
                             style={[styles.gridAction, f.status === "claimed" && { color: "#fbbf24" }]}
                             onPress={() => patchFlash(f.id, { status: f.status === "claimed" ? "available" : "claimed" })}
                           >
-                            {f.status === "claimed" ? "Claimed — tap to relist" : "Available — tap when claimed"}
+                            {f.status === "claimed" ? "Claimed, tap to relist" : "Available, tap when claimed"}
                           </Text>
-                          <Text style={[styles.gridAction, { color: "#fb7185" }]} onPress={() => removeFlash(f.id)}>
+                          <Text style={[styles.gridAction, { color: theme.bad }]} onPress={() => removeFlash(f.id)}>
                             Remove
                           </Text>
                         </View>
@@ -693,14 +693,14 @@ function PhotoGrid({
     <View style={{ gap: 12, marginBottom: 12 }}>
       {items.map((it, i) => (
         <View key={it.id} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-          <Image source={{ uri: imgSrc(it.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: "#1a1a22" }} />
+          <Image source={{ uri: imgSrc(it.src) }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: theme.surfaceRaised }} />
           <View style={{ flex: 1 }}>
             {textLabel !== "" && (
               <TextInput
                 value={it.text}
                 onChangeText={(t) => onText(it.id, t)}
                 placeholder={textLabel}
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={theme.textFaint}
                 style={styles.gridInput}
               />
             )}
@@ -714,7 +714,7 @@ function PhotoGrid({
               >
                 Down
               </Text>
-              <Text style={[styles.gridAction, { color: "#fb7185" }]} onPress={() => onRemove(it.id)}>
+              <Text style={[styles.gridAction, { color: theme.bad }]} onPress={() => onRemove(it.id)}>
                 Remove
               </Text>
             </View>

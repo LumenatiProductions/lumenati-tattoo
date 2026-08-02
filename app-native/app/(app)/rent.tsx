@@ -70,7 +70,7 @@ export default function Rent() {
     const r = await apiPost("/api/cash/rent-cash", { invoiceId: id, date: todayLocal() });
     setNote(
       r.ok
-        ? "On the board — hand the cash to an admin and it clears when they tap Got it."
+        ? "On the board. Hand the cash to an admin and it clears when they tap Got it."
         : r.error ?? "Could not start the cash handoff.",
     );
     load();
@@ -168,7 +168,7 @@ export default function Rent() {
 
             <SectionTitle>This month</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
-              {current.length === 0 ? <Empty>No invoices for this period yet — they mint on the 1st.</Empty> : current.map(renderRow)}
+              {current.length === 0 ? <Empty>No invoices for this period yet, they mint on the 1st.</Empty> : current.map(renderRow)}
             </Card>
 
             <SectionTitle>Past months</SectionTitle>

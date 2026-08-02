@@ -217,7 +217,7 @@ export default function Payouts() {
             }
             setMsg(
               (isRenter
-                ? `${st.artist.name}'s sales passed through — clean through today.`
+                ? `${st.artist.name}'s sales passed through, clean through today.`
                 : `${st.artist.name} entered into Gusto through today.`) +
                 (res.data?.receipt?.sent ? " Receipt emailed." : ""),
             );
@@ -382,7 +382,7 @@ export default function Payouts() {
               )}
             </Card>
             <Text style={styles.note}>
-              Card sales collected on the shop&apos;s reader for booth renters — theirs, 100%. Rent
+              Card sales collected on the shop&apos;s reader for booth renters. Theirs, 100%. Rent
               is billed on its own invoice, never taken out of sales.
             </Text>
 

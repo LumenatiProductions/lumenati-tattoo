@@ -51,7 +51,7 @@ const STATE_BADGE: Record<FormState, { tone: "neutral" | "good" | "warn" | "bad"
   complete: { tone: "good", label: "Signed + ID ✓" },
   awaiting_id: { tone: "warn", label: "Needs ID check" },
   awaiting_sign: { tone: "warn", label: "Awaiting signature" },
-  age_flag: { tone: "bad", label: "Under-age — review" },
+  age_flag: { tone: "bad", label: "Under-age, review" },
   voided: { tone: "neutral", label: "Voided" },
 };
 
@@ -163,7 +163,7 @@ export default function Intake() {
   };
 
   const voidForm = (f: Form) => {
-    Alert.alert("Void this form?", "Kept on file for the record — it can't be un-voided here.", [
+    Alert.alert("Void this form?", "Kept on file for the record, it can't be un-voided here.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Void",
@@ -304,7 +304,7 @@ function FormRow({
         <View style={{ paddingBottom: 14, gap: 10 }}>
           {s === "age_flag" && (
             <Text style={{ color: theme.bad, fontSize: 13 }}>
-              Date of birth is below the minimum age. Do not proceed — bring in an admin and sort the guardian flow first.
+              Date of birth is below the minimum age. Do not proceed. Bring in an admin and sort the guardian flow first.
             </Text>
           )}
           {!!f.medical_flags && (

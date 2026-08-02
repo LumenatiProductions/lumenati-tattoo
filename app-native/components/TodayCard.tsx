@@ -50,7 +50,7 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
         <Card>
           <View style={styles.emptyRow}>
             <Ionicons name="sunny-outline" size={18} color={theme.textFaint} />
-            <Text style={styles.emptyText}>Nothing on the book today. Open chair — fill it or enjoy it.</Text>
+            <Text style={styles.emptyText}>Nothing on the book today. Open chair, fill it or enjoy it.</Text>
           </View>
         </Card>
       ) : (
@@ -76,7 +76,7 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
             <View style={styles.emptyRow}>
               <Ionicons name="checkmark-circle-outline" size={18} color={theme.good} />
               <Text style={styles.emptyText}>
-                That&apos;s the day{done ? ` — ${done} client${done === 1 ? "" : "s"} done` : ""}. Nothing else booked.
+                That&apos;s the day{done ? `, ${done} client${done === 1 ? "" : "s"} done` : ""}. Nothing else booked.
               </Text>
             </View>
           )}

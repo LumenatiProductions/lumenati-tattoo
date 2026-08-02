@@ -119,7 +119,7 @@ export default function Integrations() {
             <SectionTitle>Square team → artists</SectionTitle>
             {members.length === 0 ? (
               <Card>
-                <Empty>No team members yet — Sync now pulls them from Square. If Square isn't connected, set that up on the web admin.</Empty>
+                <Empty>No team members yet. Sync now pulls them from Square. If Square isn't connected, set that up on the web admin.</Empty>
               </Card>
             ) : (
               <Card>
