@@ -183,8 +183,8 @@ function Sidebar({
       }`}
     >
       {/* Header: just the logo. The collapse control lives in the footer. */}
-      <div className={`flex items-center py-4 ${collapsed ? "justify-center px-2" : "px-4"}`}>
-        <LumenatiLogo bg="dark" className={collapsed ? "w-9" : "w-24"} />
+      <div className={`flex items-center py-3.5 ${collapsed ? "justify-center px-2" : "px-4"}`}>
+        <LumenatiLogo bg="dark" className={collapsed ? "w-8" : "w-16"} />
       </div>
 
       {/* Nav: top items always shown; titled sections fold to a header line. When
