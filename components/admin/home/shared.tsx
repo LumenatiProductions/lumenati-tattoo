@@ -7,11 +7,14 @@ import type { RentInvoice } from "@/lib/admin/rent-context";
 // Shared chrome for the role homes (POS-STARTER-3). Each role gets its own home
 // component in this folder; page.tsx is just the router.
 
-export function PageHead({ title, sub }: { title: string; sub: string }) {
+export function PageHead({ title, sub, action }: { title: string; sub: string; action?: ReactNode }) {
   return (
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-      <p className="text-sm text-white/65">{sub}</p>
+    <div className="mb-6 flex items-start justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <p className="text-sm text-white/65">{sub}</p>
+      </div>
+      {action ? <div className="flex-none">{action}</div> : null}
     </div>
   );
 }

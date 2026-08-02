@@ -47,7 +47,18 @@ export default function OwnerHome() {
 
   return (
     <div>
-      <PageHead title="Shop Overview" sub={real ? "Live" : "Period to date · preview data"} />
+      <PageHead
+        title="Shop Overview"
+        sub={real ? "Live" : "Period to date · preview data"}
+        action={
+          <Link
+            href="/admin/clients"
+            className="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-semibold text-white/85 hover:bg-white/5"
+          >
+            New client
+          </Link>
+        }
+      />
 
       {/* First-run setup card — self-retires once the pages are dressed. */}
       <GetSetUp />
@@ -58,12 +69,6 @@ export default function OwnerHome() {
       <ShopCoach />
 
       {!real && !loading && <MockBanner source="Square & QuickBooks" />}
-
-      <div className="mb-5 flex flex-wrap gap-2">
-        <Link href="/admin/clients" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
-          New client
-        </Link>
-      </div>
 
       <SectionTitle>
         This week <span className="font-normal text-white/50">· last 7 days, same as your Monday email</span>
