@@ -21,6 +21,7 @@ export default function ShopBranding() {
   const { email: myEmail } = useRole();
   const [shop, setShop] = useState<{ id: string; slug: string; logo_url: string | null; template: string } | null>(null);
   const [artistSlug, setArtistSlug] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -28,13 +29,17 @@ export default function ShopBranding() {
     if (!myEmail) return;
     (async () => {
       const { data: me } = await supabase.from("profiles").select("shop_id").eq("email", myEmail).maybeSingle();
-      if (!me?.shop_id) return;
+      if (!me?.shop_id) {
+        setLoading(false);
+        return;
+      }
       const { data: s } = await supabase
         .from("shops")
         .select("id, slug, logo_url, template")
         .eq("id", me.shop_id)
         .maybeSingle();
       if (s) setShop(s as typeof shop);
+      setLoading(false);
       // Any active artist works for the style preview links.
       const { data: a } = await supabase
         .from("artists")
@@ -49,7 +54,19 @@ export default function ShopBranding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myEmail]);
 
-  if (!shop || shop.template === "y2k") return null;
+  if (loading) return null;
+  // Lumenati runs the hardcoded Y2K site, so there's no logo/style to set here.
+  // Say so instead of leaving the page blank.
+  if (!shop || shop.template === "y2k") {
+    return (
+      <Card>
+        <p className="p-4 text-sm text-white/65">
+          This shop uses the custom Lumenati site, so there&apos;s no logo or page-style setting here. The look is
+          built in.
+        </p>
+      </Card>
+    );
+  }
   const publicSlug = artistSlug?.startsWith(`${shop.slug}--`) ? artistSlug.slice(shop.slug.length + 2) : artistSlug;
 
   const pickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
