@@ -233,16 +233,16 @@ function Sidebar({
                   />
                 </button>
               )}
-              {/* Slick open/close: grid-rows 0fr→1fr animates the real height. */}
+              {/* Slick open/close: max-height + fade so folding actually collapses. */}
               {collapsed ? (
                 rows
               ) : (
                 <div
-                  className={`grid transition-all duration-200 ease-out ${
-                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  className={`overflow-hidden transition-all duration-200 ease-out ${
+                    isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
-                  <div className="overflow-hidden">{rows}</div>
+                  {rows}
                 </div>
               )}
             </div>
