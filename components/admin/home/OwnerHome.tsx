@@ -10,7 +10,6 @@ import { shopSummary, fmt } from "@/lib/admin/calc";
 import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
 import GetSetUp from "@/components/admin/home/GetSetUp";
-import HealthBanner from "@/components/admin/home/HealthBanner";
 import ShopCoach from "@/components/admin/home/ShopCoach";
 import { PageHead, WeekTile, StatementsTable, RentPanel, daysAgoLocal } from "./shared";
 
@@ -60,9 +59,6 @@ export default function OwnerHome() {
           </Link>
         }
       />
-
-      {/* Something went wrong that the owner should see — hidden when all clear. */}
-      <HealthBanner />
 
       {/* First-run setup card — self-retires once the pages are dressed. */}
       <GetSetUp />
