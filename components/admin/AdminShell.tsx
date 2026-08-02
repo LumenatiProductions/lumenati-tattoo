@@ -46,9 +46,16 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/admin/intake", label: "Intake", roles: ["owner"], icon: "intake" },
       { href: "/admin/followups", label: "Follow-ups", roles: ["owner"], icon: "followups" },
       { href: "/admin/my-followups", label: "Follow-ups", roles: ["artist"], icon: "followups" },
-      { href: "/admin/social", label: "Social", roles: ["owner"], icon: "social" },
       { href: "/admin/healed", label: "Healed Shots", roles: ["artist"], icon: "healed" },
       { href: "/admin/qr", label: "QR Card", roles: ["artist"], icon: "qr" },
+    ],
+  },
+  {
+    title: "Marketing",
+    items: [
+      { href: "/admin/marketing", label: "Blasts", roles: ["owner"], icon: "blasts" },
+      { href: "/admin/social", label: "Social", roles: ["owner"], icon: "social" },
+      { href: "/admin/sending", label: "Sending", roles: ["owner"], icon: "sending" },
     ],
   },
   {
@@ -86,6 +93,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
 // Category glyphs for the slim rail.
 const CAT_ICONS: Record<string, NavIconName> = {
   "Front of house": "foh",
+  Marketing: "marketingcat",
   Finances: "finances",
   Shop: "shopcat",
   Admin: "admincat",

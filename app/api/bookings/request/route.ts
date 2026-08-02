@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   recent = emailOk ? recent.eq("email", email) : recent.eq("phone", phone!);
   const { count, error: countErr } = await recent;
   if (countErr && isMissingTable(countErr.message)) {
-    return NextResponse.json({ error: "Booking requests aren't open yet — call or email the shop." }, { status: 503 });
+    return NextResponse.json({ error: "Booking requests aren't open yet. Call or email the shop." }, { status: 503 });
   }
   if ((count ?? 0) >= 3) {
     return NextResponse.json({ error: "We already have your request — the shop will get back to you soon." }, { status: 429 });
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
       active: true,
     });
     if (wErr) {
-      return NextResponse.json({ error: "Could not save your spot — try again." }, { status: 500 });
+      return NextResponse.json({ error: "Could not save your spot. Try again." }, { status: 500 });
     }
     await pushEvent(
       admin,
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, waitlisted: true });
   }
 
-  const { error } = await admin.from("booking_requests").insert({
+  const requestRow = {
     shop_id: shopId,
     name,
     email: emailOk ? email : null,
@@ -143,12 +143,20 @@ export async function POST(req: Request) {
     size: clip(b.size, 100),
     availability: clip(b.availability, 300),
     ...(referenceUrls.length ? { reference_urls: referenceUrls } : {}),
-  });
+  };
+  // Consent from the form's optional news checkbox; retried without the
+  // column so the form keeps working before the migration lands.
+  let { error } = await admin
+    .from("booking_requests")
+    .insert({ ...requestRow, marketing_ok: b.marketingOk === true });
+  if (error && /marketing_ok/.test(error.message)) {
+    ({ error } = await admin.from("booking_requests").insert(requestRow));
+  }
   if (error) {
     if (isMissingTable(error.message)) {
-      return NextResponse.json({ error: "Booking requests aren't open yet — call or email the shop." }, { status: 503 });
+      return NextResponse.json({ error: "Booking requests aren't open yet. Call or email the shop." }, { status: 503 });
     }
-    return NextResponse.json({ error: "Could not save your request — try again." }, { status: 500 });
+    return NextResponse.json({ error: "Could not save your request. Try again." }, { status: 500 });
   }
 
   // Ping people — best-effort, never blocks. A no-preference request is up
@@ -277,6 +285,18 @@ export async function PATCH(req: Request) {
         .single();
       if (cErr) return NextResponse.json({ error: `Could not create the client: ${cErr.message}` }, { status: 500 });
       clientId = c.id;
+    }
+
+    // The form's news checkbox rides the request; grant it on the client the
+    // moment one exists. Consent only ever turns ON here - never off - and
+    // both writes are best-effort until the migration lands.
+    if (reqRow.marketing_ok === true && clientId) {
+      await admin
+        .from("clients")
+        .update({ marketing_ok: true, marketing_ok_at: new Date().toISOString() })
+        .eq("id", clientId)
+        .eq("shop_id", shopId)
+        .eq("marketing_ok", false);
     }
 
     const deposit = Math.max(0, Math.round(b.depositCents ?? 0));

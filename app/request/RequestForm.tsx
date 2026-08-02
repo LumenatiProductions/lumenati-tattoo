@@ -61,6 +61,7 @@ export default function RequestForm({
     placement: "",
     size: "",
     availability: "",
+    marketingOk: false,
     website: "", // honeypot
   });
   const [busy, setBusy] = useState(false);
@@ -235,13 +236,13 @@ export default function RequestForm({
               {artists.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
-                  {a.booksClosed ? " — books closed (waitlist)" : ""}
+                  {a.booksClosed ? " (books closed, waitlist)" : ""}
                 </option>
               ))}
             </select>
             {artists.find((a) => a.id === f.artistId)?.booksClosed ? (
               <p className="mt-1.5 text-xs text-zinc-500">
-                Their books are closed right now — sending this puts you on their waitlist, first in
+                Their books are closed right now. Sending this puts you on their waitlist, first in
                 line when a spot opens.
               </p>
             ) : null}
@@ -249,6 +250,19 @@ export default function RequestForm({
           <label className="block">
             <span className={label}>When can you come in?</span>
             <input className={input} value={f.availability} onChange={set("availability")} placeholder="Weekday evenings, any Saturday…" />
+          </label>
+
+          <label className="flex items-start gap-2.5">
+            <input
+              type="checkbox"
+              checked={f.marketingOk}
+              onChange={(e) => setF((v) => ({ ...v, marketingOk: e.target.checked }))}
+              className="mt-0.5 h-4 w-4 rounded border-black/20 accent-zinc-800"
+            />
+            <span className="text-sm text-zinc-600">
+              Text or email me news, flash days, and offers from the shop (optional). Reply STOP
+              anytime to stop.
+            </span>
           </label>
 
           {/* Style references */}

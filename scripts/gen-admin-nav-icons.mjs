@@ -14,6 +14,9 @@ const SVG = join(root, "node_modules", "ionicons", "dist", "svg");
 // nav key -> Ionicons outline file
 const MAP = {
   foh: "storefront-outline",
+  marketingcat: "megaphone-outline",
+  blasts: "mail-outline",
+  sending: "options-outline",
   finances: "logo-usd",
   shopcat: "business-outline",
   admincat: "settings-outline",

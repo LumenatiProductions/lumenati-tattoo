@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendExpoPush, tokensForArtist } from "@/lib/push/send";
+import { streamEnabledMap } from "@/lib/messaging/streams";
 
 // Week-in-review push (artist-favorite #4). Fires Sunday evening shop time
 // from /api/ops/weekly: "Your week: $1,240 · 6 clients · 3 rebooked · best
@@ -60,11 +61,15 @@ export async function runWeekReview(admin: unknown, opts: { at?: Date; dry?: boo
 
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: SHOP_TZ });
 
+  // The shop's Sending-page switch; absent row = on.
+  const streamByShop = await streamEnabledMap(client as never, "weekly_summary");
+
   let pushed = 0;
   const lines: Record<string, string> = {};
   // Sales/booking rows are matched on artist_id below; artist ids are globally
   // unique, so each artist's aggregation is already scoped to their own shop.
   for (const a of (artists ?? []) as { id: string; name: string; shop_id: string }[]) {
+    if (streamByShop.get(a.shop_id) === false) continue;
     const mySales = ((sales ?? []) as { artist_id: string | null; service_cents: number; tip_cents: number; created_at: string }[]).filter(
       (s) => s.artist_id === a.id,
     );

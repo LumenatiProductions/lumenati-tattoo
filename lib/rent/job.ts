@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPaymentLink } from "@/lib/stripe/payments";
 import { isStripeConfigured, siteUrl } from "@/lib/stripe/client";
 import { isSmsConfigured, sendSms } from "@/lib/sms";
+import { streamEnabledMap } from "@/lib/messaging/streams";
 
 // In-house rent generation (rent-invoices-schema.sql). Runs in the daily ops
 // fan-out AND behind the Rent page's Generate button: for every active booth
@@ -104,13 +105,13 @@ function nudgeCopy(tone: RentNudge["tone"], name: string, amount: number, period
   const link = payUrl ? ` Pay here: ${payUrl}` : "";
   switch (tone) {
     case "ready":
-      return `Lumenati Tattoo: your ${period} booth rent invoice (${money(amount)}) is ready — due ${dueDate}.${link}`;
+      return `Lumenati Tattoo: your ${period} booth rent invoice (${money(amount)}) is ready, due ${dueDate}.${link}`;
     case "due":
       return `Lumenati Tattoo: booth rent (${money(amount)}) is due today.${link}`;
     case "late":
       return `Lumenati Tattoo: your ${period} booth rent (${money(amount)}) is past due. Square it up when you're in.${link}`;
     case "firm":
-      return `Lumenati Tattoo: booth rent for ${period} (${money(amount)}) is still open — please handle it this week or talk to the shop.${link}`;
+      return `Lumenati Tattoo: booth rent for ${period} (${money(amount)}) is still open. Please handle it this week or talk to the shop.${link}`;
   }
 }
 
@@ -147,10 +148,18 @@ export async function nudgeRentInvoices(client: SupabaseClient) {
   const contact = new Map((profiles ?? []).map((p) => [p.artist_id as string, p]));
   const tokens = new Map((pays ?? []).map((p) => [p.id as string, p.pay_token as string]));
 
+  // The shop's own switch (Sending page) layers under the env master switch.
+  const streamByShop = await streamEnabledMap(client, "rent_nudges");
+
   let sent = 0;
   let unreachable = 0;
+  let switchedOff = 0;
   const wouldSend: string[] = [];
   for (const inv of rows) {
+    if (streamByShop.get(inv.shop_id as string) === false) {
+      switchedOff++;
+      continue;
+    }
     const due = rentNudgeDue(
       (inv.created_at as string).slice(0, 10),
       (inv.due_date as string) ?? `${inv.period}-05`,
