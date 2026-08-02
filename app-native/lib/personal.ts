@@ -51,7 +51,8 @@ export async function loadMoney(artistId?: string): Promise<MoneySnapshot> {
         .from("ledger_sales")
         .select("created_at, service_cents, tip_cents")
         .gte("created_at", yearStart)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .order("id"); // stable tiebreaker so timestamp ties can't shift page boundaries
       if (artistId) s = s.eq("artist_id", artistId);
       return s.range(from, to);
     }),
@@ -63,7 +64,8 @@ export async function loadMoney(artistId?: string): Promise<MoneySnapshot> {
         .select("starts_at, ends_at, status, client_id")
         .gte("starts_at", yearStart)
         .neq("status", "cancelled")
-        .order("starts_at", { ascending: true });
+        .order("starts_at", { ascending: true })
+        .order("id"); // stable tiebreaker so timestamp ties can't shift page boundaries
       if (artistId) b = b.eq("artist_id", artistId);
       return b.range(from, to);
     }),

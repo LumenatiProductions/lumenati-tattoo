@@ -81,6 +81,7 @@ async function ledgerSalesForShop(
       .gte("occurred_at", from)
       .lte("occurred_at", toEnd)
       .order("occurred_at", { ascending: true })
+      .order("id") // stable tiebreaker so timestamp ties can't shift page boundaries
       .range(start, start + 999);
     rows.push(...((data ?? []) as LedgerRow[]));
     if (!data || data.length < 1000) break;
@@ -94,6 +95,7 @@ async function ledgerSalesForShop(
       .select("reverses")
       .eq("shop_id", shopId)
       .not("reverses", "is", null)
+      .order("id") // stable order so paging past the 1000-row cap can't drop/dupe rows
       .range(start, start + 999);
     for (const r of data ?? []) if (r.reverses) reversed.add(r.reverses as string);
     if (!data || data.length < 1000) break;

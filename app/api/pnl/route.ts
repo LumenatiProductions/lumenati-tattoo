@@ -64,6 +64,7 @@ async function pullAll<T>(
       .gte(dateCol, from)
       .lte(dateCol, toEnd)
       .order(dateCol, { ascending: true })
+      .order("id") // stable tiebreaker so timestamp ties can't shift page boundaries
       .range(start, start + 999);
     if (extra) q = extra(q);
     const { data, error } = await q;
@@ -87,6 +88,7 @@ async function pullAllReversals(
       .select("reverses")
       .eq("shop_id", shopId)
       .not("reverses", "is", null)
+      .order("id") // stable order so paging past the 1000-row cap can't drop/dupe rows
       .range(start, start + 999);
     if (error) throw new Error(`ledger: ${error.message}`);
     for (const r of data ?? []) if (r.reverses) out.add(r.reverses as string);

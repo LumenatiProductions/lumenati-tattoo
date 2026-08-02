@@ -64,6 +64,7 @@ export async function GET(req: Request) {
       .gte("occurred_at", from)
       .lte("occurred_at", `${to}T23:59:59.999`)
       .order("occurred_at", { ascending: true })
+      .order("id") // stable tiebreaker so timestamp ties can't shift page boundaries
       .range(start, start + 999);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     rows.push(...((data ?? []) as Row[]));

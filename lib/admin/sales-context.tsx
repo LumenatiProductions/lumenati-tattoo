@@ -39,6 +39,7 @@ export function SalesProvider({ children }: { children: React.ReactNode }) {
             .from("ledger_sales")
             .select("id, created_at, service_cents, tip_cents, method, artist_id")
             .order("created_at", { ascending: false })
+            .order("id") // stable tiebreaker so timestamp ties can't shift page boundaries
             .range(start, start + 999);
           data.push(...(((page ?? []) as Row[])));
           if (!page || page.length < 1000) break;

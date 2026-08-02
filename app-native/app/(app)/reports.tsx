@@ -63,9 +63,10 @@ export default function ReportsScreen() {
       // Anchor the default YTD window to the phone's local calendar — the
       // server would otherwise use UTC, which is tomorrow from 5-6pm Denver.
       apiGet<Reports>(`/api/reports?from=${todayLocal().slice(0, 4)}-01-01&to=${todayLocal()}`),
-      // Month-to-date shop gross for the chart (admin RLS sees all).
+      // Month-to-date shop gross for the chart (admin RLS sees all). ledger_sales
+      // (not the stale `sales` table) so chair-logged cash counts.
       supabase
-        .from("sales")
+        .from("ledger_sales")
         .select("created_at, service_cents, tip_cents")
         .gte("created_at", `${todayLocal().slice(0, 7)}-01`),
     ]);

@@ -78,11 +78,23 @@ export default function MyClients() {
     // An owner previewing an artist scopes explicitly (owner RLS sees all).
     bq = bq.eq("artist_id", aid);
     hq = hq.eq("artist_id", aid);
-    const [{ data: clients }, { data: bookings }, { data: healed }] = await Promise.all([
-      supabase.from("clients").select("id, first_name, last_name, phone, instagram, last_seen").limit(500),
-      bq,
-      hq,
-    ]);
+    // PostgREST clamps every response at 1000 rows, and an unordered .limit()
+    // truncates arbitrarily, so page the clients read through in ordered blocks
+    // until a short page — an artist never silently loses clients.
+    const clientsPage: ClientRow[] = [];
+    for (let start = 0; start < 20000; start += 1000) {
+      const { data: page } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name, phone, instagram, last_seen")
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(start, start + 999);
+      const rows = (page ?? []) as ClientRow[];
+      clientsPage.push(...rows);
+      if (rows.length < 1000) break;
+    }
+    const [{ data: bookings }, { data: healed }] = await Promise.all([bq, hq]);
+    const clients = clientsPage;
 
     const byClient = new Map<string, BookingRow[]>();
     for (const b of (bookings ?? []) as BookingRow[]) {

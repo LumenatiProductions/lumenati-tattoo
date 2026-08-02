@@ -36,8 +36,9 @@ export async function runWeekReview(admin: unknown, opts: { at?: Date; dry?: boo
 
   const [{ data: artists }, { data: sales }, { data: weekBookings }, { data: madeThisWeek }] = await Promise.all([
     client.from("artists").select("id, name, shop_id").eq("active", true),
+    // ledger_sales (not the stale `sales` table) so chair-logged cash counts.
     client
-      .from("sales")
+      .from("ledger_sales")
       .select("artist_id, service_cents, tip_cents, created_at")
       .gte("created_at", startISO)
       .lte("created_at", now.toISOString()),

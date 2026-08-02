@@ -167,12 +167,14 @@ export async function DELETE(req: Request) {
 
   // The ledger is append-only, so a deleted cash entry is reversed with a
   // compensating row rather than removed — the money history stays intact.
-  // A taxed entry has TWO rows (sale + tax); both get reversed. The tax
-  // reversal keeps kind='tax' so the remittance figure nets out too.
+  // An entry can have up to THREE rows (sale + tax + tip); each existing one
+  // gets reversed. The tax reversal keeps kind='tax' so the remittance figure
+  // nets out too. Only rows that actually exist are reversed (the query only
+  // returns the originals that were written).
   const { data: origs } = await supabase
     .from("ledger")
     .select("id, kind, amount_cents, direction, artist_id, external_id")
-    .in("external_id", [`cash_${id}`, `cash_${id}_tax`]);
+    .in("external_id", [`cash_${id}`, `cash_${id}_tax`, `cash_${id}_tip`]);
   for (const orig of origs ?? []) {
     await supabase.from("ledger").insert({
       source: "cash",

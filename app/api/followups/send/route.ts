@@ -33,12 +33,18 @@ export async function POST(req: Request) {
   const { id } = (await req.json().catch(() => ({}))) as { id?: string };
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
+  // Re-read status immediately before sending so a double-click (or a cron
+  // overlap on the shared helper) can't send the same row twice. Only a still
+  // 'pending' row proceeds; anything already handled returns without sending.
   const { data: row } = await supabase
     .from("followups")
-    .select("id, booking_id, client_id, artist_id, kind, channel, scheduled_for, shop_id")
+    .select("id, booking_id, client_id, artist_id, kind, channel, scheduled_for, shop_id, status")
     .eq("id", id)
     .maybeSingle();
   if (!row) return NextResponse.json({ error: "Follow-up not found" }, { status: 404 });
+  if (row.status !== "pending") {
+    return NextResponse.json({ ok: false, status: row.status, error: "Already handled" });
+  }
 
   const tpl = await loadTemplates(supabase);
   const result = await sendFollowupRow(supabase, row, tpl);
