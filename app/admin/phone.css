@@ -5,14 +5,30 @@
    variants new to the admin never existed in the compiled sheet, so the
    shell's breakpoint behavior lives here where it always compiles. */
 
-/* Desktop rail stays pinned to the viewport so its bottom utilities (Report a
-   bug, View site, Log out) are always reachable, even when the page scrolls
-   long. The rail's own nav scrolls internally if the categories overflow. */
-.cc-desktop-rail {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  flex-shrink: 0;
+/* Desktop app-shell: the frame is exactly one viewport tall and ONLY the
+   content pane scrolls, so the sidebar (and its bottom utilities — Report a
+   bug, View site, Log out) stay put instead of scrolling off with the page.
+   position:sticky can't do this here: body has overflow-x:hidden, which
+   silently disables sticky on descendants. Desktop only — below lg the rail is
+   a drawer and the whole page scrolls normally. */
+@media (min-width: 1024px) {
+  .admin-wash {
+    height: 100vh;
+    overflow: hidden;
+  }
+  .cc-desktop-rail {
+    height: 100vh;
+    flex-shrink: 0;
+  }
+  .cc-col {
+    height: 100vh;
+    min-height: 0;
+  }
+  .cc-main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
 
 .cc-col {
