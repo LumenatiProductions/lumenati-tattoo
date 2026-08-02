@@ -45,6 +45,7 @@ const MAP = {
   staff: "id-card-outline",
   integrations: "link-outline",
   billing: "card-outline",
+  settings: "cog-outline",
   bug: "bug-outline",
   logout: "log-out-outline",
   viewsite: "open-outline",

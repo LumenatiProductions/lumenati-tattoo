@@ -90,8 +90,8 @@ export default function GetSetUp() {
       done: !!shop.logo_url,
       title: solo ? "Add your logo" : "Add your shop logo",
       sub: solo ? "It tops your page." : "It tops every artist page.",
-      href: "/admin/staff",
-      cta: solo ? "Add logo" : "Team page",
+      href: "/admin/settings",
+      cta: "Add logo",
       money: false,
     },
     {
