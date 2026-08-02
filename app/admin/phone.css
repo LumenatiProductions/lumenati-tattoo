@@ -5,6 +5,16 @@
    variants new to the admin never existed in the compiled sheet, so the
    shell's breakpoint behavior lives here where it always compiles. */
 
+/* Desktop rail stays pinned to the viewport so its bottom utilities (Report a
+   bug, View site, Log out) are always reachable, even when the page scrolls
+   long. The rail's own nav scrolls internally if the categories overflow. */
+.cc-desktop-rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
 .cc-col {
   display: flex;
   flex: 1;
