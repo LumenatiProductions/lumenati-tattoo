@@ -11,13 +11,19 @@ async function gate() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null as string | null };
+  if (!user)
+    return { supabase, user: null, role: null as string | null, shopId: null as string | null };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, shop_id")
     .eq("email", user.email!)
     .maybeSingle();
-  return { supabase, user, role: profile?.role ?? null };
+  return {
+    supabase,
+    user,
+    role: profile?.role ?? null,
+    shopId: (profile?.shop_id as string | null) ?? null,
+  };
 }
 
 const SCOPES = ["artist", "shop"] as const;
@@ -58,9 +64,10 @@ export async function GET() {
 // Add an item. Owner only. Status is computed from the expiry up front so the
 // badge is correct immediately (the nightly job keeps it fresh thereafter).
 export async function POST(req: Request) {
-  const { supabase, user, role } = await gate();
+  const { supabase, user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (role !== "owner") return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  if (!shopId) return NextResponse.json({ error: "No shop for this account" }, { status: 403 });
 
   const body = (await req.json().catch(() => ({}))) as Body;
   const scope = body.scope ?? "";
@@ -78,6 +85,7 @@ export async function POST(req: Request) {
 
   const expiresOn = orNull(body.expiresOn);
   const row = {
+    shop_id: shopId,
     scope,
     artist_id: artistId,
     kind,
@@ -100,9 +108,10 @@ export async function POST(req: Request) {
 
 // Edit an item. Owner only. Any change that touches the expiry recomputes status.
 export async function PATCH(req: Request) {
-  const { supabase, user, role } = await gate();
+  const { supabase, user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (role !== "owner") return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  if (!shopId) return NextResponse.json({ error: "No shop for this account" }, { status: 403 });
 
   const body = (await req.json().catch(() => ({}))) as Body;
   if (!body.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
@@ -130,6 +139,7 @@ export async function PATCH(req: Request) {
     .from("compliance_items")
     .update(patch)
     .eq("id", body.id)
+    .eq("shop_id", shopId)
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -138,14 +148,19 @@ export async function PATCH(req: Request) {
 
 // Remove an item. Owner only. Pass ?id=<uuid>.
 export async function DELETE(req: Request) {
-  const { supabase, user, role } = await gate();
+  const { supabase, user, role, shopId } = await gate();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (role !== "owner") return NextResponse.json({ error: "Owners only" }, { status: 403 });
+  if (!shopId) return NextResponse.json({ error: "No shop for this account" }, { status: 403 });
 
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const { error } = await supabase.from("compliance_items").delete().eq("id", id);
+  const { error } = await supabase
+    .from("compliance_items")
+    .delete()
+    .eq("id", id)
+    .eq("shop_id", shopId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
