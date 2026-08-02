@@ -68,7 +68,7 @@ export default function Cockpit() {
       <Card>
         {items.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-white/55">
-            All clear — nothing needs a decision right now.
+            All clear. Nothing needs a decision right now.
           </div>
         ) : (
           <div className="divide-y divide-white/8">

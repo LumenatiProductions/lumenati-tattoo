@@ -84,7 +84,7 @@ export default function HealedQueue() {
                     <button
                       onClick={() => act(p.id, "approve")}
                       disabled={busyId === p.id || !p.artist_id}
-                      title={p.artist_id ? "Add to the artist's page portfolio" : "No artist linked — dismiss or fix the booking"}
+                      title={p.artist_id ? "Add to the artist's page portfolio" : "No artist linked. Dismiss or fix the booking"}
                       className="rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-40"
                     >
                       Approve

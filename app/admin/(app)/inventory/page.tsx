@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useInventory, type InventoryItem, type InventoryInput } from "@/lib/admin/inventory-context";
 import { isLow, categoryLabel, CATEGORY_LABELS } from "@/lib/inventory/job";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS);
 const UNIT_OPTIONS = ["each", "box", "bottle"];
@@ -59,13 +59,10 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
-        <p className="text-sm text-white/65">
-          Needles, ink, gloves, tubes, and disposables — with a reorder point on each so you
-          restock before you run out mid-session.
-        </p>
-      </div>
+      <PageHeader
+        title="Inventory"
+        subtitle="Needles, ink, gloves, tubes, and disposables, with a reorder point on each so you restock before you run out mid-session."
+      />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Items tracked" value={String(stats.tracked)} accent />
@@ -129,15 +126,11 @@ export default function InventoryPage() {
       )}
 
       {loading ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Loading inventory…</div>
-        </Card>
+        <Empty>Loading inventory…</Empty>
       ) : items.length === 0 && !error ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            No supplies tracked yet. Add needles, ink, gloves, or anything you reorder above.
-          </div>
-        </Card>
+        <Empty>
+          No supplies tracked yet. Add needles, ink, gloves, or anything you reorder above.
+        </Empty>
       ) : (
         groups.map(([cat, list]) => (
           <div key={cat} className="mb-5">
@@ -435,7 +428,7 @@ function AddItemForm({
           <input
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            placeholder={isInk ? "e.g. Lining Black" : "—"}
+            placeholder={isInk ? "e.g. Lining Black" : "·"}
             className={field}
           />
         </label>

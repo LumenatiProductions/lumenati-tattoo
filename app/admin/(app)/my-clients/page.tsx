@@ -433,7 +433,7 @@ function RebookForm({
       setErr(j.error || "Could not book. Pick another time.");
       return;
     }
-    setBooked(`${clientName} on the books — ${prettyDay(date)} at ${time}.`);
+    setBooked(`${clientName} on the books, ${prettyDay(date)} at ${time}.`);
     onRebooked();
   };
 
@@ -451,7 +451,7 @@ function RebookForm({
           Book their next session
         </button>
         <p className="mt-2 text-center text-xs text-white/50">
-          On the books beats in your head — take ten seconds.
+          On the books beats in your head. Take ten seconds.
         </p>
       </div>
     );

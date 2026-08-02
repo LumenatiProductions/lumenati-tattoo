@@ -104,7 +104,7 @@ export default function StripeLedger() {
                   <td className={`px-4 py-2.5 tnum font-medium ${r.netCents < 0 ? "text-rose-400" : "text-emerald-400"}`}>
                     {usd(r.netCents)}
                   </td>
-                  <td className="px-4 py-2.5 tnum text-white/60">{r.feeCents ? usd(r.feeCents) : "—"}</td>
+                  <td className="px-4 py-2.5 tnum text-white/60">{r.feeCents ? usd(r.feeCents) : "·"}</td>
                 </tr>
               ))}
             </tbody>

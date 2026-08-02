@@ -20,63 +20,76 @@ import { createClient } from "@/lib/supabase/browser";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import BugReporter from "@/components/BugReporter";
 import type { Role } from "@/lib/admin/types";
+import { NavIcon, type NavIconName } from "@/components/admin/NavIcon";
 
-type NavItem = { href: string; label: string; roles: Role[]; soon?: boolean };
+type NavItem = { href: string; label: string; roles: Role[]; icon: NavIconName; soon?: boolean };
 // Sections render as small headers in the sidebar; a header only appears when
-// the current role can see at least one page inside it.
+// the current role can see at least one page inside it. The title-less top
+// section renders full-width rows; titled sections pack two-across to keep the
+// rail short. An artist's own page lives up top as "My Page"; for shop
+// accounts the same screen is "Artist pages", filed under Shop.
 const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: null,
     items: [
-      { href: "/admin", label: "Overview", roles: ["owner", "artist"] },
-      { href: "/admin/room", label: "My Page", roles: ["owner", "artist"] },
+      { href: "/admin", label: "Overview", roles: ["owner", "artist"], icon: "overview" },
+      { href: "/admin/room", label: "My Page", roles: ["artist"], icon: "mypage" },
     ],
   },
   {
     title: "Front of house",
     items: [
-      { href: "/admin/bookings", label: "Bookings", roles: ["owner", "artist"] },
-      { href: "/admin/waitlist", label: "Waitlist", roles: ["artist"] },
-      { href: "/admin/clients", label: "Clients", roles: ["owner"] },
-      { href: "/admin/my-clients", label: "Clients", roles: ["artist"] },
-      { href: "/admin/intake", label: "Intake", roles: ["owner"] },
-      { href: "/admin/followups", label: "Follow-ups", roles: ["owner"] },
-      { href: "/admin/my-followups", label: "Follow-ups", roles: ["artist"] },
-      { href: "/admin/social", label: "Social", roles: ["owner"] },
-      { href: "/admin/healed", label: "Healed Shots", roles: ["artist"] },
-      { href: "/admin/qr", label: "QR Card", roles: ["artist"] },
+      { href: "/admin/bookings", label: "Bookings", roles: ["owner", "artist"], icon: "bookings" },
+      { href: "/admin/waitlist", label: "Waitlist", roles: ["artist"], icon: "waitlist" },
+      { href: "/admin/clients", label: "Clients", roles: ["owner"], icon: "clients" },
+      { href: "/admin/my-clients", label: "Clients", roles: ["artist"], icon: "clients" },
+      { href: "/admin/intake", label: "Intake", roles: ["owner"], icon: "intake" },
+      { href: "/admin/followups", label: "Follow-ups", roles: ["owner"], icon: "followups" },
+      { href: "/admin/my-followups", label: "Follow-ups", roles: ["artist"], icon: "followups" },
+      { href: "/admin/social", label: "Social", roles: ["owner"], icon: "social" },
+      { href: "/admin/healed", label: "Healed Shots", roles: ["artist"], icon: "healed" },
+      { href: "/admin/qr", label: "QR Card", roles: ["artist"], icon: "qr" },
     ],
   },
   {
     title: "Finances",
     items: [
-      { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner"] },
-      { href: "/admin/reports", label: "Reports", roles: ["owner"] },
-      { href: "/admin/payouts", label: "Pay", roles: ["owner", "artist"] },
-      { href: "/admin/goals", label: "Goals", roles: ["artist"] },
-      { href: "/admin/rent", label: "Booth Rent", roles: ["owner"] },
-      { href: "/admin/cash", label: "Cash Log", roles: ["owner"] },
-      { href: "/admin/expenses", label: "Expenses", roles: ["owner"] },
-      { href: "/admin/reconcile", label: "Reconciliation", roles: ["owner"] },
+      { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner"], icon: "pnl" },
+      { href: "/admin/reports", label: "Reports", roles: ["owner"], icon: "reports" },
+      { href: "/admin/payouts", label: "Pay", roles: ["owner", "artist"], icon: "pay" },
+      { href: "/admin/goals", label: "Goals", roles: ["artist"], icon: "goals" },
+      { href: "/admin/rent", label: "Booth Rent", roles: ["owner"], icon: "rent" },
+      { href: "/admin/cash", label: "Cash Log", roles: ["owner"], icon: "cash" },
+      { href: "/admin/expenses", label: "Expenses", roles: ["owner"], icon: "expenses" },
+      { href: "/admin/reconcile", label: "Reconcile", roles: ["owner"], icon: "reconcile" },
     ],
   },
   {
     title: "Shop",
     items: [
-      { href: "/admin/artists", label: "Artists & Pay", roles: ["owner"] },
-      { href: "/admin/inventory", label: "Inventory", roles: ["owner"] },
-      { href: "/admin/compliance", label: "Compliance", roles: ["owner"] },
+      { href: "/admin/artists", label: "Artists & Pay", roles: ["owner"], icon: "artists" },
+      { href: "/admin/room", label: "Artist pages", roles: ["owner"], icon: "artistpages" },
+      { href: "/admin/inventory", label: "Inventory", roles: ["owner"], icon: "inventory" },
+      { href: "/admin/compliance", label: "Compliance", roles: ["owner"], icon: "compliance" },
     ],
   },
   {
     title: "Admin",
     items: [
-      { href: "/admin/staff", label: "Staff", roles: ["owner"] },
-      { href: "/admin/integrations", label: "Integrations", roles: ["owner"] },
-      { href: "/admin/billing", label: "Billing", roles: ["owner"] },
+      { href: "/admin/staff", label: "Staff", roles: ["owner"], icon: "staff" },
+      { href: "/admin/integrations", label: "Integrations", roles: ["owner"], icon: "integrations" },
+      { href: "/admin/billing", label: "Billing", roles: ["owner"], icon: "billing" },
     ],
   },
 ];
+
+// Category glyphs for the slim rail.
+const CAT_ICONS: Record<string, NavIconName> = {
+  "Front of house": "foh",
+  Finances: "finances",
+  Shop: "shopcat",
+  Admin: "admincat",
+};
 
 // Membership state, resolved server-side in the layout (billing columns are
 // server-only). locked = trial over + no live subscription -> the shell shows
@@ -108,54 +121,114 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     router.refresh();
   };
 
+  // Two-rail nav: the slim left rail holds Overview (and an artist's My Page)
+  // plus one button per category; picking a category pulls out the second rail
+  // with that category's pages. The open category follows the page you're on.
+  const topItems = sections.find((s) => s.title === null)?.items ?? [];
+  const catSections = sections.filter((s) => s.title !== null);
+  const currentCat =
+    catSections.find((s) => s.items.some((n) => pathname === n.href))?.title ?? null;
+  const [openCat, setOpenCat] = useState<string | null>(null);
+  useEffect(() => {
+    if (currentCat) setOpenCat(currentCat);
+  }, [currentCat]);
+  const open =
+    catSections.find((s) => s.title === openCat) ?? catSections[0] ?? null;
+
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-white/10 bg-white/6">
-      <div className="px-5 py-4">
-        <LumenatiLogo bg="dark" className="w-16" />
-        <div className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-white/55">
-          Command Center
+    <aside className="flex h-full shrink-0 border-r border-white/10 bg-white/6">
+      <div className="flex w-20 shrink-0 flex-col border-r border-white/10">
+        <div className="flex justify-center px-2 py-4">
+          <LumenatiLogo bg="dark" className="w-11" />
         </div>
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-1.5 pb-2">
+          {topItems.map((n) => {
+            const active = pathname === n.href;
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                onClick={onNavigate}
+                title={n.label}
+                className={`flex flex-col items-center gap-1 rounded-lg py-2 ${
+                  active ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/6"
+                }`}
+              >
+                <NavIcon name={n.icon} className="h-[18px] w-[18px]" />
+                <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
+                  {n.label}
+                </span>
+              </Link>
+            );
+          })}
+          {catSections.map((s) => {
+            const isOpen = open?.title === s.title;
+            const holdsPage = s.items.some((n) => pathname === n.href);
+            return (
+              <button
+                key={s.title}
+                onClick={() => setOpenCat(s.title)}
+                title={s.title ?? ""}
+                className={`flex flex-col items-center gap-1 rounded-lg py-2 ${
+                  isOpen
+                    ? "bg-white/12 text-white"
+                    : holdsPage
+                      ? "text-white/85 hover:bg-white/6"
+                      : "text-white/65 hover:bg-white/6"
+                }`}
+              >
+                <NavIcon name={CAT_ICONS[s.title ?? ""]} className="h-[18px] w-[18px]" />
+                <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
+                  {s.title}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      <nav className="flex flex-1 flex-col overflow-y-auto px-3 pb-2">
-        {sections.map((s, i) => (
-          <div key={s.title ?? "top"} className={i === 0 ? "" : "mt-3"}>
-            {s.title && (
+      <div className="flex w-48 flex-col">
+        <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 pb-2 pt-5">
+          {open && (
+            <>
               <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/50">
-                {s.title}
+                {open.title}
               </div>
-            )}
-            <div className="flex flex-col gap-0.5">
-              {s.items.map((n) => {
-                const active = pathname === n.href;
-                return (
-                  <Link
-                    key={n.href}
-                    href={n.soon ? "#" : n.href}
-                    aria-disabled={n.soon}
-                    onClick={n.soon ? (e) => e.preventDefault() : onNavigate}
-                    tabIndex={n.soon ? -1 : undefined}
-                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                      active
-                        ? "bg-white/12 font-semibold text-white"
-                        : n.soon
-                          ? "cursor-default text-white/45"
-                          : "text-white/80 hover:bg-white/6"
-                    }`}
-                  >
-                    {n.label}
-                    {n.soon && (
-                      <span className="rounded bg-white/7 px-1.5 py-0.5 text-[10px] font-medium text-white/50">
-                        soon
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
+              <div className="flex flex-col gap-0.5">
+                {open.items.map((n) => {
+                  const active = pathname === n.href;
+                  return (
+                    <Link
+                      key={n.href}
+                      href={n.soon ? "#" : n.href}
+                      aria-disabled={n.soon}
+                      onClick={n.soon ? (e) => e.preventDefault() : onNavigate}
+                      tabIndex={n.soon ? -1 : undefined}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                        active
+                          ? "bg-white/12 font-semibold text-white"
+                          : n.soon
+                            ? "cursor-default text-white/45"
+                            : "text-white/80 hover:bg-white/6"
+                      }`}
+                    >
+                      <NavIcon
+                        name={n.icon}
+                        className={active ? "text-white" : "text-white/50"}
+                      />
+                      <span className="truncate">{n.label}</span>
+                      {n.soon && (
+                        <span className="ml-auto rounded bg-white/7 px-1.5 py-0.5 text-[10px] font-medium text-white/50">
+                          soon
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </nav>
 
       {canPreview && (
         <div className="border-t border-white/10 p-3">
@@ -209,6 +282,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             View site ↗
           </a>
         </div>
+      </div>
       </div>
     </aside>
   );

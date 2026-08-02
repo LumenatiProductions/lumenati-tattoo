@@ -8,7 +8,7 @@ import {
   type ReportArtist,
 } from "@/lib/admin/reports-context";
 import { fmt, fmtPrecise } from "@/lib/admin/calc";
-import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, StatRow, Badge, Dot } from "@/components/admin/ui";
 import ReviewVelocity from "@/components/admin/ReviewVelocity";
 import Insights from "@/components/admin/Insights";
 
@@ -108,42 +108,40 @@ function ReportsInner() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-          <p className="text-sm text-white/65">
-            Shop-wide financials, per-artist roll-ups, and 1099 prep. Admins only.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PRESETS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPreset(p.key)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                preset === p.key
-                  ? "bg-white/14 text-white"
-                  : "border border-white/12 text-white/75 hover:bg-white/6"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-          {preset === "year" && (
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Reports"
+        subtitle="Shop-wide financials, per-artist roll-ups, and 1099 prep. Admins only."
+        action={
+          <>
+            {PRESETS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPreset(p.key)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                  preset === p.key
+                    ? "bg-white/14 text-white"
+                    : "border border-white/12 text-white/75 hover:bg-white/6"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+            {preset === "year" && (
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
+        }
+      />
 
       {data && (
         <div className="mb-5 text-xs text-white/55">
@@ -157,13 +155,11 @@ function ReportsInner() {
           <div className="px-4 py-10 text-center text-sm text-white/65">{error}</div>
         </Card>
       ) : loading && !data ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Crunching the numbers…</div>
-        </Card>
+        <Empty>Crunching the numbers…</Empty>
       ) : data ? (
         <>
           {/* ── Shop revenue ── */}
-          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatRow>
             <StatCard label="Gross sales" value={fmt(data.shop.grossSales)} accent />
             <StatCard
               label="Service revenue"
@@ -188,7 +184,7 @@ function ReportsInner() {
               }
               tone={data.shop.rentOutstanding ? "warn" : "neutral"}
             />
-          </div>
+          </StatRow>
 
           <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard label="Card total" value={fmt(data.shop.cardTotal)} />
@@ -196,7 +192,7 @@ function ReportsInner() {
             <StatCard
               label="Renter pass-through"
               value={fmt(data.shop.renterPassThrough)}
-              sub="their card sales — not shop income"
+              sub="their card sales, not shop income"
             />
             <StatCard label="Gusto wages (period)" value={fmt(data.shop.gustoWages)} sub="split artists' share + tips" />
           </div>
@@ -248,7 +244,7 @@ function ReportsInner() {
                       <td className="px-4 py-2.5 tnum text-white/75">{fmt(a.grossTips)}</td>
                       <td className="px-4 py-2.5 tnum text-emerald-400">{fmt(a.shopCut)}</td>
                       <td className="px-4 py-2.5 tnum font-medium">
-                        {a.payType === "payroll_salary" ? "—" : fmt(a.artistEarnings)}
+                        {a.payType === "payroll_salary" ? "·" : fmt(a.artistEarnings)}
                       </td>
                     </tr>
                   ))}

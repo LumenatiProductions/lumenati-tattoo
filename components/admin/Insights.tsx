@@ -66,7 +66,7 @@ export default function Insights() {
         />
         <StatCard
           label="Top client"
-          value={data.topClients[0] ? fmt(data.topClients[0].spentCents) : "—"}
+          value={data.topClients[0] ? fmt(data.topClients[0].spentCents) : "·"}
           sub={data.topClients[0]?.name ?? "no spend data yet"}
         />
       </div>

@@ -162,7 +162,7 @@ export default function GoalsPage() {
         </button>
         {saveState === "saved" && <span className="text-sm font-medium text-emerald-400">Saved</span>}
         {saveState === "error" && (
-          <span className="text-sm font-medium text-rose-400">Couldn&apos;t save — try again.</span>
+          <span className="text-sm font-medium text-rose-400">Couldn&apos;t save, try again.</span>
         )}
       </div>
     </div>

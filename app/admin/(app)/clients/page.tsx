@@ -5,7 +5,7 @@ import { useClients, type Client, type ClientPatch } from "@/lib/admin/clients-c
 import { useBookings } from "@/lib/admin/bookings-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
-import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, StatRow, Badge, Dot } from "@/components/admin/ui";
 
 const money = (cents: number) =>
   (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -17,7 +17,7 @@ const fullName = (c: Client) => `${c.first_name} ${c.last_name}`.trim() || "Unna
 const fmtDate = (iso: string | null) =>
   iso
     ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : "—";
+    : "·";
 
 export default function ClientsPage() {
   const { clients, loading, error, total, newThisMonth, addClient, updateClient, syncFromSquare, refresh } =
@@ -100,38 +100,36 @@ export default function ClientsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-          <p className="text-sm text-white/65">
-            One record per person who comes in — contact, history, and who they sit with.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAdding((v) => !v)}
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
-          >
-            {adding ? "Close" : "New client"}
-          </button>
-          {canSync && (
+      <PageHeader
+        title="Clients"
+        subtitle="One record per person who comes in. Contact, history, and who they sit with."
+        action={
+          <>
             <button
-              onClick={runSync}
-              disabled={syncing}
-              className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
+              onClick={() => setAdding((v) => !v)}
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
             >
-              {syncing ? "Syncing…" : "Sync from Square"}
+              {adding ? "Close" : "New client"}
             </button>
-          )}
-        </div>
-      </div>
+            {canSync && (
+              <button
+                onClick={runSync}
+                disabled={syncing}
+                className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
+              >
+                {syncing ? "Syncing…" : "Sync from Square"}
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Clients" value={String(total)} accent />
         <StatCard label="New this month" value={String(newThisMonth)} tone={newThisMonth ? "good" : "neutral"} />
         <StatCard label="Returning" value={`${returningRate}%`} sub={`${returning} came back`} />
         <StatCard label="Source" value={fromSquare ? "Square + manual" : "Manual"} sub={fromSquare ? "synced nightly" : "auto-pull not run yet"} />
-      </div>
+      </StatRow>
 
       {/* Bring them back — the retention flywheel's fuel, from data already on file. */}
       <div className="mb-5">
@@ -148,7 +146,7 @@ export default function ClientsPage() {
               key={key}
               onClick={() => setRetView((v) => (v === key ? null : key))}
               className={`rounded-xl border px-4 py-3 text-left transition ${
-                retView === key ? "border-brand bg-brand/5" : "border-white/12 bg-white/6 hover:bg-white/5"
+                retView === key ? "border-white/12 bg-white/14" : "border-white/12 bg-white/6 hover:bg-white/5"
               }`}
             >
               <div className="tnum text-2xl font-bold">{count}</div>
@@ -204,21 +202,17 @@ export default function ClientsPage() {
       </SectionTitle>
 
       {loading ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Loading clients…</div>
-        </Card>
+        <Empty>Loading clients…</Empty>
       ) : error ? (
         <Card>
           <div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div>
         </Card>
       ) : filtered.length === 0 ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            {clients.length === 0
-              ? "No clients yet. Add a walk-in above, or sync from Square."
-              : "No clients match that search."}
-          </div>
-        </Card>
+        <Empty>
+          {clients.length === 0
+            ? "No clients yet. Add a walk-in above, or sync from Square."
+            : "No clients match that search."}
+        </Empty>
       ) : (
         <Card className="divide-y divide-white/9 overflow-hidden">
           {filtered.map((c) => (
@@ -231,7 +225,7 @@ export default function ClientsPage() {
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-medium">{fullName(c)}</span>
                   {c.source === "square" ? (
-                    <Badge tone="brand">Square</Badge>
+                    <Badge tone="neutral">Square</Badge>
                   ) : (
                     <Badge>Walk-in</Badge>
                   )}
@@ -248,7 +242,7 @@ export default function ClientsPage() {
               )}
               <div className="w-20 text-right">
                 <div className="tnum text-sm font-semibold">{money(c.lifetime_cents ?? c.total_spent_cents)}</div>
-                <div className="text-[11px] text-white/55">{fmtDate(c.last_seen)}</div>
+                <div className="text-[11px] text-white/70">{fmtDate(c.last_seen)}</div>
               </div>
             </button>
           ))}
@@ -431,7 +425,7 @@ function ClientDrawer({
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{fullName(client)}</h2>
-            {client.source === "square" ? <Badge tone="brand">Square</Badge> : <Badge>Walk-in</Badge>}
+            {client.source === "square" ? <Badge tone="neutral">Square</Badge> : <Badge>Walk-in</Badge>}
           </div>
           <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/7">Close</button>
         </div>
@@ -537,7 +531,7 @@ function MergeSection({
       }
       await onMerged();
     } catch {
-      setErr("Connection problem — try again.");
+      setErr("Connection problem, try again.");
     } finally {
       setBusy(false);
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, SectionTitle, StatCard } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, StatCard } from "@/components/admin/ui";
 import ProfitChart from "@/components/admin/ProfitChart";
 import { todayLocal } from "@/lib/dates";
 
@@ -89,39 +89,39 @@ export default function PnlPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Profit &amp; Loss</h1>
-          <p className="text-sm text-white/65">
-            Money in minus money out — the shop&apos;s actual profit. Admins only.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <select
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
-            className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
-          >
-            {YEARS.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-            <option value="all">All time (2021+)</option>
-          </select>
-          {(["month", "quarter", "year"] as const).map((g) => (
-            <button
-              key={g}
-              onClick={() => setGroup(g)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-                group === g ? "bg-white/14 text-white" : "border border-white/12 text-white/75 hover:bg-white/6"
-              }`}
+      <PageHeader
+        title="Profit & Loss"
+        subtitle={
+          <>Money in minus money out, the shop&apos;s actual profit. Admins only.</>
+        }
+        action={
+          <>
+            <select
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+              className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
             >
-              {g === "month" ? "Monthly" : g === "quarter" ? "Quarterly" : "Yearly"}
-            </button>
-          ))}
-        </div>
-      </div>
+              {YEARS.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+              <option value="all">All time (2021+)</option>
+            </select>
+            {(["month", "quarter", "year"] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => setGroup(g)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                  group === g ? "bg-white/14 text-white" : "border border-white/12 text-white/75 hover:bg-white/6"
+                }`}
+              >
+                {g === "month" ? "Monthly" : g === "quarter" ? "Quarterly" : "Yearly"}
+              </button>
+            ))}
+          </>
+        }
+      />
 
       {error && (
         <Card className="mb-5">
@@ -241,7 +241,7 @@ export default function PnlPage() {
             <Card>
               <div className="divide-y divide-white/8 text-sm">
                 <Line label="Shop's cut of tickets (splits + the owner's sales)" value={t.splitIncome} />
-                <Line label="Shop sales (no artist attached — walk-ins, guests, products)" value={t.unattributedIncome} />
+                <Line label="Shop sales (no artist attached: walk-ins, guests, products)" value={t.unattributedIncome} />
                 <Line label="Booth rent collected" value={t.rentIncome} />
                 <Line label="Forfeited deposits" value={t.forfeitedDeposits} />
                 <Line label="Total shop income" value={t.income} bold />
@@ -249,7 +249,7 @@ export default function PnlPage() {
             </Card>
             <p className="mt-2 px-1 text-xs text-white/55">
               Renter pass-through ({usd(t.passThrough)}) moved through the shop&apos;s reader but
-              belongs to the booth renters — it shows in Gross collected and its own column, never
+              belongs to the booth renters. It shows in Gross collected and its own column, never
               in income.
             </p>
           </div>
@@ -338,7 +338,7 @@ function TaxRateInline() {
         <>
           <span>
             Tax rate: <span className="tnum font-medium">{(bps / 100).toFixed(2)}%</span>
-            {bps === 0 && " — set it and the Cash Log can split tax out of product sales"}
+            {bps === 0 && " · set it and the Cash Log can split tax out of product sales"}
           </span>
           <button
             onClick={() => {

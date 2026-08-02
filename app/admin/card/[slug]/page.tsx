@@ -145,7 +145,7 @@ export default async function ArtistCardPage({
         <PrintButton />
       </div>
       <p className="card-hint">
-        Prints as a 4 x 6 card — pick 4x6 paper (or borderless) in the print
+        Prints as a 4 x 6 card. Pick 4x6 paper (or borderless) in the print
         dialog and turn margins off. Ships straight to mirror frames, station
         tables, or a stack next to the register.
       </p>

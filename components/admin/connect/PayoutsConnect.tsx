@@ -77,10 +77,10 @@ export default function PayoutsConnect() {
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          failed = d.error || "Could not check onboarding status — try again.";
+          failed = d.error || "Could not check onboarding status, try again.";
         }
       } catch {
-        failed = "Could not check onboarding status — try again.";
+        failed = "Could not check onboarding status, try again.";
       }
       setBusyId(null);
       await load();
@@ -127,7 +127,7 @@ export default function PayoutsConnect() {
       <Card>
         <div className="border-b border-white/8 px-4 py-3 text-xs text-white/65">
           {configured
-            ? "Your shop's own Stripe account. Card sales for payroll artists and the shop land here, in your balance — never held in Lumenati's. Clients cover the card fee at checkout, so you keep 100% of every rate."
+            ? "Your shop's own Stripe account. Card sales for payroll artists and the shop land here, in your balance, never held in Lumenati's. Clients cover the card fee at checkout, so you keep 100% of every rate."
             : "Add Stripe keys to link your shop's account. Until then card sales charge the platform account."}
         </div>
         {error && busyId === "shop" && <div className="px-4 py-2 text-sm text-rose-400">{error}</div>}
@@ -180,7 +180,7 @@ export default function PayoutsConnect() {
       <Card>
         <div className="border-b border-white/8 px-4 py-3 text-xs text-white/65">
           {configured
-            ? "Linked renters get every card sale sent straight to their own bank — 100%, nothing held back. Stripe files their 1099. Rent stays on its own invoice."
+            ? "Linked renters get every card sale sent straight to their own bank. 100%, nothing held back. Stripe files their 1099. Rent stays on its own invoice."
             : "Add Stripe keys to send renters' card sales straight to their banks. Until then, pass sales through manually below."}
         </div>
         {error && <div className="px-4 py-2 text-sm text-rose-400">{error}</div>}

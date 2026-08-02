@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRole } from "@/lib/admin/role-context";
-import { Card } from "@/components/admin/ui";
+import { Card, PageHeader } from "@/components/admin/ui";
 
 // Billing — the shop's Lumenati membership (owner-only). Three plans:
 // Artist $99 (solo chair), Shop $199 + $79/seat, Founding 100 $49/seat locked
@@ -109,8 +109,7 @@ export default function BillingPage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-xl font-semibold text-white">Billing</h1>
-      <p className="mb-5 mt-1 text-sm text-white/60">Your Lumenati membership.</p>
+      <PageHeader title="Billing" subtitle="Your Lumenati membership." />
 
       {justPaid && (
         <Card className="mb-4 border-emerald-400/30 p-4 text-sm text-emerald-300">

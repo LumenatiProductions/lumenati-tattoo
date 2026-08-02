@@ -87,7 +87,7 @@ export default function RoomEditorPage() {
                     : "text-white/55"
               }`}
             >
-              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Couldn't save — retry your last edit"}
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Couldn't save, retry your last edit"}
             </span>
           )}
           {role === "owner" && (
@@ -350,6 +350,32 @@ export default function RoomEditorPage() {
               src={`/${artist.slug}`}
               title="Live page preview"
               className="h-[760px] w-full border-0 bg-black"
+              onLoad={(e) => {
+                // Preview is look-only: the framed page is the real site, so
+                // swallow link clicks and form submits or the frame becomes a
+                // browser for the whole site. Scroll and animations stay live.
+                const doc = e.currentTarget.contentDocument;
+                if (!doc) return;
+                doc.addEventListener(
+                  "click",
+                  (ev) => {
+                    const a = (ev.target as Element | null)?.closest?.("a");
+                    if (a) {
+                      ev.preventDefault();
+                      ev.stopPropagation();
+                    }
+                  },
+                  true,
+                );
+                doc.addEventListener(
+                  "submit",
+                  (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                  },
+                  true,
+                );
+              }}
             />
           </Card>
         </div>

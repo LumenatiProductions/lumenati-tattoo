@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useCash, type CashEntry } from "@/lib/admin/cash-context";
 import { fmtPrecise } from "@/lib/admin/calc";
-import { Card, SectionTitle, Badge, Dot, StatCard } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, StatRow, Badge, Dot, StatCard } from "@/components/admin/ui";
 import { todayLocal } from "@/lib/dates";
 
 // Real drawer log backed by /api/cash (cash_entries). Until the schema is
@@ -51,18 +51,14 @@ export default function CashPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Cash Log</h1>
-        <p className="text-sm text-white/65">
-          Cash the shop is holding, live. Artists log it at the chair, tap when they
-          hand it off, you tap when the stack is in your hand — reconciling is just
-          confirming the count.
-        </p>
-      </div>
+      <PageHeader
+        title="Cash Log"
+        subtitle="Cash the shop is holding, live. Artists log it at the chair, tap when they hand it off, you tap when the stack is in your hand. Reconciling is just confirming the count."
+      />
 
       {!configured && !loading && (
         <div className="mb-5 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
-          <span className="font-semibold">Not set up yet</span> — run{" "}
+          <span className="font-semibold">Not set up yet.</span> Run{" "}
           <code className="font-mono">supabase/cash-schema.sql</code> in the Supabase SQL editor to
           turn the cash log on.
         </div>
@@ -84,7 +80,7 @@ export default function CashPage() {
       )}
       {inTransit.length > 0 && (
         <>
-          <SectionTitle>Incoming — tap when the stack is in your hand</SectionTitle>
+          <SectionTitle>Incoming · tap when the stack is in your hand</SectionTitle>
           <Card className="mb-5">
             <div className="divide-y divide-white/8">
               {inTransit.map((c) => {
@@ -98,7 +94,7 @@ export default function CashPage() {
                       <div className="text-xs text-white/60">
                         {fmtDate(c.date)}
                         {c.note ? ` · ${c.note}` : ""}
-                        {c.rent_invoice_id ? " · cash rent — Got it marks it paid" : ""}
+                        {c.rent_invoice_id ? " · cash rent · Got it marks it paid" : ""}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -130,7 +126,7 @@ export default function CashPage() {
 
       <DrawerPanel entriesVersion={entries.length} />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Cash logged" value={fmtPrecise(totalCents)} sub="all entries" />
         <StatCard
           label="Unreconciled"
@@ -139,7 +135,7 @@ export default function CashPage() {
         />
         <StatCard label="Entries" value={String(entries.length)} />
         <StatCard label="Reconciled" value={`${doneCount}/${entries.length}`} tone="good" />
-      </div>
+      </StatRow>
 
       {configured && <MerchQuickSale onSold={refresh} />}
 
@@ -202,8 +198,8 @@ export default function CashPage() {
                       {a?.name ?? "Shop"}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">{c.note || <span className="text-white/45">—</span>}</td>
-                  <td className="px-4 py-2.5 text-white/60">{c.entered_by ?? "—"}</td>
+                  <td className="px-4 py-2.5">{c.note || <span className="text-white/45">·</span>}</td>
+                  <td className="px-4 py-2.5 text-white/60">{c.entered_by ?? "·"}</td>
                   <td className="tnum px-4 py-2.5 text-right font-medium">{fmtPrecise(c.amount_cents)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <span className="inline-flex items-center gap-2">
@@ -311,8 +307,8 @@ function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
         const os = d.session.over_short_cents as number;
         setMsg(
           os === 0
-            ? "Drawer closed — counted exactly to the penny."
-            : `Drawer closed — ${os > 0 ? "over" : "short"} ${fmtPrecise(Math.abs(os))}.`,
+            ? "Drawer closed, counted exactly to the penny."
+            : `Drawer closed, ${os > 0 ? "over" : "short"} ${fmtPrecise(Math.abs(os))}.`,
         );
       }
       await load();
@@ -339,7 +335,7 @@ function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
               </div>
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-wide text-white/60">Expected in drawer</div>
-                <div className="tnum text-sm font-semibold">{expectedSoFar !== null ? fmtPrecise(expectedSoFar) : "—"}</div>
+                <div className="tnum text-sm font-semibold">{expectedSoFar !== null ? fmtPrecise(expectedSoFar) : "·"}</div>
               </div>
               <label className="block">
                 <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Counted ($)</span>
@@ -455,7 +451,7 @@ function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
       return;
     }
     setCart({});
-    setMsg(`Sold — ${fmtPrecise(d.totalCents)} logged, stock updated.`);
+    setMsg(`Sold. ${fmtPrecise(d.totalCents)} logged, stock updated.`);
     await onSold();
   };
 
@@ -465,7 +461,7 @@ function MerchQuickSale({ onSold }: { onSold: () => Promise<void> | void }) {
     <Card className="mb-5">
       <div className="p-4">
         <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-white/60">
-          Merch — cash sale
+          Merch · cash sale
         </div>
         <div className="flex flex-wrap gap-2">
           {products.map((p) => {

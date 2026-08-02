@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ExpensesProvider, useExpenses, type ExpenseInput } from "@/lib/admin/expenses-context";
 import { useInventory } from "@/lib/admin/inventory-context";
 import { expensesCsv, downloadCsv } from "@/lib/books/export";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 import StripeLedger from "@/components/admin/books/StripeLedger";
 import { todayLocal } from "@/lib/dates";
 
@@ -28,13 +28,10 @@ function Inner() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Expenses &amp; Books</h1>
-        <p className="text-sm text-white/65">
-          The shop&apos;s outgoing money (supplies, rent, utilities, software). With Reports + Stripe,
-          this is your full books — hand the export to your accountant instead of QuickBooks.
-        </p>
-      </div>
+      <PageHeader
+        title="Expenses & Books"
+        subtitle="The shop's outgoing money (supplies, rent, utilities, software). With Reports + Stripe, this is your full books. Hand the export to your accountant instead of QuickBooks."
+      />
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total logged" value={usd(totalCents)} accent />
@@ -92,7 +89,7 @@ function Inner() {
                     <Badge tone="neutral">{e.category}</Badge>
                   </td>
                   <td className="px-4 py-2.5">
-                    {e.vendor || <span className="text-white/45">—</span>}
+                    {e.vendor || <span className="text-white/45">·</span>}
                     {e.note && <div className="text-xs text-white/55">{e.note}</div>}
                     {e.receipt_url && (
                       <a
@@ -229,7 +226,7 @@ function RecurringBills({ onPosted }: { onPosted: () => Promise<void> }) {
       <Card>
         {bills.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-white/55">
-            No recurring bills yet. Add the shop lease, utilities, and software here — they post to
+            No recurring bills yet. Add the shop lease, utilities, and software here. They post to
             expenses automatically when due, so the P&amp;L stays real.
           </div>
         ) : (

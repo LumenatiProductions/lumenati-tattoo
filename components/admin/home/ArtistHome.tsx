@@ -58,7 +58,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
             label="Shop is holding"
             value={fmt(balance.passThroughOwed)}
             tone="good"
-            sub="your card sales — passed through 100%"
+            sub="your card sales, passed through 100%"
           />
         ) : payType === "payroll_split" ? (
           <StatCard

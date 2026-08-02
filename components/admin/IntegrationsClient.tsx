@@ -124,7 +124,7 @@ export default function IntegrationsClient({
           <Card>
             {members.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-white/60">
-                No team members yet — click <span className="font-medium">Sync now</span> to pull
+                No team members yet. Click <span className="font-medium">Sync now</span> to pull
                 them from Square.
               </div>
             ) : (
@@ -143,7 +143,7 @@ export default function IntegrationsClient({
                         onChange={(e) => setArtist(m.square_id, e.target.value)}
                         className="rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
                       >
-                        <option value="">— not an artist —</option>
+                        <option value="">· not an artist ·</option>
                         {artists.map((art) => (
                           <option key={art.id} value={art.id}>
                             {art.name}

@@ -10,7 +10,7 @@ import {
 import { useClients } from "@/lib/admin/clients-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
-import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, StatRow, Badge, Dot } from "@/components/admin/ui";
 import RequestsInbox from "@/components/admin/RequestsInbox";
 import WeekCalendar from "@/components/admin/WeekCalendar";
 import PayLinkDialog from "@/components/admin/PayLinkDialog";
@@ -149,46 +149,44 @@ export default function BookingsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bookings</h1>
-          <p className="text-sm text-white/65">
-            The calendar where the day runs — and where deposits get applied or forfeited.
-          </p>
-        </div>
-        {canWrite && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAdding((v) => !v)}
-              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
-            >
-              {adding ? "Close" : "New booking"}
-            </button>
-            <button
-              onClick={() => setAdHocPayLink(true)}
-              className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
-            >
-              Pay link
-            </button>
-            {canSync && (
+      <PageHeader
+        title="Bookings"
+        subtitle="The calendar where the day runs, and where deposits get applied or forfeited."
+        action={
+          canWrite ? (
+            <>
               <button
-                onClick={runSync}
-                disabled={syncing}
-                className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
+                onClick={() => setAdding((v) => !v)}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
               >
-                {syncing ? "Syncing…" : "Sync from Square"}
+                {adding ? "Close" : "New booking"}
               </button>
-            )}
-          </div>
-        )}
-      </div>
+              <button
+                onClick={() => setAdHocPayLink(true)}
+                className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
+              >
+                Pay link
+              </button>
+              {canSync && (
+                <button
+                  onClick={runSync}
+                  disabled={syncing}
+                  className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
+                >
+                  {syncing ? "Syncing…" : "Sync from Square"}
+                </button>
+              )}
+            </>
+          ) : undefined
+        }
+      />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Today" value={String(today)} accent sub="appointments" />
         <StatCard label="Deposits held" value={money(depositsHeld)} tone={depositsHeld ? "warn" : "neutral"} sub="awaiting outcome" />
         <StatCard label="No-show rate" value={`${noShowRate}%`} tone={noShowRate >= 15 ? "warn" : "neutral"} sub={`${noShows} of ${settled} settled`} />
         <StatCard label="Forfeited" value={money(forfeited)} sub="kept from no-shows" />
-      </div>
+      </StatRow>
 
       {syncMsg && (
         <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/75">
@@ -258,21 +256,17 @@ export default function BookingsPage() {
           onOpen={(id) => setSelectedId(id)}
         />
       ) : loading ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Loading bookings…</div>
-        </Card>
+        <Empty>Loading bookings…</Empty>
       ) : error ? (
         <Card>
           <div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div>
         </Card>
       ) : filtered.length === 0 ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            {bookings.length === 0
-              ? "No bookings yet. Add one above, or sync from Square."
-              : "Nothing in this view."}
-          </div>
-        </Card>
+        <Empty>
+          {bookings.length === 0
+            ? "No bookings yet. Add one above, or sync from Square."
+            : "Nothing in this view."}
+        </Empty>
       ) : (
         <div className="space-y-5">
           {groups.map(([day, items]) => (
@@ -349,7 +343,7 @@ function BookingRow({
       <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <div className="w-16 shrink-0">
           <div className="tnum text-sm font-semibold">{fmtTime(b.starts_at)}</div>
-          {b.ends_at && <div className="text-[11px] text-white/50">to {fmtTime(b.ends_at)}</div>}
+          {b.ends_at && <div className="text-[11px] text-white/70">to {fmtTime(b.ends_at)}</div>}
         </div>
         <Dot color={artistColor} />
         <div className="min-w-0 flex-1">
@@ -358,7 +352,7 @@ function BookingRow({
             <Badge tone={status.tone}>{status.label}</Badge>
             {deposit && <Badge tone={deposit.tone}>{deposit.label}</Badge>}
             {b.status === "scheduled" && b.confirmed_at && <Badge tone="good">Confirmed ✓</Badge>}
-            {b.checked_in_at && <Badge tone="brand">Here</Badge>}
+            {b.checked_in_at && <Badge tone="neutral">Here</Badge>}
           </div>
           <div className="mt-0.5 truncate text-xs text-white/60">
             {[artistName, b.service_desc, b.est_price_cents ? money(b.est_price_cents) : null]
@@ -653,7 +647,7 @@ function BookingDrawer({
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{clientName}</h2>
             <Badge tone={status.tone}>{status.label}</Badge>
-            {booking.source === "square" && <Badge tone="brand">Square</Badge>}
+            {booking.source === "square" && <Badge tone="neutral">Square</Badge>}
             {booking.source === "web_request" && <Badge>Web request</Badge>}
           </div>
           <button onClick={onClose} className="rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/7">Close</button>
@@ -664,7 +658,7 @@ function BookingDrawer({
           <div className="rounded-lg border border-white/10 bg-white/4 p-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-white/55">Deposit</div>
+                <div className="text-[11px] uppercase tracking-wide text-white/70">Deposit</div>
                 <div className="tnum mt-0.5 text-sm font-semibold">
                   {booking.deposit_cents ? money(booking.deposit_cents) : "None taken"}
                 </div>

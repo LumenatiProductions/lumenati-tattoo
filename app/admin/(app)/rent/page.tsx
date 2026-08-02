@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRent } from "@/lib/admin/rent-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { fmt } from "@/lib/admin/calc";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, StatCard, StatRow, Badge } from "@/components/admin/ui";
 
 export default function RentPage() {
   const { invoices, loading, outstandingCents, collectedCents, overdue } = useRent();
@@ -13,17 +13,14 @@ export default function RentPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Booth Rent</h1>
-        <p className="text-sm text-white/65">Who&apos;s paid, who&apos;s behind.</p>
-      </div>
+      <PageHeader title="Booth Rent" subtitle="Who's paid, who's behind." />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Outstanding" value={fmt(outstandingCents)} tone={outstandingCents ? "warn" : "good"} accent />
         <StatCard label="Overdue" value={String(overdue.length)} tone={overdue.length ? "warn" : "good"} sub={overdue.length ? "past due date" : "none"} />
         <StatCard label="Collected" value={fmt(collectedCents)} tone="good" sub="paid this cycle" />
         <StatCard label="Invoices" value={String(invoices.length)} />
-      </div>
+      </StatRow>
 
       <InHouseRent />
 
@@ -146,7 +143,7 @@ function InHouseRent() {
           </div>
         ) : visible.length === 0 ? (
           <div className="px-4 py-5 text-center text-sm text-white/55">
-            No {monthLabel} invoices yet — Generate makes one per booth renter, each with a pay link.
+            No {monthLabel} invoices yet. Generate makes one per booth renter, each with a pay link.
           </div>
         ) : (
           <div className="divide-y divide-white/8">

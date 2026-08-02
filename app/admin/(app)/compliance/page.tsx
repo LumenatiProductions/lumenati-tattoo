@@ -8,7 +8,7 @@ import {
 } from "@/lib/admin/compliance-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
 import { todayLocal } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -102,13 +102,10 @@ export default function CompliancePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Compliance</h1>
-        <p className="text-sm text-white/65">
-          Licenses, BBP certs, permits, insurance, and inspections — and a warning before anything
-          lapses. Owner-only.
-        </p>
-      </div>
+      <PageHeader
+        title="Compliance"
+        subtitle="Licenses, BBP certs, permits, insurance, and inspections, and a warning before anything lapses. Owner-only."
+      />
 
       <div className="mb-5 grid grid-cols-3 gap-3">
         <StatCard label="Items tracked" value={String(stats.tracked)} accent />
@@ -136,7 +133,7 @@ export default function CompliancePage() {
               {expiringSoon.map((it) => (
                 <div key={it.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">
-                    <span className="text-white/60">{artistName(it.artist_id)} — </span>
+                    <span className="text-white/60">{artistName(it.artist_id)} · </span>
                     {it.label?.trim() || kindLabel(it.kind)}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
@@ -163,15 +160,11 @@ export default function CompliancePage() {
       )}
 
       {loading ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Loading compliance…</div>
-        </Card>
+        <Empty>Loading compliance…</Empty>
       ) : items.length === 0 && !error ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            Nothing tracked yet. Add a license, cert, permit, or inspection above.
-          </div>
-        </Card>
+        <Empty>
+          Nothing tracked yet. Add a license, cert, permit, or inspection above.
+        </Empty>
       ) : (
         <>
           {/* Per-artist groups */}
@@ -245,9 +238,9 @@ function ItemTable({
                 </div>
                 {it.notes && <div className="mt-0.5 text-xs text-white/55">{it.notes}</div>}
               </td>
-              <td className="px-4 py-2.5 tnum text-white/75">{it.issued_on ?? "—"}</td>
+              <td className="px-4 py-2.5 tnum text-white/75">{it.issued_on ?? "·"}</td>
               <td className="px-4 py-2.5 tnum">
-                <div>{it.expires_on ?? "—"}</div>
+                <div>{it.expires_on ?? "·"}</div>
                 <div className="text-xs text-white/55">{expiryNote(it)}</div>
               </td>
               <td className="px-4 py-2.5">

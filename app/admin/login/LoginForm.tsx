@@ -37,7 +37,7 @@ export default function LoginForm() {
     if (mode === "phone") {
       const p = e164(phone);
       if (!p) {
-        setError("That number doesn't look right — use 10 digits.");
+        setError("That number doesn't look right. Use 10 digits.");
         return;
       }
       setBusy(true);
@@ -49,7 +49,7 @@ export default function LoginForm() {
       if (error) {
         setError(
           /signups not allowed|not found/i.test(error.message)
-            ? "That number isn't on the team yet — ask an admin to add you."
+            ? "That number isn't on the team yet. Ask an admin to add you."
             : error.message,
         );
       } else setSent(true);

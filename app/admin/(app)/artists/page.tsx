@@ -7,7 +7,7 @@ import { useRole } from "@/lib/admin/role-context";
 import { COLOR_PRESETS } from "@/lib/admin/room-content";
 import { createClient } from "@/lib/supabase/browser";
 import { statementFor, fmt, payTypeLabel } from "@/lib/admin/calc";
-import { Card, SectionTitle, Badge, Dot } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, Badge, Dot } from "@/components/admin/ui";
 import type { Artist, PayType } from "@/lib/admin/types";
 
 const slugify = (s: string) =>
@@ -128,22 +128,20 @@ export default function ArtistsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Artists &amp; Pay</h1>
-          <p className="text-sm text-white/65">
-            Your roster and how each one is paid. Adding an artist gives them their own public page.
-          </p>
-        </div>
-        {isOwner && (
-          <button
-            onClick={() => { setAdding((v) => !v); setMsg(null); }}
-            className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
-            {adding ? "Cancel" : "+ Add artist"}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Artists & Pay"
+        subtitle="Your roster and how each one is paid. Adding an artist gives them their own public page."
+        action={
+          isOwner ? (
+            <button
+              onClick={() => { setAdding((v) => !v); setMsg(null); }}
+              className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              {adding ? "Cancel" : "+ Add artist"}
+            </button>
+          ) : undefined
+        }
+      />
 
       {msg && !adding && (
         <div className="mb-4 rounded-lg border border-white/10 bg-white/6 px-3 py-2 text-xs text-white/75 shadow-sm">
@@ -190,7 +188,7 @@ export default function ArtistsPage() {
                     <div className="text-xs text-white/60">@{a.handle}</div>
                   </div>
                 </div>
-                <Badge tone="brand">{payTypeLabel(a)}</Badge>
+                <Badge tone="neutral">{payTypeLabel(a)}</Badge>
               </div>
 
               {editing ? (
@@ -269,7 +267,7 @@ function SquareHistoryPanel({ artists }: { artists: Artist[] }) {
       return;
     }
     const artistName = artists.find((a) => a.id === artistId)?.name ?? artistId;
-    setNote(`Linked ${m.name} to ${artistName} — ${data ?? 0} historical sales moved onto their name.`);
+    setNote(`Linked ${m.name} to ${artistName}. ${data ?? 0} historical sales moved onto their name.`);
     await load();
   };
 
@@ -278,7 +276,7 @@ function SquareHistoryPanel({ artists }: { artists: Artist[] }) {
       <SectionTitle>Square history not linked to anyone</SectionTitle>
       <p className="-mt-1 mb-3 text-xs text-white/60">
         Old Square logins with sales that currently count as shop revenue. If one of these people is on
-        (or joins) the roster, pick their name and their whole history follows them — tickets, reports,
+        (or joins) the roster, pick their name and their whole history follows them: tickets, reports,
         pay math, everything. Leave former guests unlinked on purpose.
       </p>
       {note && (

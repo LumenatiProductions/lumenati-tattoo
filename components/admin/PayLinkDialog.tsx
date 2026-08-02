@@ -84,7 +84,7 @@ export default function PayLinkDialog({
   };
 
   const smsText = url
-    ? `Lumenati Tattoo — ${KINDS.find((k) => k.id === kind)?.label.toLowerCase()} for ${usd(cents)}: ${url}`
+    ? `Lumenati Tattoo · ${KINDS.find((k) => k.id === kind)?.label.toLowerCase()} for ${usd(cents)}: ${url}`
     : "";
 
   const chip = (active: boolean) =>
@@ -106,7 +106,7 @@ export default function PayLinkDialog({
         {url ? (
           <div>
             <div className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">
-              Link ready — send it to the client. They can pay anytime; it never expires.
+              Link ready. Send it to the client. They can pay anytime; it never expires.
             </div>
             <div className="mt-3 flex items-center gap-2">
               <input

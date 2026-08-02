@@ -165,14 +165,14 @@ export default function ReviewVelocity() {
             <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
               <StatCard
                 label="Google rating"
-                value={view.latest?.rating ? `${Number(view.latest.rating).toFixed(1)} ★`.replace(" ★", "") : "—"}
+                value={view.latest?.rating ? `${Number(view.latest.rating).toFixed(1)} ★`.replace(" ★", "") : "·"}
                 sub={view.latest ? `as of ${view.latest.captured_on}` : "no snapshot yet"}
                 accent
               />
-              <StatCard label="Total reviews" value={view.latest ? String(view.latest.review_count) : "—"} />
+              <StatCard label="Total reviews" value={view.latest ? String(view.latest.review_count) : "·"} />
               <StatCard
                 label="New in 30 days"
-                value={view.gained30 === null ? "—" : `+${view.gained30}`}
+                value={view.gained30 === null ? "·" : `+${view.gained30}`}
                 tone="good"
                 sub={view.gained30 === null ? "needs two snapshots" : undefined}
               />
@@ -219,7 +219,7 @@ export default function ReviewVelocity() {
             <div className="mt-4 space-y-1 text-xs text-white/45">
               {!data.reviewLinkConfigured && (
                 <div>
-                  Review-request emails have no Google link yet — set GOOGLE_REVIEW_URL (owner checklist) and the asks
+                  Review-request emails have no Google link yet. Set GOOGLE_REVIEW_URL (owner checklist) and the asks
                   start pointing somewhere.
                 </div>
               )}

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useSocial, type SocialPost } from "@/lib/admin/social-context";
 import { useArtists } from "@/lib/admin/artists-context";
-import { Card, SectionTitle, StatCard, Badge, Dot } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, StatRow, Badge, Dot } from "@/components/admin/ui";
 import HealedQueue from "@/components/admin/HealedQueue";
 
 export default function SocialPage() {
@@ -45,21 +45,19 @@ export default function SocialPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Social</h1>
-        <p className="text-sm text-white/65">
-          One wall for the whole roster&apos;s work. Paste a post, curate, feature the best.
-        </p>
-      </div>
+      <PageHeader
+        title="Social"
+        subtitle="One wall for the whole roster's work. Paste a post, curate, feature the best."
+      />
 
       <HealedQueue />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Posts" value={String(posts.length)} accent />
         <StatCard label="Featured" value={String(featured.length)} tone={featured.length ? "good" : "neutral"} />
         <StatCard label="Artists covered" value={`${covered}/${artists.length}`} sub="have a post on the wall" />
         <StatCard label="Source" value="Manual" sub="auto-pull not connected yet" />
-      </div>
+      </StatRow>
 
       {/* Add by URL */}
       <Card className="mb-5">
@@ -107,15 +105,11 @@ export default function SocialPage() {
       {/* The wall */}
       <SectionTitle>The wall</SectionTitle>
       {loading ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Loading the wall…</div>
-        </Card>
+        <Empty>Loading the wall…</Empty>
       ) : posts.length === 0 ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            Nothing here yet. Paste an artist&apos;s post above to start the wall.
-          </div>
-        </Card>
+        <Empty>
+          Nothing here yet. Paste an artist&apos;s post above to start the wall.
+        </Empty>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((p) => (
@@ -170,7 +164,7 @@ function PostCard({
               {post.media_type === "video" ? "Reel" : "Post"} on Instagram ↗
             </span>
             <span className="px-4 text-[11px] text-white/50">
-              No preview — open to view (add a thumbnail later via Graph API)
+              No preview. Open to view (add a thumbnail later via Graph API)
             </span>
           </div>
         )}

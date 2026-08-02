@@ -116,7 +116,7 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
                 <td className="tnum px-4 py-2.5 text-right text-white/70">{fmt(st.shopCut)}</td>
                 <td className="tnum px-4 py-2.5 text-right font-semibold">
                   {st.net === 0 ? (
-                    <span className="text-white/45">—</span>
+                    <span className="text-white/45">·</span>
                   ) : st.artist.pay.type === "booth_rent" ? (
                     <span className="text-amber-400">{fmt(st.passThroughOwed)} to hand over</span>
                   ) : (

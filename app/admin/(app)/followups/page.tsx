@@ -5,7 +5,7 @@ import { useFollowups, type Followup } from "@/lib/admin/followups-context";
 import { useClients } from "@/lib/admin/clients-context";
 import { useRole } from "@/lib/admin/role-context";
 import { KIND_LABEL, type FollowupKind, type Template } from "@/lib/followups/templates";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, FilterChips, PageHeader, SectionTitle, StatCard, StatRow, Badge } from "@/components/admin/ui";
 import { todayLocal } from "@/lib/dates";
 
 const fmtDate = (iso: string | null) =>
@@ -15,7 +15,7 @@ const fmtDate = (iso: string | null) =>
         month: "short",
         day: "numeric",
       })
-    : "—";
+    : "·";
 
 const todayKey = () => todayLocal();
 
@@ -136,47 +136,43 @@ export default function FollowupsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Follow-ups</h1>
-          <p className="text-sm text-white/65">
-            Aftercare, review requests, and nudges — finished work turned into healed clients and reviews.
-          </p>
-        </div>
-        {canWrite && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={runScan}
-              disabled={scanning}
-              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-            >
-              {scanning ? "Scanning…" : "Scan now"}
-            </button>
-            <button
-              onClick={() => setShowTemplates((v) => !v)}
-              className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
-            >
-              {showTemplates ? "Hide templates" : "Templates"}
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Follow-ups"
+        subtitle="Aftercare, review requests, and nudges. Finished work turned into healed clients and reviews."
+        action={
+          canWrite ? (
+            <>
+              <button
+                onClick={runScan}
+                disabled={scanning}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                {scanning ? "Scanning…" : "Scan now"}
+              </button>
+              <button
+                onClick={() => setShowTemplates((v) => !v)}
+                className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6"
+              >
+                {showTemplates ? "Hide templates" : "Templates"}
+              </button>
+            </>
+          ) : undefined
+        }
+      />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Due now" value={String(dueToday)} accent tone={dueToday ? "warn" : "neutral"} sub="ready to send" />
         <StatCard label="Pending" value={String(pending)} sub="in the queue" />
         <StatCard label="Sent this week" value={String(sentThisWeek)} tone="good" sub="last 7 days" />
         <StatCard label="Failed" value={String(failed)} tone={failed ? "warn" : "neutral"} sub="need a retry" />
-      </div>
+      </StatRow>
 
       {/* How sending works — keep the domain-reputation guardrail visible. */}
       <div className="mb-5 flex items-start gap-2 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/70">
         <span className="font-semibold text-white/85">Sending</span>
         <span>
-          Use <span className="font-medium">Send now</span> to email a follow-up by hand at any time. Automated nightly
-          sending stays off until the Resend sending domain is confirmed (set{" "}
-          <code className="rounded bg-white/7 px-1">FOLLOWUPS_AUTOSEND=true</code>), so the queue fills safely in the
-          meantime.
+          Use <span className="font-medium">Send now</span> to send a follow-up by hand at any time. Automatic nightly
+          sending stays off until texting and email are switched on, so the queue fills safely in the meantime.
         </span>
       </div>
 
@@ -187,40 +183,24 @@ export default function FollowupsPage() {
       {showTemplates && canWrite && <TemplateEditor templates={templates} onSave={saveTemplate} />}
 
       {/* Filter segmented control */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === f.key ? "bg-white/14 text-white" : "border border-white/12 text-white/70 hover:bg-white/6"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterChips filters={FILTERS} value={filter} onChange={setFilter} />
 
       <SectionTitle action={<span className="text-xs text-white/55">{filtered.length} shown</span>}>
         Queue
       </SectionTitle>
 
       {loading ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Loading follow-ups…</div>
-        </Card>
+        <Empty>Loading follow-ups…</Empty>
       ) : error ? (
         <Card>
           <div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div>
         </Card>
       ) : filtered.length === 0 ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            {followups.length === 0
-              ? "Nothing queued yet. Complete a booking, then run “Scan now.”"
-              : "Nothing in this view."}
-          </div>
-        </Card>
+        <Empty>
+          {followups.length === 0
+            ? "Nothing queued yet. Complete a booking, then run “Scan now.”"
+            : "Nothing in this view."}
+        </Empty>
       ) : (
         <Card className="divide-y divide-white/9 overflow-hidden">
           {filtered.map((f) => (
@@ -273,7 +253,7 @@ function FollowupRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-medium">{clientName}</span>
-          <Badge tone="brand">{KIND_LABEL[f.kind]}</Badge>
+          <Badge tone="neutral">{KIND_LABEL[f.kind]}</Badge>
           <Badge tone={status.tone}>{status.label}</Badge>
           {f.channel === "sms" && <Badge tone="neutral">text</Badge>}
           {!reachable && <Badge tone="warn">No contact</Badge>}
@@ -431,7 +411,7 @@ function TemplateCard({
           <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/60">
             Body
             <span className="ml-1 normal-case text-white/50">
-              — tokens: {"{{first_name}}"} {"{{shop_name}}"}
+              · tokens: {"{{first_name}}"} {"{{shop_name}}"}
               {template.kind === "review_request" ? " {{review_link}}" : ""}
             </span>
           </span>

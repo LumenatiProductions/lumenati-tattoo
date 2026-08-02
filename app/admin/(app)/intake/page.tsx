@@ -6,16 +6,16 @@ import { useClients } from "@/lib/admin/clients-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useBookings } from "@/lib/admin/bookings-context";
 import { useRole } from "@/lib/admin/role-context";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, FilterChips, PageHeader, SectionTitle, StatCard, StatRow, Badge } from "@/components/admin/ui";
 import { ID_TYPES, MEDICAL_QUESTIONS, SIGNATURE_VIEWBOX, type IdType } from "@/lib/intake/forms";
 import { todayLocal } from "@/lib/dates";
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "·";
 const fmtDateTime = (iso: string | null) =>
   iso
     ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-    : "—";
+    : "·";
 
 const dayKey = (iso: string) => new Date(iso).toISOString().slice(0, 10);
 const isToday = (iso: string | null) => !!iso && dayKey(iso) === todayLocal();
@@ -35,7 +35,7 @@ const STATE_BADGE: Record<FormState, { tone: "neutral" | "good" | "warn" | "bad"
   complete: { tone: "good", label: "Signed + ID checked" },
   awaiting_id: { tone: "warn", label: "Needs ID check" },
   awaiting_sign: { tone: "warn", label: "Awaiting signature" },
-  age_flag: { tone: "bad", label: "Under-age — review" },
+  age_flag: { tone: "bad", label: "Under-age · review" },
   voided: { tone: "neutral", label: "Voided" },
 };
 
@@ -95,32 +95,30 @@ export default function IntakePage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Intake &amp; Consent</h1>
-          <p className="text-sm text-white/65">
-            Digital waivers, age/ID verification, and aftercare sign-off — on file before the needle touches skin.
-          </p>
-        </div>
-        {canWrite && (
-          <button
-            onClick={() => {
-              setAdding((v) => !v);
-              setFreshLink(null);
-            }}
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
-          >
-            {adding ? "Close" : "New form"}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Intake & Consent"
+        subtitle="Digital waivers, age/ID verification, and aftercare sign-off, on file before the needle touches skin."
+        action={
+          canWrite ? (
+            <button
+              onClick={() => {
+                setAdding((v) => !v);
+                setFreshLink(null);
+              }}
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
+            >
+              {adding ? "Close" : "New form"}
+            </button>
+          ) : undefined
+        }
+      />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow>
         <StatCard label="Unsigned today" value={String(unsignedToday)} accent tone={unsignedToday ? "warn" : "good"} sub="today's bookings w/o a form" />
         <StatCard label="Signed today" value={String(signedToday)} tone="good" sub="completed forms" />
         <StatCard label="Awaiting signature" value={String(awaitingSign)} tone={awaitingSign ? "warn" : "neutral"} sub="links sent / tablet pending" />
         <StatCard label="Needs ID check" value={String(awaitingId)} tone={awaitingId ? "warn" : "neutral"} sub="signed, ID not confirmed" />
-      </div>
+      </StatRow>
 
       {adding && canWrite && (
         <NewFormPanel
@@ -147,36 +145,22 @@ export default function IntakePage() {
         />
       )}
 
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === f.key ? "bg-white/14 text-white" : "border border-white/12 text-white/70 hover:bg-white/6"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterChips filters={FILTERS} value={filter} onChange={setFilter} />
 
       <SectionTitle action={<span className="text-xs text-white/55">{filtered.length} shown</span>}>
         Consent forms
       </SectionTitle>
 
       {loading ? (
-        <Card><div className="px-4 py-10 text-center text-sm text-white/55">Loading forms…</div></Card>
+        <Empty>Loading forms…</Empty>
       ) : error ? (
         <Card><div className="px-4 py-10 text-center text-sm text-amber-400">{error}</div></Card>
       ) : filtered.length === 0 ? (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">
-            {forms.length === 0
-              ? "No consent forms yet. Start one above — fill it on the shop tablet or text the client a link."
-              : "Nothing in this view."}
-          </div>
-        </Card>
+        <Empty>
+          {forms.length === 0
+            ? "No consent forms yet. Start one above. Fill it on the shop tablet or text the client a link."
+            : "Nothing in this view."}
+        </Empty>
       ) : (
         <Card className="divide-y divide-white/9 overflow-hidden">
           {filtered.map((f) => (
@@ -296,7 +280,7 @@ function NewFormPanel({
     <Card className="mb-5">
       {freshLink ? (
         <div className="p-4">
-          <div className="text-sm font-semibold">Form ready — share the signing link</div>
+          <div className="text-sm font-semibold">Form ready. Share the signing link</div>
           <p className="mt-1 text-xs text-white/65">
             Open it on the shop tablet for the client to sign now, or text/email it so they can fill it before they arrive.
           </p>
@@ -329,7 +313,7 @@ function NewFormPanel({
         <form onSubmit={submit} className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
           <Labeled label="Link to booking (optional)">
             <select className={input} value={f.bookingId} onChange={(e) => pickBooking(e.target.value)}>
-              <option value="">No booking — walk-in</option>
+              <option value="">No booking · walk-in</option>
               {bookings.map((b) => (
                 <option key={b.id} value={b.id}>{b.label}</option>
               ))}
@@ -418,7 +402,7 @@ function FormDrawer({
     setBusy(false);
     if (!res.ok) setMsg({ text: res.error || "Could not send.", err: true });
     else if (res.preview)
-      setMsg({ text: "Sending isn't configured yet — copy the link below and send it yourself.", err: true });
+      setMsg({ text: "Sending isn't configured yet. Copy the link below and send it yourself.", err: true });
     else setMsg({ text: `Sent to ${v}.`, err: false });
   };
 
@@ -445,7 +429,7 @@ function FormDrawer({
         <div className="space-y-5 p-5">
           {f.age_ok === false && !f.guardian_name && (
             <div className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-300">
-              Date of birth is below the minimum age. Do not proceed — an admin review and the guardian flow come first.
+              Date of birth is below the minimum age. Do not proceed. An admin review and the guardian flow come first.
             </div>
           )}
           {f.guardian_name && (
@@ -457,8 +441,8 @@ function FormDrawer({
 
           {/* Summary */}
           <Field label="Artist" value={artistName} />
-          <Field label="Placement" value={f.placement || "—"} />
-          <Field label="Signed name" value={f.signed_name || "—"} />
+          <Field label="Placement" value={f.placement || "·"} />
+          <Field label="Signed name" value={f.signed_name || "·"} />
           <Field label="Date of birth" value={`${fmtDate(f.dob)}${f.age_ok === true ? " · age OK" : ""}`} />
           <Field label="Signed at" value={fmtDateTime(f.signed_at)} />
           {f.created_by && <Field label="Started by" value={f.created_by} />}
@@ -510,7 +494,7 @@ function FormDrawer({
                   <div key={q.key} className="flex items-start justify-between gap-3 text-xs">
                     <span className="text-white/70">{q.label.replace(/^PLACEHOLDER —\s*/, "")}</span>
                     <span className={`shrink-0 font-medium ${String(answers[q.key]).toLowerCase() === "yes" ? "text-amber-300" : "text-white/60"}`}>
-                      {String(answers[q.key] ?? "—")}
+                      {String(answers[q.key] ?? "·")}
                     </span>
                   </div>
                 ))}
@@ -566,7 +550,7 @@ function FormDrawer({
 
           {f.voided && (
             <div className="rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-xs text-white/70">
-              Voided{f.void_reason ? ` — ${f.void_reason}` : ""}. Kept on file for the record.
+              Voided{f.void_reason ? ` · ${f.void_reason}` : ""}. Kept on file for the record.
             </div>
           )}
 

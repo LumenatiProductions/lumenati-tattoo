@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRole } from "@/lib/admin/role-context";
 import { fmtPrecise } from "@/lib/admin/calc";
-import { Card, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, StatRow, Badge } from "@/components/admin/ui";
 
 // Reconciliation: Stripe's view of the money next to our own records (payments,
 // Square sales mirror, cash log + drawer) for the current month. The point is
@@ -81,7 +81,7 @@ export default function ReconcilePage() {
         );
       }
     } catch {
-      setRefundErr("Refund failed — check the connection and try again.");
+      setRefundErr("Refund failed. Check the connection and try again.");
     } finally {
       setRefunding(null);
     }
@@ -117,13 +117,15 @@ export default function ReconcilePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Reconciliation</h1>
-        <p className="text-sm text-white/65">
-          Stripe&apos;s ledger against our records{monthLabel ? ` — ${monthLabel}` : ""}. When both
-          sides agree, the books are square.
-        </p>
-      </div>
+      <PageHeader
+        title="Reconciliation"
+        subtitle={
+          <>
+            Stripe&apos;s ledger against our records{monthLabel ? ` · ${monthLabel}` : ""}. When both
+            sides agree, the books are square.
+          </>
+        }
+      />
 
       {error && (
         <Card>
@@ -131,18 +133,16 @@ export default function ReconcilePage() {
         </Card>
       )}
       {!error && !data && (
-        <Card>
-          <div className="px-4 py-10 text-center text-sm text-white/55">Pulling both ledgers…</div>
-        </Card>
+        <Empty>Pulling both ledgers…</Empty>
       )}
 
       {data && (
         <>
           {/* Headline: do the two sides agree? */}
-          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatRow>
             <StatCard
               label="Stripe charged"
-              value={data.stripe.chargesCents !== undefined ? fmtPrecise(data.stripe.chargesCents) : "—"}
+              value={data.stripe.chargesCents !== undefined ? fmtPrecise(data.stripe.chargesCents) : "·"}
               sub="per Stripe, this month"
             />
             <StatCard
@@ -152,17 +152,17 @@ export default function ReconcilePage() {
             />
             <StatCard
               label="Difference"
-              value={diff !== null ? fmtPrecise(Math.abs(diff)) : "—"}
+              value={diff !== null ? fmtPrecise(Math.abs(diff)) : "·"}
               tone={diff === null ? "neutral" : Math.abs(diff) < 100 ? "good" : "warn"}
               sub={diff === null ? "Stripe not connected" : Math.abs(diff) < 100 ? "square" : diff > 0 ? "Stripe has more" : "we have more"}
               accent={diff !== null && Math.abs(diff) >= 100}
             />
             <StatCard
               label="Stripe fees"
-              value={data.stripe.feesCents !== undefined ? fmtPrecise(data.stripe.feesCents) : "—"}
+              value={data.stripe.feesCents !== undefined ? fmtPrecise(data.stripe.feesCents) : "·"}
               sub="this month"
             />
-          </div>
+          </StatRow>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {/* Stripe side */}
@@ -302,7 +302,7 @@ export default function ReconcilePage() {
               {data.recorded.pendingCount > 0 && (
                 <div className="mt-3 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
                   {data.recorded.pendingCount} payment link{data.recorded.pendingCount === 1 ? "" : "s"} still
-                  pending — unpaid links are normal, but stale ones are worth voiding.
+                  pending. Unpaid links are normal, but stale ones are worth voiding.
                 </div>
               )}
             </div>

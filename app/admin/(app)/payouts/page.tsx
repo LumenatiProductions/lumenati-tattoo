@@ -5,7 +5,7 @@ import { useRole } from "@/lib/admin/role-context";
 import { useSales } from "@/lib/admin/sales-context";
 import { useSettledStatements } from "@/lib/admin/settlements-context";
 import { fmt, type ArtistStatement } from "@/lib/admin/calc";
-import { Card, SectionTitle, Dot, MockBanner, StatCard } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, StatRow, Dot, MockBanner, StatCard } from "@/components/admin/ui";
 import PayoutsConnect from "@/components/admin/connect/PayoutsConnect";
 import GetPaidEarly from "@/components/admin/connect/GetPaidEarly";
 
@@ -57,7 +57,7 @@ export default function PayoutsPage() {
         note: isRenter
           ? `pass-through · card ${fmt(st.cardService)} svc + ${fmt(st.cardTips)} tips`
           : isContractor
-            ? `contractor paid · ${fmt(st.artistEarnings)} (${fmt(st.grossService)} svc, shop cut ${fmt(st.shopCut)}, tips ${fmt(st.grossTips)}) — 1099 basis`
+            ? `contractor paid · ${fmt(st.artistEarnings)} (${fmt(st.grossService)} svc, shop cut ${fmt(st.shopCut)}, tips ${fmt(st.grossTips)}) · 1099 basis`
             : `Gusto entry · ${fmt(st.artistEarnings)} wages (${fmt(st.grossService)} svc, shop cut ${fmt(st.shopCut)}, tips ${fmt(st.grossTips)})`,
       }),
     });
@@ -68,7 +68,7 @@ export default function PayoutsPage() {
     }
     setMsg(
       (isRenter
-        ? `${st.artist.name}'s sales passed through — clean through today.`
+        ? `${st.artist.name}'s sales passed through, clean through today.`
         : isContractor
           ? `${st.artist.name} paid through today. It counts toward their 1099.`
           : `${st.artist.name} entered into Gusto through today.`) +
@@ -80,14 +80,10 @@ export default function PayoutsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Pay</h1>
-        <p className="text-sm text-white/65">
-          Renters&apos; card money the shop is holding (theirs, 100%), and the wage numbers to
-          type into Gusto each payroll. Rent is billed separately — never taken out of anyone&apos;s
-          sales.
-        </p>
-      </div>
+      <PageHeader
+        title="Pay"
+        subtitle="Renters' card money the shop is holding (theirs, 100%), and the wage numbers to type into Gusto each payroll. Rent is billed separately, never taken out of anyone's sales."
+      />
       {!real && !loading && <MockBanner source="Square" />}
 
       {/* Stripe Connect — owner only. Onboarded renters get their card sales
@@ -99,7 +95,7 @@ export default function PayoutsPage() {
       {role === "owner" && <GetPaidEarly />}
 
       {role !== "artist" && (
-        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <StatRow cols={3}>
           <StatCard
             label="Holding for renters"
             value={fmt(renters.reduce((a, s) => a + s.passThroughOwed, 0))}
@@ -113,12 +109,12 @@ export default function PayoutsPage() {
             sub="split artists, this pay period"
           />
           <StatCard label="Rows to clear" value={String(renters.length + payroll.length)} />
-        </div>
+        </StatRow>
       )}
 
       {role !== "artist" && !settleConfigured && (
         <div className="mb-4 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
-          <span className="font-semibold">Settlement history is off</span> — run{" "}
+          <span className="font-semibold">Settlement history is off.</span> Run{" "}
           <code className="font-mono">supabase/settlements-schema.sql</code> in Supabase to make
           clearing a row stick.
         </div>
@@ -147,7 +143,7 @@ export default function PayoutsPage() {
             </div>
           </Card>
           <p className="mt-2 px-1 text-xs text-white/55">
-            Card sales collected on the shop&apos;s reader for booth renters — the shop holds it,
+            Card sales collected on the shop&apos;s reader for booth renters. The shop holds it,
             then hands over all of it. Rent lives on its own invoice.
           </p>
         </div>

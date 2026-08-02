@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/browser";
 import { useArtists } from "@/lib/admin/artists-context";
 import { ROLE_LABELS, useRole } from "@/lib/admin/role-context";
 import { normalizeRole } from "@/lib/admin/types";
-import { Card, SectionTitle, Badge } from "@/components/admin/ui";
+import { Card, PageHeader, SectionTitle, Badge } from "@/components/admin/ui";
 import type { Role } from "@/lib/admin/types";
 
 // The new process: two roles. Admins run the shop; artists get their own
@@ -85,7 +85,7 @@ function ShopPageCard({ myEmail }: { myEmail: string | null }) {
       if (upErr) throw new Error(upErr.message);
       setShop({ ...shop, logo_url: data.publicUrl });
     } catch (ex) {
-      setMsg(ex instanceof Error ? ex.message : "Logo upload failed — try again.");
+      setMsg(ex instanceof Error ? ex.message : "Logo upload failed, try again.");
     } finally {
       setBusy(false);
     }
@@ -228,7 +228,7 @@ export default function StaffPage() {
 
   const remove = async (em: string) => {
     if (em === myEmail) {
-      setMsg("You can't remove yourself — have another admin do it.");
+      setMsg("You can't remove yourself. Have another admin do it.");
       return;
     }
     if (!window.confirm(`Remove ${em}? They lose access immediately.`)) return;
@@ -240,13 +240,10 @@ export default function StaffPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Team</h1>
-        <p className="text-sm text-white/65">
-          Two roles: admins run the shop, artists run their chair. Add someone with their phone number
-          and they sign in with a text code — no passwords, nothing to set up.
-        </p>
-      </div>
+      <PageHeader
+        title="Team"
+        subtitle="Two roles: admins run the shop, artists run their chair. Add someone with their phone number and they sign in with a text code. No passwords, nothing to set up."
+      />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         <div>
@@ -276,11 +273,11 @@ export default function StaffPage() {
                       {p.full_name && <div className="text-xs text-white/60">{p.email}</div>}
                     </td>
                     <td className="tnum px-4 py-2.5 text-white/70">
-                      {p.phone ? prettyPhone(p.phone) : <span className="text-white/45">—</span>}
+                      {p.phone ? prettyPhone(p.phone) : <span className="text-white/45">·</span>}
                     </td>
                     <td className="px-4 py-2.5"><Badge tone="brand">{ROLE_LABELS[normalizeRole(p.role)]}</Badge></td>
                     <td className="px-4 py-2.5 text-white/70">
-                      {p.artist_id ? artists.find((a) => a.id === p.artist_id)?.name ?? p.artist_id : "—"}
+                      {p.artist_id ? artists.find((a) => a.id === p.artist_id)?.name ?? p.artist_id : "·"}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button

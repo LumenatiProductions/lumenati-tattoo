@@ -66,7 +66,7 @@ export function shopCoachTips(opts: {
       title: "The shop's rebook rate is the whole ballgame",
       body: `${rebooked.size} of the ${seen.size} clients the shop has seen in the last two months have a next session booked. Those ${missing} unbooked clients are ${usd(
         avgTicket * missing,
-      )} of near-certain work at your ${usd(avgTicket)} average ticket — make "book the next one in the chair" a house rule and this number moves in a week.`,
+      )} of near-certain work at your ${usd(avgTicket)} average ticket. Make "book the next one in the chair" a house rule and this number moves in a week.`,
       href: "/admin/followups",
     });
   }
@@ -75,7 +75,7 @@ export function shopCoachTips(opts: {
   if (opts.rentOutstandingCents > 0) {
     tips.push({
       title: `${usd(opts.rentOutstandingCents)} in booth rent is outstanding`,
-      body: "That's not revenue to chase — it's revenue already owed. Artists can pay by card straight from their phone (or declare cash at the desk), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
+      body: "That's not revenue to chase, it's revenue already owed. Artists can pay by card straight from their phone (or declare cash at the desk), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
       href: "/admin/rent",
     });
   }
@@ -93,7 +93,7 @@ export function shopCoachTips(opts: {
     if (share > 0.55) {
       tips.push({
         title: `${opts.artistNames.get(topId) ?? "One artist"} is ${Math.round(share * 100)}% of the shop`,
-        body: `Great for them — fragile for you. One vacation, one poached chair, and the month caves. The fix isn't slowing them down, it's filling the other books: push the quieter artists' flash walls and healed shots, and route walk-ins their way first.`,
+        body: `Great for them, fragile for you. One vacation, one poached chair, and the month caves. The fix isn't slowing them down, it's filling the other books: push the quieter artists' flash walls and healed shots, and route walk-ins their way first.`,
       });
     }
   }
@@ -120,7 +120,7 @@ export function shopCoachTips(opts: {
         title: `${DAY_NAMES[low.dow]}s run at ${Math.round((low.avg / top.avg) * 100)}% of a ${DAY_NAMES[top.dow]}`,
         body: `An average ${DAY_NAMES[top.dow]} brings the shop ${usd(top.avg)}; a ${DAY_NAMES[low.dow]} brings ${usd(
           low.avg,
-        )}. Quiet days are where flash events, walk-in specials, and guest spots pay for themselves — you're not inventing demand, you're moving it to where the chairs are empty.`,
+        )}. Quiet days are where flash events, walk-in specials, and guest spots pay for themselves. You're not inventing demand, you're moving it to where the chairs are empty.`,
       });
     }
   }
@@ -133,7 +133,7 @@ export function shopCoachTips(opts: {
   if (upcoming.length >= 6 && bare.length / upcoming.length > 0.6) {
     tips.push({
       title: `${bare.length} of ${upcoming.length} upcoming bookings hold no deposit`,
-      body: `A deposit is the difference between a no-show costing the client something and costing YOU the chair. Shops that require even $50 down see no-shows drop by half — the booking form takes a deposit in one field.`,
+      body: `A deposit is the difference between a no-show costing the client something and costing YOU the chair. Shops that require even $50 down see no-shows drop by half. The booking form takes a deposit in one field.`,
       href: "/admin/bookings",
     });
   }
@@ -142,7 +142,7 @@ export function shopCoachTips(opts: {
   if (opts.followupsDue >= 3) {
     tips.push({
       title: `${opts.followupsDue} follow-ups are sitting due`,
-      body: `Aftercare check-ins and healed-shot asks reopen conversations that end in bookings — and they're already written, waiting for a send. A follow-up costs nothing; a cold client costs the next piece.`,
+      body: `Aftercare check-ins and healed-shot asks reopen conversations that end in bookings, and they're already written, waiting for a send. A follow-up costs nothing; a cold client costs the next piece.`,
       href: "/admin/followups",
     });
   }

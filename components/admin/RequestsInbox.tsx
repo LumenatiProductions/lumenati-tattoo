@@ -69,8 +69,8 @@ export default function RequestsInbox() {
     if (body.action === "accept" && d.depositLink) {
       setMsg(
         d.depositLink.sent
-          ? `Booked — deposit link ${d.depositLink.via === "sms" ? "texted" : "emailed"} to the client.`
-          : `Booked — deposit link couldn't be sent (${(d.depositLink.reason || "unknown").toLowerCase()}). Copy it: ${d.depositLink.url}`,
+          ? `Booked. Deposit link ${d.depositLink.via === "sms" ? "texted" : "emailed"} to the client.`
+          : `Booked. Deposit link couldn't be sent (${(d.depositLink.reason || "unknown").toLowerCase()}). Copy it: ${d.depositLink.url}`,
       );
     }
     setOpenId(null);
@@ -108,8 +108,8 @@ export default function RequestsInbox() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold">{q.name}</span>
-                    <Badge tone="brand">{artist?.name ?? "Up for grabs"}</Badge>
-                    <span className="text-[11px] text-white/50">{ago(q.created_at)}</span>
+                    <Badge tone="neutral">{artist?.name ?? "Up for grabs"}</Badge>
+                    <span className="text-[11px] text-white/70">{ago(q.created_at)}</span>
                   </div>
                   <div className="mt-1 text-sm text-white/85">{q.idea}</div>
                   <div className="mt-0.5 text-xs text-white/60">
