@@ -14,7 +14,13 @@ import { NavIcon } from "@/components/admin/NavIcon";
 
 type Phase = "idle" | "capturing" | "sheet" | "sending" | "done" | "error";
 
-export default function BugReporter({ variant = "float" }: { variant?: "float" | "rail" }) {
+export default function BugReporter({
+  variant = "float",
+  collapsed = false,
+}: {
+  variant?: "float" | "rail";
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("idle");
   const [note, setNote] = useState("");
@@ -111,7 +117,7 @@ export default function BugReporter({ variant = "float" }: { variant?: "float" |
     boxShadow: "0 6px 24px rgba(0,0,0,0.4)",
   };
 
-  // Sidebar trigger: matches the slim-rail buttons (icon + tiny uppercase label).
+  // Sidebar trigger: a nav-style row (icon + label), matching the other rows.
   if (variant === "rail") {
     if (phase === "sheet" || phase === "sending") {
       // fall through to the shared sheet below
@@ -122,15 +128,13 @@ export default function BugReporter({ variant = "float" }: { variant?: "float" |
           data-bug-reporter="1"
           onClick={open}
           disabled={phase === "capturing"}
-          title="Report a bug"
-          className={`flex w-full flex-col items-center gap-1 rounded-lg py-2 ${
-            done ? "text-emerald-400" : "text-white/65 hover:bg-white/6"
-          }`}
+          title={collapsed ? "Report a bug" : undefined}
+          className={`flex w-full items-center gap-3 rounded-lg py-2 text-sm ${
+            collapsed ? "justify-center px-0" : "px-3"
+          } ${done ? "text-emerald-400" : "text-white/75 hover:bg-white/6"}`}
         >
-          <NavIcon name="bug" className="h-[18px] w-[18px]" />
-          <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
-            {phase === "capturing" ? "Wait…" : done ? "Sent" : "Report bug"}
-          </span>
+          <NavIcon name="bug" className="h-[18px] w-[18px] shrink-0" />
+          {!collapsed && <span>{phase === "capturing" ? "Grabbing…" : done ? "Sent, thanks" : "Report a bug"}</span>}
         </button>
       );
     }

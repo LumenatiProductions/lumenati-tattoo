@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRent } from "@/lib/admin/rent-context";
 import { useCash } from "@/lib/admin/cash-context";
 import { useSettledStatements } from "@/lib/admin/settlements-context";
 import { shopSummary, fmt } from "@/lib/admin/calc";
-import { StatCard, Card, SectionTitle, MockBanner } from "@/components/admin/ui";
+import { StatCard, Card, SectionTitle, MockBanner, Button, PlusIcon } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
 import GetSetUp from "@/components/admin/home/GetSetUp";
 import ShopCoach from "@/components/admin/home/ShopCoach";
@@ -51,15 +50,9 @@ export default function OwnerHome() {
         title="Shop Overview"
         sub={real ? "Live" : "Period to date · preview data"}
         action={
-          <Link
-            href="/admin/clients"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/12 border-t-white/25 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white/90 shadow-sm transition hover:border-white/20 hover:bg-white/[0.11]"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4 text-white/60" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+          <Button href="/admin/clients" icon={<PlusIcon />}>
             New client
-          </Link>
+          </Button>
         }
       />
 

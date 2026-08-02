@@ -92,21 +92,20 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   },
 ];
 
-// Category glyphs for the slim rail.
-const CAT_ICONS: Record<string, NavIconName> = {
-  "Front of house": "foh",
-  Marketing: "marketingcat",
-  Finances: "finances",
-  Shop: "shopcat",
-  Admin: "admincat",
-};
-
 // Membership state, resolved server-side in the layout (billing columns are
 // server-only). locked = trial over + no live subscription -> the shell shows
 // only the Billing page.
 export type BillingShellState = { locked: boolean; trialDaysLeft: number | null };
 
-function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+function Sidebar({
+  onNavigate,
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  onNavigate?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const { role, setRole, asArtistId, setAsArtistId, canPreview, email } = useRole();
   const { artists } = useArtists();
   const pathname = usePathname();
@@ -131,192 +130,127 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     router.refresh();
   };
 
-  // Two-rail nav: the slim left rail holds Overview (and an artist's My Page)
-  // plus one button per category; picking a category pulls out the second rail
-  // with that category's pages. The open category follows the page you're on.
-  const topItems = sections.find((s) => s.title === null)?.items ?? [];
-  const catSections = sections.filter((s) => s.title !== null);
-  const currentCat =
-    catSections.find((s) => s.items.some((n) => pathname === n.href))?.title ?? null;
-  const [openCat, setOpenCat] = useState<string | null>(null);
-  useEffect(() => {
-    if (currentCat) setOpenCat(currentCat);
-  }, [currentCat]);
-  // openCat null = collapsed to just the slim rail. Clicking a category opens its
-  // flyout; clicking the open one (or the collapse chevron) closes it again.
-  const open = openCat ? (catSections.find((s) => s.title === openCat) ?? null) : null;
+  // One sidebar. Sections stack down it with small headers; collapsing hides the
+  // labels and narrows to an icon rail. The account controls (View as, View site,
+  // Log out) live pinned at the bottom, where they belong — no second panel.
+  const pad = collapsed ? "justify-center px-0" : "px-3";
+  const rowCls = (active: boolean) =>
+    `flex items-center gap-3 rounded-lg py-2 text-sm transition ${pad} ${
+      active ? "bg-white/12 font-semibold text-white" : "text-white/75 hover:bg-white/6"
+    }`;
 
   return (
-    <aside className="flex h-full shrink-0 border-r border-white/10 bg-white/6">
-      <div className="flex w-20 shrink-0 flex-col border-r border-white/10">
-        <div className="flex justify-center px-2 py-4">
-          <LumenatiLogo bg="dark" className="w-11" />
-        </div>
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-1.5 pb-2">
-          {topItems.map((n) => {
-            const active = pathname === n.href;
-            return (
-              <Link
-                key={n.href}
-                href={n.href}
-                onClick={onNavigate}
-                title={n.label}
-                className={`flex flex-col items-center gap-1 rounded-lg py-2 ${
-                  active ? "bg-white/12 text-white" : "text-white/65 hover:bg-white/6"
-                }`}
-              >
-                <NavIcon name={n.icon} className="h-[18px] w-[18px]" />
-                <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
-                  {n.label}
-                </span>
-              </Link>
-            );
-          })}
-          {catSections.map((s) => {
-            const isOpen = open?.title === s.title;
-            const holdsPage = s.items.some((n) => pathname === n.href);
-            return (
-              <button
-                key={s.title}
-                onClick={() => setOpenCat((c) => (c === s.title ? null : s.title))}
-                title={s.title ?? ""}
-                className={`flex flex-col items-center gap-1 rounded-lg py-2 ${
-                  isOpen
-                    ? "bg-white/12 text-white"
-                    : holdsPage
-                      ? "text-white/85 hover:bg-white/6"
-                      : "text-white/65 hover:bg-white/6"
-                }`}
-              >
-                <NavIcon name={CAT_ICONS[s.title ?? ""]} className="h-[18px] w-[18px]" />
-                <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
-                  {s.title}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
-        {/* Always-on utilities: reachable whether the flyout is open or collapsed. */}
-        <div className="flex flex-col gap-1 border-t border-white/10 px-1.5 py-2">
-          <BugReporter variant="rail" />
-          <a
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-            title="View site"
-            className="flex flex-col items-center gap-1 rounded-lg py-2 text-white/65 hover:bg-white/6"
-          >
-            <NavIcon name="viewsite" className="h-[18px] w-[18px]" />
-            <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
-              View site
-            </span>
-          </a>
+    <aside
+      className={`flex h-full shrink-0 flex-col border-r border-white/10 bg-white/[0.04] ${
+        collapsed ? "w-16" : "w-60"
+      }`}
+    >
+      {/* Header: logo + collapse toggle on one line, so nothing gets boxed in. */}
+      <div className={`flex items-center gap-2 py-4 ${collapsed ? "justify-center px-2" : "justify-between px-4"}`}>
+        {!collapsed && <LumenatiLogo bg="dark" className="w-24" />}
+        {onToggleCollapse && (
           <button
-            onClick={logout}
-            title="Log out"
-            className="flex flex-col items-center gap-1 rounded-lg py-2 text-white/65 hover:bg-white/6"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+            title={collapsed ? "Expand" : "Collapse"}
+            className="rounded-md p-1.5 text-white/45 hover:bg-white/8 hover:text-white/85"
           >
-            <NavIcon name="logout" className="h-[18px] w-[18px]" />
-            <span className="px-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide">
-              Log out
-            </span>
+            <NavIcon name="collapse" className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
           </button>
-        </div>
+        )}
       </div>
 
-      {open && (
-      <div className="flex w-48 flex-col">
-        <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 pb-2 pt-5">
-          {open && (
-            <>
-              <div className="mb-1 flex items-center justify-between pl-3 pr-1">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
-                  {open.title}
-                </span>
-                <button
-                  onClick={() => setOpenCat(null)}
-                  title="Collapse"
-                  aria-label="Collapse menu"
-                  className="rounded p-1 text-white/40 hover:bg-white/6 hover:text-white/70"
-                >
-                  <NavIcon name="collapse" className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {open.items.map((n) => {
-                  const active = pathname === n.href;
-                  return (
-                    <Link
-                      key={n.href}
-                      href={n.soon ? "#" : n.href}
-                      aria-disabled={n.soon}
-                      onClick={n.soon ? (e) => e.preventDefault() : onNavigate}
-                      tabIndex={n.soon ? -1 : undefined}
-                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                        active
-                          ? "bg-white/12 font-semibold text-white"
-                          : n.soon
-                            ? "cursor-default text-white/45"
-                            : "text-white/80 hover:bg-white/6"
-                      }`}
-                    >
-                      <NavIcon
-                        name={n.icon}
-                        className={active ? "text-white" : "text-white/50"}
-                      />
-                      <span className="truncate">{n.label}</span>
-                      {n.soon && (
-                        <span className="ml-auto rounded bg-white/7 px-1.5 py-0.5 text-[10px] font-medium text-white/50">
-                          soon
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </nav>
-
-      {canPreview && (
-        <div className="border-t border-white/10 p-3">
-          <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-white/50">
-            Preview as
+      {/* Nav: sections stacked, each with a header (hidden when collapsed). */}
+      <nav className="flex flex-1 flex-col overflow-y-auto px-2 pb-2">
+        {sections.map((s, si) => (
+          <div key={s.title ?? "top"} className={si > 0 ? "mt-3" : ""}>
+            {s.title &&
+              (collapsed ? (
+                <div className="mx-2 mb-2 border-t border-white/8" />
+              ) : (
+                <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+                  {s.title}
+                </div>
+              ))}
+            <div className="flex flex-col gap-0.5">
+              {s.items.map((n) => {
+                const active = pathname === n.href;
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.soon ? "#" : n.href}
+                    onClick={n.soon ? (e) => e.preventDefault() : onNavigate}
+                    aria-disabled={n.soon}
+                    tabIndex={n.soon ? -1 : undefined}
+                    title={collapsed ? n.label : undefined}
+                    className={`${rowCls(active)}${n.soon ? " cursor-default text-white/40 hover:bg-transparent" : ""}`}
+                  >
+                    <NavIcon name={n.icon} className={`h-[18px] w-[18px] shrink-0 ${active ? "text-white" : "text-white/55"}`} />
+                    {!collapsed && <span className="truncate">{n.label}</span>}
+                    {!collapsed && n.soon && (
+                      <span className="ml-auto rounded bg-white/7 px-1.5 py-0.5 text-[10px] font-medium text-white/50">soon</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as Role)}
-            className="w-full rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
-          >
-            {ASSIGNABLE_ROLES.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABELS[r]}
-              </option>
-            ))}
-          </select>
-          {role === "artist" && (
+        ))}
+      </nav>
+
+      {/* Account: preview-as (owner), then the utility rows, pinned at the bottom. */}
+      <div className="border-t border-white/10 px-2 py-2">
+        {canPreview && !collapsed && (
+          <div className="mb-2 px-1">
+            <div className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">View as</div>
             <select
-              value={asArtistId}
-              onChange={(e) => setAsArtistId(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="w-full rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
             >
-              {artists.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
+              {ASSIGNABLE_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABELS[r]}
                 </option>
               ))}
             </select>
-          )}
-        </div>
-      )}
+            {role === "artist" && (
+              <select
+                value={asArtistId}
+                onChange={(e) => setAsArtistId(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-white/12 bg-white/6 px-2.5 py-1.5 text-sm"
+              >
+                {artists.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
 
-      <div className="border-t border-white/10 p-3">
-        <div className="truncate px-1 text-[11px] text-white/60" title={email}>
-          {email}
-        </div>
+        <BugReporter variant="rail" collapsed={collapsed} />
+        <a
+          href="/"
+          target="_blank"
+          rel="noreferrer"
+          title={collapsed ? "View site" : undefined}
+          className={rowCls(false)}
+        >
+          <NavIcon name="viewsite" className="h-[18px] w-[18px] shrink-0 text-white/55" />
+          {!collapsed && <span>View site</span>}
+        </a>
+        <button onClick={logout} title={collapsed ? "Log out" : undefined} className={`w-full ${rowCls(false)}`}>
+          <NavIcon name="logout" className="h-[18px] w-[18px] shrink-0 text-white/55" />
+          {!collapsed && <span>Log out</span>}
+        </button>
+        {!collapsed && email && (
+          <div className="truncate px-3 pt-2 text-[11px] text-white/45" title={email}>
+            {email}
+          </div>
+        )}
       </div>
-      </div>
-      )}
     </aside>
   );
 }
@@ -359,15 +293,33 @@ function BillingLock() {
 // (same Sidebar, so preview-as / logout ride along).
 function ShellFrame({ children, billing }: { children: React.ReactNode; billing: BillingShellState | null }) {
   const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const { realRole } = useRole();
   const pathname = usePathname();
   const locked = !!billing?.locked && pathname !== "/admin/billing";
   const trialNudge =
     !billing?.locked && billing?.trialDaysLeft != null && billing.trialDaysLeft <= 7 && realRole === "owner";
+
+  // Remember the collapsed choice across visits.
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("lum-nav-collapsed") === "1");
+  }, []);
+  const toggleCollapse = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("lum-nav-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="admin-wash flex min-h-screen text-ink antialiased">
       <div className="cc-desktop-rail">
-        <Sidebar />
+        <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapse} />
       </div>
       <div className="cc-col">
         <header className="cc-mobile-bar">

@@ -1,4 +1,79 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+
+// One button, every admin surface. `money` is the ONLY pink (per the money-color
+// rule); `neutral` is the default glass button for real actions that aren't
+// money (New client, Save); `ghost` is a quiet secondary. Renders an <a> when
+// given `href`, a <button> otherwise — so a link-action and a click-action look
+// identical without anyone hand-rolling classes again.
+type ButtonVariant = "neutral" | "money" | "ghost";
+type ButtonSize = "sm" | "md";
+
+const BTN_BASE =
+  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition disabled:opacity-50 disabled:pointer-events-none";
+const BTN_SIZE: Record<ButtonSize, string> = {
+  sm: "px-3 py-1.5 text-xs",
+  md: "px-4 py-2 text-sm",
+};
+const BTN_VARIANT: Record<ButtonVariant, string> = {
+  neutral:
+    "border border-white/12 border-t-white/25 bg-white/[0.06] text-white/90 shadow-sm hover:border-white/20 hover:bg-white/[0.11]",
+  money: "bg-brand text-white shadow-sm hover:opacity-90",
+  ghost: "border border-white/12 text-white/75 hover:bg-white/6",
+};
+
+export function Button({
+  children,
+  href,
+  onClick,
+  variant = "neutral",
+  size = "md",
+  icon,
+  disabled,
+  type = "button",
+  target,
+  className = "",
+}: {
+  children: ReactNode;
+  href?: string;
+  onClick?: () => void;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: ReactNode;
+  disabled?: boolean;
+  type?: "button" | "submit";
+  target?: string;
+  className?: string;
+}) {
+  const cls = `${BTN_BASE} ${BTN_SIZE[size]} ${BTN_VARIANT[variant]} ${className}`;
+  const inner = (
+    <>
+      {icon}
+      {children}
+    </>
+  );
+  if (href && !disabled) {
+    return (
+      <Link href={href} target={target} rel={target === "_blank" ? "noreferrer" : undefined} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={cls}>
+      {inner}
+    </button>
+  );
+}
+
+// A crisp plus glyph for "add / new" buttons.
+export function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 opacity-70" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
 
 export function Card({
   children,
