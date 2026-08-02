@@ -227,23 +227,14 @@ function Sidebar({
                 >
                   <span>{s.title}</span>
                   {/* Chevron points right when folded, rotates down when open. */}
-                  <NavIcon
-                    name="chevrondown"
-                    className={`h-3.5 w-3.5 transition-transform duration-200 ease-out ${isOpen ? "" : "-rotate-90"}`}
-                  />
+                  <NavIcon name="chevrondown" className={`nav-chevron h-3.5 w-3.5 ${isOpen ? "" : "nav-chevron-folded"}`} />
                 </button>
               )}
               {/* Slick open/close: max-height + fade so folding actually collapses. */}
               {collapsed ? (
                 rows
               ) : (
-                <div
-                  className={`overflow-hidden transition-all duration-200 ease-out ${
-                    isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                  }`}
-                >
-                  {rows}
-                </div>
+                <div className={`nav-fold ${isOpen ? "nav-fold-open" : "nav-fold-closed"}`}>{rows}</div>
               )}
             </div>
           );
@@ -305,7 +296,7 @@ function Sidebar({
           >
             <NavIcon
               name="collapse"
-              className={`h-4 w-4 shrink-0 text-white/55 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`}
+              className={`nav-chevron h-4 w-4 shrink-0 text-white/55 ${collapsed ? "nav-flip" : ""}`}
             />
             {!collapsed && <span>Collapse</span>}
           </button>

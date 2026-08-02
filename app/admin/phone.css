@@ -38,6 +38,31 @@
   flex-direction: column;
 }
 
+/* Sidebar accordion fold + chevrons — plain CSS on purpose. New Tailwind
+   utilities the admin sheet hasn't already compiled silently don't exist
+   (a recurring gotcha), so max-height/rotate live here where they always apply. */
+.nav-fold {
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+.nav-fold-open {
+  max-height: 420px;
+  opacity: 1;
+}
+.nav-fold-closed {
+  max-height: 0;
+  opacity: 0;
+}
+.nav-chevron {
+  transition: transform 0.2s ease;
+}
+.nav-chevron-folded {
+  transform: rotate(-90deg);
+}
+.nav-flip {
+  transform: rotate(180deg);
+}
+
 .cc-mobile-bar {
   display: none;
 }
