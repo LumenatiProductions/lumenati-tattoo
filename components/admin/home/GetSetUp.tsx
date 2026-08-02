@@ -67,6 +67,9 @@ export default function GetSetUp() {
     const r = get(a.id);
     return r.portfolio.length + r.polaroids.length > 0;
   }).length;
+  // A one-person shop IS the artist — speak in "you/your" (your page, your work),
+  // not the shop-with-a-crew wording ("your artists", "X of Y portfolios").
+  const solo = crew.length <= 1;
 
   const steps = [
     // The money step leads: right after signup, connecting your bank so you can
@@ -85,26 +88,34 @@ export default function GetSetUp() {
       : []),
     {
       done: !!shop.logo_url,
-      title: "Add your shop logo",
-      sub: "It tops every artist page.",
+      title: solo ? "Add your logo" : "Add your shop logo",
+      sub: solo ? "It tops your page." : "It tops every artist page.",
       href: "/admin/staff",
-      cta: "Team page",
+      cta: solo ? "Add logo" : "Team page",
       money: false,
     },
     {
       done: crew.length > 0 && faced === crew.length,
-      title: "Put a face on every page",
-      sub: crew.length ? `${faced} of ${crew.length} artists have a profile photo.` : "Add your crew first.",
+      title: solo ? "Add your photo" : "Put a face on every page",
+      sub: solo
+        ? "A profile photo tops your page so clients know who they're booking."
+        : crew.length
+          ? `${faced} of ${crew.length} artists have a profile photo.`
+          : "Add your crew first.",
       href: "/admin/room",
-      cta: "My Page editor",
+      cta: solo ? "Page editor" : "My Page editor",
       money: false,
     },
     {
       done: crew.length > 0 && showing === crew.length,
-      title: "Show the work",
-      sub: crew.length ? `${showing} of ${crew.length} portfolios have photos in them.` : "Add your crew first.",
+      title: solo ? "Show your work" : "Show the work",
+      sub: solo
+        ? "Fill your page with your best pieces."
+        : crew.length
+          ? `${showing} of ${crew.length} portfolios have photos in them.`
+          : "Add your crew first.",
       href: "/admin/room",
-      cta: "My Page editor",
+      cta: solo ? "Page editor" : "My Page editor",
       money: false,
     },
   ];
@@ -133,7 +144,10 @@ export default function GetSetUp() {
     <div className="mb-5">
       <div className="flex items-baseline justify-between">
         <SectionTitle>
-          Get set up <span className="font-normal text-white/50">· your pages get better with every step</span>
+          Get set up{" "}
+          <span className="font-normal text-white/50">
+            · your page{solo ? "" : "s"} get{solo ? "s" : ""} better with every step
+          </span>
         </SectionTitle>
         <button onClick={hide} className="text-xs text-white/40 hover:text-white/70">
           Hide
@@ -175,7 +189,7 @@ export default function GetSetUp() {
           <li className="flex items-center gap-3 px-4 py-3">
             <span className="h-5 w-5 flex-none" />
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold">Share your pages</div>
+              <div className="text-sm font-semibold">Share your page{solo ? "" : "s"}</div>
               <div className="truncate text-xs text-white/55">{pageUrl}</div>
             </div>
             <button
