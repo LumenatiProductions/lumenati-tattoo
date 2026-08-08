@@ -251,9 +251,19 @@ export default async function ShopsMarketingPage() {
             <PhoneCarousel slides={ARTIST_PHONES} />
           </Reveal>
           {/* Desktop: the scroll takeover. The phone grows to own the screen
-              and your scrolling scrolls the app itself. */}
+              and your scrolling scrolls the REAL app, one continuous
+              full-height capture of the artist home. */}
           <div className="hidden sm:block">
-            <ScrollPhoneDemo screens={ARTIST_PHONES} />
+            <ScrollPhoneDemo
+              img={{ src: "/marketing/app-artist-scroll.webp", alt: "The artist app, top to bottom: your day, your money, your goals, the coach, and your whole business" }}
+              stops={[
+                { at: 0, cap: "Your day and your money." },
+                { at: 0.2, cap: "Your goals, taxes set aside, rewards." },
+                { at: 0.58, cap: "A coach in your corner." },
+                { at: 0.85, cap: "Your whole business, one tap away." },
+              ]}
+              fallback={ARTIST_PHONES}
+            />
           </div>
 
           {/* Artist pricing. */}

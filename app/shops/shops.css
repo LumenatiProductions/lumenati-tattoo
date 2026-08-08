@@ -569,15 +569,16 @@
   border-radius: 1.9rem;
   background: #0b0b10;
 }
-.mkt-scrolldemo-strip {
-  will-change: transform;
-}
-.mkt-scrolldemo-strip img {
+/* Beats the generic .mkt-phone img sizing (that rule fits a 620px frame;
+   this capture is the whole app at full height). */
+.mkt-phone .mkt-scrolldemo-shot,
+.mkt-scrolldemo-shot {
   display: block;
   width: 330px;
-  height: 660px;
-  object-fit: cover;
-  object-position: top;
+  height: auto;
+  border-radius: 0;
+  object-fit: unset;
+  will-change: transform;
 }
 .mkt-scrolldemo-caption {
   position: absolute;
