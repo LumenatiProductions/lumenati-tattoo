@@ -19,7 +19,7 @@ import WeekBars from "@/components/WeekBars";
 import GoalDial from "@/components/GoalDial";
 import { LumenatiLogo } from "@/components/LumenatiLogo";
 import CoachDeck from "@/components/CoachDeck";
-import { cumulativeSeries, earnedInRange, last7Days, startOf, type Range } from "@/lib/personal";
+import { cumulativeSeries, daysInRange, earnedInRange, last7Days, startOf, type Range } from "@/lib/personal";
 import { loadShopMoney, shopCoachTips, type ShopMoney } from "@/lib/shop-coach";
 import { apiDelete } from "@/lib/appApi";
 
@@ -496,6 +496,7 @@ function StaffHome({ firstName, role, reloadKey }: { firstName: string; role: st
               endLabel="today"
               startISO={startOf(range)}
               goalCents={goalCents > 0 ? goalCents : undefined}
+              rangeDays={daysInRange(range)}
               width={CHART_W}
             />
             {goalCents > 0 ? (

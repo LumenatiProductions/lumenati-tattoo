@@ -16,6 +16,16 @@ export const startOf = (range: Range): string => {
   return new Date(monday.getTime() - monday.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 
+// Total days in the range — feeds MoneyChart's pace prorate so "ahead of
+// pace" compares against today's share of the goal, not the whole thing.
+export const daysInRange = (range: Range): number => {
+  const d = new Date();
+  if (range === "week") return 7;
+  if (range === "month") return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const y = d.getFullYear();
+  return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
+};
+
 export type SaleRow = { created_at: string; service_cents: number; tip_cents: number };
 export type BookingRow = { starts_at: string; ends_at: string | null; status: string; client_id: string | null };
 

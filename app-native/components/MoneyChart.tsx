@@ -28,6 +28,9 @@ type Props = {
   startISO?: string;
   /** Range goal — draws the pace line. Omit when no goal is set. */
   goalCents?: number;
+  /** Total days in the range (7 for a week, 31 for August). Drives the pace
+      prorate; without it the chip races the FULL goal from day one. */
+  rangeDays?: number;
   /** 3+ week streak turns the pace line gold. */
   streak?: number;
   width: number;
@@ -51,7 +54,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export default function MoneyChart({ series, startLabel, endLabel, startISO, goalCents, streak = 0, width }: Props) {
+export default function MoneyChart({ series, startLabel, endLabel, startISO, goalCents, rangeDays, streak = 0, width }: Props) {
   const onFire = streak >= 3;
   const draw = useRef(new Animated.Value(0)).current;
   const [drawn, setDrawn] = useState(false);
@@ -75,7 +78,9 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
     const today = vals[vals.length - 1] ?? 0;
 
     // Pace today = the goal prorated to how far through the range we are.
-    const paceToday = goalCents ? Math.round((goalCents * vals.length) / n) : 0;
+    // vals.length is days elapsed; rangeDays is the whole range (fall back to
+    // n, which degrades to racing the full goal).
+    const paceToday = goalCents ? Math.round(goalCents * Math.min(1, vals.length / (rangeDays ?? n))) : 0;
     const top = Math.max(...vals, goalCents ?? 0, 1);
 
     const x = (i: number) => (i / (n - 1)) * width;
@@ -95,7 +100,7 @@ export default function MoneyChart({ series, startLabel, endLabel, startISO, goa
       ahead: goalCents ? today >= paceToday : true,
       deltaCents: goalCents ? today - paceToday : 0,
     };
-  }, [series, goalCents, width]);
+  }, [series, goalCents, rangeDays, width]);
 
   // Scrub: the dot + hairline follow the finger every frame via Animated
   // values (setValue skips React re-render — that's the whole smoothness

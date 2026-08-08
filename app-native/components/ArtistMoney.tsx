@@ -24,6 +24,7 @@ import {
   taxStatusForPayType,
   type RentStatus,
   cumulativeSeries,
+  daysInRange,
   weeklyStreak,
   earnedInRange,
   hourlyInRange,
@@ -214,6 +215,7 @@ export default function ArtistMoney({
           endLabel="today"
           startISO={startOf(range)}
           goalCents={goalCents > 0 ? goalCents : undefined}
+          rangeDays={daysInRange(range)}
           streak={streak}
           width={CHART_W}
         />
