@@ -3,6 +3,7 @@ import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import { Icon } from "@/components/marketing/Icon";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
+import { PhoneDemo } from "@/components/marketing/PhoneDemo";
 import { Reveal } from "@/components/marketing/Reveal";
 import { RotatingWords } from "@/components/marketing/RotatingWords";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
@@ -249,17 +250,11 @@ export default async function ShopsMarketingPage() {
           <Reveal className="mt-14 sm:hidden">
             <PhoneCarousel slides={ARTIST_PHONES} />
           </Reveal>
-          {/* Desktop: the three phones side by side. */}
-          <Reveal className="mt-14 hidden flex-wrap items-start justify-center gap-8 sm:flex">
-            {ARTIST_PHONES.map((p) => (
-              <figure key={p.img}>
-                <div className="mkt-phone mkt-phone-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.img} alt={p.alt} />
-                </div>
-                <figcaption className="mt-3 text-center text-sm text-zinc-400">{p.cap}</figcaption>
-              </figure>
-            ))}
+          {/* Desktop: one big handset you can play with. It tilts toward the
+              cursor; the chips flip through the real app screens. */}
+          <Reveal className="mt-14 hidden sm:block">
+            <PhoneDemo screens={ARTIST_PHONES} />
+            <p className="mt-3 text-center text-xs text-zinc-500">Move your cursor over the phone. This is the real app.</p>
           </Reveal>
 
           {/* Artist pricing. */}

@@ -448,6 +448,85 @@
   animation: mkt-float 5.5s ease-in-out 0.8s infinite alternate;
 }
 
+/* The demo phone: a 3D handset that follows the cursor. The stage carries
+   the perspective and the tilt variables; the phone tilts, lifts on hover,
+   and wears a glare that tracks the pointer like glass catching light. */
+.mkt-demo-stage {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --glare-x: 50%;
+  --glare-y: 30%;
+  display: flex;
+  justify-content: center;
+  perspective: 1300px;
+  padding: 1.5rem 0;
+}
+.mkt-demo-phone {
+  position: relative;
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease-out, box-shadow 0.35s ease-out;
+  padding: 12px;
+  border-radius: 2.6rem;
+  will-change: transform;
+}
+.mkt-demo-stage:hover .mkt-demo-phone {
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) scale(1.04) translateY(-8px);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.14),
+    0 50px 110px rgb(0 0 0 / 0.65);
+}
+/* A big ink halo so the handset pops off the page. */
+.mkt-demo-phone::after {
+  content: "";
+  position: absolute;
+  inset: -34% -44%;
+  z-index: -1;
+  background: radial-gradient(
+    48% 48% at 50% 50%,
+    rgba(255, 20, 147, 0.4),
+    rgba(120, 60, 190, 0.26) 48%,
+    transparent 74%
+  );
+  filter: blur(52px);
+}
+/* Screens stack in one cell and crossfade with a touch of blur. */
+.mkt-demo-screens {
+  display: grid;
+  border-radius: 1.9rem;
+  overflow: hidden;
+  background: #0b0b10;
+}
+.mkt-demo-screens img {
+  grid-area: 1 / 1;
+  display: block;
+  width: 330px;
+  height: 660px;
+  border-radius: 1.9rem;
+  object-fit: cover;
+  object-position: top;
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt-demo-screens img.is-on {
+  opacity: 1;
+  filter: none;
+}
+/* Pointer-tracking glare across the glass. */
+.mkt-demo-glare {
+  position: absolute;
+  inset: 12px;
+  border-radius: 1.9rem;
+  pointer-events: none;
+  background: radial-gradient(
+    38% 28% at var(--glare-x) var(--glare-y),
+    rgb(255 255 255 / 0.14),
+    transparent 70%
+  );
+  transition: background 0.1s linear;
+}
+
 /* Money cards breathe on hover: a small lift, nothing bouncy. */
 .mkt-lift {
   transition:
@@ -517,6 +596,10 @@
   }
   .mkt-lift,
   .mkt-lift:hover {
+    transform: none;
+  }
+  .mkt-demo-phone,
+  .mkt-demo-stage:hover .mkt-demo-phone {
     transform: none;
   }
 }
