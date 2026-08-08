@@ -11,7 +11,7 @@ import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const require = createRequire("/Users/scottmcdonald/cinebody-platform/package.json");
+const require = createRequire("/Users/scottmcdonald/cinebody-platform/node_modules/.pnpm/playwright@1.61.0/node_modules/playwright/package.json");
 const { chromium } = require("playwright");
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");

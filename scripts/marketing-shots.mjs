@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 
 // Playwright lives in the cinebody monorepo; borrow it rather than adding a
 // heavy dev dependency here.
-const require = createRequire("/Users/scottmcdonald/cinebody-platform/package.json");
+const require = createRequire("/Users/scottmcdonald/cinebody-platform/node_modules/.pnpm/playwright@1.61.0/node_modules/playwright/package.json");
 const { chromium } = require("playwright");
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -91,6 +91,9 @@ for (const route of ["/admin/reports", "/admin/bookings", "/admin/payouts", "/ad
   await clipContent(route.split("/").pop());
 }
 
+// One OTP sign-in per run: later contexts reuse this session (the test OTP
+// rate-limits repeat sends, so a second signIn() times out).
+const state = await desktop.storageState();
 await desktop.close();
 
 // Phone: the Command Center from a pocket (390pt at 3x).
@@ -99,6 +102,7 @@ const phone = await browser.newContext({
   deviceScaleFactor: 3,
   isMobile: true,
   hasTouch: true,
+  storageState: state,
 });
 const ppage = await phone.newPage();
 await ppage.addInitScript(() => {
@@ -106,7 +110,7 @@ await ppage.addInitScript(() => {
     localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
   } catch {}
 });
-await signIn(ppage);
+await ppage.goto(`${BASE}/admin`);
 await settle(ppage);
 await shot(ppage, "pocket.png");
 console.log("pocket.png");
@@ -115,14 +119,14 @@ await phone.close();
 // ── Zoomed feature highlights ─────────────────────────────────────────────
 // Element-level captures of the best moments, for the close-up cards on
 // /shops. Text-anchored locators; .last() picks the innermost match.
-const hi = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const hi = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, storageState: state });
 const hp = await hi.newPage();
 await hp.addInitScript(() => {
   try {
     localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
   } catch {}
 });
-await signIn(hp);
+await hp.goto(`${BASE}/admin`);
 
 async function elShot(pg, locator, name) {
   try {
@@ -157,7 +161,7 @@ await ap.goto(`${BASE}/admin/login`);
 await settle(ap);
 await elShot(ap, ap.locator("div", { hasText: "Team sign-in" }).locator("xpath=self::div[contains(@class,'rounded')]").first(), "hi-signin.png");
 
-const aphone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+const aphone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, storageState: state });
 const fp = await aphone.newPage();
 await fp.goto(`${BASE}/s/apple-review/sam-rivera?skin=flash`);
 await settle(fp);
@@ -171,7 +175,6 @@ await p2.addInitScript(() => {
     localStorage.setItem("lum-setup-hidden-f1b59afa-4406-45c5-8133-9630f3e75095", "1");
   } catch {}
 });
-await signIn(p2);
 await p2.goto(`${BASE}/admin/bookings`);
 await settle(p2);
 await shot(p2, "phone-bookings.png");

@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 // Seed the App Review demo tenant with two weeks of believable sales so the
 // Command Center (and marketing screenshots) read as a living shop, not a
-// $0 dashboard. Idempotent: rows ride external_id demo-sale-<n>_svc/_tip and
-// upsert on (source, external_id), so re-runs never duplicate. Demo shop
-// ONLY — never point this at Lumenati.
+// $0 dashboard. Idempotent per month: rows ride external_id
+// demo-sale-<yyyy-mm>-<n>_svc/_tip and upsert on (source, external_id), so
+// re-runs in a month never duplicate, while a run in a NEW month lays down
+// fresh current-dated rows (the ledger is append-only, so older demo rows
+// just stay behind as history). Demo shop ONLY — never point this at
+// Lumenati.
 //
 // Run: node scripts/seed-review-sales.mjs
 
@@ -63,8 +66,9 @@ for (let d = 13; d >= 0; d--) {
       artist_id: artist,
       note: "demo seed",
     };
-    rows.push({ ...base, kind: "sale", amount_cents: service, external_id: `demo-sale-${n}_svc` });
-    rows.push({ ...base, kind: "tip", amount_cents: tip, external_id: `demo-sale-${n}_tip` });
+    const month = now.toISOString().slice(0, 7);
+    rows.push({ ...base, kind: "sale", amount_cents: service, external_id: `demo-sale-${month}-${n}_svc` });
+    rows.push({ ...base, kind: "tip", amount_cents: tip, external_id: `demo-sale-${month}-${n}_tip` });
   }
 }
 

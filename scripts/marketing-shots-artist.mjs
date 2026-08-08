@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-const require = createRequire("/Users/scottmcdonald/cinebody-platform/package.json");
+const require = createRequire("/Users/scottmcdonald/cinebody-platform/node_modules/.pnpm/playwright@1.61.0/node_modules/playwright/package.json");
 const { chromium } = require("playwright");
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -145,6 +145,9 @@ if (await page.getByPlaceholder("(555) 555-5555").count()) {
   throw new Error("session injection failed — still on sign-in");
 }
 await monthRange();
+// The toggle tap can auto-scroll the screen; shoot home from the very top.
+await page.mouse.wheel(0, -4000);
+await page.waitForTimeout(1000);
 await shot("app-artist-home.png");
 await page.mouse.wheel(0, 950);
 await page.waitForTimeout(1200);

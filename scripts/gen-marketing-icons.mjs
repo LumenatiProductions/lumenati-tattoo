@@ -17,6 +17,7 @@ const SVG = join(root, "node_modules", "ionicons", "dist", "svg");
 // friendly name (used in page.tsx) -> Ionicons file
 const MAP = {
   cash: "cash-outline",
+  card: "card-outline",
   goal: "trending-up-outline",
   shield: "shield-checkmark-outline",
   chat: "chatbubbles-outline",

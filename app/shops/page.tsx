@@ -19,21 +19,21 @@ export const revalidate = 300;
 // Ionicons outline language.
 
 const ARTIST_BENEFITS = [
+  { icon: "card", title: "Take the payment at the chair", body: "Tap their card on your phone or text them a pay link. Your cut lands in your bank, and you can get paid early." },
   { icon: "cash", title: "See what you actually made", body: "Earnings, tips, and tickets for today, this week, this month. In your pocket, not a shoebox." },
-  { icon: "goal", title: "A goal to chase", body: "Pick a number and a chart races you against it every day, with streaks when you beat it." },
+  { icon: "goal", title: "A goal to chase", body: "Pick a number and a chart races you against it every day, with streaks and badges when you beat it." },
   { icon: "shield", title: "Never get caught by taxes", body: "The app tells you exactly what to set aside from every ticket at your rate, so April is never a surprise." },
-  { icon: "chat", title: "Follow-ups on autopilot", body: "Aftercare and rebooking texts send themselves, so past clients keep coming back." },
+  { icon: "chat", title: "Follow-ups on autopilot", body: "Aftercare and rebooking texts send themselves, and clients text healed photos straight back for your portfolio." },
   { icon: "clock", title: "Your real hourly rate", body: "Service divided by booked hours, finally a number you can see and grow." },
-  { icon: "ribbon", title: "Rewards for hitting it", body: "Badges and milestones as you climb. Running your chair like a business, and enjoying it." },
 ] as const;
 
 const SHOP_BENEFITS = [
-  { icon: "bars", title: "Every dollar, every chair, live", body: "Service vs tips vs card vs cash, per artist, in real time. No spreadsheet to reconcile." },
+  { icon: "cash", title: "Payments that split themselves", body: "Clients pay from their phone or a tap on the artist's. Splits, booth rent, and the shop's cut land in the right banks on their own." },
   { icon: "bulb", title: "Revenue coaching", body: "Plain-English reads on what you can control: who's carrying the shop, which days are dead, what to do about it." },
-  { icon: "book", title: "Keeps the books", body: "Registers, artist pay, booth rent, and a real P&L. The QuickBooks-and-shoebox job, done." },
+  { icon: "book", title: "Keeps the books", body: "Every dollar, every chair, live: registers, artist pay, booth rent, merch, refunds, and a real P&L. The QuickBooks-and-shoebox job, done." },
   { icon: "doc", title: "Inspection-ready", body: "Waivers and consent signed at the chair, licenses and BBP certs tracked with expiry warnings. The records an inspector asks for, already in order." },
   { icon: "tablet", title: "A kiosk, not a front desk", body: "Clients check themselves in on the kiosk and it pings the artist the moment they arrive. Deposits and no-show defense built in. Nobody works a counter." },
-  { icon: "repeat", title: "Retention runs itself", body: "Follow-ups, review asks, and rebooking nudges go out across the shop, on schedule, over text." },
+  { icon: "repeat", title: "Retention runs itself", body: "Follow-ups, review asks, and rebooking nudges text themselves, and one message can reach your whole client list, consent handled." },
 ] as const;
 
 // The artist app screens (side by side on desktop, a carousel on mobile).
@@ -47,8 +47,8 @@ const ARTIST_PHONES = [
 const DESKTOP_SCREENS = [
   { img: "/marketing/command-center.webp", title: "The overview", body: "The week's money, the coach reads, and what needs a decision, live.", alt: "The Command Center overview" },
   { img: "/marketing/reports.webp", title: "Reports", body: "Shop-wide financials, per-artist roll-ups, and 1099 prep, exportable.", alt: "Reports: financials and per-artist roll-ups" },
-  { img: "/marketing/payouts.webp", title: "Pay", body: "Renter pass-through and Gusto payroll prep, per artist, every period.", alt: "Pay: renter pass-through and payroll prep" },
-  { img: "/marketing/bookings.webp", title: "Bookings", body: "The day's calendar, deposits held, and no-show outcomes in one place.", alt: "Bookings: the day's calendar and deposits" },
+  { img: "/marketing/payouts.webp", title: "Pay", body: "Renter pass-through and payroll prep, per artist, every period.", alt: "Pay: renter pass-through and payroll prep" },
+  { img: "/marketing/bookings.webp", title: "Bookings", body: "The day's calendar, deposits held, and cancelled slots offered to the waitlist by text.", alt: "Bookings: the day's calendar and deposits" },
   { img: "/marketing/followups.webp", title: "Follow-ups", body: "Aftercare, reviews, and rebooking nudges queued and texting on schedule.", alt: "Follow-ups queue" },
 ] as const;
 
@@ -58,6 +58,7 @@ const COMPARE: { label: string; artist: string | boolean; shop: string | boolean
   { label: "Card fee", artist: "On the client", shop: "On the client" },
   { label: "Keep 100% of your rate", artist: true, shop: true },
   { label: "Get paid early", artist: true, shop: true },
+  { label: "Tap to Pay & pay links", artist: true, shop: true },
   { label: "Booking, deposits & waivers", artist: true, shop: true },
   { label: "Texting, winbacks & reviews", artist: true, shop: true },
   { label: "The coach", artist: "Your chair", shop: "Shop + every artist" },
@@ -111,8 +112,8 @@ export default async function ShopsMarketingPage() {
             <span className="text-brand">the tattoo.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-md text-base text-zinc-300 sm:text-lg lg:mx-0">
-            Lumenati coaches the shop and every artist, keeps the books, texts the follow-ups, and
-            runs goals and taxes for every chair. You bring the needle.
+            Lumenati takes the payments, coaches the shop and every artist, keeps the books, texts
+            the follow-ups, and runs goals and taxes for every chair. You bring the needle.
           </p>
         </div>
 
@@ -204,8 +205,8 @@ export default async function ShopsMarketingPage() {
               <div className="mt-2 text-sm text-zinc-400">Clients cover the card fee, so you keep 100%. No shop needed.</div>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-zinc-300">
-              Booking, deposits, waivers, texting, winbacks, reviews, the tax &amp; 1099 pack, the
-              coach, and get-paid-early. Everything above, for one chair.
+              Booking, deposits, waivers, texting, winbacks, reviews, your own artist page, the tax
+              &amp; 1099 pack, the coach, and get-paid-early. Everything above, for one chair.
             </p>
             <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
               Get started
