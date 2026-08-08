@@ -3,8 +3,8 @@ import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import { Icon } from "@/components/marketing/Icon";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
-import { PhoneDemo } from "@/components/marketing/PhoneDemo";
 import { Reveal } from "@/components/marketing/Reveal";
+import { ScrollPhoneDemo } from "@/components/marketing/ScrollPhoneDemo";
 import { RotatingWords } from "@/components/marketing/RotatingWords";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -250,12 +250,11 @@ export default async function ShopsMarketingPage() {
           <Reveal className="mt-14 sm:hidden">
             <PhoneCarousel slides={ARTIST_PHONES} />
           </Reveal>
-          {/* Desktop: one big handset you can play with. It tilts toward the
-              cursor; the chips flip through the real app screens. */}
-          <Reveal className="mt-14 hidden sm:block">
-            <PhoneDemo screens={ARTIST_PHONES} />
-            <p className="mt-3 text-center text-xs text-zinc-500">Move your cursor over the phone. This is the real app.</p>
-          </Reveal>
+          {/* Desktop: the scroll takeover. The phone grows to own the screen
+              and your scrolling scrolls the app itself. */}
+          <div className="hidden sm:block">
+            <ScrollPhoneDemo screens={ARTIST_PHONES} />
+          </div>
 
           {/* Artist pricing. */}
           <Reveal className="mt-16">

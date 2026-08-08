@@ -10,5 +10,10 @@ body {
   margin: 0;
   padding: 0;
   max-width: 100vw;
+  /* clip, not hidden: hidden turns html/body into scroll containers, which
+     silently kills position:sticky everywhere (the /shops scroll takeover
+     needs it). clip clips identically without that side effect; the hidden
+     line stays first as the fallback for old Safari. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
