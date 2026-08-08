@@ -4,6 +4,7 @@ import { Icon } from "@/components/marketing/Icon";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
 import { Reveal } from "@/components/marketing/Reveal";
+import { RotatingWords } from "@/components/marketing/RotatingWords";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FOUNDING_SEAT_CAP, foundingSeatsUsed } from "@/lib/stripe/billing";
@@ -88,6 +89,32 @@ const HERO_STATS = [
   { value: "30 days", label: "Free to start" },
 ] as const;
 
+// The rotating verb line: what Lumenati actually does, one beat at a time.
+const HERO_VERBS = [
+  "takes the payments.",
+  "books your clients.",
+  "texts the aftercare.",
+  "keeps the books.",
+  "bills the booth rent.",
+  "coaches every artist.",
+] as const;
+
+// The what-it-does ticker between the hero and the pitch. All real features.
+const MARQUEE = [
+  "Tap to Pay at the chair",
+  "Pay links by text",
+  "Deposits held automatically",
+  "Waivers signed at the chair",
+  "Aftercare texts itself",
+  "Booth rent auto-billed",
+  "Payroll prep per artist",
+  "A real P&L, live",
+  "Goals with tax set-aside",
+  "Waitlist fills cancellations",
+  "Review asks on autopilot",
+  "Every artist gets their page",
+] as const;
+
 export default async function ShopsMarketingPage() {
   // Live "seats left" for the Founding 100 deal. Pure decoration on this page:
   // any hiccup and it just doesn't render.
@@ -125,9 +152,11 @@ export default async function ShopsMarketingPage() {
             <br />
             <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
           </h1>
-          <p className="mkt-rise mkt-rise-d2 mx-auto mt-6 max-w-md text-base text-zinc-300 sm:text-lg lg:mx-0">
-            Lumenati takes the payments, coaches the shop and every artist, keeps the books, texts
-            the follow-ups, and runs goals and taxes for every chair. You bring the needle.
+          <div className="mkt-rise mkt-rise-d2 mt-6 text-xl font-bold text-zinc-100 sm:text-2xl">
+            It <RotatingWords words={HERO_VERBS} />
+          </div>
+          <p className="mkt-rise mkt-rise-d2 mx-auto mt-3 max-w-md text-base text-zinc-400 lg:mx-0">
+            One system for the whole shop, front to back. You bring the needle.
           </p>
         </div>
 
@@ -172,14 +201,26 @@ export default async function ShopsMarketingPage() {
         </div>
       </section>
 
+      {/* The what-it-does ticker. */}
+      <div className="mkt-marquee" aria-hidden>
+        <div className="mkt-marquee-track">
+          {[...MARQUEE, ...MARQUEE].map((item, i) => (
+            <span key={`${item}-${i}`} className="flex items-center gap-3 whitespace-nowrap text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand/60" />
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* ── FOR EVERY ARTIST ── */}
-      <section id="artist" className="border-t border-white/10 py-20">
+      <section id="artist" className="py-20">
         <div className="mx-auto max-w-6xl px-5">
           <Reveal>
             <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
               For every artist
             </div>
-            <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
+            <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-5xl">
               Run your chair like your own business.
             </h2>
             <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
@@ -189,9 +230,9 @@ export default async function ShopsMarketingPage() {
           </Reveal>
 
           <Reveal delay={0.08}>
-          <ul className="mt-12 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {ARTIST_BENEFITS.map((b) => (
-              <li key={b.title} className="flex gap-3.5">
+              <li key={b.title} className="mkt-glass mkt-tile flex gap-3.5 p-6">
                 <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-white/12 border-t-white/22 bg-white/5 text-brand">
                   <Icon name={b.icon} className="h-5 w-5" />
                 </span>
@@ -253,7 +294,7 @@ export default async function ShopsMarketingPage() {
             <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
               For the shop
             </div>
-            <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
+            <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-5xl">
               Run the whole room without a front desk.
             </h2>
             <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
@@ -263,9 +304,9 @@ export default async function ShopsMarketingPage() {
           </Reveal>
 
           <Reveal delay={0.08}>
-          <ul className="mt-12 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {SHOP_BENEFITS.map((b) => (
-              <li key={b.title} className="flex gap-3.5">
+              <li key={b.title} className="mkt-glass mkt-tile flex gap-3.5 p-6">
                 <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-white/12 border-t-white/22 bg-white/5 text-brand">
                   <Icon name={b.icon} className="h-5 w-5" />
                 </span>
@@ -317,7 +358,7 @@ export default async function ShopsMarketingPage() {
           <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
             Compare plans
           </div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Two plans. One number each.</h2>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Two plans. One number each.</h2>
           {foundingLeft !== null && foundingLeft > 0 && (
             <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 rounded-full border border-brand/40 bg-brand/[0.08] px-5 py-2 text-sm">
               <span className="font-bold text-brand">Founding 100</span>

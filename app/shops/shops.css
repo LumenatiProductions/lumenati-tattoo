@@ -43,19 +43,56 @@
     radial-gradient(52% 46% at 90% 86%, rgba(0, 150, 210, 0.2), transparent 62%),
     radial-gradient(58% 50% at 12% 94%, rgba(60, 78, 168, 0.28), transparent 62%),
     radial-gradient(70% 60% at 50% 48%, rgba(78, 48, 150, 0.16), transparent 72%);
+  animation: mkt-breathe 26s ease-in-out infinite alternate;
+}
+/* The ink slowly breathes so the page feels alive even at rest. */
+@keyframes mkt-breathe {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07) translateY(-1.5%);
+  }
 }
 .mkt-wash > * {
   position: relative;
   z-index: 1;
 }
 
-/* The app's glass: lit top edge, faint fill, blur over the wash. */
+/* The app's glass, marketing cut: faint fill and blur over the wash, plus
+   the liquid-glass ring (a 1px gradient border, bright at the top and
+   bottom edges, breathing out in the middle; MotionSites' signature). */
 .mkt-glass {
+  position: relative;
   border-radius: 1rem;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-top-color: rgb(255 255 255 / 0.22);
+  border: 1px solid rgb(255 255 255 / 0.1);
   background: rgb(255 255 255 / 0.05);
   backdrop-filter: blur(10px);
+}
+.mkt-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.4) 0%,
+    rgb(255 255 255 / 0.12) 22%,
+    rgb(255 255 255 / 0) 42%,
+    rgb(255 255 255 / 0) 58%,
+    rgb(255 255 255 / 0.1) 80%,
+    rgb(255 255 255 / 0.3) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 /* Real product shots sit in a glass browser frame. */
@@ -339,6 +376,78 @@
   animation: mkt-word 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* The rotating verb line in the hero: phrases stacked in one grid cell,
+   the live one blurs up into place. */
+.mkt-rotator {
+  display: inline-grid;
+  text-align: inherit;
+}
+.mkt-rotator-word {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(14px);
+  filter: blur(8px);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt-rotator-word.is-on {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* The what-it-does marquee: one slow loop, duplicated content, no JS. */
+.mkt-marquee {
+  overflow: hidden;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  padding: 0.85rem 0;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.mkt-marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 2.75rem;
+  width: max-content;
+  animation: mkt-marquee 50s linear infinite;
+}
+@keyframes mkt-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Benefit tiles: quiet glass at rest, a touch brighter under the cursor. */
+.mkt-tile {
+  transition:
+    border-color 0.3s,
+    background-color 0.3s;
+}
+.mkt-tile:hover {
+  border-color: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.08);
+}
+
+/* The hero devices float, slightly out of phase. */
+@keyframes mkt-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-9px);
+  }
+}
+.hero-stack > div:first-child {
+  animation: mkt-float 7s ease-in-out infinite alternate;
+}
+.hero-stack .mkt-phone {
+  animation: mkt-float 5.5s ease-in-out 0.8s infinite alternate;
+}
+
 /* Money cards breathe on hover: a small lift, nothing bouncy. */
 .mkt-lift {
   transition:
@@ -395,7 +504,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mkt-rise,
-  .mkt-word {
+  .mkt-word,
+  .mkt-wash::before,
+  .mkt-marquee-track,
+  .hero-stack > div:first-child,
+  .hero-stack .mkt-phone {
     animation: none;
   }
   .mkt-pre {
