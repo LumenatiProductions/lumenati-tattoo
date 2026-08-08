@@ -257,10 +257,10 @@ export default async function ShopsMarketingPage() {
             <ScrollPhoneDemo
               img={{ src: "/marketing/app-artist-scroll.webp", alt: "The artist app, top to bottom: your day, your money, your goals, the coach, and your whole business" }}
               stops={[
-                { at: 0, cap: "Your day and your money." },
-                { at: 0.2, cap: "Your goals, taxes set aside, rewards." },
-                { at: 0.58, cap: "A coach in your corner." },
-                { at: 0.85, cap: "Your whole business, one tap away." },
+                { at: 0, head: "Your day, ready", sub: "Next client up, deposits held, and a calendar that fills itself." },
+                { at: 0.2, head: "Your money, live", sub: "Earnings, tips, and your real hourly rate. Taxes set aside from every ticket." },
+                { at: 0.55, head: "A coach in your corner", sub: "Plain reads from your own numbers, nothing invented." },
+                { at: 0.85, head: "Your whole business", sub: "Pay, clients, promos, healed shots, goals. One tap each." },
               ]}
               fallback={ARTIST_PHONES}
             />
