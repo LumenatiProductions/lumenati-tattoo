@@ -607,6 +607,236 @@
   filter: none;
 }
 
+/* The back-office deck: five screens stack like sheets as you scroll, each
+   leaving a title strip peeking; a tab rail tracks the active one. */
+.mkt-deck {
+  position: relative;
+}
+.mkt-deck-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  gap: clamp(24px, 4vw, 64px);
+  overflow: hidden;
+  padding: 0 clamp(16px, 3vw, 48px);
+}
+.mkt-deck-rail {
+  flex: none;
+  display: grid;
+  gap: 16px;
+  width: clamp(150px, 15vw, 210px);
+}
+.mkt-deck-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 0.38);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+}
+.mkt-deck-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+  flex: none;
+}
+.mkt-deck-tab.is-on {
+  color: #ff1493;
+  transform: translateX(3px);
+}
+.mkt-deck-stack {
+  position: relative;
+  flex: 1;
+  max-width: 960px;
+  aspect-ratio: 10 / 7;
+  max-height: 74vh;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+.mkt-deck-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-top-color: rgb(255 255 255 / 0.24);
+  background: #0d0d13;
+  overflow: hidden;
+  transform: translateY(var(--deck-y, 100%));
+  clip-path: inset(0 0 var(--deck-clip, 0px) 0 round 1rem);
+  will-change: transform, clip-path;
+  box-shadow: 0 -18px 44px rgb(0 0 0 / 0.45);
+}
+.mkt-deck-strip {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  height: 56px;
+  align-items: center;
+  padding: 0 20px;
+  background: #101016;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.mkt-deck-title {
+  color: #f2f3fa;
+  font-weight: 800;
+  font-size: 15px;
+}
+.mkt-deck-body {
+  color: rgb(235 240 255 / 0.55);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mkt-deck-card img {
+  display: block;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  object-fit: cover;
+  object-position: left top;
+}
+
+/* The scroll-scrubbed drive: a pinned laptop whose video rides the scroll. */
+.mkt-scrub {
+  position: relative;
+}
+.mkt-scrub-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+  padding: 0 1.5rem;
+}
+.mkt-scrub-laptop {
+  width: min(78vw, 960px);
+}
+.mkt-scrub-laptop video,
+.mkt-scrub-laptop img {
+  display: block;
+  width: 100%;
+}
+
+/* Two-cell CTA: pink text cell + arrow cell with a thin seam. On hover the
+   arrow flies out the right and its twin flies in from the left. */
+.mkt-cta {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+}
+.mkt-cta-text {
+  display: flex;
+  align-items: center;
+  background: #ff1493;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.75rem 0.25rem 0.25rem 0.75rem;
+  transition: filter 0.2s;
+}
+.mkt-cta-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  overflow: hidden;
+  background: #ff1493;
+  border-radius: 0.25rem 0.75rem 0.75rem 0.25rem;
+  transition: filter 0.2s;
+}
+.mkt-cta-cell svg {
+  width: 18px;
+  height: 18px;
+  color: #fff;
+  flex: none;
+}
+.mkt-cta-a2 {
+  position: absolute;
+  transform: translateX(-250%);
+}
+.mkt-cta-a1,
+.mkt-cta-a2 {
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mkt-cta:hover .mkt-cta-text,
+.mkt-cta:hover .mkt-cta-cell {
+  filter: brightness(1.12);
+}
+.mkt-cta:hover .mkt-cta-a1 {
+  transform: translateX(250%);
+}
+.mkt-cta:hover .mkt-cta-a2 {
+  transform: translateX(0);
+}
+.mkt-cta-big .mkt-cta-text {
+  padding: 1rem 1.75rem;
+  font-size: 1.05rem;
+}
+.mkt-cta-big .mkt-cta-cell {
+  width: 54px;
+}
+
+/* Gradient glow (MotionSites glow-cards): a blurred ink-to-pink halo behind
+   the money cards and the Founding pill. */
+.mkt-glow {
+  position: relative;
+  z-index: 0;
+}
+.mkt-glow::before {
+  content: "";
+  position: absolute;
+  inset: -10px -8px;
+  z-index: -1;
+  border-radius: 1.5rem;
+  background: linear-gradient(137deg, #ff1493 0%, #7c3abe 55%, #0096d2 100%);
+  filter: blur(44px);
+  opacity: 0.22;
+  pointer-events: none;
+}
+.mkt-glow-pill::before {
+  inset: -6px;
+  border-radius: 999px;
+  filter: blur(24px);
+  opacity: 0.35;
+}
+
+/* The header gets out of the way once you're reading. */
+.mkt-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mkt-header.is-hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Money cards breathe on hover: a small lift, nothing bouncy. */
 .mkt-lift {
   transition:

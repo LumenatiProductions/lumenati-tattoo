@@ -186,8 +186,10 @@ const { error: bErr } = await db.from("bookings").insert(rows);
 if (bErr) throw new Error("bookings: " + bErr.message);
 console.log(`bookings: ${rows.length} inserted (completed month + today + week ahead)`);
 
-// ── Booth rent: $1,000/mo, paid up, three months on time.
+// ── Booth rent: $1,000/mo, paid up, three months on time. Max runs a real
+// 40% split so the shop's cut reads true on Reports.
 await db.from("artists").update({ rent_cents: 100000 }).eq("id", SAM);
+await db.from("artists").update({ split_pct: 0.4 }).eq("id", MAX);
 await db.from("rent_invoices").delete().eq("shop_id", SHOP).eq("artist_id", SAM);
 const months = [
   { period: `${Y}-${String(M - 2).padStart(2, "0")}`, d: M - 2 },

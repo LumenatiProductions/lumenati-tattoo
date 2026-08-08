@@ -21,6 +21,7 @@ const ICONS: Record<string, string> = {
   "chevronRight": "<path d=\"m184 112 144 144-144 144\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"48px\"/>",
   "check": "<path d=\"M416 128 192 384l-96-96\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/>",
   "close": "<path d=\"M368 368 144 144M368 144 144 368\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/>",
+  "arrow": "<path d=\"m268 112 144 144-144 144M392 256H100\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"48px\"/>",
   "doc": "<path d=\"M416 221.25V416a48 48 0 0 1-48 48H144a48 48 0 0 1-48-48V96a48 48 0 0 1 48-48h98.75a32 32 0 0 1 22.62 9.37l141.26 141.26a32 32 0 0 1 9.37 22.62Z\" fill=\"none\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"32px\"/><path d=\"M256 56v120a32 32 0 0 0 32 32h120M176 288h160M176 368h160\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/>",
   "tablet": "<rect width=\"352\" height=\"480\" x=\"80\" y=\"16\" rx=\"48\" ry=\"48\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"32px\"/>",
 };

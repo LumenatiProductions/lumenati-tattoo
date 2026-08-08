@@ -4,8 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { userFromBearer } from "@/lib/api-auth";
 import { rowToArtist } from "@/lib/admin/artists-data";
 import { shopSummary, statementFor } from "@/lib/admin/calc";
-import { fetchRentInvoices, isSquareConfigured } from "@/lib/square/client";
-import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 import type { Sale } from "@/lib/admin/types";
 import { shopDay, shopDayEndUtc, ledgerShopDay } from "@/lib/dates";
 
@@ -238,22 +236,25 @@ export async function GET(req: Request) {
     supplyItems++;
   }
 
-  // ── Rent from Square (not date-bounded — recurring booth rent status) ──
-  // Square is Lumenati's single-shop integration: any other tenant's report
-  // must not see these numbers (caught by the 2026-07-12 reviewer walk).
+  // ── Booth rent from the in-house engine (rent_invoices), range-bounded by
+  // period. The overview switched off the dead Square rent path on 7/10;
+  // Reports now matches. Square stays historical only.
   let rentCollected = 0;
   let rentOutstanding = 0;
   let rentConfigured = false;
-  if (isSquareConfigured && shopId === LUMENATI_SHOP_ID) {
-    try {
-      const invoices = await fetchRentInvoices();
+  {
+    const fromPeriod = from.slice(0, 7);
+    const toPeriod = to.slice(0, 7);
+    const { data: rentRows } = await db
+      .from("rent_invoices")
+      .select("amount_cents, status, period")
+      .eq("shop_id", shopId)
+      .gte("period", fromPeriod)
+      .lte("period", toPeriod);
+    for (const inv of rentRows ?? []) {
       rentConfigured = true;
-      for (const inv of invoices as { amountCents: number; paid: boolean }[]) {
-        if (inv.paid) rentCollected += inv.amountCents;
-        else rentOutstanding += inv.amountCents;
-      }
-    } catch {
-      /* leave rent at 0; the rest of the report still stands */
+      if (inv.status === "paid") rentCollected += (inv.amount_cents as number) ?? 0;
+      else if (inv.status === "pending") rentOutstanding += (inv.amount_cents as number) ?? 0;
     }
   }
 

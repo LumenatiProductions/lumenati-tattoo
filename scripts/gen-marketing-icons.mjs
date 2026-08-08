@@ -33,6 +33,7 @@ const MAP = {
   chevronRight: "chevron-forward-outline",
   check: "checkmark-outline",
   close: "close-outline",
+  arrow: "arrow-forward-outline",
   doc: "document-text-outline",
   tablet: "tablet-portrait-outline",
 };

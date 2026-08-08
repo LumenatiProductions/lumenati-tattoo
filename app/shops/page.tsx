@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
+import { ArrowCta } from "@/components/marketing/ArrowCta";
 import { Icon } from "@/components/marketing/Icon";
+import { MktHeader } from "@/components/marketing/MktHeader";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
 import { Reveal } from "@/components/marketing/Reveal";
+import { ScreenDeck } from "@/components/marketing/ScreenDeck";
 import { ScrollPhoneDemo } from "@/components/marketing/ScrollPhoneDemo";
+import { ScrubVideo } from "@/components/marketing/ScrubVideo";
 import { RotatingWords } from "@/components/marketing/RotatingWords";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -128,21 +131,11 @@ export default async function ShopsMarketingPage() {
   }
   return (
     <div className="mkt-wash min-h-screen text-ink">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 pt-6">
-        <LumenatiLogo bg="dark" className="w-24" />
-        <nav className="flex items-center gap-5 text-sm">
-          <Link href="/admin/login" className="font-semibold text-zinc-300 hover:text-white">
-            Sign in
-          </Link>
-          <Link href="/start" className="rounded-xl bg-brand px-4 py-2 font-bold text-white hover:brightness-110">
-            Set up your shop
-          </Link>
-        </nav>
-      </header>
+      <MktHeader />
 
       {/* Hero — headline + CTA left, the product on a laptop right. On mobile
           the order is headline, phone, then CTA (phone above "Set up your shop"). */}
-      <section className="mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-24">
+      <section className="mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-32 sm:pt-36 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-40">
         <div className="order-1 text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
           <div className="mkt-rise text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
             The business brain for tattoo shops
@@ -183,9 +176,9 @@ export default async function ShopsMarketingPage() {
 
         <div className="order-3 lg:col-start-1 lg:row-start-2 lg:self-start">
           <div className="mkt-rise mkt-rise-d3 mt-10 flex items-center justify-center gap-4 lg:mt-8 lg:justify-start">
-            <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
+            <ArrowCta href="/start" big>
               Set up your shop
-            </Link>
+            </ArrowCta>
             <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
               What&apos;s in it for me
             </a>
@@ -267,7 +260,7 @@ export default async function ShopsMarketingPage() {
           </div>
 
           {/* Artist pricing. */}
-          <Reveal className="mt-16">
+          <Reveal className="mkt-glow mt-16">
           <SpotlightCard className="mkt-lift flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[11px] font-bold uppercase text-zinc-400" style={{ letterSpacing: "0.2em" }}>
@@ -283,9 +276,7 @@ export default async function ShopsMarketingPage() {
               Booking, deposits, waivers, texting, winbacks, reviews, your own artist page, the tax
               &amp; 1099 pack, the coach, and get-paid-early. Everything above, for one chair.
             </p>
-            <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
-              Get started
-            </Link>
+            <ArrowCta href="/start">Get started</ArrowCta>
           </SpotlightCard>
           </Reveal>
         </div>
@@ -323,14 +314,18 @@ export default async function ShopsMarketingPage() {
           </ul>
           </Reveal>
 
-          {/* The desktop back office — a slider of real screens (arrows on lg). */}
-          <Reveal>
+          {/* The desktop back office. On lg+ the five screens stack like
+              sheets as you scroll (the deck); below lg, the swipe slider. */}
+          <Reveal className="lg:hidden">
             <DesktopSlider screens={DESKTOP_SCREENS} />
             <p className="mt-1 text-center text-xs text-zinc-500">Swipe, or use the arrows, to see more of the back office.</p>
           </Reveal>
+          <div className="hidden lg:block">
+            <ScreenDeck screens={DESKTOP_SCREENS} />
+          </div>
 
           {/* Shop pricing. */}
-          <Reveal className="mt-14">
+          <Reveal className="mkt-glow mt-14">
           <SpotlightCard className="mkt-lift flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[11px] font-bold uppercase text-zinc-400" style={{ letterSpacing: "0.2em" }}>
@@ -348,12 +343,15 @@ export default async function ShopsMarketingPage() {
               Everything in the artist plan, plus the shop finance layer: splits, booth rent,
               payouts, the P&amp;L, and per-artist performance.
             </p>
-            <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
-              Set up your shop
-            </Link>
+            <ArrowCta href="/start">Set up your shop</ArrowCta>
           </SpotlightCard>
           </Reveal>
         </div>
+      </section>
+
+      {/* The scrubbed drive: scroll plays a real Command Center session. */}
+      <section className="hidden border-t border-white/10 lg:block">
+        <ScrubVideo src="/marketing/command-center-drive.mp4" poster="/marketing/command-center-full.webp" />
       </section>
 
       {/* Compare plans. */}
@@ -364,7 +362,7 @@ export default async function ShopsMarketingPage() {
           </div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">Two plans. One number each.</h2>
           {foundingLeft !== null && foundingLeft > 0 && (
-            <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 rounded-full border border-brand/40 bg-brand/[0.08] px-5 py-2 text-sm">
+            <div className="mkt-glow mkt-glow-pill mt-5 inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 rounded-full border border-brand/40 bg-brand/[0.08] px-5 py-2 text-sm">
               <span className="font-bold text-brand">Founding 100</span>
               <span className="text-zinc-300">$49 per artist, locked for life</span>
               <span className="font-semibold">{foundingLeft} of 100 seats left</span>
@@ -437,9 +435,9 @@ export default async function ShopsMarketingPage() {
           ))}
         </Reveal>
         <div className="mt-8 text-center">
-          <Link href="/start" className="inline-block rounded-xl bg-brand px-8 py-3.5 text-base font-bold text-white hover:brightness-110">
+          <ArrowCta href="/start" big>
             Set up your shop
-          </Link>
+          </ArrowCta>
         </div>
       </section>
 
@@ -454,9 +452,11 @@ export default async function ShopsMarketingPage() {
             Name the shop, list the crew, and every artist gets their app and their page. Keep your
             own website; this is everything behind it.
           </p>
-          <Link href="/start" className="mt-7 inline-block rounded-xl bg-brand px-8 py-4 text-lg font-bold text-white hover:brightness-110">
-            Set up your shop
-          </Link>
+          <div className="mt-7 flex justify-center">
+            <ArrowCta href="/start" big>
+              Set up your shop
+            </ArrowCta>
+          </div>
           <p className="mt-4 text-xs text-zinc-500">
             Founding shops lock <span className="font-semibold text-zinc-300">$49 per artist for life</span>
             {foundingLeft !== null && foundingLeft > 0 && <> ({foundingLeft} of 100 seats left)</>}. Invite-only
