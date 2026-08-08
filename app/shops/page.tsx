@@ -3,6 +3,8 @@ import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
 import { Icon } from "@/components/marketing/Icon";
 import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
+import { Reveal } from "@/components/marketing/Reveal";
+import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FOUNDING_SEAT_CAP, foundingSeatsUsed } from "@/lib/stripe/billing";
 
@@ -72,8 +74,19 @@ const COMPARE: { label: string; artist: string | boolean; shop: string | boolean
 function PlanCell({ value }: { value: string | boolean }) {
   if (typeof value === "string") return <span className="text-zinc-300">{value}</span>;
   if (value) return <Icon name="check" className="mx-auto h-5 w-5 text-brand" />;
-  return <span className="text-zinc-600">—</span>;
+  return (
+    <span className="mx-auto flex h-5 w-5 items-center justify-center rounded-full border border-white/10">
+      <Icon name="close" className="h-3 w-3 text-zinc-600" />
+    </span>
+  );
 }
+
+// The hero's proof points. Every claim already lives elsewhere on the page.
+const HERO_STATS = [
+  { value: "100%", label: "Artists keep their rate" },
+  { value: "2 min", label: "To a live shop" },
+  { value: "30 days", label: "Free to start" },
+] as const;
 
 export default async function ShopsMarketingPage() {
   // Live "seats left" for the Founding 100 deal. Pure decoration on this page:
@@ -101,24 +114,25 @@ export default async function ShopsMarketingPage() {
 
       {/* Hero — headline + CTA left, the product on a laptop right. On mobile
           the order is headline, phone, then CTA (phone above "Set up your shop"). */}
-      <section className="mkt-rise mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-24">
+      <section className="mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-16 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-24">
         <div className="order-1 text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
-          <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
+          <div className="mkt-rise text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
             The business brain for tattoo shops
           </div>
           <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
-            Everything but
+            <span className="mkt-word" style={{ animationDelay: "0.1s" }}>Everything</span>{" "}
+            <span className="mkt-word" style={{ animationDelay: "0.19s" }}>but</span>
             <br />
-            <span className="text-brand">the tattoo.</span>
+            <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-md text-base text-zinc-300 sm:text-lg lg:mx-0">
+          <p className="mkt-rise mkt-rise-d2 mx-auto mt-6 max-w-md text-base text-zinc-300 sm:text-lg lg:mx-0">
             Lumenati takes the payments, coaches the shop and every artist, keeps the books, texts
             the follow-ups, and runs goals and taxes for every chair. You bring the needle.
           </p>
         </div>
 
         {/* The product: desktop Command Center in a laptop + the app phone. */}
-        <div className="hero-stack order-2 mt-12 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-center">
+        <div className="hero-stack mkt-rise mkt-rise-d2 order-2 mt-12 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-center">
           <div>
             <div className="mkt-laptop-screen">
               <div className="mkt-laptop-bar">
@@ -137,30 +151,44 @@ export default async function ShopsMarketingPage() {
           </div>
         </div>
 
-        <div className="order-3 mt-10 flex items-center justify-center gap-4 lg:col-start-1 lg:row-start-2 lg:mt-8 lg:justify-start lg:self-start">
-          <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
-            Set up your shop
-          </Link>
-          <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
-            What&apos;s in it for me
-          </a>
+        <div className="order-3 lg:col-start-1 lg:row-start-2 lg:self-start">
+          <div className="mkt-rise mkt-rise-d3 mt-10 flex items-center justify-center gap-4 lg:mt-8 lg:justify-start">
+            <Link href="/start" className="rounded-xl bg-brand px-7 py-3.5 text-base font-bold text-white hover:brightness-110">
+              Set up your shop
+            </Link>
+            <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
+              What&apos;s in it for me
+            </a>
+          </div>
+          {/* Proof points, Bold-Studio style: big number, quiet label. */}
+          <div className="mkt-rise mkt-rise-d4 mt-9 grid grid-cols-3 gap-x-4 lg:flex lg:gap-x-10">
+            {HERO_STATS.map((s) => (
+              <div key={s.value} className="text-center lg:text-left">
+                <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>
+                <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-400">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ── FOR EVERY ARTIST ── */}
-      <section id="artist" className="mkt-rise-2 border-t border-white/10 py-20">
+      <section id="artist" className="border-t border-white/10 py-20">
         <div className="mx-auto max-w-6xl px-5">
-          <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
-            For every artist
-          </div>
-          <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
-            Run your chair like your own business.
-          </h2>
-          <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
-            The money app you&apos;ll actually want to open. Your earnings, your goals, your taxes,
-            handled, with a coach in your corner.
-          </p>
+          <Reveal>
+            <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
+              For every artist
+            </div>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
+              Run your chair like your own business.
+            </h2>
+            <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
+              The money app you&apos;ll actually want to open. Your earnings, your goals, your taxes,
+              handled, with a coach in your corner.
+            </p>
+          </Reveal>
 
+          <Reveal delay={0.08}>
           <ul className="mt-12 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
             {ARTIST_BENEFITS.map((b) => (
               <li key={b.title} className="flex gap-3.5">
@@ -174,13 +202,14 @@ export default async function ShopsMarketingPage() {
               </li>
             ))}
           </ul>
+          </Reveal>
 
           {/* Mobile: swipeable auto-carousel. */}
-          <div className="mt-14 sm:hidden">
+          <Reveal className="mt-14 sm:hidden">
             <PhoneCarousel slides={ARTIST_PHONES} />
-          </div>
+          </Reveal>
           {/* Desktop: the three phones side by side. */}
-          <div className="mt-14 hidden flex-wrap items-start justify-center gap-8 sm:flex">
+          <Reveal className="mt-14 hidden flex-wrap items-start justify-center gap-8 sm:flex">
             {ARTIST_PHONES.map((p) => (
               <figure key={p.img}>
                 <div className="mkt-phone mkt-phone-sm">
@@ -190,10 +219,11 @@ export default async function ShopsMarketingPage() {
                 <figcaption className="mt-3 text-center text-sm text-zinc-400">{p.cap}</figcaption>
               </figure>
             ))}
-          </div>
+          </Reveal>
 
           {/* Artist pricing. */}
-          <div className="mkt-glass mt-16 flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <Reveal className="mt-16">
+          <SpotlightCard className="mkt-lift flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[11px] font-bold uppercase text-zinc-400" style={{ letterSpacing: "0.2em" }}>
                 Solo or booth-rent artist
@@ -211,24 +241,28 @@ export default async function ShopsMarketingPage() {
             <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
               Get started
             </Link>
-          </div>
+          </SpotlightCard>
+          </Reveal>
         </div>
       </section>
 
       {/* ── FOR THE SHOP ── */}
       <section id="shop" className="border-t border-white/10 py-20">
         <div className="mx-auto max-w-6xl px-5">
-          <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
-            For the shop
-          </div>
-          <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
-            Run the whole room without a front desk.
-          </h2>
-          <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
-            One command center for the money, the coaching, and the retention. On a desk when you
-            want the big picture, in your pocket when you don&apos;t.
-          </p>
+          <Reveal>
+            <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
+              For the shop
+            </div>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">
+              Run the whole room without a front desk.
+            </h2>
+            <p className="mt-4 max-w-xl text-sm text-zinc-400 sm:text-base">
+              One command center for the money, the coaching, and the retention. On a desk when you
+              want the big picture, in your pocket when you don&apos;t.
+            </p>
+          </Reveal>
 
+          <Reveal delay={0.08}>
           <ul className="mt-12 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
             {SHOP_BENEFITS.map((b) => (
               <li key={b.title} className="flex gap-3.5">
@@ -242,13 +276,17 @@ export default async function ShopsMarketingPage() {
               </li>
             ))}
           </ul>
+          </Reveal>
 
           {/* The desktop back office — a slider of real screens (arrows on lg). */}
-          <DesktopSlider screens={DESKTOP_SCREENS} />
-          <p className="mt-1 text-center text-xs text-zinc-500">Swipe, or use the arrows, to see more of the back office.</p>
+          <Reveal>
+            <DesktopSlider screens={DESKTOP_SCREENS} />
+            <p className="mt-1 text-center text-xs text-zinc-500">Swipe, or use the arrows, to see more of the back office.</p>
+          </Reveal>
 
           {/* Shop pricing. */}
-          <div className="mkt-glass mt-14 flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <Reveal className="mt-14">
+          <SpotlightCard className="mkt-lift flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[11px] font-bold uppercase text-zinc-400" style={{ letterSpacing: "0.2em" }}>
                 For shops
@@ -268,13 +306,14 @@ export default async function ShopsMarketingPage() {
             <Link href="/start" className="whitespace-nowrap rounded-xl bg-brand px-6 py-3 font-bold text-white hover:brightness-110">
               Set up your shop
             </Link>
-          </div>
+          </SpotlightCard>
+          </Reveal>
         </div>
       </section>
 
       {/* Compare plans. */}
       <section id="pricing" className="mx-auto max-w-4xl border-t border-white/10 px-5 py-20">
-        <div className="text-center">
+        <Reveal className="text-center">
           <div className="text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.3em" }}>
             Compare plans
           </div>
@@ -286,9 +325,10 @@ export default async function ShopsMarketingPage() {
               <span className="font-semibold">{foundingLeft} of 100 seats left</span>
             </div>
           )}
-        </div>
+        </Reveal>
         {/* Desktop: side-by-side table. */}
-        <div className="mkt-glass mt-10 hidden sm:block">
+        <Reveal className="mt-10 hidden sm:block">
+        <SpotlightCard>
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-white/12">
@@ -321,10 +361,11 @@ export default async function ShopsMarketingPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </SpotlightCard>
+        </Reveal>
 
         {/* Mobile: two stacked plan cards, no horizontal scroll. */}
-        <div className="mt-8 grid gap-5 sm:hidden">
+        <Reveal className="mt-8 grid gap-5 sm:hidden">
           {([
             { name: "Artist", price: "$99", unit: "/mo", key: "artist" as const, accent: false },
             { name: "Shop", price: "$199", unit: "/mo + $79/artist", key: "shop" as const, accent: true },
@@ -349,7 +390,7 @@ export default async function ShopsMarketingPage() {
               </ul>
             </div>
           ))}
-        </div>
+        </Reveal>
         <div className="mt-8 text-center">
           <Link href="/start" className="inline-block rounded-xl bg-brand px-8 py-3.5 text-base font-bold text-white hover:brightness-110">
             Set up your shop
@@ -359,7 +400,8 @@ export default async function ShopsMarketingPage() {
 
       {/* Close. */}
       <section className="mx-auto max-w-3xl px-5 py-24 text-center">
-        <div className="mkt-glass px-6 py-12">
+        <Reveal>
+        <SpotlightCard className="px-6 py-12">
           <h2 className="text-3xl font-black tracking-tight">
             Two minutes to a live shop<span className="text-brand">.</span>
           </h2>
@@ -375,7 +417,8 @@ export default async function ShopsMarketingPage() {
             {foundingLeft !== null && foundingLeft > 0 && <> ({foundingLeft} of 100 seats left)</>}. Invite-only
             while we onboard the first cohort, ask us for a code.
           </p>
-        </div>
+        </SpotlightCard>
+        </Reveal>
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center text-xs text-zinc-500">

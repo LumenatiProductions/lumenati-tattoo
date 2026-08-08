@@ -1,14 +1,27 @@
-# NEXT SESSION — motionsites pass on the /shops marketing page (updated 2026-08-08)
+# NEXT SESSION — the full-product page walk (updated 2026-08-08, second session)
 
-Scott added a new MCP server, **motionsites** (user scope, so it's live in any
-fresh session; load its tools with ToolSearch). The job: dig through what
-motionsites offers — templates, prompts, section patterns, anything usable —
-and pull the pieces that would ENHANCE the /shops app marketing page. Amplify,
-don't replace: the page's structure (two buyer sections, slider, compare
-table) is settled and freshly updated; this is about elevating it, not
-rebuilding it. No emojis, no em dashes in copy.
+The motionsites pass is DONE (same day as the marketing refresh below). What
+landed on /shops, all additive: staggered hero rise, a hero proof-point row
+(100% / 2 min / 30 days), scroll-reveals on every below-fold block (new
+Reveal component), a cursor-following spotlight ring on the glass money
+cards + the compare table (new SpotlightCard component), and the compare
+table's "not included" dash is now a muted circle-x (new "close" icon in the
+generated marketing icon set). Second wave after Scott flagged HIS PLAN IS
+ACTIVE (premium prompts open fine through the MCP; the "3 free opens"
+warning applies to plan-less accounts only): the hero headline does the
+BlurText word-by-word blur dissolve, and the two money cards get a gentle
+hover lift. Prompts mined: rocket-pricing, datacore-booking-hero,
+bold-studio, liquid-glass-agency, liquid-glass-features, saas-pricing-flow.
+Passed on: video backgrounds, serif-italic type, watermark titles (they
+fight the Command Center look) and the liquid-glass top+bottom gradient
+ring (changes the resting glass language; revisit only if Scott asks).
 
-## What just shipped (2026-08-08, committed on main)
+So the standing program is back on top: the FULL-PRODUCT PAGE WALK
+(PAGE-WALK-NOTES.md + MC run 2026-08-03-full-product-page-walk). Page by
+page through web admin, public, then the mobile app; Scott comments, we
+fix, we push, next page.
+
+## What shipped earlier the same day (2026-08-08, commit b9b0d24)
 
 The marketing page caught up with the product:
 - Hero now leads with "takes the payments"; both sections open with a
@@ -43,6 +56,4 @@ Dev server on :3002, Metro web on :8081, then:
 
 ## Parked (don't lose)
 
-- The full-product page walk (PAGE-WALK-NOTES.md) is still the standing
-  program after the motionsites pass.
 - REVIEW-TOUR.md stops 4+ (Clients onward) remain open.

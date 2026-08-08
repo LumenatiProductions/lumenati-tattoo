@@ -32,6 +32,7 @@ const MAP = {
   chevronLeft: "chevron-back-outline",
   chevronRight: "chevron-forward-outline",
   check: "checkmark-outline",
+  close: "close-outline",
   doc: "document-text-outline",
   tablet: "tablet-portrait-outline",
 };
