@@ -60,15 +60,17 @@ export function ScrollPhoneDemo({
       if (total <= 0) return;
       const p = Math.min(1, Math.max(0, -el.getBoundingClientRect().top / total));
 
-      // Arrive at hero size, grow and pull to the side, hold, then hand the
-      // frame back.
+      // At rest the phone rides LIFTED into the hero's viewport (part of the
+      // opening composition); the scroll picks it up: it settles to center,
+      // grows, pulls right, holds, then hands the frame back.
       const grown = Math.min((vh * 0.88) / (VIEW_H + 24), 1.3);
       const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
       const pin = Math.min(1, p / 0.13);
       const pout = Math.max(0, (p - 0.92) / 0.08);
       const scale = (0.8 + (grown - 0.8) * easeOut(pin)) * (1 - 0.1 * pout);
       const tx = Math.min(220, vw * 0.13) * easeOut(pin);
-      ph.style.transform = `translateX(${tx.toFixed(1)}px) scale(${scale.toFixed(4)})`;
+      const lift = (1 - easeOut(pin)) * vh * 0.24;
+      ph.style.transform = `translate(${tx.toFixed(1)}px, ${(-lift).toFixed(1)}px) scale(${scale.toFixed(4)})`;
 
       // The headline column rides the pin: in as the phone parks, out as it leaves.
       if (hd) hd.style.opacity = (easeOut(pin) * (1 - pout)).toFixed(2);

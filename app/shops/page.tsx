@@ -137,18 +137,18 @@ export default async function ShopsMarketingPage() {
       {/* Hero — rotating verb eyebrow, a huge centered headline, the ask and
           proof points, then the phone: it pins as you scroll and BECOMES the
           takeover, riding the real app with the story headlines. */}
-      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pt-32 text-center sm:pt-36 lg:pt-40">
+      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pt-24 text-center sm:pt-28">
         <div className="mkt-rise text-lg font-bold text-zinc-200 sm:text-xl">
           It <RotatingWords words={HERO_VERBS} />
         </div>
-        <h1 className="mkt-hero-title mt-5 font-black tracking-tight">
+        <h1 className="mkt-hero-title mt-4 font-black tracking-tight">
           <span className="mkt-word" style={{ animationDelay: "0.1s" }}>Everything</span>{" "}
           <span className="mkt-word" style={{ animationDelay: "0.19s" }}>but</span>
           <br />
           <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
         </h1>
-        <p className="mkt-rise mkt-rise-d2 mt-6 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
-        <div className="mkt-rise mkt-rise-d3 mt-6 flex items-center justify-center gap-4">
+        <p className="mkt-rise mkt-rise-d2 mt-4 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
+        <div className="mkt-rise mkt-rise-d3 mt-5 flex items-center justify-center gap-4">
           <ArrowCta href="/start" big>
             Set up your shop
           </ArrowCta>
@@ -157,7 +157,7 @@ export default async function ShopsMarketingPage() {
           </a>
         </div>
         {/* Proof points, Bold-Studio style: big number, quiet label. */}
-        <div className="mkt-rise mkt-rise-d4 mt-9 grid grid-cols-3 gap-x-8 sm:gap-x-14">
+        <div className="mkt-rise mkt-rise-d4 mt-8 grid grid-cols-3 gap-x-8 sm:gap-x-14">
           {HERO_STATS.map((s) => (
             <div key={s.value} className="text-center">
               <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>

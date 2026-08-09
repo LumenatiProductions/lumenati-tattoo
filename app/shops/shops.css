@@ -173,7 +173,7 @@
 /* The hero: a huge centered headline, then the phone front and center on an
    ink halo, floating gently. */
 .mkt-hero-title {
-  font-size: clamp(2.8rem, 8vw, 6.25rem);
+  font-size: clamp(2.6rem, 7vw, 5.5rem);
   line-height: 0.95;
 }
 .mkt-hero-phone {
