@@ -6,26 +6,29 @@ import { PhoneDemo } from "@/components/marketing/PhoneDemo";
 const VIEW_W = 330;
 const VIEW_H = 660;
 
-// The scroll takeover. A sticky stage pins the phone while you scroll: the
-// phone grows and pulls to the RIGHT while a big headline owns the left,
-// then your scrolling scrolls the REAL app (one continuous full-height
-// capture of the artist home). Each content landmark swaps the headline
-// with a blur crossfade; the page releases at the end. Transforms are
-// written per-frame to the DOM; React only tracks the live headline.
-// Reduced motion gets the tilt demo instead.
+// The hero AND the takeover, one stage. At rest: the hero copy owns the left
+// and the phone sits on the right at hero size. Scrolling picks the phone up:
+// the hero copy hands off to the story headlines in the same spot while the
+// phone grows in place and the REAL app (one continuous full-height capture)
+// scrolls inside the glass. Transforms are written per-frame to the DOM;
+// React only tracks the live headline. Reduced motion gets the hero copy
+// above the tilt demo.
 export function ScrollPhoneDemo({
   img,
   stops,
   fallback,
+  hero,
 }: {
   img: { src: string; alt: string };
   stops: readonly { at: number; head: string; sub: string }[];
   fallback: readonly { img: string; alt: string; cap: string }[];
+  hero: React.ReactNode;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const phone = useRef<HTMLDivElement>(null);
   const shot = useRef<HTMLImageElement>(null);
   const heads = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [reduced, setReduced] = useState(false);
 
@@ -40,7 +43,7 @@ export function ScrollPhoneDemo({
       if (!im || !im.naturalWidth) return 0;
       return Math.max(0, (im.naturalHeight * VIEW_W) / im.naturalWidth - VIEW_H);
     };
-    // The section is as tall as the ride needs: one viewport to grow, the
+    // The section is as tall as the ride needs: one viewport at rest, the
     // app scroll at a comfortable rate, one viewport to hand back.
     const size = () => {
       const el = wrap.current;
@@ -53,6 +56,7 @@ export function ScrollPhoneDemo({
       const ph = phone.current;
       const im = shot.current;
       const hd = heads.current;
+      const hr = heroRef.current;
       if (!el || !ph || !im) return;
       const vh = window.innerHeight;
       const vw = window.innerWidth;
@@ -60,19 +64,23 @@ export function ScrollPhoneDemo({
       if (total <= 0) return;
       const p = Math.min(1, Math.max(0, -el.getBoundingClientRect().top / total));
 
-      // At rest the phone rides LIFTED into the hero's viewport (part of the
-      // opening composition); the scroll picks it up: it settles to center,
-      // grows, pulls right, holds, then hands the frame back.
+      // The phone lives on the right the whole time; the pickup grows it in
+      // place, the release hands the frame back.
       const grown = Math.min((vh * 0.88) / (VIEW_H + 24), 1.3);
       const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
       const pin = Math.min(1, p / 0.13);
       const pout = Math.max(0, (p - 0.92) / 0.08);
-      const scale = (0.8 + (grown - 0.8) * easeOut(pin)) * (1 - 0.1 * pout);
-      const tx = Math.min(220, vw * 0.13) * easeOut(pin);
-      const lift = (1 - easeOut(pin)) * vh * 0.24;
-      ph.style.transform = `translate(${tx.toFixed(1)}px, ${(-lift).toFixed(1)}px) scale(${scale.toFixed(4)})`;
+      const scale = (0.78 + (grown - 0.78) * easeOut(pin)) * (1 - 0.1 * pout);
+      const tx = Math.min(230, vw * 0.14);
+      ph.style.transform = `translateX(${tx.toFixed(1)}px) scale(${scale.toFixed(4)})`;
 
-      // The headline column rides the pin: in as the phone parks, out as it leaves.
+      // Left column handoff: hero copy out, story headlines in.
+      if (hr) {
+        hr.style.opacity = (1 - easeOut(pin)).toFixed(2);
+        // Compose with the CSS -50% vertical centering.
+        hr.style.transform = `translateY(-50%) translateY(${(-34 * easeOut(pin)).toFixed(1)}px)`;
+        hr.style.pointerEvents = pin > 0.4 ? "none" : "";
+      }
       if (hd) hd.style.opacity = (easeOut(pin) * (1 - pout)).toFixed(2);
 
       // The middle of the ride scrolls the app inside the glass.
@@ -107,12 +115,21 @@ export function ScrollPhoneDemo({
     };
   }, [stops]);
 
-  if (reduced) return <PhoneDemo screens={fallback} />;
+  if (reduced)
+    return (
+      <div>
+        <div className="mx-auto max-w-xl px-5 pt-32 text-center">{hero}</div>
+        <PhoneDemo screens={fallback} />
+      </div>
+    );
 
   return (
     <div ref={wrap} className="mkt-scrolldemo" style={{ height: "320vh" }}>
       <div className="mkt-scrolldemo-sticky">
-        {/* The story: one big headline per landmark, phone's left. */}
+        {/* The left column: hero copy at rest, story headlines on the ride. */}
+        <div ref={heroRef} className="mkt-scrolldemo-hero">
+          {hero}
+        </div>
         <div ref={heads} className="mkt-scrolldemo-heads" style={{ opacity: 0 }}>
           {stops.map((s, i) => (
             <div key={s.head} className={`mkt-sd-head ${i === active ? "is-on" : ""}`} aria-hidden={i !== active}>

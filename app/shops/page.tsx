@@ -134,11 +134,10 @@ export default async function ShopsMarketingPage() {
     <div className="mkt-wash min-h-screen text-ink">
       <MktHeader />
 
-      {/* Hero — rotating verb eyebrow, a huge centered headline, the ask and
-          proof points, then the phone: it pins as you scroll and BECOMES the
-          takeover, riding the real app with the story headlines. */}
-      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pt-24 text-center sm:pt-28">
-        <div className="mkt-rise text-lg font-bold text-zinc-200 sm:text-xl">
+      {/* Mobile hero: centered copy + a static phone (the takeover is a
+          desktop ride). */}
+      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pt-24 text-center sm:hidden">
+        <div className="mkt-rise text-lg font-bold text-zinc-200">
           It <RotatingWords words={HERO_VERBS} />
         </div>
         <h1 className="mkt-hero-title mt-4 font-black tracking-tight">
@@ -147,35 +146,29 @@ export default async function ShopsMarketingPage() {
           <br />
           <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
         </h1>
-        <p className="mkt-rise mkt-rise-d2 mt-4 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
+        <p className="mkt-rise mkt-rise-d2 mt-4 text-base text-zinc-300">You bring the needle.</p>
         <div className="mkt-rise mkt-rise-d3 mt-5 flex items-center justify-center gap-4">
           <ArrowCta href="/start" big>
             Set up your shop
           </ArrowCta>
-          <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
-            What&apos;s in it for me
-          </a>
         </div>
-        {/* Proof points, Bold-Studio style: big number, quiet label. */}
-        <div className="mkt-rise mkt-rise-d4 mt-8 grid grid-cols-3 gap-x-8 sm:gap-x-14">
+        <div className="mkt-rise mkt-rise-d4 mt-8 grid grid-cols-3 gap-x-8">
           {HERO_STATS.map((s) => (
             <div key={s.value} className="text-center">
-              <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>
+              <div className="text-2xl font-black tracking-tight">{s.value}</div>
               <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-400">{s.label}</div>
             </div>
           ))}
         </div>
-
-        {/* Mobile: the hero phone, static (the takeover is a desktop ride). */}
-        <div className="mkt-rise mkt-rise-d4 mkt-phone mkt-hero-phone mt-12 sm:hidden">
+        <div className="mkt-rise mkt-rise-d4 mkt-phone mkt-hero-phone mt-12">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
         </div>
       </section>
 
-      {/* Desktop: THE phone. It arrives center stage and your scroll takes it
-          over — it grows, pulls right, and scrolls the real app while the
-          story headlines swap on the left. */}
+      {/* Desktop hero + takeover, one stage: the copy owns the left, the
+          phone sits on the right, and your scroll picks the phone up — it
+          grows in place while the story headlines take the copy's spot. */}
       <div className="hidden sm:block">
         <ScrollPhoneDemo
           img={{ src: "/marketing/app-artist-scroll.webp", alt: "The artist app, top to bottom: your day, your money, your goals, the coach, and your whole business" }}
@@ -186,6 +179,36 @@ export default async function ShopsMarketingPage() {
             { at: 0.85, head: "Your whole business", sub: "Pay, clients, promos, healed shots, goals. One tap each." },
           ]}
           fallback={ARTIST_PHONES}
+          hero={
+            <>
+              <div className="mkt-rise text-lg font-bold text-zinc-200 sm:text-xl">
+                It <RotatingWords words={HERO_VERBS} />
+              </div>
+              <h1 className="mkt-hero-title-side mt-4 font-black tracking-tight">
+                <span className="mkt-word" style={{ animationDelay: "0.1s" }}>Everything</span>{" "}
+                <span className="mkt-word" style={{ animationDelay: "0.19s" }}>but</span>
+                <br />
+                <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
+              </h1>
+              <p className="mkt-rise mkt-rise-d2 mt-4 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
+              <div className="mkt-rise mkt-rise-d3 mt-6 flex items-center gap-4">
+                <ArrowCta href="/start" big>
+                  Set up your shop
+                </ArrowCta>
+                <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
+                  What&apos;s in it for me
+                </a>
+              </div>
+              <div className="mkt-rise mkt-rise-d4 mt-9 flex gap-x-10">
+                {HERO_STATS.map((s) => (
+                  <div key={s.value}>
+                    <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>
+                    <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-400">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          }
         />
       </div>
 
