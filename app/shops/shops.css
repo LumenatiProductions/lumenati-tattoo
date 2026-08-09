@@ -511,11 +511,20 @@
   pointer-events: none;
 }
 
+/* The composed frame: page-width positioning context for the left column,
+   centered on the viewport. */
+.mkt-scrolldemo-frame {
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
+  max-width: 72rem;
+}
+
 /* The hero copy at rest: same left-column geometry as the story headlines,
    handed off (fade + rise) as the pickup begins. */
 .mkt-scrolldemo-hero {
   position: absolute;
-  left: clamp(20px, 6vw, 110px);
+  left: clamp(16px, 3vw, 44px);
   top: 50%;
   transform: translateY(-50%);
   width: min(38vw, 500px);
@@ -527,7 +536,7 @@
    cell to the phone's left, swapping with a blur crossfade. */
 .mkt-scrolldemo-heads {
   position: absolute;
-  left: clamp(20px, 6vw, 110px);
+  left: clamp(16px, 3vw, 44px);
   top: 50%;
   transform: translateY(-50%);
   display: grid;

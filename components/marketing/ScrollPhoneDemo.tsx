@@ -67,15 +67,22 @@ export function ScrollPhoneDemo({
       if (total <= 0) return;
       const p = Math.min(1, Math.max(0, -el.getBoundingClientRect().top / total));
 
-      // The phone lives on the right the whole time; the pickup grows it in
-      // place, the release hands the frame back.
+      // The phone lives on the right the whole time; at rest it fills about
+      // two thirds of the viewport (tall monitors get a bigger phone, not a
+      // bigger gap) and sits a touch low, then the pickup grows it in place
+      // and the release hands the frame back.
       const grown = Math.min((vh * 0.88) / (VIEW_H + 24), 1.3);
+      const rest = Math.max(0.78, Math.min(1.05, (vh * 0.66) / (VIEW_H + 24)));
       const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
       const pin = Math.min(1, p / 0.13);
       const pout = Math.max(0, (p - 0.92) / 0.08);
-      const scale = (0.78 + (grown - 0.78) * easeOut(pin)) * (1 - 0.1 * pout);
-      const tx = Math.min(230, vw * 0.14);
-      ph.style.transform = `translateX(${tx.toFixed(1)}px) scale(${scale.toFixed(4)})`;
+      const scale = (rest + (grown - rest) * easeOut(pin)) * (1 - 0.1 * pout);
+      // Offset from the FRAME's center (page-width container), not the
+      // viewport, so wide monitors keep copy and phone composed together.
+      const frameW = Math.min(vw, 1152);
+      const tx = Math.max(150, frameW / 2 - 300);
+      const settle = (1 - easeOut(pin)) * vh * 0.03;
+      ph.style.transform = `translate(${tx.toFixed(1)}px, ${settle.toFixed(1)}px) scale(${scale.toFixed(4)})`;
 
       // Left column handoff: hero copy out, story headlines in.
       if (hr) {
@@ -136,20 +143,25 @@ export function ScrollPhoneDemo({
   return (
     <div ref={wrap} className="mkt-scrolldemo" style={{ height: "320vh" }}>
       <div className="mkt-scrolldemo-sticky">
-        {/* The left column: hero copy at rest, story headlines on the ride. */}
-        <div ref={heroRef} className="mkt-scrolldemo-hero">
-          {hero}
-        </div>
-        <div ref={heads} className="mkt-scrolldemo-heads" style={{ opacity: 0 }}>
-          {stops.map((s, i) => (
-            <div key={s.head} className={`mkt-sd-head ${i === active ? "is-on" : ""}`} aria-hidden={i !== active}>
-              <h3 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl">
-                {s.head}
-                <span className="text-brand">.</span>
-              </h3>
-              <p className="mt-4 max-w-sm text-base text-zinc-400 sm:text-lg">{s.sub}</p>
-            </div>
-          ))}
+        {/* The composed frame: copy and headlines position against this
+            page-width container, not the viewport, so wide monitors don't
+            open a canyon between the copy and the phone. */}
+        <div className="mkt-scrolldemo-frame">
+          {/* The left column: hero copy at rest, story headlines on the ride. */}
+          <div ref={heroRef} className="mkt-scrolldemo-hero">
+            {hero}
+          </div>
+          <div ref={heads} className="mkt-scrolldemo-heads" style={{ opacity: 0 }}>
+            {stops.map((s, i) => (
+              <div key={s.head} className={`mkt-sd-head ${i === active ? "is-on" : ""}`} aria-hidden={i !== active}>
+                <h3 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl">
+                  {s.head}
+                  <span className="text-brand">.</span>
+                </h3>
+                <p className="mt-4 max-w-sm text-base text-zinc-400 sm:text-lg">{s.sub}</p>
+              </div>
+            ))}
+          </div>
         </div>
         <div ref={phone} className="mkt-phone mkt-scrolldemo-phone">
           <div className="mkt-scrolldemo-viewport">
