@@ -60,12 +60,13 @@ export function ScrollPhoneDemo({
       if (total <= 0) return;
       const p = Math.min(1, Math.max(0, -el.getBoundingClientRect().top / total));
 
-      // Grow, pull to the side, hold, then hand the frame back.
+      // Arrive at hero size, grow and pull to the side, hold, then hand the
+      // frame back.
       const grown = Math.min((vh * 0.88) / (VIEW_H + 24), 1.3);
       const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
       const pin = Math.min(1, p / 0.13);
       const pout = Math.max(0, (p - 0.92) / 0.08);
-      const scale = (0.62 + (grown - 0.62) * easeOut(pin)) * (1 - 0.1 * pout);
+      const scale = (0.8 + (grown - 0.8) * easeOut(pin)) * (1 - 0.1 * pout);
       const tx = Math.min(220, vw * 0.13) * easeOut(pin);
       ph.style.transform = `translateX(${tx.toFixed(1)}px) scale(${scale.toFixed(4)})`;
 

@@ -134,9 +134,10 @@ export default async function ShopsMarketingPage() {
     <div className="mkt-wash min-h-screen text-ink">
       <MktHeader />
 
-      {/* Hero — the phone IS the hero: rotating verb eyebrow, a huge centered
-          headline, the app front and center, then the ask and proof points. */}
-      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pb-16 pt-32 text-center sm:pt-36 lg:pt-40">
+      {/* Hero — rotating verb eyebrow, a huge centered headline, the ask and
+          proof points, then the phone: it pins as you scroll and BECOMES the
+          takeover, riding the real app with the story headlines. */}
+      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pt-32 text-center sm:pt-36 lg:pt-40">
         <div className="mkt-rise text-lg font-bold text-zinc-200 sm:text-xl">
           It <RotatingWords words={HERO_VERBS} />
         </div>
@@ -146,14 +147,8 @@ export default async function ShopsMarketingPage() {
           <br />
           <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
         </h1>
-
-        <div className="mkt-rise mkt-rise-d2 mkt-phone mkt-hero-phone mt-12">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
-        </div>
-
-        <p className="mkt-rise mkt-rise-d3 mt-10 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
-        <div className="mkt-rise mkt-rise-d3 mt-5 flex items-center justify-center gap-4">
+        <p className="mkt-rise mkt-rise-d2 mt-6 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
+        <div className="mkt-rise mkt-rise-d3 mt-6 flex items-center justify-center gap-4">
           <ArrowCta href="/start" big>
             Set up your shop
           </ArrowCta>
@@ -162,7 +157,7 @@ export default async function ShopsMarketingPage() {
           </a>
         </div>
         {/* Proof points, Bold-Studio style: big number, quiet label. */}
-        <div className="mkt-rise mkt-rise-d4 mt-10 grid grid-cols-3 gap-x-8 sm:gap-x-14">
+        <div className="mkt-rise mkt-rise-d4 mt-9 grid grid-cols-3 gap-x-8 sm:gap-x-14">
           {HERO_STATS.map((s) => (
             <div key={s.value} className="text-center">
               <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>
@@ -170,7 +165,29 @@ export default async function ShopsMarketingPage() {
             </div>
           ))}
         </div>
+
+        {/* Mobile: the hero phone, static (the takeover is a desktop ride). */}
+        <div className="mkt-rise mkt-rise-d4 mkt-phone mkt-hero-phone mt-12 sm:hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
+        </div>
       </section>
+
+      {/* Desktop: THE phone. It arrives center stage and your scroll takes it
+          over — it grows, pulls right, and scrolls the real app while the
+          story headlines swap on the left. */}
+      <div className="hidden sm:block">
+        <ScrollPhoneDemo
+          img={{ src: "/marketing/app-artist-scroll.webp", alt: "The artist app, top to bottom: your day, your money, your goals, the coach, and your whole business" }}
+          stops={[
+            { at: 0, head: "Your day, ready", sub: "Next client up, deposits held, and a calendar that fills itself." },
+            { at: 0.2, head: "Your money, live", sub: "Earnings, tips, and your real hourly rate. Taxes set aside from every ticket." },
+            { at: 0.55, head: "A coach in your corner", sub: "Plain reads from your own numbers, nothing invented." },
+            { at: 0.85, head: "Your whole business", sub: "Pay, clients, promos, healed shots, goals. One tap each." },
+          ]}
+          fallback={ARTIST_PHONES}
+        />
+      </div>
 
       {/* The what-it-does ticker. */}
       <div className="mkt-marquee" aria-hidden>
@@ -220,21 +237,6 @@ export default async function ShopsMarketingPage() {
           <Reveal className="mt-14 sm:hidden">
             <PhoneCarousel slides={ARTIST_PHONES} />
           </Reveal>
-          {/* Desktop: the scroll takeover. The phone grows to own the screen
-              and your scrolling scrolls the REAL app, one continuous
-              full-height capture of the artist home. */}
-          <div className="hidden sm:block">
-            <ScrollPhoneDemo
-              img={{ src: "/marketing/app-artist-scroll.webp", alt: "The artist app, top to bottom: your day, your money, your goals, the coach, and your whole business" }}
-              stops={[
-                { at: 0, head: "Your day, ready", sub: "Next client up, deposits held, and a calendar that fills itself." },
-                { at: 0.2, head: "Your money, live", sub: "Earnings, tips, and your real hourly rate. Taxes set aside from every ticket." },
-                { at: 0.55, head: "A coach in your corner", sub: "Plain reads from your own numbers, nothing invented." },
-                { at: 0.85, head: "Your whole business", sub: "Pay, clients, promos, healed shots, goals. One tap each." },
-              ]}
-              fallback={ARTIST_PHONES}
-            />
-          </div>
 
           {/* Artist pricing. */}
           <Reveal className="mkt-glow mt-16">
