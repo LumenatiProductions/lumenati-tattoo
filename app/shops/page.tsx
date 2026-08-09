@@ -327,16 +327,21 @@ export default async function ShopsMarketingPage() {
           </ul>
           </Reveal>
 
-          {/* The desktop back office. On lg+ the five screens stack like
-              sheets as you scroll (the deck); below lg, the swipe slider. */}
+          {/* The desktop back office, below lg: the swipe slider. */}
           <Reveal className="lg:hidden">
             <DesktopSlider screens={DESKTOP_SCREENS} />
             <p className="mt-1 text-center text-xs text-zinc-500">Swipe, or use the arrows, to see more of the back office.</p>
           </Reveal>
-          <div className="hidden lg:block">
-            <ScreenDeck screens={DESKTOP_SCREENS} />
-          </div>
+        </div>
 
+        {/* On lg+ the five screens stack like sheets as you scroll (the
+            deck) — full bleed so the story column and the screens get the
+            same composed frame as the hero ride. */}
+        <div className="hidden lg:block">
+          <ScreenDeck screens={DESKTOP_SCREENS} />
+        </div>
+
+        <div className="mx-auto max-w-6xl px-5">
           {/* Shop pricing. */}
           <Reveal className="mkt-glow mt-14">
           <SpotlightCard className="mkt-lift flex flex-col items-start gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">

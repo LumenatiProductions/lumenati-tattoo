@@ -87,17 +87,31 @@ export function ScreenDeck({
   return (
     <div ref={wrap} className="mkt-deck" style={{ height: `${120 + n * 60}vh` }}>
       <div className="mkt-deck-sticky">
-        <div ref={stack} className="mkt-deck-stack">
-          {screens.map((s, i) => (
-            <article key={s.img} className={`mkt-deck-card ${i === active ? "is-on" : ""}`}>
-              <button type="button" className="mkt-deck-strip" onClick={() => jumpTo(i)}>
-                <span className="mkt-deck-title">{s.title}</span>
-                <span className="mkt-deck-body">{s.body}</span>
-              </button>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.img} alt={s.alt} />
-            </article>
-          ))}
+        <div className="mkt-deck-frame">
+          {/* The story column: one headline per screen, same language as the
+              hero ride. */}
+          <div className="mkt-deck-heads">
+            {screens.map((s, i) => (
+              <div key={s.title} className={`mkt-sd-head ${i === active ? "is-on" : ""}`} aria-hidden={i !== active}>
+                <h3 className="text-3xl font-black leading-[1.05] tracking-tight xl:text-4xl">
+                  {s.title}
+                  <span className="text-brand">.</span>
+                </h3>
+                <p className="mt-4 max-w-sm text-base text-zinc-400">{s.body}</p>
+              </div>
+            ))}
+          </div>
+          <div ref={stack} className="mkt-deck-stack">
+            {screens.map((s, i) => (
+              <article key={s.img} className={`mkt-deck-card ${i === active ? "is-on" : ""}`}>
+                <button type="button" className="mkt-deck-strip" onClick={() => jumpTo(i)}>
+                  <span className="mkt-deck-title">{s.title}</span>
+                </button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.img} alt={s.alt} />
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -568,18 +568,34 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-  padding: 0 clamp(16px, 3vw, 48px);
+}
+/* Same composed-frame idea as the hero ride, wider so the screens stay big:
+   headline column left, the stacking screens right. */
+.mkt-deck-frame {
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
+  max-width: 88rem;
+}
+.mkt-deck-heads {
+  position: absolute;
+  left: clamp(16px, 3vw, 44px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  width: min(26vw, 380px);
+  z-index: 2;
+  text-align: left;
 }
 .mkt-deck-stack {
-  position: relative;
-  width: 100%;
-  max-width: 1160px;
+  position: absolute;
+  right: clamp(16px, 3vw, 44px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(58vw, 900px);
   aspect-ratio: 16 / 10;
-  max-height: 82vh;
+  max-height: 80vh;
   overflow: hidden;
   border-radius: 1rem;
 }
