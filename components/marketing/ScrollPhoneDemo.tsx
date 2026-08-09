@@ -18,17 +18,20 @@ export function ScrollPhoneDemo({
   stops,
   fallback,
   hero,
+  strip,
 }: {
   img: { src: string; alt: string };
   stops: readonly { at: number; head: string; sub: string }[];
   fallback: readonly { img: string; alt: string; cap: string }[];
   hero: React.ReactNode;
+  strip?: React.ReactNode;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const phone = useRef<HTMLDivElement>(null);
   const shot = useRef<HTMLImageElement>(null);
   const heads = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [reduced, setReduced] = useState(false);
 
@@ -82,6 +85,13 @@ export function ScrollPhoneDemo({
         hr.style.pointerEvents = pin > 0.4 ? "none" : "";
       }
       if (hd) hd.style.opacity = (easeOut(pin) * (1 - pout)).toFixed(2);
+      // The marquee rides the bottom of the header frame and breaks away
+      // with the copy as the pickup begins.
+      const sb = stripRef.current;
+      if (sb) {
+        sb.style.opacity = (1 - easeOut(pin)).toFixed(2);
+        sb.style.transform = `translateY(${(26 * easeOut(pin)).toFixed(1)}px)`;
+      }
 
       // The middle of the ride scrolls the app inside the glass.
       const q = Math.min(1, Math.max(0, (p - 0.14) / 0.76));
@@ -147,6 +157,11 @@ export function ScrollPhoneDemo({
             <img ref={shot} src={img.src} alt={img.alt} className="mkt-scrolldemo-shot" />
           </div>
         </div>
+        {strip && (
+          <div ref={stripRef} className="mkt-scrolldemo-marquee">
+            {strip}
+          </div>
+        )}
       </div>
     </div>
   );

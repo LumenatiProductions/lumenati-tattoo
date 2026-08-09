@@ -500,6 +500,17 @@
   object-fit: unset;
   will-change: transform;
 }
+/* The marquee rides the bottom edge of the header frame; the pickup breaks
+   it away with the copy. */
+.mkt-scrolldemo-marquee {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
 /* The hero copy at rest: same left-column geometry as the story headlines,
    handed off (fade + rise) as the pickup begins. */
 .mkt-scrolldemo-hero {

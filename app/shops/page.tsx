@@ -77,6 +77,23 @@ const COMPARE: { label: string; artist: string | boolean; shop: string | boolean
   { label: "Multi-artist roster", artist: false, shop: true },
 ];
 
+// The what-it-does ticker. In the desktop header it rides the bottom of the
+// hero frame (and breaks away on pickup); on mobile it runs standalone.
+function MarqueeStrip() {
+  return (
+    <div className="mkt-marquee" aria-hidden>
+      <div className="mkt-marquee-track">
+        {[...MARQUEE, ...MARQUEE].map((item, i) => (
+          <span key={`${item}-${i}`} className="flex items-center gap-3 whitespace-nowrap text-xs font-semibold uppercase tracking-widest text-zinc-400">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand/60" />
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PlanCell({ value }: { value: string | boolean }) {
   if (typeof value === "string") return <span className="text-zinc-300">{value}</span>;
   if (value) return <Icon name="check" className="mx-auto h-5 w-5 text-brand" />;
@@ -179,6 +196,7 @@ export default async function ShopsMarketingPage() {
             { at: 0.85, head: "Your whole business", sub: "Pay, clients, promos, healed shots, goals. One tap each." },
           ]}
           fallback={ARTIST_PHONES}
+          strip={<MarqueeStrip />}
           hero={
             <>
               <div className="mkt-rise text-lg font-bold text-zinc-200 sm:text-xl">
@@ -212,16 +230,9 @@ export default async function ShopsMarketingPage() {
         />
       </div>
 
-      {/* The what-it-does ticker. */}
-      <div className="mkt-marquee" aria-hidden>
-        <div className="mkt-marquee-track">
-          {[...MARQUEE, ...MARQUEE].map((item, i) => (
-            <span key={`${item}-${i}`} className="flex items-center gap-3 whitespace-nowrap text-xs font-semibold uppercase tracking-widest text-zinc-400">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand/60" />
-              {item}
-            </span>
-          ))}
-        </div>
+      {/* Mobile: the ticker runs standalone under the hero. */}
+      <div className="sm:hidden">
+        <MarqueeStrip />
       </div>
 
       {/* ── FOR EVERY ARTIST ── */}
