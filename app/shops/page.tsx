@@ -7,7 +7,6 @@ import { PhoneCarousel } from "@/components/marketing/PhoneCarousel";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ScreenDeck } from "@/components/marketing/ScreenDeck";
 import { ScrollPhoneDemo } from "@/components/marketing/ScrollPhoneDemo";
-import { ScrubVideo } from "@/components/marketing/ScrubVideo";
 import { RotatingWords } from "@/components/marketing/RotatingWords";
 import { SpotlightCard } from "@/components/marketing/SpotlightCard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -137,10 +136,7 @@ export default async function ShopsMarketingPage() {
           the order is headline, phone, then CTA (phone above "Set up your shop"). */}
       <section className="mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-32 sm:pt-36 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-40">
         <div className="order-1 text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
-          <div className="mkt-rise text-[11px] font-bold uppercase text-brand" style={{ letterSpacing: "0.35em" }}>
-            The business brain for tattoo shops
-          </div>
-          <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+          <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
             <span className="mkt-word" style={{ animationDelay: "0.1s" }}>Everything</span>{" "}
             <span className="mkt-word" style={{ animationDelay: "0.19s" }}>but</span>
             <br />
@@ -149,9 +145,7 @@ export default async function ShopsMarketingPage() {
           <div className="mkt-rise mkt-rise-d2 mt-6 text-xl font-bold text-zinc-100 sm:text-2xl">
             It <RotatingWords words={HERO_VERBS} />
           </div>
-          <p className="mkt-rise mkt-rise-d2 mx-auto mt-3 max-w-md text-base text-zinc-400 lg:mx-0">
-            One system for the whole shop, front to back. You bring the needle.
-          </p>
+          <p className="mkt-rise mkt-rise-d2 mt-2 text-base text-zinc-400">You bring the needle.</p>
         </div>
 
         {/* The product: desktop Command Center in a laptop + the app phone. */}
@@ -347,11 +341,6 @@ export default async function ShopsMarketingPage() {
           </SpotlightCard>
           </Reveal>
         </div>
-      </section>
-
-      {/* The scrubbed drive: scroll plays a real Command Center session. */}
-      <section className="hidden border-t border-white/10 lg:block">
-        <ScrubVideo src="/marketing/command-center-drive.mp4" poster="/marketing/command-center-full.webp" />
       </section>
 
       {/* Compare plans. */}

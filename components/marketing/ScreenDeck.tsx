@@ -5,10 +5,10 @@ import { DesktopSlider } from "@/components/marketing/DesktopSlider";
 
 // The back-office deck (MotionSites sticky-cards pattern): the five desktop
 // screens ride in from below as you scroll and stack like sheets, each
-// leaving its title strip peeking. A tab rail on the left tracks the active
-// screen; clicking a tab scrolls to its segment. Transforms are written
-// per-frame via CSS variables. Below lg, and for reduced motion, the
-// existing slider takes over.
+// leaving its title strip peeking. The strips ARE the tabs: the active one
+// tints pink, and clicking any strip scrolls to its screen. Cards run the
+// full container width so the screens read near 1:1. Below lg, and for
+// reduced motion, the swipe slider takes over.
 export function ScreenDeck({
   screens,
 }: {
@@ -87,26 +87,13 @@ export function ScreenDeck({
   return (
     <div ref={wrap} className="mkt-deck" style={{ height: `${120 + n * 60}vh` }}>
       <div className="mkt-deck-sticky">
-        <div className="mkt-deck-rail">
-          {screens.map((s, i) => (
-            <button
-              key={s.title}
-              type="button"
-              onClick={() => jumpTo(i)}
-              className={`mkt-deck-tab ${i === active ? "is-on" : ""}`}
-            >
-              <span className="mkt-deck-dot" />
-              {s.title}
-            </button>
-          ))}
-        </div>
         <div ref={stack} className="mkt-deck-stack">
-          {screens.map((s) => (
-            <article key={s.img} className="mkt-deck-card">
-              <div className="mkt-deck-strip">
+          {screens.map((s, i) => (
+            <article key={s.img} className={`mkt-deck-card ${i === active ? "is-on" : ""}`}>
+              <button type="button" className="mkt-deck-strip" onClick={() => jumpTo(i)}>
                 <span className="mkt-deck-title">{s.title}</span>
                 <span className="mkt-deck-body">{s.body}</span>
-              </div>
+              </button>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={s.img} alt={s.alt} />
             </article>

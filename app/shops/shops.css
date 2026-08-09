@@ -618,48 +618,16 @@
   height: 100vh;
   display: flex;
   align-items: center;
-  gap: clamp(24px, 4vw, 64px);
+  justify-content: center;
   overflow: hidden;
   padding: 0 clamp(16px, 3vw, 48px);
 }
-.mkt-deck-rail {
-  flex: none;
-  display: grid;
-  gap: 16px;
-  width: clamp(150px, 15vw, 210px);
-}
-.mkt-deck-tab {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 0;
-  background: transparent;
-  color: rgb(255 255 255 / 0.38);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  text-align: left;
-  cursor: pointer;
-  transition: color 0.2s, transform 0.2s;
-}
-.mkt-deck-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: currentColor;
-  flex: none;
-}
-.mkt-deck-tab.is-on {
-  color: #ff1493;
-  transform: translateX(3px);
-}
 .mkt-deck-stack {
   position: relative;
-  flex: 1;
-  max-width: 960px;
-  aspect-ratio: 10 / 7;
-  max-height: 74vh;
+  width: 100%;
+  max-width: 1160px;
+  aspect-ratio: 16 / 10;
+  max-height: 82vh;
   overflow: hidden;
   border-radius: 1rem;
 }
@@ -681,20 +649,27 @@
 .mkt-deck-strip {
   flex: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   height: 56px;
-  align-items: center;
   padding: 0 20px;
   background: #101016;
+  border: 0;
   border-bottom: 1px solid rgb(255 255 255 / 0.08);
   white-space: nowrap;
   overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
 }
 .mkt-deck-title {
   color: #f2f3fa;
   font-weight: 800;
   font-size: 15px;
+  transition: color 0.25s;
+}
+.mkt-deck-card.is-on .mkt-deck-title {
+  color: #ff1493;
 }
 .mkt-deck-body {
   color: rgb(235 240 255 / 0.55);
@@ -709,31 +684,6 @@
   min-height: 0;
   object-fit: cover;
   object-position: left top;
-}
-
-/* The scroll-scrubbed drive: a pinned laptop whose video rides the scroll. */
-.mkt-scrub {
-  position: relative;
-}
-.mkt-scrub-sticky {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-  overflow: hidden;
-  padding: 0 1.5rem;
-}
-.mkt-scrub-laptop {
-  width: min(78vw, 960px);
-}
-.mkt-scrub-laptop video,
-.mkt-scrub-laptop img {
-  display: block;
-  width: 100%;
 }
 
 /* Two-cell CTA: pink text cell + arrow cell with a thin seam. On hover the

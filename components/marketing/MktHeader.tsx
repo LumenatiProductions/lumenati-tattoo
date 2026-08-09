@@ -17,7 +17,7 @@ export function MktHeader() {
   return (
     <header className={`mkt-header ${hidden ? "is-hidden" : ""}`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 pt-6">
-        <LumenatiLogo bg="dark" className="w-24" />
+        <LumenatiLogo bg="dark" className="w-20" />
         <nav className="flex items-center gap-5 text-sm">
           <Link href="/admin/login" className="font-semibold text-zinc-300 hover:text-white">
             Sign in
