@@ -134,60 +134,41 @@ export default async function ShopsMarketingPage() {
     <div className="mkt-wash min-h-screen text-ink">
       <MktHeader />
 
-      {/* Hero — headline + CTA left, the product on a laptop right. On mobile
-          the order is headline, phone, then CTA (phone above "Set up your shop"). */}
-      <section className="mx-auto grid max-w-6xl gap-x-10 px-5 pb-16 pt-32 sm:pt-36 lg:grid-cols-[1fr_1.05fr] lg:grid-rows-[auto_auto] lg:items-center lg:pt-40">
-        <div className="order-1 text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
-          <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
-            <span className="mkt-word" style={{ animationDelay: "0.1s" }}>Everything</span>{" "}
-            <span className="mkt-word" style={{ animationDelay: "0.19s" }}>but</span>
-            <br />
-            <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
-          </h1>
-          <div className="mkt-rise mkt-rise-d2 mt-6 text-xl font-bold text-zinc-100 sm:text-2xl">
-            It <RotatingWords words={HERO_VERBS} />
-          </div>
-          <p className="mkt-rise mkt-rise-d2 mt-2 text-base text-zinc-400">You bring the needle.</p>
+      {/* Hero — the phone IS the hero: rotating verb eyebrow, a huge centered
+          headline, the app front and center, then the ask and proof points. */}
+      <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pb-16 pt-32 text-center sm:pt-36 lg:pt-40">
+        <div className="mkt-rise text-lg font-bold text-zinc-200 sm:text-xl">
+          It <RotatingWords words={HERO_VERBS} />
+        </div>
+        <h1 className="mkt-hero-title mt-5 font-black tracking-tight">
+          <span className="mkt-word" style={{ animationDelay: "0.1s" }}>Everything</span>{" "}
+          <span className="mkt-word" style={{ animationDelay: "0.19s" }}>but</span>
+          <br />
+          <span className="mkt-word text-brand" style={{ animationDelay: "0.28s" }}>the tattoo.</span>
+        </h1>
+
+        <div className="mkt-rise mkt-rise-d2 mkt-phone mkt-hero-phone mt-12">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
         </div>
 
-        {/* The product: desktop Command Center in a laptop + the app phone. */}
-        <div className="hero-stack mkt-rise mkt-rise-d2 order-2 mt-12 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-center">
-          <div>
-            <div className="mkt-laptop-screen">
-              <div className="mkt-laptop-bar">
-                <span />
-                <span />
-                <span />
-              </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/marketing/command-center-full.webp" alt="The Lumenati Command Center: the week's money, coach reads, and what needs attention" />
+        <p className="mkt-rise mkt-rise-d3 mt-10 text-base text-zinc-300 sm:text-lg">You bring the needle.</p>
+        <div className="mkt-rise mkt-rise-d3 mt-5 flex items-center justify-center gap-4">
+          <ArrowCta href="/start" big>
+            Set up your shop
+          </ArrowCta>
+          <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
+            What&apos;s in it for me
+          </a>
+        </div>
+        {/* Proof points, Bold-Studio style: big number, quiet label. */}
+        <div className="mkt-rise mkt-rise-d4 mt-10 grid grid-cols-3 gap-x-8 sm:gap-x-14">
+          {HERO_STATS.map((s) => (
+            <div key={s.value} className="text-center">
+              <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>
+              <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-400">{s.label}</div>
             </div>
-            <div className="mkt-laptop-base" />
-          </div>
-          <div className="mkt-phone">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marketing/app-artist-home.webp" alt="The artist app: Sam's day and earnings" />
-          </div>
-        </div>
-
-        <div className="order-3 lg:col-start-1 lg:row-start-2 lg:self-start">
-          <div className="mkt-rise mkt-rise-d3 mt-10 flex items-center justify-center gap-4 lg:mt-8 lg:justify-start">
-            <ArrowCta href="/start" big>
-              Set up your shop
-            </ArrowCta>
-            <a href="#artist" className="text-sm font-semibold text-zinc-300 hover:text-white">
-              What&apos;s in it for me
-            </a>
-          </div>
-          {/* Proof points, Bold-Studio style: big number, quiet label. */}
-          <div className="mkt-rise mkt-rise-d4 mt-9 grid grid-cols-3 gap-x-4 lg:flex lg:gap-x-10">
-            {HERO_STATS.map((s) => (
-              <div key={s.value} className="text-center lg:text-left">
-                <div className="text-2xl font-black tracking-tight sm:text-3xl">{s.value}</div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-400">{s.label}</div>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
 

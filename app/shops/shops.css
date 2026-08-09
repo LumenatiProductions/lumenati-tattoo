@@ -170,120 +170,41 @@
   border-radius: 1.45rem;
 }
 
-/* Hero product shot: the desktop Command Center inside a laptop, with the
-   app phone overlapping its corner, lit from behind. Reads as "real product"
-   at a glance and separates cleanly from the dark page. */
-.hero-stack {
-  position: relative;
+/* The hero: a huge centered headline, then the phone front and center on an
+   ink halo, floating gently. */
+.mkt-hero-title {
+  font-size: clamp(2.8rem, 8vw, 6.25rem);
+  line-height: 0.95;
 }
-.hero-stack::before {
-  content: "";
-  position: absolute;
-  inset: -12% -6% -4%;
-  background: radial-gradient(60% 55% at 50% 30%, rgba(255, 20, 147, 0.22), transparent 70%);
-  filter: blur(45px);
+.mkt-hero-phone {
+  position: relative;
   z-index: 0;
+  padding: 10px;
+  border-radius: 2.3rem;
+  animation: mkt-float 7s ease-in-out infinite alternate;
 }
-.hero-stack > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Laptop: bezel + screen, then a wider base with a notch. Bezel is lifted
-   off near-black and ringed so the device separates from the dark page. */
-.mkt-laptop-screen {
-  border: 10px solid #26262f;
-  border-bottom: 0;
-  border-radius: 16px 16px 0 0;
-  background: #26262f;
-  overflow: hidden;
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.08),
-    0 30px 80px rgb(0 0 0 / 0.7),
-    inset 0 1px 0 rgb(255 255 255 / 0.12);
-}
-.mkt-laptop-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 13px;
-  background: #101016;
-  border-bottom: 1px solid rgb(255 255 255 / 0.06);
-}
-.mkt-laptop-bar span {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.16);
-}
-.mkt-laptop-screen img {
-  display: block;
-  width: 100%;
-}
-.mkt-laptop-base {
-  position: relative;
-  height: 14px;
-  margin: 0 -5.5%;
-  border-radius: 0 0 13px 13px;
-  background: linear-gradient(180deg, #3a3a46 0%, #22222b 55%, #14141a 100%);
-  box-shadow: 0 22px 34px rgb(0 0 0 / 0.55);
-}
-.mkt-laptop-base::before {
+.mkt-hero-phone::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 7px;
-  background: #0b0b10;
-  border-radius: 0 0 9px 9px;
-}
-
-/* The app phone hangs off the RIGHT edge of the laptop, lifted on an ink halo. */
-.hero-stack .mkt-phone {
-  position: absolute;
-  right: -3rem;
-  bottom: -2rem;
-  padding: 7px;
-  border-radius: 1.6rem;
-  z-index: 2;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 50px rgb(0 0 0 / 0.55);
-}
-/* Liquid-ink halo behind the phone so it pops off the laptop. */
-.hero-stack .mkt-phone::before {
-  content: "";
-  position: absolute;
-  inset: -46% -40%;
+  inset: -26% -44%;
   z-index: -1;
-  background: radial-gradient(46% 46% at 50% 48%, rgba(255, 20, 147, 0.62), rgba(120, 60, 190, 0.36) 46%, transparent 72%);
-  filter: blur(44px);
+  background: radial-gradient(
+    46% 46% at 50% 46%,
+    rgba(255, 20, 147, 0.42),
+    rgba(120, 60, 190, 0.26) 48%,
+    transparent 74%
+  );
+  filter: blur(52px);
 }
-.hero-stack .mkt-phone img {
-  width: 168px;
-  height: 346px;
-  border-radius: 1.15rem;
+.mkt-hero-phone img {
+  width: 250px;
+  height: 512px;
+  border-radius: 1.8rem;
 }
-/* On phones the laptop-plus-overlap composition gets cramped; show the app
-   phone alone, centered. The Command Center shows up in the shop section. */
-@media (max-width: 767px) {
-  .hero-stack > div:first-child {
-    display: none;
-  }
-  .hero-stack .mkt-phone {
-    position: static;
-    margin: 0 auto;
-    width: max-content;
-  }
-  .hero-stack .mkt-phone img {
-    width: 240px;
-    height: 494px;
-  }
-}
-@media (max-width: 767px) {
-  .hero-stack .mkt-phone {
-    position: static;
-    margin: -2.5rem auto 0;
+@media (min-width: 640px) {
+  .mkt-hero-phone img {
+    width: 290px;
+    height: 594px;
   }
 }
 
@@ -432,7 +353,7 @@
   background: rgb(255 255 255 / 0.08);
 }
 
-/* The hero devices float, slightly out of phase. */
+/* The hero phone floats, gently. */
 @keyframes mkt-float {
   from {
     transform: translateY(0);
@@ -440,12 +361,6 @@
   to {
     transform: translateY(-9px);
   }
-}
-.hero-stack > div:first-child {
-  animation: mkt-float 7s ease-in-out infinite alternate;
-}
-.hero-stack .mkt-phone {
-  animation: mkt-float 5.5s ease-in-out 0.8s infinite alternate;
 }
 
 /* The demo phone: a 3D handset that follows the cursor. The stage carries
@@ -846,8 +761,7 @@
   .mkt-word,
   .mkt-wash::before,
   .mkt-marquee-track,
-  .hero-stack > div:first-child,
-  .hero-stack .mkt-phone {
+  .mkt-hero-phone {
     animation: none;
   }
   .mkt-pre {
