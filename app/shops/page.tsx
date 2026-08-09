@@ -49,13 +49,15 @@ const ARTIST_PHONES = [
   { img: "/marketing/app-artist-coach.webp", alt: "An artist's coach reads and tax summary", cap: "A coach in your corner." },
 ];
 
-// The desktop back-office screens in the shop slider.
+// The desktop back-office screens (deck on lg+, slider below). Purpose-cut
+// 16:10 crops from scripts/marketing-shots-deck.mjs: sidebar off, page
+// header skipped, the story region framed exactly.
 const DESKTOP_SCREENS = [
-  { img: "/marketing/command-center.webp", title: "The overview", body: "The week's money, the coach reads, and what needs a decision, live.", alt: "The Command Center overview" },
-  { img: "/marketing/reports.webp", title: "Reports", body: "Shop-wide financials, per-artist roll-ups, and 1099 prep, exportable.", alt: "Reports: financials and per-artist roll-ups" },
-  { img: "/marketing/payouts.webp", title: "Pay", body: "Renter pass-through and payroll prep, per artist, every period.", alt: "Pay: renter pass-through and payroll prep" },
-  { img: "/marketing/bookings.webp", title: "Bookings", body: "The day's calendar, deposits held, and cancelled slots offered to the waitlist by text.", alt: "Bookings: the day's calendar and deposits" },
-  { img: "/marketing/followups.webp", title: "Follow-ups", body: "Aftercare, reviews, and rebooking nudges queued and texting on schedule.", alt: "Follow-ups queue" },
+  { img: "/marketing/deck-overview.webp", title: "The overview", body: "The week's money, the coach reads, and what needs a decision, live.", alt: "The Command Center overview" },
+  { img: "/marketing/deck-reports.webp", title: "Reports", body: "Shop-wide financials, per-artist roll-ups, and 1099 prep, exportable.", alt: "Reports: financials and per-artist roll-ups" },
+  { img: "/marketing/deck-pay.webp", title: "Pay", body: "Renter pass-through and payroll prep, per artist, every period.", alt: "Pay: renter pass-through and payroll prep" },
+  { img: "/marketing/deck-bookings.webp", title: "Bookings", body: "The day's calendar, deposits held, and cancelled slots offered to the waitlist by text.", alt: "Bookings: the day's calendar and deposits" },
+  { img: "/marketing/deck-followups.webp", title: "Follow-ups", body: "Aftercare, reviews, and rebooking nudges queued and texting on schedule.", alt: "Follow-ups queue" },
 ] as const;
 
 // Plan comparison. Values are true (included), false (not), or a string.
