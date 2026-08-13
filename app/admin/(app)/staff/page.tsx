@@ -98,10 +98,10 @@ export default function StaffPage() {
         subtitle="Two roles: admins run the shop, artists run their chair. Add someone with their phone number and they sign in with a text code. No passwords, nothing to set up."
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
-        <div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">
           <SectionTitle>Team</SectionTitle>
-          <Card>
+          <Card className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/55">

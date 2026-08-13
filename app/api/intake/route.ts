@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { ID_TYPES, type IdType } from "@/lib/intake/forms";
+import { shopDayStartUtc, shopDayEndUtc } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +30,13 @@ async function staff() {
 const can = (role: string | null, roles: readonly string[]) =>
   !!role && roles.includes(role);
 
+// "Today" on the shop's clock, not the server's (Vercel runs UTC, so a 7pm
+// Denver booking counted as tomorrow and made this tile disagree with the
+// Bookings page, which reads the shop/local day). lum-012.
 const dayBounds = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start.getTime() + 86_400_000);
-  return { start: start.toISOString(), end: end.toISOString() };
+  const tz = process.env.SHOP_TIMEZONE || "America/Denver";
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
+  return { start: shopDayStartUtc(day, tz), end: shopDayEndUtc(day, tz) };
 };
 
 // List consent forms (newest first), plus the Overview aggregate `unsignedToday`
@@ -56,7 +59,7 @@ export async function GET() {
     .from("bookings")
     .select("id")
     .gte("starts_at", start)
-    .lt("starts_at", end)
+    .lte("starts_at", end)
     .neq("status", "cancelled");
   const todayIds = new Set((todays ?? []).map((b) => b.id as string));
   const coveredIds = new Set(
