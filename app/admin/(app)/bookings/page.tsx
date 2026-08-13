@@ -60,9 +60,16 @@ export default function BookingsPage() {
     useBookings();
   const { clients } = useClients();
   const { artists } = useArtists();
-  const { realRole } = useRole();
-  const canWrite = realRole === "owner";
-  const canSync = realRole === "owner";
+  const { role, asArtistId } = useRole();
+  // "View as artist" scopes the whole page to that one chair — their bookings,
+  // their counters, and none of the shop-wide owner actions (lum-016).
+  const isArtistView = role === "artist";
+  const canWrite = role === "owner";
+  const canSync = role === "owner";
+  const scopedBookings = useMemo(
+    () => (isArtistView ? bookings.filter((b) => b.artist_id === asArtistId) : bookings),
+    [bookings, isArtistView, asArtistId],
+  );
 
   const [filter, setFilter] = useState<Filter>("today");
   const [view, setView] = useState<"list" | "week">("list");
@@ -87,7 +94,7 @@ export default function BookingsPage() {
 
   const nowMs = Date.now();
   const filtered = useMemo(() => {
-    const list = bookings.filter((b) => {
+    const list = scopedBookings.filter((b) => {
       const t = new Date(b.starts_at).getTime();
       switch (filter) {
         case "today":
@@ -110,7 +117,7 @@ export default function BookingsPage() {
         ? a.starts_at.localeCompare(b.starts_at)
         : b.starts_at.localeCompare(a.starts_at),
     );
-  }, [bookings, filter, nowMs]);
+  }, [scopedBookings, filter, nowMs]);
 
   // Group the filtered list by calendar day for the agenda.
   const groups = useMemo(() => {
@@ -122,14 +129,22 @@ export default function BookingsPage() {
     return [...m.entries()];
   }, [filtered]);
 
-  // Window-wide stats.
-  const settled = bookings.filter((b) => b.status === "completed" || b.status === "no_show").length;
-  const noShows = bookings.filter((b) => b.status === "no_show").length;
+  // Window-wide stats (scoped to the chair in artist view).
+  const settled = scopedBookings.filter((b) => b.status === "completed" || b.status === "no_show").length;
+  const noShows = scopedBookings.filter((b) => b.status === "no_show").length;
   const noShowRate = settled ? Math.round((noShows / settled) * 100) : 0;
-  const forfeited = bookings
+  const forfeited = scopedBookings
     .filter((b) => b.deposit_status === "forfeited")
     .reduce((s, b) => s + b.deposit_cents, 0);
-  const fromSquare = bookings.some((b) => b.source === "square");
+  const fromSquare = scopedBookings.some((b) => b.source === "square");
+
+  // Today / deposits-held come shop-wide from the hook; recompute for one chair.
+  const todayCount = isArtistView
+    ? scopedBookings.filter((b) => isToday(b.starts_at) && b.status !== "cancelled").length
+    : today;
+  const heldDeposits = isArtistView
+    ? scopedBookings.filter((b) => b.deposit_status === "held").reduce((s, b) => s + b.deposit_cents, 0)
+    : depositsHeld;
 
   const selected = bookings.find((b) => b.id === selectedId) ?? null;
 
@@ -182,8 +197,8 @@ export default function BookingsPage() {
       />
 
       <StatRow>
-        <StatCard label="Today" value={String(today)} accent sub="appointments" />
-        <StatCard label="Deposits held" value={money(depositsHeld)} tone={depositsHeld ? "warn" : "neutral"} sub="awaiting outcome" />
+        <StatCard label="Today" value={String(todayCount)} accent sub="appointments" />
+        <StatCard label="Deposits held" value={money(heldDeposits)} tone={heldDeposits ? "warn" : "neutral"} sub="awaiting outcome" />
         <StatCard label="No-show rate" value={`${noShowRate}%`} tone={noShowRate >= 15 ? "warn" : "neutral"} sub={`${noShows} of ${settled} settled`} />
         <StatCard label="Forfeited" value={money(forfeited)} sub="kept from no-shows" />
       </StatRow>

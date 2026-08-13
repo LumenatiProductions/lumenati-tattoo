@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { Role } from "./types";
+
+const PREVIEW_KEY = "lum-preview";
 
 // Role now comes from the authenticated profile. Owners can "preview as" other
 // roles (in-memory, for support/QA); everyone else is locked to their role.
@@ -39,11 +41,42 @@ export function RoleProvider({
   const [role, setRoleState] = useState<Role>(realRole);
   const [asArtistId, setAsArtistIdState] = useState<string>(realArtistId ?? "jd");
 
+  // "View as artist" lived only in memory, so any full reload or direct URL
+  // navigation snapped back to Admin while in-app link clicks kept it — the
+  // inconsistency in lum-018. Persist the owner's preview choice to the tab
+  // (sessionStorage) and rehydrate after mount (a useEffect, not the initial
+  // state, so server and first client render still agree).
+  useEffect(() => {
+    if (!canPreview) return;
+    try {
+      const raw = sessionStorage.getItem(PREVIEW_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw) as { role?: Role; asArtistId?: string };
+      if (p.role) setRoleState(p.role);
+      if (p.asArtistId) setAsArtistIdState(p.asArtistId);
+    } catch {
+      /* ignore */
+    }
+  }, [canPreview]);
+
+  const persist = (r: Role, id: string) => {
+    try {
+      if (r === realRole) sessionStorage.removeItem(PREVIEW_KEY);
+      else sessionStorage.setItem(PREVIEW_KEY, JSON.stringify({ role: r, asArtistId: id }));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const setRole = (r: Role) => {
-    if (canPreview) setRoleState(r);
+    if (!canPreview) return;
+    setRoleState(r);
+    persist(r, asArtistId);
   };
   const setAsArtistId = (id: string) => {
-    if (canPreview) setAsArtistIdState(id);
+    if (!canPreview) return;
+    setAsArtistIdState(id);
+    persist(role, id);
   };
 
   return (

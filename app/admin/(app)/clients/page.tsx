@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useClients, type Client, type ClientPatch } from "@/lib/admin/clients-context";
 import { useBookings } from "@/lib/admin/bookings-context";
 import { useArtists } from "@/lib/admin/artists-context";
@@ -23,8 +24,15 @@ export default function ClientsPage() {
   const { clients, loading, error, total, newThisMonth, addClient, updateClient, syncFromSquare, refresh } =
     useClients();
   const { artists } = useArtists();
-  const { realRole } = useRole();
+  const { realRole, role } = useRole();
   const canSync = realRole === "owner";
+  const router = useRouter();
+  // "View as artist" must not see the shop-wide roster — other artists' clients
+  // and their phone numbers (lum-017). Send the preview to the artist-scoped
+  // page; the guard below keeps the roster from flashing mid-redirect.
+  useEffect(() => {
+    if (role === "artist") router.replace("/admin/my-clients");
+  }, [role, router]);
 
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -97,6 +105,10 @@ export default function ClientsPage() {
         : res.error || "Sync failed.",
     );
   };
+
+  // Redirecting to the artist-scoped page (effect above) — don't paint the
+  // shop-wide roster on the way out.
+  if (role === "artist") return null;
 
   return (
     <div>
