@@ -480,7 +480,11 @@ export default async function ShopsMarketingPage() {
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center text-xs text-zinc-500">
-        Lumenati · Denver, CO
+        <div>Lumenati · Denver, CO</div>
+        <div className="mt-2 flex justify-center gap-4">
+          <a href="/privacy" className="underline hover:text-zinc-300">Privacy Policy</a>
+          <a href="/terms" className="underline hover:text-zinc-300">Terms of Service</a>
+        </div>
       </footer>
     </div>
   );
