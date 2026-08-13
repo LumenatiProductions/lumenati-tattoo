@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, type Role } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { apiPost } from "@/lib/appApi";
 import { theme } from "@/lib/theme";
 import InkWash from "@/components/InkWash";
 import { Badge, Button, Card, Empty, ListRow, SectionTitle } from "@/components/ui";
@@ -95,6 +96,7 @@ export default function Staff() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [adding, setAdding] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<Role>("artist");
   const [artistId, setArtistId] = useState("");
@@ -144,24 +146,30 @@ export default function Staff() {
     }
     setBusy(true);
     setMsg(null);
-    const { error } = await supabase.from("profiles").upsert(
-      {
-        email: em,
-        full_name: name.trim() || null,
-        role,
-        artist_id: role === "artist" ? artistId || artists[0]?.id || null : null,
-      },
-      { onConflict: "email" },
-    );
+    // Provision through the server so they get a real auth user with email AND
+    // phone — the app signs in phone-first, so a profile row alone left them
+    // locked out (lum-025).
+    const res = await apiPost("/api/staff/invite", {
+      email: em,
+      phone: phone.trim() || undefined,
+      fullName: name.trim() || undefined,
+      role,
+      artistId: role === "artist" ? artistId || artists[0]?.id || null : null,
+    });
     setBusy(false);
-    if (error) {
-      setMsg(error.message);
+    if (!res.ok) {
+      setMsg(res.error ?? "Could not add them. Try again.");
       return;
     }
     setEmail("");
+    setPhone("");
     setName("");
     setAdding(false);
-    setMsg("Added. They can sign in with that email now.");
+    setMsg(
+      phone.trim()
+        ? "Added. They can sign in with that phone number or email now."
+        : "Added. They can sign in with that email now (add a phone so they can use a text code).",
+    );
     load();
   };
 
@@ -244,6 +252,7 @@ export default function Staff() {
             {adding && (
               <Card style={{ marginTop: 14 }}>
                 <LabeledInput label="Email" value={email} onChange={setEmail} placeholder="them@example.com" keyboardType="email-address" autoCapitalize="none" />
+                <LabeledInput label="Mobile (for text-code sign-in)" value={phone} onChange={setPhone} placeholder="(555) 555-0123" keyboardType="phone-pad" autoCapitalize="none" />
                 <LabeledInput label="Name (optional)" value={name} onChange={setName} placeholder="First Last" autoCapitalize="words" />
                 <Chips label="Role" value={role} options={ROLES} display={(r) => ROLE_LABELS[r]} onChange={setRole} />
                 {role === "artist" && (
