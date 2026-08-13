@@ -47,6 +47,7 @@ export default function Cockpit() {
   const { dueToday: followupsDue, pending: followupsPending } = useFollowups();
 
   const [health, setHealth] = useState<HealthEvent[]>([]);
+  const [healthLoaded, setHealthLoaded] = useState(false);
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [snoozed, setSnoozed] = useState<Record<string, number>>({});
 
@@ -62,7 +63,8 @@ export default function Cockpit() {
     fetch("/api/health")
       .then((r) => r.json())
       .then((d) => setHealth(((d?.events as HealthEvent[]) ?? []).filter((e) => !("resolved_at" in e && (e as { resolved_at?: string }).resolved_at))))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setHealthLoaded(true));
   }, []);
 
   const checkedInToday = useMemo(
@@ -145,7 +147,9 @@ export default function Cockpit() {
       {items.length === 0 ? (
         <Card>
           <div className="px-4 py-8 text-center text-sm text-white/55">
-            All clear. Nothing needs a decision right now.
+            {healthLoaded
+              ? "All clear. Nothing needs a decision right now."
+              : "Checking what needs your attention..."}
           </div>
         </Card>
       ) : (

@@ -114,9 +114,8 @@ export default function PayoutsPage() {
 
       {role !== "artist" && !settleConfigured && (
         <div className="mb-4 rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
-          <span className="font-semibold">Settlement history is off.</span> Run{" "}
-          <code className="font-mono">supabase/settlements-schema.sql</code> in Supabase to make
-          clearing a row stick.
+          <span className="font-semibold">Settlement history isn&apos;t on yet.</span> Clearing a
+          payout here won&apos;t be saved until it&apos;s turned on.
         </div>
       )}
       {msg && (

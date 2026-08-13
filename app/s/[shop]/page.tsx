@@ -60,7 +60,9 @@ export default async function ShopPage({ params }: { params: Promise<{ shop: str
                     </div>
                   </div>
                 </div>
-                {room.tagline ? <p className="mt-3 text-sm text-zinc-400">{room.tagline}</p> : null}
+                {/* The subtitle already falls back to the tagline when there's no
+                    handle — only add the tagline line when it isn't a repeat. */}
+                {a.handle && room.tagline ? <p className="mt-3 text-sm text-zinc-400">{room.tagline}</p> : null}
                 <div className="mt-4 text-sm font-semibold" style={{ color: shop.accent }}>
                   See work + book →
                 </div>

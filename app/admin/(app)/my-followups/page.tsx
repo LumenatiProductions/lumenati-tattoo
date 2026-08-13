@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRole } from "@/lib/admin/role-context";
+import { useArtists } from "@/lib/admin/artists-context";
 import { Card, SectionTitle, Badge } from "@/components/admin/ui";
 import { PageHead, Empty } from "@/components/admin/home/shared";
 
@@ -32,7 +33,14 @@ function timing(kind: string, days: number): string {
 }
 
 export default function MyFollowupsPage() {
-  const { asArtistId } = useRole();
+  const { asArtistId, canPreview } = useRole();
+  const { artists } = useArtists();
+  // asArtistId defaults to a shared "jd" for owners, which is not a real chair
+  // and left this page blank (lum-011). Resolve to a real roster member; owners
+  // pick which chair to manage with the selector in the header.
+  const [chair, setChair] = useState<string>("");
+  const artistId =
+    chair || (artists.some((a) => a.id === asArtistId) ? asArtistId : artists[0]?.id ?? "");
 
   const [items, setItems] = useState<Item[] | null>(null);
   const [openKind, setOpenKind] = useState<string | null>(null);
@@ -43,7 +51,7 @@ export default function MyFollowupsPage() {
   const load = useCallback(async () => {
     setItems(null);
     try {
-      const res = await fetch(`/api/followups/prefs?artistId=${encodeURIComponent(asArtistId)}`, {
+      const res = await fetch(`/api/followups/prefs?artistId=${encodeURIComponent(artistId)}`, {
         cache: "no-store",
       });
       const data = (await res.json().catch(() => ({}))) as { items?: Item[]; error?: string };
@@ -54,7 +62,7 @@ export default function MyFollowupsPage() {
       setItems([]);
       setMsg("Could not load follow-ups.");
     }
-  }, [asArtistId]);
+  }, [artistId]);
 
   useEffect(() => {
     load();
@@ -79,7 +87,7 @@ export default function MyFollowupsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        artistId: asArtistId,
+        artistId,
         kind: openKind,
         subject: draft.subject,
         body: draft.body,
@@ -106,7 +114,7 @@ export default function MyFollowupsPage() {
     const res = await fetch("/api/followups/prefs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artistId: asArtistId, kind }),
+      body: JSON.stringify({ artistId, kind }),
     });
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     setBusy(false);
@@ -124,6 +132,22 @@ export default function MyFollowupsPage() {
       <PageHead
         title="My follow-ups"
         sub="The texts your clients get around a visit. Change the timing or wording, or leave the shop's version. Turn any of them off for your chair."
+        action={
+          canPreview && artists.length > 1 ? (
+            <select
+              value={artistId}
+              onChange={(e) => setChair(e.target.value)}
+              className="rounded-lg border border-white/12 bg-white/6 px-3 py-1.5 text-sm"
+              aria-label="Pick a chair"
+            >
+              {artists.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}&apos;s chair
+                </option>
+              ))}
+            </select>
+          ) : undefined
+        }
       />
 
       {msg && <div className="mb-4 text-sm text-white/70">{msg}</div>}

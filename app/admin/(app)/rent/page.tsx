@@ -138,8 +138,8 @@ function InHouseRent() {
       <Card>
         {!configured ? (
           <div className="px-4 py-4 text-xs text-white/60">
-            Run <code className="font-mono">supabase/rent-invoices-schema.sql</code> in Supabase, then
-            Generate creates this month&apos;s invoices with pay links.
+            Booth rent invoicing isn&apos;t turned on yet. Once it&apos;s on, Generate creates this
+            month&apos;s invoices, one per booth renter, each with a pay link.
           </div>
         ) : visible.length === 0 ? (
           <div className="px-4 py-5 text-center text-sm text-white/55">
