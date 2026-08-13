@@ -319,8 +319,14 @@ export default function RequestForm({
       >
         {busy ? "Sending…" : "Send request"}
       </button>
-      <p className="pb-8 text-center text-xs text-zinc-400">
-        We&apos;ll only use your contact info to set up your appointment.
+      <p className="pb-8 text-center text-[13px] leading-relaxed text-zinc-500">
+        By submitting, you agree that Lumenati Tattoo may text and email you about
+        your appointment: reminders, consent forms, and aftercare. Message frequency
+        varies. Message and data rates may apply. Reply STOP to opt out, HELP for
+        help. See our{" "}
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-zinc-700 underline">Privacy Policy</a>{" "}
+        and{" "}
+        <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-zinc-700 underline">Terms</a>.
       </p>
     </form>
   );
