@@ -44,7 +44,9 @@ export default function Waitlist() {
   const insets = useSafeAreaInsets();
   const { role, email, shopId } = useAuth();
   const { preview } = usePreview();
-  const isStaff = role === "owner";
+  // In "view as artist" the owner acts as that one artist — no shop-wide staff
+  // chrome (lum-024). The artist id already follows preview below.
+  const isStaff = role === "owner" && !preview;
   // The freed slot handed over from Bookings' cancel moment.
   const params = useLocalSearchParams<{ slot?: string; artist?: string }>();
   const slotISO = typeof params.slot === "string" && !Number.isNaN(new Date(params.slot).getTime()) ? params.slot : null;
@@ -93,6 +95,11 @@ export default function Waitlist() {
   const laneOptions = isStaff ? ["any", ...artists.map((a) => a.id)] : ["any", ...(myArtistId ? [myArtistId] : [])];
   const laneName = (id: string | null) =>
     id === null || id === "any" ? "Anyone" : artists.find((a) => a.id === id)?.name ?? "Artist";
+
+  // Artist view (incl. preview) sees only their own lane plus the "anyone" pool.
+  // RLS already scopes a real artist, so this only narrows the owner's preview.
+  const visible =
+    rows === null ? null : isStaff ? rows : rows.filter((r) => !r.artist_id || r.artist_id === myArtistId);
 
   const add = async () => {
     if (!name.trim()) {
@@ -184,12 +191,12 @@ export default function Waitlist() {
 
           <SectionTitle>Waiting</SectionTitle>
           <Card style={{ padding: 0 }}>
-            {rows === null ? (
+            {visible === null ? (
               <ActivityIndicator color={theme.textDim} style={{ marginVertical: 30 }} />
-            ) : rows.length === 0 ? (
+            ) : visible.length === 0 ? (
               <Empty>Nobody waiting. Add walk-ins you had to turn away. They're tomorrow's filled slots.</Empty>
             ) : (
-              rows.map((e, i) => (
+              visible.map((e, i) => (
                 <View key={e.id} style={[styles.row, i > 0 && styles.border]}>
                   <View style={{ flex: 1, marginRight: 10 }}>
                     <Text style={styles.rowTitle}>{e.name}</Text>

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { theme } from "@/lib/theme";
 import InkWash from "@/components/InkWash";
 import { ActionPill, Badge, Card, Button } from "@/components/ui";
@@ -56,8 +57,12 @@ function daysNote(expires: string | null, status: string): string {
 export default function Compliance() {
   const insets = useSafeAreaInsets();
   const { role, email, shopId } = useAuth();
-  const isOwner = role === "owner";
+  const { preview } = usePreview();
+  // "View as artist" makes an owner act as that one artist: no shop-wide chrome,
+  // and every "my" scope points at the previewed artist (lum-024).
+  const isOwner = role === "owner" && !preview;
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
+  const effectiveArtistId = preview?.artistId ?? myArtistId;
   const [items, setItems] = useState<Item[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [artists, setArtists] = useState<{ id: string; name: string }[]>([]);
@@ -111,7 +116,10 @@ export default function Compliance() {
   };
 
   const rank = (s: string) => (s === "expired" ? 0 : s === "expiring" ? 1 : 2);
-  const sorted = [...items].sort((a, b) => rank(a.status) - rank(b.status));
+  // In preview, RLS still returns the owner's full shop list, so narrow to the
+  // previewed artist's own items to match what that artist actually sees.
+  const base = preview ? items.filter((i) => i.artist_id === effectiveArtistId) : items;
+  const sorted = [...base].sort((a, b) => rank(a.status) - rank(b.status));
 
   return (
     <>
@@ -131,7 +139,7 @@ export default function Compliance() {
         {(adding || editing) && (
           <ComplianceForm
             existing={editing ?? undefined}
-            artists={isOwner ? artists : artists.filter((a) => a.id === myArtistId)}
+            artists={isOwner ? artists : artists.filter((a) => a.id === effectiveArtistId)}
             lockToArtist={!isOwner}
             onSaved={() => {
               setAdding(false);

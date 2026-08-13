@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { apiPost } from "@/lib/appApi";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { todayLocal } from "@/lib/dates";
 import { theme, money } from "@/lib/theme";
 import InkWash from "@/components/InkWash";
@@ -20,13 +21,16 @@ type Invoice = {
   amount_cents: number;
   due_date: string | null;
   status: string;
+  artist_id: string | null;
   artists: { name: string } | null;
 };
 
 export default function Rent() {
   const insets = useSafeAreaInsets();
   const { role } = useAuth();
-  const isAdmin = role === "owner";
+  const { preview } = usePreview();
+  // "View as artist" scopes rent to that renter's own invoices (lum-024).
+  const isAdmin = role === "owner" && !preview;
   const [rows, setRows] = useState<Invoice[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +38,7 @@ export default function Rent() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("rent_invoices")
-      .select("id, period, amount_cents, due_date, status, artists(name)")
+      .select("id, period, amount_cents, due_date, status, artist_id, artists(name)")
       .order("period", { ascending: false })
       .limit(60);
     setRows((data ?? []) as unknown as Invoice[]);
@@ -100,8 +104,11 @@ export default function Rent() {
   };
 
   const period = new Date().toISOString().slice(0, 7);
-  const current = (rows ?? []).filter((r) => r.period === period);
-  const past = (rows ?? []).filter((r) => r.period !== period);
+  // In preview, RLS returns every renter's invoices; narrow to the previewed
+  // artist so an owner-as-artist sees only that chair's rent.
+  const visibleRows = preview ? (rows ?? []).filter((r) => r.artist_id === preview.artistId) : (rows ?? []);
+  const current = visibleRows.filter((r) => r.period === period);
+  const past = visibleRows.filter((r) => r.period !== period);
   // Outstanding = every unpaid invoice, ANY month — old rent doesn't stop
   // being owed when the calendar turns (same rule as the web rent page).
   const pending = (rows ?? []).filter((r) => r.status === "pending");

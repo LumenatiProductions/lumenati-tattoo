@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from
 import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { apiPost } from "@/lib/appApi";
 import { capture, snapCash } from "@/lib/vision";
@@ -37,7 +38,9 @@ type Artist = { id: string; name: string };
 export default function Cash() {
   const insets = useSafeAreaInsets();
   const { role, email, shopId } = useAuth();
-  const isAdmin = role === "owner";
+  const { preview } = usePreview();
+  // "View as artist" scopes this to that one chair's cash (lum-024).
+  const isAdmin = role === "owner" && !preview;
   const [rows, setRows] = useState<Entry[] | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
@@ -56,14 +59,19 @@ export default function Cash() {
   const [rebookFor, setRebookFor] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAdmin || !email) return;
+    if (preview) {
+      setMyArtistId(preview.artistId);
+      return;
+    }
+    if (role === "owner" || !email) return; // real owner has no chair
     supabase
       .from("profiles")
       .select("artist_id")
       .eq("email", email)
       .maybeSingle()
       .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
-  }, [isAdmin, email]);
+  }, [role, email, preview]);
+  const effectiveArtistId = preview?.artistId ?? myArtistId;
 
   const load = useCallback(async () => {
     if (!shopId) return;
@@ -158,7 +166,9 @@ export default function Cash() {
     ]);
   };
 
-  const all = rows ?? [];
+  // Artist view (incl. preview) sees only their own cash. RLS already narrows a
+  // real artist, so this only trims the owner's preview to the chosen chair.
+  const all = isAdmin ? (rows ?? []) : (rows ?? []).filter((r) => r.artist_id === effectiveArtistId);
   const atChairs = all.filter((r) => !r.handed_off_at && !r.received_at && r.artist_id);
   const inTransit = all.filter((r) => r.handed_off_at && !r.received_at);
   const inBox = all.filter((r) => r.received_at && !r.reconciled);

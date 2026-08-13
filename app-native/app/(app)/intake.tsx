@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Crypto from "expo-crypto";
 import { useAuth } from "@/lib/auth";
+import { usePreview } from "@/lib/preview";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/lib/theme";
 import InkWash from "@/components/InkWash";
@@ -69,20 +70,28 @@ const FILTER_LABEL: Record<Filter, string> = { attention: "Needs attention", tod
 export default function Intake() {
   const insets = useSafeAreaInsets();
   const { role, email, shopId } = useAuth();
-  const isAdmin = role === "owner";
+  const { preview } = usePreview();
+  // "View as artist" makes an owner act as that one artist (lum-024).
+  const isAdmin = role === "owner" && !preview;
   // Which artist is holding this phone — gates per-row actions to THEIR forms.
   const [myArtistId, setMyArtistId] = useState<string | null>(null);
   useEffect(() => {
-    if (isAdmin || !email) return;
+    if (role === "owner" && !preview) return; // real owner has no chair
+    if (!email && !preview) return;
+    if (preview) {
+      setMyArtistId(preview.artistId);
+      return;
+    }
     supabase
       .from("profiles")
       .select("artist_id")
-      .eq("email", email)
+      .eq("email", email!)
       .maybeSingle()
       .then(({ data }) => setMyArtistId((data?.artist_id as string | null) ?? null));
-  }, [isAdmin, email]);
+  }, [role, email, preview]);
+  const effectiveArtistId = preview?.artistId ?? myArtistId;
   // Artists run their own intake: anyone with a chair can start + work forms.
-  const canStart = isAdmin || !!myArtistId;
+  const canStart = isAdmin || !!effectiveArtistId;
 
   const [forms, setForms] = useState<Form[] | null>(null);
   const [clients, setClients] = useState<Named[]>([]);
@@ -137,8 +146,12 @@ export default function Intake() {
     return (id: string | null) => (id ? m.get(id) ?? "Unknown" : "Any artist");
   }, [artists]);
 
-  const all = forms ?? [];
-  const unsignedToday = todays.filter(
+  const allForms = forms ?? [];
+  // Artist view (incl. preview) is scoped to that chair. RLS already narrows a
+  // real artist, so this only trims the owner's preview to the chosen artist.
+  const all = isAdmin ? allForms : allForms.filter((f) => f.artist_id === effectiveArtistId);
+  const myTodays = isAdmin ? todays : todays.filter((bk) => bk.artist_id === effectiveArtistId);
+  const unsignedToday = myTodays.filter(
     (bk) => !all.some((f) => f.booking_id === bk.id && f.signed_at && !f.voided),
   ).length;
   const awaitingSign = all.filter((f) => !f.signed_at && !f.voided).length;
@@ -206,9 +219,9 @@ export default function Intake() {
 
             {adding && canStart && (
               <NewForm
-                bookings={isAdmin ? todays : todays.filter((bk) => bk.artist_id === myArtistId)}
-                artists={isAdmin ? artists : artists.filter((a) => a.id === myArtistId)}
-                lockedArtistId={isAdmin ? null : myArtistId}
+                bookings={isAdmin ? todays : todays.filter((bk) => bk.artist_id === effectiveArtistId)}
+                artists={isAdmin ? artists : artists.filter((a) => a.id === effectiveArtistId)}
+                lockedArtistId={isAdmin ? null : effectiveArtistId}
                 clientName={clientName}
                 email={email}
                 onDone={() => {

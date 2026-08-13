@@ -167,7 +167,10 @@ export default function Payouts() {
     // scopes by role (an artist sees only their own); empty when nothing's
     // eligible or Stripe isn't linked, so the section just hides itself.
     const earlyRes = await apiGet<{ eligible: EarlyRow[] }>("/api/payments/instant-payout");
-    setEarly(earlyRes.ok ? earlyRes.data?.eligible ?? [] : []);
+    const eligible = earlyRes.ok ? earlyRes.data?.eligible ?? [] : [];
+    // The API scopes by role, so an owner gets every artist's rows. When
+    // previewing, show only the previewed artist's (rows carry the name).
+    setEarly(preview ? eligible.filter((e) => e.artistName === preview.name) : eligible);
 
     // The artist's own bank-link status, so a renter can link their bank right
     // from the app. Owners manage this on the web, so skip the call for them.
