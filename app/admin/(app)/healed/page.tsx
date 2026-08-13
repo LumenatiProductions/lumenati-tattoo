@@ -23,10 +23,14 @@ type Shot = {
 
 // The caption the phone app pre-copies — same wording, keyed to the artist's IG
 // handle when we have one.
-const captionFor = (handle: string) =>
+const captionFor = (handle: string, shop: string) =>
   [
     "Healed and settled.",
-    handle ? `Tattoo by @${handle} at Lumenati Tattoo.` : "Done at Lumenati Tattoo.",
+    handle
+      ? `Tattoo by @${handle}${shop ? ` at ${shop}` : ""}.`
+      : shop
+        ? `Done at ${shop}.`
+        : "Done and healed.",
     "Book through the link in bio.",
     "#healedtattoo #tattoo #tattooartist",
   ].join(" ");
@@ -38,9 +42,10 @@ const photoSrc = (shot: Shot) =>
   /^https?:\/\//i.test(shot.url) ? shot.url : `/api/healed/photo?id=${shot.id}&redirect=1`;
 
 export default function HealedPage() {
-  const { asArtistId } = useRole();
+  const { asArtistId, shopId } = useRole();
   const [shots, setShots] = useState<Shot[] | null>(null);
   const [handle, setHandle] = useState<string>("");
+  const [shopName, setShopName] = useState<string>("");
   const [note, setNote] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -64,7 +69,15 @@ export default function HealedPage() {
       .eq("id", asArtistId)
       .maybeSingle();
     setHandle((a?.handle as string) ?? "");
-  }, [asArtistId]);
+
+    // The shop name brands the caption (was hardcoded to "Lumenati Tattoo").
+    if (shopId) {
+      const { data: s } = await sb.from("shops").select("name").eq("id", shopId).maybeSingle();
+      setShopName((s?.name as string) ?? "");
+    } else {
+      setShopName("");
+    }
+  }, [asArtistId, shopId]);
 
   useEffect(() => {
     setShots(null);
@@ -73,7 +86,7 @@ export default function HealedPage() {
 
   const copyCaption = async () => {
     try {
-      await navigator.clipboard.writeText(captionFor(handle));
+      await navigator.clipboard.writeText(captionFor(handle, shopName));
       setNote("Caption copied. Paste it into your post.");
     } catch {
       setNote("Could not copy the caption. Copy it by hand from the box above.");
@@ -87,7 +100,7 @@ export default function HealedPage() {
     setNote(null);
     try {
       try {
-        await navigator.clipboard.writeText(captionFor(handle));
+        await navigator.clipboard.writeText(captionFor(handle, shopName));
       } catch {
         /* clipboard can fail without a user gesture — still let the download run */
       }
@@ -120,7 +133,7 @@ export default function HealedPage() {
             portfolio. Copy the caption, then download a photo to post it to Instagram or Stories.
           </p>
           <div className="mt-3 rounded-lg border border-white/12 bg-white/6 p-3 text-sm text-white/80">
-            {captionFor(handle)}
+            {captionFor(handle, shopName)}
           </div>
           <div className="mt-3 flex items-center gap-3">
             <button

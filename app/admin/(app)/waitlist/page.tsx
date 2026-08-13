@@ -61,8 +61,12 @@ async function findClash(artistId: string, startsAt: string): Promise<string | n
 
 export default function WaitlistPage() {
   const { asArtistId, shopId } = useRole();
-  const { artists } = useArtists();
-  const artist = artists.find((a) => a.id === asArtistId);
+  const { artists, loading } = useArtists();
+  // Resolve to a real roster member: the previewed chair, else the first
+  // artist. asArtistId defaults to a shared "jd" for owners, which isn't on
+  // this shop's roster and unmounted the page to a blank pane.
+  const artist = artists.find((a) => a.id === asArtistId) ?? artists[0];
+  const artistId = artist?.id ?? asArtistId;
 
   const [rows, setRows] = useState<Entry[] | null>(null);
   const [adding, setAdding] = useState(false);
@@ -82,11 +86,11 @@ export default function WaitlistPage() {
       .from("waitlist")
       .select("id, artist_id, client_id, name, phone, want, active, booked_id, created_at")
       .eq("active", true)
-      .or(`artist_id.eq.${asArtistId},artist_id.is.null`)
+      .or(`artist_id.eq.${artistId},artist_id.is.null`)
       .order("created_at", { ascending: true })
       .limit(100);
     setRows((data ?? []) as Entry[]);
-  }, [asArtistId]);
+  }, [artistId]);
 
   useEffect(() => {
     setRows(null);
@@ -97,7 +101,7 @@ export default function WaitlistPage() {
   const openCount = useMemo(() => (rows ?? []).filter((r) => !r.artist_id).length, [rows]);
 
   const laneLabel = (id: string | null) =>
-    id === null ? "anyone" : id === asArtistId ? "you" : artists.find((a) => a.id === id)?.name ?? "an artist";
+    id === null ? "anyone" : id === artistId ? "you" : artists.find((a) => a.id === id)?.name ?? "an artist";
 
   const add = async () => {
     if (!name.trim()) {
@@ -110,7 +114,7 @@ export default function WaitlistPage() {
       .from("waitlist")
       .insert({
         id: `wl-${crypto.randomUUID()}`,
-        artist_id: openToAny ? null : asArtistId,
+        artist_id: openToAny ? null : artistId,
         shop_id: shopId,
         name: name.trim(),
         phone: phone.trim() || null,
@@ -136,7 +140,18 @@ export default function WaitlistPage() {
     if (error) load();
   };
 
-  if (!artist) return null;
+  if (loading || !artist) {
+    return (
+      <div>
+        <PageHead title="Waitlist" sub="People waiting to get in, and the freed slots you can hand them" />
+        <Card>
+          <Empty>
+            {loading ? "Loading..." : "Add an artist to the shop to start a waitlist."}
+          </Empty>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -247,7 +262,7 @@ export default function WaitlistPage() {
                 {bookingId === e.id ? (
                   <FillSlot
                     entry={e}
-                    artistId={asArtistId}
+                    artistId={artistId}
                     shopId={shopId}
                     onDone={(when) => {
                       setBookingId(null);

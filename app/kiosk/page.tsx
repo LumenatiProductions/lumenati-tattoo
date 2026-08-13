@@ -89,8 +89,10 @@ export default function KioskPage() {
     // On success, land on the welcome screen — load() alone only fetches.
     return (
       <Setup
-        onSaved={() => {
-          load().then((ok) => ok && setScreen("welcome"));
+        onSaved={async () => {
+          const ok = await load();
+          if (ok) setScreen("welcome");
+          return ok;
         }}
         initialError={err}
         setErr={setErr}
@@ -334,11 +336,31 @@ function Setup({
   initialError,
   setErr,
 }: {
-  onSaved: () => void;
+  onSaved: () => Promise<boolean>;
   initialError: string | null;
   setErr: (s: string | null) => void;
 }) {
   const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(initialError);
+
+  // Provision the iPad: save the code, then confirm it actually loads. An empty
+  // field disables the button (matches /start); a rejected code says so instead
+  // of silently doing nothing.
+  const submit = async () => {
+    if (!code.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    setErr(null);
+    setKioskToken(code.trim());
+    const ok = await onSaved();
+    if (!ok) {
+      setError("That code didn't work. Check it with the shop and try again.");
+      setBusy(false);
+    }
+    // On success the parent swaps to the welcome screen; leave busy set.
+  };
+
   return (
     <Center>
       <div className="flex w-full max-w-sm flex-col items-center text-center">
@@ -348,25 +370,26 @@ function Setup({
         </p>
         <input
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => {
+            setCode(e.target.value);
+            if (error) setError(null);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="DEVICE CODE"
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
           autoComplete="off"
+          disabled={busy}
           className="term mt-4 text-center"
         />
-        {initialError && <div className="f-vt mt-3 text-xl text-rose-400">{initialError}</div>}
+        {error && <div className="f-vt mt-3 text-xl text-rose-400">{error}</div>}
         <button
-          onClick={() => {
-            if (!code.trim()) return;
-            setKioskToken(code);
-            setErr(null);
-            onSaved();
-          }}
-          className="gel mt-5 w-full"
+          onClick={submit}
+          disabled={!code.trim() || busy}
+          className="gel mt-5 w-full disabled:opacity-40"
         >
-          SET UP KIOSK ▸
+          {busy ? "CHECKING…" : "SET UP KIOSK ▸"}
         </button>
       </div>
     </Center>

@@ -15,6 +15,17 @@ import { PageHead } from "@/components/admin/home/shared";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
 
+// A tenant artist's public page lives at /s/<shop>/<artist>; their stored slug
+// is globally unique as "<shop>--<artist>". Lumenati's own artists live at the
+// root /<slug>. Building the canonical URL directly (instead of /<stored-slug>,
+// which only 307-redirects and displayed as the confusing bare "/apple-review")
+// means the copied + shown link is the real, working page.
+function publicRoomUrl(storedSlug: string): string {
+  const i = storedSlug.indexOf("--");
+  if (i === -1) return `${SITE}/${storedSlug}`;
+  return `${SITE}/s/${storedSlug.slice(0, i)}/${storedSlug.slice(i + 2)}`;
+}
+
 export default function QrCardPage() {
   const { asArtistId } = useRole();
   const { artists, loading } = useArtists();
@@ -25,7 +36,7 @@ export default function QrCardPage() {
   // that only exists in the Lumenati mock fallback.)
   const artist = artists.find((a) => a.id === asArtistId) ?? artists[0];
 
-  const url = artist ? `${SITE}/${artist.slug}` : "";
+  const url = artist ? publicRoomUrl(artist.slug) : "";
   const prettyUrl = url.replace(/^https?:\/\//, "");
 
   const [qrSvg, setQrSvg] = useState<string>("");

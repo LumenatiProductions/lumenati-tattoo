@@ -1,0 +1,13 @@
+/* Tailwind for the Stripe bank-link return page — scoped to /bank-linked, same
+   pattern as claim.css / pay.css / healed.css so it never leaks onto the Y2K
+   pages. Without this the route loaded only the global reset, so w-24 /
+   max-w-sm / flex were all no-ops and the logo SVG rendered at its natural size,
+   shoving the success card ~1100px below the fold. */
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0e0e11;
+  --color-brand: #ff1493;
+  --color-brand-soft: #ffe3f1;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
