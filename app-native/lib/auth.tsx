@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
@@ -22,6 +22,9 @@ type AuthState = {
    * won't wall them between shops). */
   shopId: string | null;
   signOut: () => Promise<void>;
+  /** Re-resolve the current session's profile (used by the unresolved-account
+   * retry screen when the first read timed out). */
+  refresh: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthState>({
@@ -32,6 +35,7 @@ const Ctx = createContext<AuthState>({
   fullName: null,
   shopId: null,
   signOut: async () => {},
+  refresh: async () => {},
 });
 
 // Cold launches must never hang on the network: every bootstrap call races a
@@ -44,20 +48,33 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
 }
 
 // Resolve the signed-in user's role + name from `profiles` (same lookup as the
-// web, just client-side under RLS). Falls back to "artist" if it can't be read.
+// web, just client-side under RLS). Matches by email, or by phone for phone-OTP
+// users whose JWT carries no email. Returns role=null when it genuinely can't
+// resolve — we NEVER fabricate a role. A missing email or an unknown user used
+// to be silently forced to "artist" with shopId null, which impersonated an
+// artist and hung every shop-scoped screen.
 async function fetchProfile(
-  email: string | null,
-): Promise<{ role: Role; fullName: string | null; shopId: string | null }> {
-  if (!email) return { role: "artist", fullName: null, shopId: null };
-  const { data } = await supabase
-    .from("profiles")
-    .select("role, full_name, shop_id")
-    .eq("email", email)
-    .maybeSingle();
+  user: { email?: string | null; phone?: string | null } | null,
+): Promise<{ role: Role | null; fullName: string | null; shopId: string | null }> {
+  const email = user?.email ?? null;
+  const phone = user?.phone ?? null;
+  const unresolved = { role: null as Role | null, fullName: null, shopId: null };
+  if (!email && !phone) return unresolved;
+
+  let q = supabase.from("profiles").select("role, full_name, shop_id");
+  if (email) {
+    q = q.eq("email", email);
+  } else {
+    // profiles.phone may be stored as +E.164 or as bare digits — match either.
+    const bare = phone!.replace(/\D/g, "");
+    q = q.or(`phone.eq.${phone},phone.eq.${bare},phone.eq.+${bare}`);
+  }
+  const { data } = await q.maybeSingle();
+  if (!data) return unresolved;
   return {
-    role: normalizeRole(data?.role as string | undefined) ?? "artist",
-    fullName: (data?.full_name as string | null) ?? null,
-    shopId: (data?.shop_id as string | null) ?? null,
+    role: normalizeRole(data.role as string | undefined),
+    fullName: (data.full_name as string | null) ?? null,
+    shopId: (data.shop_id as string | null) ?? null,
   };
 }
 
@@ -68,25 +85,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [fullName, setFullName] = useState<string | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
 
+  const apply = useCallback(async (s: Session | null) => {
+    setSession(s);
+    if (!s) {
+      setRole(null);
+      setFullName(null);
+      setShopId(null);
+      return;
+    }
+    // Resolve the profile, retrying ONLY on timeout. A resolved "no row" is a
+    // terminal answer (role stays null -> the layout shows a retry screen); we
+    // never retry it into, or default it to, an impersonated role.
+    let resolved: Awaited<ReturnType<typeof fetchProfile>> | undefined;
+    for (let attempt = 0; attempt < 3 && resolved === undefined; attempt++) {
+      resolved = await withTimeout(fetchProfile(s.user), 6000, undefined);
+    }
+    const p = resolved ?? { role: null, fullName: null, shopId: null };
+    setRole(p.role);
+    setFullName(p.fullName);
+    setShopId(p.shopId);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const { data } = await withTimeout(
+      supabase.auth.getSession(),
+      6000,
+      { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
+    );
+    await apply(data.session);
+  }, [apply]);
+
   useEffect(() => {
     let alive = true;
-    const apply = async (s: Session | null) => {
-      setSession(s);
-      if (s) {
-        const p = await withTimeout(
-          fetchProfile(s.user.email ?? null),
-          6000,
-          { role: "artist" as Role, fullName: null, shopId: null },
-        );
-        setRole(p.role);
-        setFullName(p.fullName);
-        setShopId(p.shopId);
-      } else {
-        setRole(null);
-        setFullName(null);
-        setShopId(null);
-      }
-    };
     (async () => {
       // A hung session restore (expired token + flaky refresh call) was the
       // "spins until you force quit" launch bug — never wait more than 6s.
@@ -108,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       alive = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [apply]);
 
   return (
     <Ctx.Provider
@@ -122,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut: async () => {
           await supabase.auth.signOut();
         },
+        refresh,
       }}
     >
       {children}
