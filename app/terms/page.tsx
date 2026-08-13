@@ -56,10 +56,13 @@ export default function TermsPage() {
           Message frequency varies with your bookings. Message and data rates may apply.
           <strong> Reply STOP to cancel at any time. Reply HELP for help</strong>, or
           contact <a style={S.a} href="mailto:lumenati@icloud.com">lumenati@icloud.com</a>.
-          Carriers are not liable for delayed or undelivered messages. Your number and
-          your consent to be texted are never shared with third parties or used for
-          third-party marketing; see the{" "}
-          <a style={S.a} href="/privacy">Privacy Policy</a>.
+          Carriers are not liable for delayed or undelivered messages.{" "}
+          <strong>
+            No mobile information will be shared with third parties or affiliates for
+            marketing or promotional purposes.
+          </strong>{" "}
+          Text messaging originator opt-in data and consent are not shared with any third
+          parties; see the <a style={S.a} href="/privacy">Privacy Policy</a>.
         </p>
 
         <h2 style={S.h2}>Accounts</h2>

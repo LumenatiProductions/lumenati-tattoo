@@ -63,6 +63,25 @@ export default function PrivacyPage() {
           affiliates for their marketing.
         </p>
 
+        <h2 style={S.h2}>Text messages (SMS)</h2>
+        <p style={S.p}>
+          If you give a shop your mobile number and agree to be texted, Lumenati sends
+          transactional messages on that shop&apos;s behalf: appointment reminders, consent
+          form links, aftercare and healing check-ins, waitlist open-slot offers, and shop
+          notices to artists such as rent invoices. Message frequency varies with your
+          bookings. Message and data rates may apply. Reply STOP to opt out at any time, or
+          HELP for help.
+        </p>
+        <p style={S.p}>
+          <strong>
+            No mobile information will be shared with third parties or affiliates for
+            marketing or promotional purposes.
+          </strong>{" "}
+          Text messaging originator opt-in data and consent are not shared with any third
+          parties. See our <a style={S.a} href="/terms">Terms of Service</a> for the full
+          messaging program terms.
+        </p>
+
         <h2 style={S.h2}>Who we share with</h2>
         <p style={S.p}>
           Only the services that make the product work: Supabase (database and sign-in),
