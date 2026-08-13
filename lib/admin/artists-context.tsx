@@ -10,7 +10,11 @@ type Ctx = { artists: Artist[]; loading: boolean; refresh: () => Promise<void> }
 const C = createContext<Ctx>({ artists: FALLBACK, loading: true, refresh: async () => {} });
 
 export function ArtistsProvider({ shopId, children }: { shopId?: string | null; children: React.ReactNode }) {
-  const [artists, setArtists] = useState<Artist[]>(FALLBACK);
+  // A real tenant (shopId set) must NEVER paint the Lumenati mock crew, not even
+  // for the frame before the scoped query lands — that flashed J.D. Pruitt & co.
+  // into other shops. Start empty and let `loading` carry the gap. The mock is
+  // only the fallback for shopId-less/unconfigured Lumenati dev.
+  const [artists, setArtists] = useState<Artist[]>(shopId ? [] : FALLBACK);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
