@@ -17,8 +17,13 @@ const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenati-tattoo.verce
 
 export default function QrCardPage() {
   const { asArtistId } = useRole();
-  const { artists } = useArtists();
-  const artist = artists.find((a) => a.id === asArtistId);
+  const { artists, loading } = useArtists();
+  // Owners have no artist id of their own, so asArtistId falls back to a shared
+  // default ("jd") that is NOT on most shops' rosters. Show a real member of
+  // THIS shop: the previewed artist when they're on the scoped roster, else the
+  // first artist. (The roster query is shop-scoped; the leak was picking an id
+  // that only exists in the Lumenati mock fallback.)
+  const artist = artists.find((a) => a.id === asArtistId) ?? artists[0];
 
   const url = artist ? `${SITE}/${artist.slug}` : "";
   const prettyUrl = url.replace(/^https?:\/\//, "");
@@ -54,7 +59,9 @@ export default function QrCardPage() {
     [artist]
   );
 
-  if (!artist) return null;
+  // Wait for the shop-scoped roster before rendering, so the Lumenati mock
+  // fallback (which contains J.D.) never flashes into another shop's tenant.
+  if (loading || !artist) return null;
 
   const copyLink = async () => {
     try {
