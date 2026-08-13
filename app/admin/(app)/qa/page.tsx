@@ -42,6 +42,25 @@ const SEV_TONE: Record<Severity, "neutral" | "warn" | "bad"> = {
   P3: "neutral",
 };
 
+// Status is the headline signal on every card: a solid badge plus a matching
+// bar down the side, echoed in the column color. Owner stays muted grey so a
+// green card reads as "done", never as "who".
+const STATUS_STYLE: Record<Status, { label: string; badge: string; bar: string }> = {
+  new: { label: "New", badge: "bg-amber-500 text-black", bar: "bg-amber-500" },
+  fixed: { label: "Fixed", badge: "bg-sky-500 text-white", bar: "bg-sky-500" },
+  verified: { label: "Verified", badge: "bg-emerald-500 text-black", bar: "bg-emerald-500" },
+  reopened: { label: "Reopened", badge: "bg-rose-500 text-white", bar: "bg-rose-500" },
+  wontfix: { label: "Won't fix", badge: "bg-white/20 text-white/70", bar: "bg-white/20" },
+};
+
+const COL_ACCENT: Record<Status, string> = {
+  reopened: "text-rose-400",
+  new: "text-amber-400",
+  fixed: "text-sky-400",
+  verified: "text-emerald-400",
+  wontfix: "text-white/40",
+};
+
 const OWNER_LABEL: Record<string, string> = { grokbot: "Grok Bot", claude: "Claude", scott: "Scott" };
 
 function ago(iso: string): string {
@@ -55,32 +74,37 @@ function ago(iso: string): string {
 }
 
 function FindingCard({ f }: { f: Finding }) {
+  const s = STATUS_STYLE[f.status];
   return (
-    <Card>
-      <div className="p-4">
-        <div className="flex items-center justify-between gap-2">
-          <Badge tone={SEV_TONE[f.severity]}>{f.severity}</Badge>
-          <code className="truncate text-xs text-white/50">{f.surface}</code>
-        </div>
-        <p className="mt-2 text-sm text-white/90">{f.finding}</p>
-        {f.repro ? (
-          <p className="mt-1.5 text-xs text-white/55">
-            <span className="text-white/70">Repro:</span> {f.repro}
-          </p>
-        ) : null}
-        {f.note ? <p className="mt-1.5 text-xs italic text-white/55">{f.note}</p> : null}
-        <div className="mt-2.5 flex items-center gap-2 text-[11px] text-white/45">
-          {f.owner ? (
-            <span
-              className={`rounded px-1.5 py-0.5 font-medium ${
-                f.owner === "claude" ? "bg-emerald-400/12 text-emerald-300" : "bg-white/8 text-white/60"
-              }`}
-            >
-              {OWNER_LABEL[f.owner] ?? f.owner}
-            </span>
+    <Card className="overflow-hidden">
+      <div className="relative">
+        <span className={`absolute left-0 top-0 h-full w-1.5 ${s.bar}`} />
+        <div className="p-4 pl-5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${s.badge}`}>
+                {s.label}
+              </span>
+              <Badge tone={SEV_TONE[f.severity]}>{f.severity}</Badge>
+            </div>
+            <code className="truncate text-xs text-white/50">{f.surface}</code>
+          </div>
+          <p className="mt-2.5 text-sm text-white/90">{f.finding}</p>
+          {f.repro ? (
+            <p className="mt-1.5 text-xs text-white/55">
+              <span className="text-white/70">Repro:</span> {f.repro}
+            </p>
           ) : null}
-          {f.commit_sha ? <code className="text-white/55">{f.commit_sha.slice(0, 7)}</code> : null}
-          <span className="ml-auto">{ago(f.updated_at)}</span>
+          {f.note ? <p className="mt-1.5 text-xs italic text-white/55">{f.note}</p> : null}
+          <div className="mt-2.5 flex items-center gap-2 text-[11px] text-white/45">
+            {f.owner ? (
+              <span className="rounded bg-white/8 px-1.5 py-0.5 text-white/55">
+                {OWNER_LABEL[f.owner] ?? f.owner}
+              </span>
+            ) : null}
+            {f.commit_sha ? <code className="text-white/55">{f.commit_sha.slice(0, 7)}</code> : null}
+            <span className="ml-auto">{ago(f.updated_at)}</span>
+          </div>
         </div>
       </div>
     </Card>
@@ -146,7 +170,7 @@ export default function QaBoardPage() {
             if (!items.length) return null;
             return (
               <div key={col.key}>
-                <p className="mb-2 text-[11px] uppercase tracking-wider text-white/45">
+                <p className={`mb-2 text-xs font-semibold uppercase tracking-wider ${COL_ACCENT[col.key]}`}>
                   {col.title} · {items.length}
                 </p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
