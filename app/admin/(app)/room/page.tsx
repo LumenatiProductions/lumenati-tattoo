@@ -30,18 +30,37 @@ const newId = (p: string) => `${p}-${Date.now().toString(36)}-${uid++}`;
 
 export default function RoomEditorPage() {
   const { role, asArtistId } = useRole();
-  const { get, update, saveState } = useRoomContent();
+  const { get, update, saveState, ready } = useRoomContent();
   const { artists } = useArtists();
 
   // Artists edit their own room; owners can pick whose room to edit. An
   // owner's default pick must come from THEIR roster (a hardcoded Lumenati
   // id blanked the page for every other shop).
   const [ownerPick, setOwnerPick] = useState<string>(asArtistId);
+
+  // The live preview is an iframe of the REAL public page, so it always matches
+  // the shop's actual skin. Bump a tick whenever a save lands to reload it.
+  // NOTE: every hook must run before the loading guard below. A cold load where
+  // the roster arrives after the first render would otherwise change the hook
+  // count mid-mount and React throws "Rendered more hooks than during the
+  // previous render", white-screening the whole app (~2 of 3 hard loads).
+  const [previewTick, setPreviewTick] = useState(0);
+  useEffect(() => {
+    if (saveState === "saved") setPreviewTick((t) => t + 1);
+  }, [saveState]);
+
   const pick = role === "artist" ? asArtistId : ownerPick;
   const artistId = artists.some((a) => a.id === pick) ? pick : artists[0]?.id ?? "";
   const artist = artists.find((a) => a.id === artistId);
   const room = get(artistId);
-  if (!artist) return null;
+
+  // Wait for the roster AND the room content to resolve before rendering the
+  // editor. Rendering with an unresolved room (roster loaded first, DB rooms
+  // still in flight) read undefined fields and crashed the page. Never
+  // white-screen: show a lightweight loading state until both are ready.
+  if (!ready || !artist || !room) {
+    return <div className="py-16 text-center text-sm text-white/55">Loading…</div>;
+  }
 
   const set = <K extends keyof RoomContent>(key: K, val: RoomContent[K]) =>
     update(artistId, { [key]: val } as Partial<RoomContent>);
@@ -54,14 +73,6 @@ export default function RoomEditorPage() {
     if (!val.trim()) delete next[key];
     set("socials", Object.keys(next).length ? next : null);
   };
-
-  // The live preview is an iframe of the REAL public page, so it always matches
-  // the shop's actual skin. Bump a tick whenever a save lands (and when the
-  // picked artist changes) to reload it.
-  const [previewTick, setPreviewTick] = useState(0);
-  useEffect(() => {
-    if (saveState === "saved") setPreviewTick((t) => t + 1);
-  }, [saveState]);
 
   return (
     <div>
