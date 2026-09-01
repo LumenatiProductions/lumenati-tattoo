@@ -65,18 +65,33 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   },
 ];
 
-export default function Launcher({ role }: { role: Role | null }) {
+// `exclude` hides screens that already have a tab or live on another tab;
+// `only` narrows to a hand-picked set (the Money tab's finance links) and drops
+// the section headers so it reads as one flat list.
+export default function Launcher({
+  role,
+  exclude = [],
+  only,
+  flat = false,
+}: {
+  role: Role | null;
+  exclude?: string[];
+  only?: string[];
+  flat?: boolean;
+}) {
   const router = useRouter();
   const sections = SECTIONS.map((s) => ({
     ...s,
-    items: s.items.filter((i) => role && i.roles.includes(role)),
+    items: s.items.filter(
+      (i) => role && i.roles.includes(role) && !exclude.includes(i.href) && (!only || only.includes(i.href)),
+    ),
   })).filter((s) => s.items.length > 0);
   if (!sections.length) return null;
   return (
-    <View style={{ marginTop: 26 }}>
+    <View style={{ marginTop: flat ? 0 : 26 }}>
       {sections.map((s, idx) => (
-        <View key={s.title} style={idx === 0 ? undefined : { marginTop: 22 }}>
-          <Text style={styles.section}>{s.title}</Text>
+        <View key={s.title} style={idx === 0 || flat ? undefined : { marginTop: 22 }}>
+          {!flat && <Text style={styles.section}>{s.title}</Text>}
           <View style={styles.grid}>
             {s.items.map((it) => (
               <Pressable

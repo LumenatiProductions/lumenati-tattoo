@@ -48,17 +48,23 @@ const CHART_W = Dimensions.get("window").width - 72;
 // `artistId` scopes sales/bookings/rent explicitly — used when an owner views
 // an artist (preview) or is one themselves (JD: co-owner with a chair).
 // `previewName` swaps the greeting for the previewed artist's name.
+// `section` splits the screen across the tab bar: "today" is the Today tab
+// (next client, this week's number, one coach line), "money" is the Money tab
+// (the full range toggle, goal race, rewards, rent, taxes). One data load
+// either way, so both read the same numbers.
 export default function ArtistMoney({
   firstName,
   artistId,
   previewName,
   reloadKey = 0,
+  section = "today",
 }: {
   firstName: string;
   artistId?: string;
   previewName?: string;
   /** Bumped by the home's pull-to-refresh — reloads everything. */
   reloadKey?: number;
+  section?: "today" | "money";
 }) {
   const router = useRouter();
   const [range, setRange] = useState<Range>("week");
@@ -122,9 +128,22 @@ export default function ArtistMoney({
   const taxStatus = taxStatusForPayType(rent?.payType) ?? goals.tax_status;
   const taxPct = goals.saved ? goals.tax_setaside_pct : null;
   const reserve = taxPct == null ? 0 : Math.round(taxable * taxPct);
+  const tips = coachTips({
+    sales: snap.sales,
+    bookings: snap.bookings,
+    expenses,
+    weeklyGoalCents: goals.weekly_cents,
+    taxPct,
+    ytdCents: ytd.total,
+    reserveCents: reserve,
+    taxStatus,
+  });
+  const week = earnedInRange(snap.sales, "week");
+  const rentOwed = rent?.payType === "booth_rent" ? rent.unpaid.reduce((a, i) => a + i.amount_cents, 0) : 0;
 
-  return (
-    <View>
+  if (section === "today") {
+    return (
+      <View>
       <Text style={styles.greeting}>{previewName ?? `Hey ${firstName}`}</Text>
 
       {/* THE actions — money in, next client on the books. */}
@@ -138,8 +157,44 @@ export default function ArtistMoney({
       {/* Their book as a real calendar — next up, day, week, or month views. */}
       <BookingCalendar artistId={artistId} reloadKey={reloadKey} />
 
+      {/* One number, one range. Everything else about money lives on the
+          Money tab, so this screen never mixes this-week with year-to-date. */}
+      <SectionTitle right={<EditLink label="All money" onPress={() => router.push("/money")} />}>This week</SectionTitle>
+      <View style={styles.grid}>
+        <Stat
+          label="You earned"
+          value={money(week.total)}
+          countTo={week.total}
+          sub={`${money(week.tips)} tips · ${week.tickets} ticket${week.tickets === 1 ? "" : "s"}`}
+          hero
+          onPress={() => router.push("/money")}
+        />
+      </View>
+      {rentOwed > 0 && (
+        <Pressable onPress={() => router.push("/money")} style={styles.rentLine}>
+          <Text style={styles.rentLineText}>{money(rentOwed)} booth rent open</Text>
+          <Text style={styles.rentLineLink}>Pay it →</Text>
+        </Pressable>
+      )}
+
+      {/* One coach line. The full deck is on Money. */}
+      {tips[0] && (
+        <>
+          <SectionTitle right={<EditLink label="More" onPress={() => router.push("/money")} />}>Coach</SectionTitle>
+          <Card>
+            <Text style={styles.coachTitle}>{tips[0].title}</Text>
+            <Text style={styles.coachBody}>{tips[0].body}</Text>
+          </Card>
+        </>
+      )}
+      </View>
+    );
+  }
+
+  return (
+    <View>
       {/* Range toggle */}
-      <View style={styles.toggle}>
+      <View style={[styles.toggle, { marginTop: 0 }]}>
         <TabToggle
           options={RANGES.map((r) => ({ key: r, label: RANGE_LABEL[r] }))}
           value={range}
@@ -249,19 +304,7 @@ export default function ArtistMoney({
       {/* The coach — practice reads first (rebooking, open days, best-week
           chase), then the standing money truths. All from their own numbers. */}
       <SectionTitle>Coach</SectionTitle>
-      <CoachDeck
-        tips={coachTips({
-          sales: snap.sales,
-          bookings: snap.bookings,
-          expenses,
-          weeklyGoalCents: goals.weekly_cents,
-          taxPct,
-          ytdCents: ytd.total,
-          reserveCents: reserve,
-          taxStatus,
-        })}
-        max={3}
-      />
+      <CoachDeck tips={tips} max={3} />
 
       {/* Tax + deductions — per-user (the artist's own; the owner's own in preview) */}
       <SectionTitle right={taxPct != null ? <EditLink label="Edit %" onPress={() => router.push("/goals")} /> : undefined}>Taxes</SectionTitle>
@@ -430,6 +473,20 @@ const styles = StyleSheet.create({
   rowLabel: { color: theme.textDim, fontSize: 14 },
   rowValue: { color: theme.textDim, fontSize: 15, fontWeight: "600" },
   streakLine: { color: theme.good, fontSize: 13, marginTop: 10, fontWeight: "600" },
+  rentLine: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: theme.warnSoft,
+    borderColor: "rgba(251,191,36,0.35)",
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  rentLineText: { color: theme.warn, fontSize: 14, fontWeight: "700" },
+  rentLineLink: { color: theme.text, fontSize: 13, fontWeight: "700" },
   taxNote: { color: theme.textFaint, fontSize: 12, marginTop: 10, lineHeight: 17 },
   linkBtn: { borderColor: theme.border, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   linkBtnText: { color: theme.text, fontSize: 14, fontWeight: "600" },
