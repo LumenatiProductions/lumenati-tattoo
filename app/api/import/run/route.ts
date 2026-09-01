@@ -76,6 +76,8 @@ export async function POST(req: Request) {
     let first = cell(r, "first_name");
     let last = cell(r, "last_name");
     if (!first && !last) ({ first, last } = splitName(cell(r, "full_name")));
+    // "Okafor, Chidi" typed into a first-name column still splits right.
+    if (first && !last && first.includes(",")) ({ first, last } = splitName(first));
     return {
       first,
       last,
