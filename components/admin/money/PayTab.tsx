@@ -86,7 +86,7 @@ export default function PayoutsPage() {
         title="Pay"
         subtitle="Renters' card money the shop is holding (theirs, 100%), and the wage numbers to type into Gusto each payroll. Rent is billed separately, never taken out of anyone's sales."
       />
-      {!real && !loading && <MockBanner source="Square" />}
+      {!real && !loading && <MockBanner source="Stripe" />}
 
       {/* Stripe Connect — owner only. Onboarded renters get their card sales
           sent straight to their bank; the manual list below covers the rest. */}

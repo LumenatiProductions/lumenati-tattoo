@@ -126,8 +126,6 @@ export default function CashPage() {
         </>
       )}
 
-      <DrawerPanel entriesVersion={entries.length} />
-
       <StatRow>
         <StatCard label="Cash logged" value={fmtPrecise(totalCents)} sub="all entries" />
         <StatCard
@@ -153,7 +151,7 @@ export default function CashPage() {
           </button>
         }
       >
-        Drawer entries
+        Cash entries
       </SectionTitle>
 
       {adding && configured && (
@@ -184,7 +182,7 @@ export default function CashPage() {
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-white/55">
                   {configured
-                    ? "No cash logged yet. Tap “+ Log cash” when money hits the drawer."
+                    ? "No cash logged yet. Tap “+ Log cash” when cash changes hands."
                     : "The cash log turns on once the schema is applied."}
                 </td>
               </tr>
@@ -239,166 +237,6 @@ export default function CashPage() {
             })}
           </tbody>
         </table>
-      </Card>
-    </div>
-  );
-}
-
-// Drawer discipline: open with a float, close by counting. Expected updates
-// live as entries land (entriesVersion re-fetches when the log changes). Stays
-// hidden until cash-sessions-schema.sql is applied.
-function DrawerPanel({ entriesVersion }: { entriesVersion: number }) {
-  type Session = {
-    id: string;
-    opened_at: string;
-    opened_by: string | null;
-    opening_float_cents: number;
-    closed_at: string | null;
-    expected_cents: number | null;
-    counted_cents: number | null;
-    over_short_cents: number | null;
-    note: string;
-  };
-  const [configured, setConfigured] = useState(false);
-  const [open, setOpen] = useState<Session | null>(null);
-  const [expectedSoFar, setExpectedSoFar] = useState<number | null>(null);
-  const [recent, setRecent] = useState<Session[]>([]);
-  const [float, setFloat] = useState("");
-  const [counted, setCounted] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/cash/session");
-      const d = await r.json().catch(() => ({}));
-      if (r.ok && d.configured !== false) {
-        setConfigured(true);
-        setOpen(d.open ?? null);
-        setExpectedSoFar(d.expectedSoFar ?? null);
-        setRecent(d.recent ?? []);
-      }
-    } catch {
-      /* panel stays hidden */
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load, entriesVersion]);
-
-  if (!configured) return null;
-
-  const act = async (method: "POST" | "PATCH", body: Record<string, unknown>) => {
-    setBusy(true);
-    setMsg(null);
-    try {
-      const r = await fetch("/api/cash/session", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setMsg(d.error || "Could not update the drawer.");
-        return;
-      }
-      setFloat("");
-      setCounted("");
-      if (method === "PATCH" && d.session) {
-        const os = d.session.over_short_cents as number;
-        setMsg(
-          os === 0
-            ? "Drawer closed, counted exactly to the penny."
-            : `Drawer closed, ${os > 0 ? "over" : "short"} ${fmtPrecise(Math.abs(os))}.`,
-        );
-      }
-      await load();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toCents = (s: string) => Math.round(Number(s) * 100);
-
-  return (
-    <div className="mb-5">
-      <SectionTitle>Drawer</SectionTitle>
-      <Card>
-        <div className="flex flex-wrap items-end gap-4 p-4">
-          {open ? (
-            <>
-              <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/60">Opened</div>
-                <div className="text-sm font-medium">
-                  {new Date(open.opened_at).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}
-                  <span className="text-white/55"> · float {fmtPrecise(open.opening_float_cents)}</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/60">Expected in drawer</div>
-                <div className="tnum text-sm font-semibold">{expectedSoFar !== null ? fmtPrecise(expectedSoFar) : "·"}</div>
-              </div>
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Counted ($)</span>
-                <input className="inp w-28" inputMode="decimal" placeholder="0.00" value={counted} onChange={(e) => setCounted(e.target.value)} />
-              </label>
-              <button
-                onClick={() => {
-                  const c = toCents(counted);
-                  if (!Number.isFinite(c) || counted.trim() === "") {
-                    setMsg("Count the drawer first.");
-                    return;
-                  }
-                  act("PATCH", { countedCents: c });
-                }}
-                disabled={busy}
-                className="rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
-              >
-                {busy ? "Closing…" : "Count & close"}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="text-sm text-white/70">Drawer is closed.</div>
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Opening float ($)</span>
-                <input className="inp w-28" inputMode="decimal" placeholder="200" value={float} onChange={(e) => setFloat(e.target.value)} />
-              </label>
-              <button
-                onClick={() => {
-                  const c = toCents(float || "0");
-                  act("POST", { openingFloatCents: Number.isFinite(c) ? c : 0 });
-                }}
-                disabled={busy}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
-              >
-                {busy ? "Opening…" : "Open drawer"}
-              </button>
-            </>
-          )}
-          {msg && <span className="text-xs font-medium text-white/75">{msg}</span>}
-        </div>
-
-        {recent.length > 0 && (
-          <div className="border-t border-white/8 px-4 py-2.5">
-            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-white/60">
-              {recent.map((s) => (
-                <span key={s.id}>
-                  {new Date(s.opened_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}:{" "}
-                  {s.over_short_cents === 0 ? (
-                    <span className="text-emerald-400">even</span>
-                  ) : (
-                    <span className={s.over_short_cents! > 0 ? "text-emerald-400" : "text-rose-400"}>
-                      {s.over_short_cents! > 0 ? "+" : "−"}
-                      {fmtPrecise(Math.abs(s.over_short_cents!))}
-                    </span>
-                  )}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );
@@ -605,7 +443,7 @@ function AddEntry({
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-white/60">Note</span>
           <input
             className="inp w-full"
-            placeholder="walk-in flash, drawer drop…"
+            placeholder="walk-in flash, merch…"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />

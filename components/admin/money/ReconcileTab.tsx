@@ -8,7 +8,7 @@ import { fmtPrecise } from "@/lib/admin/calc";
 import { Card, Empty, SectionTitle, StatCard, StatRow, Badge } from "@/components/admin/ui";
 
 // Reconciliation: Stripe's view of the money next to our own records (payments,
-// Square sales mirror, cash log + drawer) for the current month. The point is
+// recorded sales + cash log) for the current month. The point is
 // the DIFF — when the two sides agree, the books are square without QuickBooks.
 
 type Data = {
@@ -211,7 +211,7 @@ export default function ReconcilePage() {
               <Card>
                 <div className="grid grid-cols-2 divide-x divide-white/8 border-b border-white/8">
                   <Cell label="Card sales (recorded)" value={fmtPrecise(data.square.cardCents)} />
-                  <Cell label="Cash sales (Square)" value={fmtPrecise(data.square.cashCents)} />
+                  <Cell label="Cash sales (recorded)" value={fmtPrecise(data.square.cashCents)} />
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-white/8 border-b border-white/8">
                   <Cell label="Cash logged" value={fmtPrecise(data.cash.loggedCents)} />
@@ -220,30 +220,6 @@ export default function ReconcilePage() {
                     value={fmtPrecise(data.cash.unreconciledCents)}
                     warn={data.cash.unreconciledCents > 0}
                   />
-                </div>
-                <div className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-white/55">
-                  Drawer closes
-                </div>
-                <div className="px-4 pb-3">
-                  {data.cash.sessions.length === 0 ? (
-                    <div className="py-2 text-sm text-white/55">No closed drawers yet.</div>
-                  ) : (
-                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
-                      {data.cash.sessions.map((s, i) => (
-                        <span key={i} className="text-white/65">
-                          {new Date(s.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}:{" "}
-                          {s.overShortCents === 0 ? (
-                            <span className="text-emerald-400">even</span>
-                          ) : (
-                            <span className={(s.overShortCents ?? 0) > 0 ? "text-emerald-400" : "text-rose-400"}>
-                              {(s.overShortCents ?? 0) > 0 ? "+" : "−"}
-                              {fmtPrecise(Math.abs(s.overShortCents ?? 0))}
-                            </span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </Card>
 

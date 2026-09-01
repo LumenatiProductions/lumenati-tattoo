@@ -182,7 +182,7 @@ function ReportsInner() {
                   ? `${fmt(data.shop.rentOutstanding)} outstanding`
                   : data.rentConfigured
                     ? "all paid"
-                    : "Square not linked"
+                    : "no rent set up yet"
               }
               tone={data.shop.rentOutstanding ? "warn" : "neutral"}
             />

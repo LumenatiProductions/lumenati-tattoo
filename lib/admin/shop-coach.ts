@@ -67,7 +67,7 @@ export function shopCoachTips(opts: {
       body: `${rebooked.size} of the ${seen.size} clients the shop has seen in the last two months have a next session booked. Those ${missing} unbooked clients are ${usd(
         avgTicket * missing,
       )} of near-certain work at your ${usd(avgTicket)} average ticket. Make "book the next one in the chair" a house rule and this number moves in a week.`,
-      href: "/admin/followups",
+      href: "/admin/messages?tab=queue",
     });
   }
 
@@ -75,7 +75,7 @@ export function shopCoachTips(opts: {
   if (opts.rentOutstandingCents > 0) {
     tips.push({
       title: `${usd(opts.rentOutstandingCents)} in booth rent is outstanding`,
-      body: "That's not revenue to chase, it's revenue already owed. Artists can pay by card straight from their phone (or declare cash at the desk), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
+      body: "That's not revenue to chase, it's revenue already owed. Artists can pay by card straight from their phone (or log cash in the app), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
       href: "/admin/money?tab=rent",
     });
   }
@@ -143,7 +143,7 @@ export function shopCoachTips(opts: {
     tips.push({
       title: `${opts.followupsDue} follow-ups are sitting due`,
       body: `Aftercare check-ins and healed-shot asks reopen conversations that end in bookings, and they're already written, waiting for a send. A follow-up costs nothing; a cold client costs the next piece.`,
-      href: "/admin/followups",
+      href: "/admin/messages?tab=queue",
     });
   }
 

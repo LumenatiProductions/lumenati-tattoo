@@ -39,7 +39,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
   return (
     <div>
       <PageHead title={`${greeting()}, ${artist.name.split(" ")[0]}`} sub={payTypeLabel(artist)} />
-      {!real && !loading && <MockBanner source="Square" />}
+      {!real && !loading && <MockBanner source="Stripe" />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {payType === "payroll_salary" ? (

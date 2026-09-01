@@ -56,7 +56,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export default function BookingsPage() {
-  const { bookings, loading, error, today, depositsHeld, addBooking, updateBooking, syncFromSquare } =
+  const { bookings, loading, error, today, depositsHeld, addBooking, updateBooking } =
     useBookings();
   const { clients } = useClients();
   const { artists } = useArtists();
@@ -65,7 +65,6 @@ export default function BookingsPage() {
   // their counters, and none of the shop-wide owner actions (lum-016).
   const isArtistView = role === "artist";
   const canWrite = role === "owner";
-  const canSync = role === "owner";
   const scopedBookings = useMemo(
     () => (isArtistView ? bookings.filter((b) => b.artist_id === asArtistId) : bookings),
     [bookings, isArtistView, asArtistId],
@@ -75,8 +74,6 @@ export default function BookingsPage() {
   const [view, setView] = useState<"list" | "week">("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [adHocPayLink, setAdHocPayLink] = useState(false);
 
   const clientName = useMemo(() => {
@@ -136,7 +133,6 @@ export default function BookingsPage() {
   const forfeited = scopedBookings
     .filter((b) => b.deposit_status === "forfeited")
     .reduce((s, b) => s + b.deposit_cents, 0);
-  const fromSquare = scopedBookings.some((b) => b.source === "square");
 
   // Today / deposits-held come shop-wide from the hook; recompute for one chair.
   const todayCount = isArtistView
@@ -148,19 +144,6 @@ export default function BookingsPage() {
 
   const selected = bookings.find((b) => b.id === selectedId) ?? null;
 
-  const runSync = async () => {
-    setSyncing(true);
-    setSyncMsg(null);
-    const res = await syncFromSquare();
-    setSyncing(false);
-    setSyncMsg(
-      res.ok
-        ? `Synced from Square. ${res.mirrored ?? 0} mirrored, ${res.autoFlaggedNoShow ?? 0} flagged no-show.`
-        : res.error || "Sync failed.",
-    );
-    // Success notices clear themselves; an error stays until the next attempt.
-    if (res.ok) setTimeout(() => setSyncMsg(null), 8000);
-  };
 
   return (
     <div>
@@ -182,15 +165,6 @@ export default function BookingsPage() {
               >
                 Pay link
               </button>
-              {canSync && (
-                <button
-                  onClick={runSync}
-                  disabled={syncing}
-                  className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
-                >
-                  {syncing ? "Syncing…" : "Sync from Square"}
-                </button>
-              )}
             </>
           ) : undefined
         }
@@ -203,11 +177,6 @@ export default function BookingsPage() {
         <StatCard label="Forfeited" value={money(forfeited)} sub="kept from no-shows" />
       </StatRow>
 
-      {syncMsg && (
-        <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/75">
-          {syncMsg}
-        </div>
-      )}
 
       {canWrite && <RequestsInbox />}
 

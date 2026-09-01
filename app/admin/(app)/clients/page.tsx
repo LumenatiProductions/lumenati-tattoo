@@ -21,11 +21,10 @@ const fmtDate = (iso: string | null) =>
     : "·";
 
 export default function ClientsPage() {
-  const { clients, loading, error, total, newThisMonth, addClient, updateClient, syncFromSquare, refresh } =
+  const { clients, loading, error, total, newThisMonth, addClient, updateClient, refresh } =
     useClients();
   const { artists } = useArtists();
   const { realRole, role } = useRole();
-  const canSync = realRole === "owner";
   const router = useRouter();
   // "View as artist" must not see the shop-wide roster — other artists' clients
   // and their phone numbers (lum-017). Send the preview to the artist-scoped
@@ -37,8 +36,6 @@ export default function ClientsPage() {
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [retView, setRetView] = useState<null | "birthdays" | "due" | "lapsed">(null);
 
   const artistName = useMemo(() => {
@@ -90,21 +87,9 @@ export default function ClientsPage() {
   // "Returning" = seen on more than one day (came back after the first visit).
   const returning = clients.filter((c) => c.first_seen && c.last_seen && c.last_seen > c.first_seen).length;
   const returningRate = total ? Math.round((returning / total) * 100) : 0;
-  const fromSquare = clients.some((c) => c.source === "square");
 
   const selected = clients.find((c) => c.id === selectedId) ?? null;
 
-  const runSync = async () => {
-    setSyncing(true);
-    setSyncMsg(null);
-    const res = await syncFromSquare();
-    setSyncing(false);
-    setSyncMsg(
-      res.ok
-        ? `Synced ${res.updated ?? 0} customer${res.updated === 1 ? "" : "s"} from Square.`
-        : res.error || "Sync failed.",
-    );
-  };
 
   // Redirecting to the artist-scoped page (effect above) — don't paint the
   // shop-wide roster on the way out.
@@ -123,15 +108,6 @@ export default function ClientsPage() {
             >
               {adding ? "Close" : "New client"}
             </button>
-            {canSync && (
-              <button
-                onClick={runSync}
-                disabled={syncing}
-                className="rounded-lg border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:bg-white/6 disabled:opacity-40"
-              >
-                {syncing ? "Syncing…" : "Sync from Square"}
-              </button>
-            )}
           </>
         }
       />
@@ -140,7 +116,6 @@ export default function ClientsPage() {
         <StatCard label="Clients" value={String(total)} accent />
         <StatCard label="New this month" value={String(newThisMonth)} tone={newThisMonth ? "good" : "neutral"} />
         <StatCard label="Returning" value={`${returningRate}%`} sub={`${returning} came back`} />
-        <StatCard label="Source" value={fromSquare ? "Square + manual" : "Manual"} sub={fromSquare ? "synced nightly" : "auto-pull not run yet"} />
       </StatRow>
 
       {/* Bring them back — the retention flywheel's fuel, from data already on file. */}
@@ -178,11 +153,6 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {syncMsg && (
-        <div className="mb-4 rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-xs text-white/75">
-          {syncMsg}
-        </div>
-      )}
 
       {adding && (
         <AddForm
@@ -222,7 +192,7 @@ export default function ClientsPage() {
       ) : filtered.length === 0 ? (
         <Empty>
           {clients.length === 0
-            ? "No clients yet. Add a walk-in above, or sync from Square."
+            ? "No clients yet. Add a walk-in above, or share your booking link."
             : "No clients match that search."}
         </Empty>
       ) : (

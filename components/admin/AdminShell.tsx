@@ -44,8 +44,6 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/admin/clients", label: "Clients", roles: ["owner"], icon: "clients" },
       { href: "/admin/my-clients", label: "Clients", roles: ["artist"], icon: "clients" },
       { href: "/admin/intake", label: "Intake", roles: ["owner"], icon: "intake" },
-      { href: "/admin/followups", label: "Follow-ups", roles: ["owner"], icon: "followups" },
-      { href: "/admin/my-followups", label: "Follow-ups", roles: ["artist"], icon: "followups" },
       { href: "/admin/healed", label: "Healed Shots", roles: ["artist"], icon: "healed" },
       { href: "/admin/qr", label: "QR Card", roles: ["artist"], icon: "qr" },
     ],
@@ -53,9 +51,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: "Marketing",
     items: [
-      { href: "/admin/marketing", label: "Blasts", roles: ["owner"], icon: "blasts" },
-      { href: "/admin/social", label: "Social", roles: ["owner"], icon: "social" },
-      { href: "/admin/sending", label: "Sending", roles: ["owner"], icon: "sending" },
+      { href: "/admin/messages", label: "Messages", roles: ["owner", "artist"], icon: "followups" },
     ],
   },
   {
@@ -71,17 +67,14 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/admin/room", label: "Artist pages", roles: ["owner"], icon: "artistpages" },
       { href: "/admin/inventory", label: "Inventory", roles: ["owner"], icon: "inventory" },
       { href: "/admin/compliance", label: "Compliance", roles: ["owner"], icon: "compliance" },
+      { href: "/admin/social", label: "Social wall", roles: ["owner"], icon: "social" },
     ],
   },
   {
     title: "Admin",
     items: [
       { href: "/admin/settings", label: "Settings", roles: ["owner"], icon: "settings" },
-      { href: "/admin/health", label: "Health", roles: ["owner"], icon: "health" },
-      { href: "/admin/qa", label: "QA", roles: ["owner"], icon: "bug" },
-      { href: "/admin/staff", label: "Staff", roles: ["owner"], icon: "staff" },
-      { href: "/admin/integrations", label: "Integrations", roles: ["owner"], icon: "integrations" },
-      { href: "/admin/billing", label: "Billing", roles: ["owner"], icon: "billing" },
+      { href: "/admin/staff", label: "Team", roles: ["owner"], icon: "staff" },
     ],
   },
 ];
@@ -322,7 +315,7 @@ function BillingLock() {
               Pick a plan and the shop comes right back.
             </p>
             <Link
-              href="/admin/billing"
+              href="/admin/settings?tab=billing"
               className="mt-5 inline-block rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
             >
               Choose a plan
@@ -346,7 +339,7 @@ function ShellFrame({ children, billing }: { children: React.ReactNode; billing:
   const [collapsed, setCollapsed] = useState(false);
   const { realRole } = useRole();
   const pathname = usePathname();
-  const locked = !!billing?.locked && pathname !== "/admin/billing";
+  const locked = !!billing?.locked && pathname !== "/admin/billing" && pathname !== "/admin/settings";
   const trialNudge =
     !billing?.locked && billing?.trialDaysLeft != null && billing.trialDaysLeft <= 7 && realRole === "owner";
 
@@ -392,7 +385,7 @@ function ShellFrame({ children, billing }: { children: React.ReactNode; billing:
             {billing!.trialDaysLeft === 0
               ? "Last day of your free month."
               : `${billing!.trialDaysLeft} day${billing!.trialDaysLeft === 1 ? "" : "s"} left on your free month.`}{" "}
-            <Link href="/admin/billing" className="font-semibold text-white underline underline-offset-2">
+            <Link href="/admin/settings?tab=billing" className="font-semibold text-white underline underline-offset-2">
               Pick a plan
             </Link>
           </div>

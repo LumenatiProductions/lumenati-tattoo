@@ -64,7 +64,7 @@ export default function OwnerHome() {
       {/* The shop coach — same reads as the app's shop home. */}
       <ShopCoach />
 
-      {!real && !loading && <MockBanner source="Square & QuickBooks" />}
+      {!real && !loading && <MockBanner source="Stripe" />}
 
       <SectionTitle>
         This week <span className="font-normal text-white/50">· last 7 days, same as your Monday email</span>

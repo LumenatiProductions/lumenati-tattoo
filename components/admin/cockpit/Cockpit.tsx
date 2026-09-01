@@ -87,7 +87,7 @@ export default function Cockpit() {
         sev: e.severity === "error" ? "high" : "med",
         label: e.summary,
         detail: `${HEALTH_LABEL[e.kind] ?? e.kind} · clears when handled`,
-        href: "/admin/health",
+        href: "/admin/settings?tab=health",
         healthId: e.id,
       });
     }
@@ -102,7 +102,7 @@ export default function Cockpit() {
     if (lowNotOut > 0)
       out.push({ key: "stock-low", sev: "med", label: `${lowNotOut} item${lowNotOut === 1 ? "" : "s"} low`, detail: "below reorder point", href: "/admin/inventory" });
     if (followupsDue)
-      out.push({ key: "fu", sev: "med", label: `${followupsDue} follow-up${followupsDue === 1 ? "" : "s"} due`, detail: followupsPending ? `${followupsPending} pending total` : undefined, href: "/admin/followups" });
+      out.push({ key: "fu", sev: "med", label: `${followupsDue} follow-up${followupsDue === 1 ? "" : "s"} due`, detail: followupsPending ? `${followupsPending} pending total` : undefined, href: "/admin/messages?tab=queue" });
     if (today)
       out.push({ key: "appts", sev: "low", label: `${today} appointment${today === 1 ? "" : "s"} today`, detail: `${checkedInToday} checked in`, href: "/admin/bookings" });
     if (depositsHeld)
@@ -143,7 +143,7 @@ export default function Cockpit() {
         <Tile label="Deposits held" value={fmt(depositsHeld)} href="/admin/bookings" />
         <Tile label="Low stock" value={String(lowStock.length)} href="/admin/inventory" warn={lowStock.length > 0} />
         <Tile label="Licenses expiring" value={String(expiringSoon.length)} href="/admin/compliance" warn={expiringSoon.length > 0} />
-        <Tile label="Follow-ups due" value={String(followupsDue)} href="/admin/followups" warn={followupsDue > 0} />
+        <Tile label="Follow-ups due" value={String(followupsDue)} href="/admin/messages?tab=queue" warn={followupsDue > 0} />
       </div>
 
       <SectionTitle>Needs attention</SectionTitle>

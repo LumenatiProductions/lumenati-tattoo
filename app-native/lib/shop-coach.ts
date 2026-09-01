@@ -107,7 +107,7 @@ export function shopCoachTips(opts: {
   if (opts.rentOutstandingCents > 0) {
     tips.push({
       title: `${usd(opts.rentOutstandingCents)} in booth rent is outstanding`,
-      body: "That's not revenue to chase, it's revenue already owed. Artists can now pay by card straight from their phone (or declare cash to the desk), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
+      body: "That's not revenue to chase, it's revenue already owed. Artists can now pay by card straight from their phone (or log cash in the app), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
       href: "/rent",
     });
   }
