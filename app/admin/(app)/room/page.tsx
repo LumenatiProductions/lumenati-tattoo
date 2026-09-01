@@ -348,10 +348,6 @@ export default function RoomEditorPage() {
             </Card>
           </section>
 
-          <p className="text-xs text-white/55">
-            Photo uploads preview locally for now; real hosting + saving to your
-            account lands with Supabase Storage.
-          </p>
         </div>
 
         {/* ── Live preview: the REAL public page, per the shop's actual skin ── */}

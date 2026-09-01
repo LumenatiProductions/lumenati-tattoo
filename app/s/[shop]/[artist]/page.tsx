@@ -1,4 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import { cleanHours, openSlots } from "@/lib/bookings/slots";
+import { shopDay } from "@/lib/dates";
 import { fetchShopArtist, fetchShopBySlug } from "@/lib/shops/public";
 import { fetchRoom } from "@/lib/admin/room-data";
 import { getSupabase } from "@/lib/supabase";
@@ -53,6 +55,32 @@ async function fetchBooksClosed(artistId: string): Promise<boolean> {
   return !!data?.books_closed;
 }
 
+// "Next open: Wed, Sep 2 at 12 PM" under the book button, when the artist
+// offers open times. One read of the live book; null when self-serve is off.
+async function fetchNextOpen(artistId: string): Promise<string | null> {
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { data: a } = await admin
+    .from("artists")
+    .select("id, self_serve, hours, session_minutes, deposit_cents, books_closed")
+    .eq("id", artistId)
+    .maybeSingle();
+  if (!a || !a.self_serve || a.books_closed) return null;
+  const hours = cleanHours(a.hours);
+  if (!hours) return null;
+  const days = await openSlots(admin, { id: a.id as string, hours, session_minutes: a.session_minutes, deposit_cents: a.deposit_cents }, shopDay(new Date()), 14);
+  const first = days.find((d) => d.slots.length)?.slots[0];
+  if (!first) return null;
+  return new Date(first).toLocaleString("en-US", {
+    timeZone: process.env.SHOP_TIMEZONE || "America/Denver",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).replace(":00", "");
+}
+
 const SKINS = { standard: MinimalSkin, dark: DarkSkin, flash: FlashSkin } as const;
 
 export default async function ShopArtistPage({
@@ -69,11 +97,12 @@ export default async function ShopArtistPage({
 
   const artist = await fetchShopArtist(shop.id, shop.slug, artistSlug);
   if (!artist) notFound();
-  const [room, promo, flash, booksClosed] = await Promise.all([
+  const [room, promo, flash, booksClosed, nextOpen] = await Promise.all([
     fetchRoom(artist.id),
     fetchLivePromo(artist.id),
     fetchFlash(artist.id),
     fetchBooksClosed(artist.id),
+    fetchNextOpen(artist.id),
   ]);
   const accent = room.accentColor || artist.color || shop.accent;
   const shots = [
@@ -103,6 +132,7 @@ export default async function ShopArtistPage({
       booksClosed={booksClosed}
       bookHref={bookHref}
       cta={cta}
+      nextOpen={nextOpen}
     />
   );
 }

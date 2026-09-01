@@ -50,7 +50,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
             accent
           />
         ) : (
-          <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips" accent />
+          <StatCard label="You earned" value={fmt(st.artistEarnings)} sub="service kept + tips · all time" accent />
         )}
         <StatCard label="Tips" value={fmt(st.grossTips)} />
         {payType === "booth_rent" ? (

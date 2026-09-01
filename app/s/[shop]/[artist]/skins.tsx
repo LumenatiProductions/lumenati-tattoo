@@ -27,6 +27,8 @@ export type SkinProps = {
   booksClosed: boolean;
   bookHref: string;
   cta: string;
+  /** "Wed, Sep 2 at 12 PM" when the artist offers open times; null otherwise. */
+  nextOpen?: string | null;
 };
 
 export const prettyDay = (date: string) =>
@@ -92,6 +94,7 @@ function ArtistHeader({
   bookHref,
   cta,
   booksClosed,
+  nextOpen,
   variant,
 }: SkinProps & { variant: "minimal" | "dark" | "flash" }) {
   const dark = variant === "dark";
@@ -167,6 +170,8 @@ function ArtistHeader({
       </a>
       {booksClosed ? (
         <p className="mt-2 text-xs text-zinc-500">Books are closed right now — waitlist gets first call.</p>
+      ) : nextOpen ? (
+        <p className="mt-2 text-xs text-zinc-500">Next open: {nextOpen}</p>
       ) : null}
     </header>
   );
@@ -175,7 +180,7 @@ function ArtistHeader({
 // ---------------------------------------------------------------- minimal --
 
 export function MinimalSkin(p: SkinProps) {
-  const { accent, shots, flash, promo, booksClosed, bookHref, cta, artist, shop } = p;
+  const { accent, shots, flash, promo, booksClosed, bookHref, cta, nextOpen, artist, shop } = p;
   const availableFlash = flash.filter((f) => !f.claimed);
   return (
     <div className="book-bar-pad ink-bg min-h-screen text-zinc-100">
@@ -234,6 +239,7 @@ export function MinimalSkin(p: SkinProps) {
 
         <div className="ink-card mt-12 p-6 text-center">
           <div className="text-lg font-bold">{booksClosed ? "Get in line early." : "Ready when you are."}</div>
+          {!booksClosed && nextOpen ? <p className="mt-1 text-sm text-zinc-500">Next open: {nextOpen}</p> : null}
           <a href={bookHref} className="mt-4 inline-block rounded-xl px-8 py-3.5 text-base font-bold text-white" style={{ background: accent }}>
             {cta}
           </a>

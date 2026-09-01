@@ -28,7 +28,12 @@ type NavItem = { href: string; label: string; roles: Role[]; icon: NavIconName; 
 // section renders full-width rows; titled sections pack two-across to keep the
 // rail short. An artist's own page lives up top as "My Page"; for shop
 // accounts the same screen is "Artist pages", filed under Shop.
-const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
+// A section title can differ by role: an artist's bookings/clients/waitlist are
+// their day, not a desk (no front desk here, Scott 2026-07-08).
+type SectionTitle = string | { owner: string; artist: string } | null;
+const titleFor = (t: SectionTitle, role: string): string | null =>
+  t && typeof t === "object" ? (role === "owner" ? t.owner : t.artist) : t;
+const NAV_SECTIONS: { title: SectionTitle; items: NavItem[] }[] = [
   {
     title: null,
     items: [
@@ -37,7 +42,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Front of house",
+    title: { owner: "Shop floor", artist: "Your day" },
     items: [
       { href: "/admin/bookings", label: "Bookings", roles: ["owner", "artist"], icon: "bookings" },
       { href: "/admin/waitlist", label: "Waitlist", roles: ["artist"], icon: "waitlist" },
@@ -108,6 +113,7 @@ function Sidebar({
   }, [role, artists, asArtistId, setAsArtistId]);
   const sections = NAV_SECTIONS.map((s) => ({
     ...s,
+    title: titleFor(s.title, role),
     items: s.items.filter((n) => n.roles.includes(role)),
   })).filter((s) => s.items.length > 0);
 
@@ -121,7 +127,7 @@ function Sidebar({
   // to a single header line, so the whole nav fits without a marathon scroll. Open
   // sections are remembered; navigating into a folded section opens it.
   const sectionOf = (path: string) =>
-    NAV_SECTIONS.find((s) => s.title && s.items.some((n) => n.href === path))?.title ?? null;
+    titleFor(NAV_SECTIONS.find((s) => s.title && s.items.some((n) => n.href === path))?.title ?? null, role);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   useEffect(() => {
     let saved: string[] | null = null;

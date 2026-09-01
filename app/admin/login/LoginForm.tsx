@@ -20,7 +20,7 @@ function e164(raw: string): string | null {
 export default function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/admin";
-  const [mode, setMode] = useState<"phone" | "email">("phone");
+  const [mode, setMode] = useState<"phone" | "email">("email"); // email first until the carrier campaign clears; phone stays one tap away
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");

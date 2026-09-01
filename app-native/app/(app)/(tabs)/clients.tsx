@@ -26,6 +26,9 @@ export default function Clients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
+  // Per client: last completed visit + next booked session. That's what an
+  // artist wants at a glance, not a phone number (Scott, 2026-09-01).
+  const [visits, setVisits] = useState<Record<string, { last?: string; next?: string }>>({});
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
 
@@ -45,6 +48,24 @@ export default function Clients() {
     }
     setClients(all);
     setLoading(false);
+    const nowIso = new Date().toISOString();
+    const { data: bk } = await supabase
+      .from("bookings")
+      .select("client_id, starts_at, status")
+      .in("status", ["completed", "scheduled", "held"])
+      .not("client_id", "is", null)
+      .order("starts_at", { ascending: true });
+    const v: Record<string, { last?: string; next?: string }> = {};
+    for (const b of (bk ?? []) as { client_id: string; starts_at: string; status: string }[]) {
+      const cell = v[b.client_id] ?? {};
+      if (b.status === "completed" || (b.status === "scheduled" && b.starts_at < nowIso)) {
+        if (!cell.last || b.starts_at > cell.last) cell.last = b.starts_at;
+      } else if (b.starts_at >= nowIso && (!cell.next || b.starts_at < cell.next)) {
+        cell.next = b.starts_at;
+      }
+      v[b.client_id] = cell;
+    }
+    setVisits(v);
   }, []);
   useEffect(() => {
     load();
@@ -107,7 +128,14 @@ export default function Clients() {
                         {c.first_name} {c.last_name}
                       </Text>
                       <Text style={styles.sub}>
-                        {c.phone || c.email || (c.instagram ? `@${c.instagram}` : "no contact")}
+                        {visits[c.id]?.next || visits[c.id]?.last
+                          ? [
+                              visits[c.id]?.next ? `Next ${when(visits[c.id]!.next!)}` : null,
+                              visits[c.id]?.last ? `Last ${when(visits[c.id]!.last!, true)}` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")
+                          : c.phone || c.email || (c.instagram ? `@${c.instagram}` : "no visits yet")}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
@@ -119,8 +147,7 @@ export default function Clients() {
                       onPress={() => Linking.openURL(`tel:${c.phone}`)}
                       style={({ pressed }) => [styles.call, pressed && { opacity: 0.7 }]}
                     >
-                      <Ionicons name="call-outline" size={15} color={theme.textDim} />
-                      <Text style={styles.callText}>Call</Text>
+                      <Ionicons name="call-outline" size={16} color={theme.textDim} />
                     </Pressable>
                   )}
                 </View>
@@ -177,6 +204,12 @@ function ClientForm({ existing, onSaved }: { existing?: Client; onSaved: () => v
   );
 }
 
+// "Tue 8, 1 PM" for what's next; "Aug 15" for what's past.
+const when = (iso: string, dateOnly = false) =>
+  dateOnly
+    ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : new Date(iso).toLocaleString("en-US", { weekday: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
 const styles = StyleSheet.create({
   errText: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   search: {
@@ -193,7 +226,7 @@ const styles = StyleSheet.create({
   border: { borderTopColor: theme.border, borderTopWidth: 1 },
   name: { color: theme.text, fontSize: 15, fontWeight: "600" },
   sub: { color: theme.textDim, fontSize: 13, marginTop: 2 },
-  call: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.brandSoft, borderColor: theme.brandBorder, borderWidth: 1, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 },
+  call: { alignItems: "center", justifyContent: "center", borderColor: theme.border, borderWidth: 1, borderRadius: 999, width: 34, height: 34 },
   callText: { color: theme.text, fontSize: 13, fontWeight: "700" },
   empty: { color: theme.textFaint, fontSize: 14, padding: 16 },
 });

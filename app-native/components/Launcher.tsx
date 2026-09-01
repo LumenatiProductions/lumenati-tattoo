@@ -10,9 +10,12 @@ import type { Role } from "@/lib/auth";
 // Grouped into the same categories as the web Command Center sidebar; a section
 // header only shows when the role can see at least one screen inside it.
 type Item = { href: string; label: string; ownerLabel?: string; icon: keyof typeof Ionicons.glyphMap; roles: Role[] };
-const SECTIONS: { title: string; items: Item[] }[] = [
+type SectionTitle = string | { owner: string; artist: string };
+const titleFor = (t: SectionTitle, role: Role | null): string =>
+  typeof t === "string" ? t : role === "owner" ? t.owner : t.artist;
+const SECTIONS: { title: SectionTitle; items: Item[] }[] = [
   {
-    title: "Front of house",
+    title: { owner: "Shop floor", artist: "Your day" },
     items: [
       { href: "/pos", label: "Take payment", icon: "card-outline", roles: ["owner", "artist"] },
       { href: "/room", label: "My Page", ownerLabel: "Artist pages", icon: "color-palette-outline", roles: ["owner", "artist"] },
@@ -82,6 +85,7 @@ export default function Launcher({
   const router = useRouter();
   const sections = SECTIONS.map((s) => ({
     ...s,
+    title: titleFor(s.title, role),
     items: s.items.filter(
       (i) => role && i.roles.includes(role) && !exclude.includes(i.href) && (!only || only.includes(i.href)),
     ),

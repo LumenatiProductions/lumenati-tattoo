@@ -51,6 +51,20 @@ export default function ArtistsPage() {
   const [edit, setEdit] = useState<Draft>(blankDraft());
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // Who can sign in: one line per card, so adding an artist and giving them
+  // the app is one stop (Scott, 2026-09-01: Artists & Pay + Team was two).
+  const [logins, setLogins] = useState<Record<string, { email: string | null; phone: string | null }>>({});
+  const loadLogins = useCallback(async () => {
+    const { data } = await sb.from("profiles").select("artist_id, email, phone").not("artist_id", "is", null);
+    const next: Record<string, { email: string | null; phone: string | null }> = {};
+    for (const p of (data ?? []) as { artist_id: string; email: string | null; phone: string | null }[]) {
+      next[p.artist_id] = { email: p.email, phone: p.phone };
+    }
+    setLogins(next);
+  }, [sb]);
+  useEffect(() => {
+    if (isOwner) loadLogins();
+  }, [isOwner, loadLogins]);
 
   const draftToRow = (d: Draft) => ({
     name: d.name.trim(),
@@ -257,6 +271,7 @@ export default function ArtistsPage() {
                     <Stat label="Service" value={fmt(st.grossService)} />
                     <Stat label="Shop keeps" value={fmt(st.shopCut)} />
                   </div>
+                  {isOwner && <LoginRow artist={a} login={logins[a.id]} onChanged={loadLogins} />}
                   {isOwner && (
                     <div className="flex items-center gap-2 border-t border-white/9 px-4 py-2.5">
                       <button onClick={() => startEdit(a)} className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">Edit pay</button>
@@ -273,6 +288,70 @@ export default function ArtistsPage() {
       </div>
 
       {isOwner && <SquareHistoryPanel artists={artists} />}
+    </div>
+  );
+}
+
+// The app-login line on each card: who this chair signs in as, or a one-tap
+// invite that provisions the login (same /api/staff call the add form uses).
+function LoginRow({
+  artist,
+  login,
+  onChanged,
+}: {
+  artist: Artist;
+  login?: { email: string | null; phone: string | null };
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const send = async () => {
+    if (!email.trim()) return setErr("An email is needed for the login.");
+    setBusy(true);
+    setErr(null);
+    const res = await fetch("/api/staff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), phone: phone.trim() || undefined, name: artist.name, role: "artist", artistId: artist.id }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setErr(j.error ?? "Could not set the login.");
+      return;
+    }
+    setOpen(false);
+    onChanged();
+  };
+  return (
+    <div className="border-t border-white/9 px-4 py-2.5 text-xs">
+      {login ? (
+        <div className="flex flex-wrap items-center gap-x-2 text-white/65">
+          <span className="font-medium text-white/85">App login</span>
+          <span>{login.email ?? "·"}</span>
+          {login.phone && <span>· {login.phone}</span>}
+        </div>
+      ) : open ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+          <input className="inp" type="email" placeholder="artist@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="inp" placeholder="(303) 555-0199 · optional" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <button onClick={send} disabled={busy} className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+            {busy ? "Setting…" : "Give login"}
+          </button>
+          <button onClick={() => setOpen(false)} className="rounded-lg border border-white/12 px-3 py-1.5 text-xs text-white/75">Cancel</button>
+          {err && <span className="text-rose-400 sm:col-span-4">{err}</span>}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <span className="text-white/55">No app login yet</span>
+          <button onClick={() => setOpen(true)} className="rounded-lg border border-white/12 px-2.5 py-1 text-xs font-medium text-white/75 hover:bg-white/6">
+            Give them the app
+          </button>
+        </div>
+      )}
     </div>
   );
 }
