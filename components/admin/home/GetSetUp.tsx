@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/browser";
 import { useRole } from "@/lib/admin/role-context";
 import { useArtists } from "@/lib/admin/artists-context";
+import { useClients } from "@/lib/admin/clients-context";
 import { useRoomContent } from "@/lib/admin/room-content";
 import { Card, SectionTitle } from "@/components/admin/ui";
 
@@ -19,6 +20,7 @@ export default function GetSetUp() {
   const supabase = createClient();
   const { role } = useRole();
   const { artists } = useArtists();
+  const { total: clientCount } = useClients();
   const { get, ready } = useRoomContent();
   const [shop, setShop] = useState<Shop | null>(null);
   const [hidden, setHidden] = useState(true);
@@ -86,6 +88,16 @@ export default function GetSetUp() {
           },
         ]
       : []),
+    {
+      // Leaving another tool? Their people come with them. Retires once the
+      // book has real names in it, however they got there.
+      done: clientCount >= 10,
+      title: "Bring your clients over",
+      sub: "Export a spreadsheet from Square, Booksy, Vagaro, Podium or Mailchimp and drop it in. Contact, last visit and consent come with it.",
+      href: "/admin/settings?tab=import",
+      cta: "Import",
+      money: false,
+    },
     {
       done: !!shop.logo_url,
       title: solo ? "Add your logo" : "Add your shop logo",

@@ -7,6 +7,7 @@ import ShopBranding from "@/components/admin/settings/ShopBranding";
 import BillingTab from "@/components/admin/settings/BillingTab";
 import HealthTab from "@/components/admin/settings/HealthTab";
 import IntegrationsClient from "@/components/admin/IntegrationsClient";
+import ImportTab from "@/components/admin/settings/ImportTab";
 
 // Settings. The shop's own knobs behind tabs: how the pages look, the
 // Lumenati membership, the health log, and (for the one shop that has it)
@@ -20,7 +21,7 @@ export type SquareProps = {
   artists: { id: string; name: string }[];
 };
 
-type TabKey = "shop" | "billing" | "health" | "square";
+type TabKey = "shop" | "import" | "billing" | "health" | "square";
 
 export default function SettingsTabs({ square }: { square: SquareProps | null }) {
   return (
@@ -35,6 +36,7 @@ function SettingsInner({ square }: { square: SquareProps | null }) {
   const params = useSearchParams();
   const tabs: { key: TabKey; label: string }[] = [
     { key: "shop", label: "Shop" },
+    { key: "import", label: "Bring your people over" },
     { key: "billing", label: "Billing" },
     { key: "health", label: "Health" },
     ...(square ? [{ key: "square" as const, label: "Square history" }] : []),
@@ -56,6 +58,7 @@ function SettingsInner({ square }: { square: SquareProps | null }) {
             <ShopBranding />
           </>
         )}
+        {tab === "import" && <ImportTab />}
         {tab === "billing" && <BillingTab />}
         {tab === "health" && <HealthTab />}
         {tab === "square" && square && <IntegrationsClient {...square} />}
