@@ -79,6 +79,9 @@ export default function Cockpit() {
     // Health failures lead — a dispute or a dead send outranks routine ops.
     for (const e of health) {
       if (resolved.has(e.id)) continue;
+      // App errors are for whoever maintains the software, not the shop owner.
+      // They stay on the Health page; the attention list is shop problems only.
+      if (e.kind === "client_error") continue;
       out.push({
         key: `health-${e.id}`,
         sev: e.severity === "error" ? "high" : "med",

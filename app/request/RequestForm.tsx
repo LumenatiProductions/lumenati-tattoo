@@ -42,9 +42,13 @@ export default function RequestForm({
   accent = "#ff1493",
   initialIdea,
   flashPiece,
+  shopName = "Lumenati Tattoo",
 }: {
   artists: { id: string; name: string; booksClosed?: boolean }[];
   shopSlug?: string;
+  // The shop whose form this is. The consent line names the sender, and the
+  // sender is the shop the client is booking with, never Lumenati.
+  shopName?: string;
   preselectArtistId?: string;
   accent?: string;
   initialIdea?: string;
@@ -320,7 +324,7 @@ export default function RequestForm({
         {busy ? "Sending…" : "Send request"}
       </button>
       <p className="pb-8 text-center text-[13px] leading-relaxed text-zinc-500">
-        By submitting, you agree that Lumenati Tattoo may text and email you about
+        By submitting, you agree that {shopName} may text and email you about
         your appointment: reminders, consent forms, and aftercare. Message frequency
         varies. Message and data rates may apply. Reply STOP to opt out, HELP for
         help. See our{" "}

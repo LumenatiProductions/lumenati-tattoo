@@ -23,6 +23,7 @@ const usd = (cents: number) =>
 export default function StripeLedger() {
   const [rows, setRows] = useState<Row[]>([]);
   const [configured, setConfigured] = useState(true);
+  const [linked, setLinked] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function StripeLedger() {
         if (r.ok) {
           setRows(d.rows || []);
           setConfigured(!!d.configured);
+          setLinked(!!d.linked);
         }
       } catch {
         /* ignore */
@@ -80,6 +82,10 @@ export default function StripeLedger() {
         {!configured ? (
           <div className="px-4 py-8 text-center text-sm text-white/55">
             Connect Stripe (add your keys) to pull real charges, fees, refunds, and payouts here.
+          </div>
+        ) : !linked ? (
+          <div className="px-4 py-8 text-center text-sm text-white/55">
+            Link the shop&apos;s Stripe account on the Pay page and its charges, fees, refunds, and payouts land here.
           </div>
         ) : rows.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-white/55">No Stripe activity yet.</div>

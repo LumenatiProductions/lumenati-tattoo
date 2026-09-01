@@ -101,6 +101,7 @@ export default async function RequestPage({
         <RequestForm
           artists={artists}
           shopSlug={resolvedSlug}
+          shopName={shopName}
           preselectArtistId={preselectArtistId}
           accent={accent}
           initialIdea={initialIdea}

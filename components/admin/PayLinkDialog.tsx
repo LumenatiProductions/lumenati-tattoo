@@ -84,7 +84,7 @@ export default function PayLinkDialog({
   };
 
   const smsText = url
-    ? `Lumenati Tattoo · ${KINDS.find((k) => k.id === kind)?.label.toLowerCase()} for ${usd(cents)}: ${url}`
+    ? `${KINDS.find((k) => k.id === kind)?.label ?? "Payment"} for ${usd(cents)}: ${url}`
     : "";
 
   const chip = (active: boolean) =>
