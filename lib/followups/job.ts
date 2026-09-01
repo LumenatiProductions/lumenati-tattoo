@@ -612,7 +612,7 @@ export async function expireStaleFollowups(client: SupabaseClient, shopId?: stri
   for (const kind of Object.keys(STALE_DAYS) as FollowupKind[]) {
     let q = client
       .from("followups")
-      .update({ status: "skipped", error: "Stale: past its window, never sent" })
+      .update({ status: "skipped", result: "Stale: past its window, never sent" })
       .eq("status", "pending")
       .eq("kind", kind)
       .lt("scheduled_for", addDays(t, -STALE_DAYS[kind]))
