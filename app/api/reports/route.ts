@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rentByPeriod } from "@/lib/rent/collected";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { userFromBearer } from "@/lib/api-auth";
@@ -236,27 +237,12 @@ export async function GET(req: Request) {
     supplyItems++;
   }
 
-  // ── Booth rent from the in-house engine (rent_invoices), range-bounded by
-  // period. The overview switched off the dead Square rent path on 7/10;
-  // Reports now matches. Square stays historical only.
-  let rentCollected = 0;
-  let rentOutstanding = 0;
-  let rentConfigured = false;
-  {
-    const fromPeriod = from.slice(0, 7);
-    const toPeriod = to.slice(0, 7);
-    const { data: rentRows } = await db
-      .from("rent_invoices")
-      .select("amount_cents, status, period")
-      .eq("shop_id", shopId)
-      .gte("period", fromPeriod)
-      .lte("period", toPeriod);
-    for (const inv of rentRows ?? []) {
-      rentConfigured = true;
-      if (inv.status === "paid") rentCollected += (inv.amount_cents as number) ?? 0;
-      else if (inv.status === "pending") rentOutstanding += (inv.amount_cents as number) ?? 0;
-    }
-  }
+  // ── Booth rent: THE rent number, shared with P&L / Overview / Rent page
+  // (lib/rent/collected). Range-bounded by period; Square stays historical.
+  const rent = await rentByPeriod(db, shopId, from.slice(0, 7), to.slice(0, 7));
+  const rentCollected = rent.total.collectedCents;
+  const rentOutstanding = rent.total.outstandingCents;
+  const rentConfigured = rent.configured;
 
   return NextResponse.json({
     range: { from, to },

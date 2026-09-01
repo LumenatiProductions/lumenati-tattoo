@@ -88,7 +88,7 @@ export function StatementsTable({ statements }: { statements: ArtistStatement[] 
     <>
       <SectionTitle
         action={
-          <Link href="/admin/payouts" className="text-xs font-medium text-brand">
+          <Link href="/admin/money?tab=pay" className="text-xs font-medium text-brand">
             Handle pay →
           </Link>
         }
@@ -156,7 +156,7 @@ export function RentPanel({
     <>
       <SectionTitle
         action={
-          <Link href="/admin/rent" className="text-xs font-medium text-brand">
+          <Link href="/admin/money?tab=rent" className="text-xs font-medium text-brand">
             All rent →
           </Link>
         }

@@ -80,7 +80,7 @@ export default function GetSetUp() {
             done: pay.onboarded,
             title: "Connect your bank to get paid",
             sub: "Take cards with the money going straight to you. Clients cover the card fee, you keep 100%.",
-            href: "/admin/payouts",
+            href: "/admin/money?tab=pay",
             cta: "Set up payments",
             money: true,
           },

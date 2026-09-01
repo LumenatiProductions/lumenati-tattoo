@@ -76,7 +76,7 @@ export function shopCoachTips(opts: {
     tips.push({
       title: `${usd(opts.rentOutstandingCents)} in booth rent is outstanding`,
       body: "That's not revenue to chase, it's revenue already owed. Artists can pay by card straight from their phone (or declare cash at the desk), and the nudge ladder keeps reminding them so you never have to be the bad guy.",
-      href: "/admin/rent",
+      href: "/admin/money?tab=rent",
     });
   }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rentByPeriod } from "@/lib/rent/collected";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { userFromBearer } from "@/lib/api-auth";
@@ -191,11 +192,13 @@ export async function GET(req: Request) {
       // Reversing rows can land outside the window (a refund months later), so
       // they're pulled un-windowed to exclude their originals, like the view.
       pullAllReversals(db, shopId),
-      // Rent + tax live in the raw ledger (reversals net out via `reverses` —
-      // tax/rent reversing rows keep their kind and carry direction 'out').
+      // Tax lives in the raw ledger (reversals net out via `reverses` — tax
+      // reversing rows keep their kind and carry direction 'out'). Rent comes
+      // from the shared rent helper below, so P&L, Reports, Overview and the
+      // Rent page all say the same number.
       pullAll<{ occurred_at: string; kind: string; direction: string; amount_cents: number; reverses: string | null }>(
         db, "ledger", "occurred_at, kind, direction, amount_cents, reverses", "occurred_at", from, toEnd,
-        (q) => q.eq("shop_id", shopId).in("kind", ["rent", "tax"])),
+        (q) => q.eq("shop_id", shopId).eq("kind", "tax")),
       pullAll<{ date: string; category: string; amount_cents: number }>(
         db, "expenses", "date, category, amount_cents", "date", from, to,
         (q) => q.eq("shop_id", shopId)),
@@ -256,8 +259,16 @@ export async function GET(req: Request) {
       if (!inRange(day)) continue;
       const p = at(day);
       const sign = row.direction === "in" ? 1 : -1; // reversing rows net out
-      if (row.kind === "rent") p.rentIncome += sign * row.amount_cents;
-      else if (row.kind === "tax") p.taxCollected += sign * row.amount_cents;
+      if (row.kind === "tax") p.taxCollected += sign * row.amount_cents;
+    }
+
+    // THE rent number (lib/rent/collected): paid invoices count in the month
+    // they bill for, the same way the Rent page and Reports read them.
+    const rent = await rentByPeriod(db, shopId, from.slice(0, 7), to.slice(0, 7));
+    for (const [period, cell] of rent.byPeriod) {
+      const day = `${period}-01`;
+      if (!inRange(day)) continue;
+      at(day).rentIncome += cell.collectedCents;
     }
 
     for (const b of bookings) {

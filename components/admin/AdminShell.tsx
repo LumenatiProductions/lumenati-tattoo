@@ -61,14 +61,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: "Finances",
     items: [
-      { href: "/admin/pnl", label: "Profit & Loss", roles: ["owner"], icon: "pnl" },
-      { href: "/admin/reports", label: "Reports", roles: ["owner"], icon: "reports" },
-      { href: "/admin/payouts", label: "Pay", roles: ["owner", "artist"], icon: "pay" },
-      { href: "/admin/goals", label: "Goals", roles: ["artist"], icon: "goals" },
-      { href: "/admin/rent", label: "Booth Rent", roles: ["owner"], icon: "rent" },
-      { href: "/admin/cash", label: "Cash Log", roles: ["owner"], icon: "cash" },
-      { href: "/admin/expenses", label: "Expenses", roles: ["owner"], icon: "expenses" },
-      { href: "/admin/reconcile", label: "Reconcile", roles: ["owner"], icon: "reconcile" },
+      { href: "/admin/money", label: "Money", roles: ["owner", "artist"], icon: "pnl" },
     ],
   },
   {

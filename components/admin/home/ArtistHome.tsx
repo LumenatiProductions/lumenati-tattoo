@@ -99,7 +99,7 @@ export default function ArtistHome({ artistId }: { artistId: string }) {
 
         <div className="lg:col-span-2">
           <SectionTitle
-            action={<Link href="/admin/payouts" className="text-xs font-medium text-brand">My statement →</Link>}
+            action={<Link href="/admin/money?tab=pay" className="text-xs font-medium text-brand">My statement →</Link>}
           >
             Recent work
           </SectionTitle>
