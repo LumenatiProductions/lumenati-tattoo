@@ -313,6 +313,36 @@ export async function settlePayment(
       .update({ deposit_status: "held", deposit_payment_id: match.paymentIntentId ?? row.id })
       .eq("id", row.booking_id)
       .eq("deposit_status", "none"); // don't clobber an applied/forfeited deposit
+    // Self-serve: the slot was only HELD until this moment. Deposit paid =
+    // booked, confirmed, on the artist's book. The hold expiry no longer
+    // matters; the push tells the artist a client just booked themselves.
+    const { data: held } = await admin
+      .from("bookings")
+      .update({ status: "scheduled", confirmed_at: new Date().toISOString(), hold_expires_at: null })
+      .eq("id", row.booking_id)
+      .eq("status", "held")
+      .select("id, artist_id, shop_id, starts_at, client_id")
+      .maybeSingle();
+    if (held) {
+      const { data: client } = held.client_id
+        ? await admin.from("clients").select("first_name, last_name").eq("id", held.client_id).maybeSingle()
+        : { data: null };
+      const who = client ? `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim() || "A client" : "A client";
+      const when = new Date(held.starts_at as string).toLocaleString("en-US", {
+        timeZone: process.env.SHOP_TIMEZONE || "America/Denver",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      await pushEvent(
+        admin,
+        { roles: ["owner"], artistId: held.artist_id as string | null, shopId: held.shop_id as string },
+        "New booking",
+        `${who} booked ${when} and paid the deposit.`,
+      );
+    }
   }
 
   if (row.kind === "rent") {

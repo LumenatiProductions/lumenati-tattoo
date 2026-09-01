@@ -39,7 +39,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home" options={{ title: "Today", tabBarIcon: icon("sunny", "sunny-outline") }} />
-      <Tabs.Screen name="bookings" options={{ title: "Book", tabBarIcon: icon("calendar", "calendar-outline") }} />
+      <Tabs.Screen name="bookings" options={{ title: "Bookings", tabBarIcon: icon("calendar", "calendar-outline") }} />
       <Tabs.Screen name="money" options={{ title: "Money", tabBarIcon: icon("cash", "cash-outline") }} />
       <Tabs.Screen
         name="clients"

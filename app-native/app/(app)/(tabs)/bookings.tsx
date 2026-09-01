@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { tap } from "@/lib/haptics";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -90,6 +91,7 @@ function calProviderIcon(source?: string): keyof typeof Ionicons.glyphMap {
 }
 
 const STATUS_TONE: Record<string, string> = {
+  held: theme.warn,
   scheduled: theme.textDim,
   completed: theme.good,
   no_show: theme.bad,
@@ -391,6 +393,23 @@ export default function Bookings() {
         keyboardDismissMode="interactive"
       >
         <BooksToggle />
+        {/* Only a chair has open times: artists, or an owner viewing as / holding one. */}
+        {(!isStaff || !!preview || !!myArtistId) && (
+        <Pressable
+          onPress={() => {
+            tap();
+            router.push("/booking-settings");
+          }}
+          style={({ pressed }) => [styles.openTimesRow, pressed && { backgroundColor: theme.surfaceRaised }]}
+        >
+          <Ionicons name="time-outline" size={18} color={theme.textDim} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.openTimesTitle}>Open times</Text>
+            <Text style={styles.openTimesSub}>Hours, session length, deposit. Clients book these themselves.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={15} color={theme.textFaint} />
+        </Pressable>
+        )}
         {freed && (
           <Card style={styles.freedCard}>
             <Text style={styles.freedTitle}>
@@ -1056,6 +1075,21 @@ function UpForGrabs({ myArtistId, onBooked }: { myArtistId: string; onBooked: ()
 }
 
 const styles = StyleSheet.create({
+  openTimesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  openTimesTitle: { color: theme.text, fontSize: 14.5, fontWeight: "700" },
+  openTimesSub: { color: theme.textFaint, fontSize: 12, marginTop: 2 },
   err: { color: theme.bad, fontSize: 13, marginBottom: 10 },
   grabGood: { color: theme.good, fontSize: 13, marginBottom: 10 },
   freedCard: { marginBottom: 12, borderColor: "rgba(52,211,153,0.4)" },

@@ -18,15 +18,18 @@ export async function findConflict(
   const end = endsAt ? new Date(endsAt).getTime() : start + DEFAULT_DURATION_MS;
   // ±12h around the new slot covers any realistic session without scanning the book.
   const windowMs = 12 * 60 * 60 * 1000;
+  // Live self-serve holds count as taken; an expired hold is free again.
+  const now = Date.now();
   const { data } = await supabase
     .from("bookings")
-    .select("id, starts_at, ends_at")
+    .select("id, starts_at, ends_at, status, hold_expires_at")
     .eq("artist_id", artistId)
-    .eq("status", "scheduled")
+    .in("status", ["scheduled", "held"])
     .gte("starts_at", new Date(start - windowMs).toISOString())
     .lte("starts_at", new Date(end + windowMs).toISOString());
   for (const row of data ?? []) {
     if (excludeId && row.id === excludeId) continue;
+    if (row.status === "held" && row.hold_expires_at && Date.parse(row.hold_expires_at as string) < now) continue;
     const s2 = new Date(row.starts_at as string).getTime();
     const e2 = row.ends_at ? new Date(row.ends_at as string).getTime() : s2 + DEFAULT_DURATION_MS;
     if (start < e2 && s2 < end) return { id: row.id as string, startsAt: row.starts_at as string };

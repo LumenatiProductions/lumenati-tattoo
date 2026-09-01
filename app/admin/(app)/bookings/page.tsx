@@ -32,6 +32,7 @@ const dayKey = (iso: string) => {
 const isToday = (iso: string) => dayKey(iso) === dayKey(new Date().toISOString());
 
 const STATUS_BADGE: Record<BookingStatus, { tone: "neutral" | "good" | "warn" | "bad" | "brand"; label: string }> = {
+  held: { tone: "warn", label: "Awaiting deposit" },
   scheduled: { tone: "brand", label: "Scheduled" },
   completed: { tone: "good", label: "Completed" },
   no_show: { tone: "bad", label: "No-show" },
@@ -97,7 +98,7 @@ export default function BookingsPage() {
         case "today":
           return isToday(b.starts_at) && b.status !== "cancelled";
         case "upcoming":
-          return t >= nowMs && b.status === "scheduled";
+          return t >= nowMs && (b.status === "scheduled" || b.status === "held");
         case "review":
           return b.status === "no_show";
         case "past":

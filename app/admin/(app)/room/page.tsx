@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type ChangeEvent } from "react";
+import SelfServeSettings from "@/components/admin/room/SelfServeSettings";
 import { useRole } from "@/lib/admin/role-context";
 import {
   useRoomContent,
@@ -165,6 +166,7 @@ export default function RoomEditorPage() {
             <SectionTitle>Bookings</SectionTitle>
             <Card>
               <BooksToggle artistId={artistId} />
+              <SelfServeSettings artistId={artistId} />
             </Card>
           </section>
 

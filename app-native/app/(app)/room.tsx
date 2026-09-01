@@ -359,6 +359,13 @@ export default function MyRoom() {
               <>
                 <SectionTitle>Books</SectionTitle>
                 <BooksToggle artistId={artistId} />
+                <Pressable
+                  onPress={() => router.push({ pathname: "/booking-settings", params: { artist: artistId } } as never)}
+                  style={({ pressed }) => [roomStyles.openTimes, pressed && { backgroundColor: theme.surfaceRaised }]}
+                >
+                  <Text style={roomStyles.openTimesTitle}>Open times</Text>
+                  <Text style={roomStyles.openTimesSub}>Hours, session length, deposit. Clients book these themselves.</Text>
+                </Pressable>
               </>
             ) : null}
 
@@ -778,4 +785,18 @@ const styles = StyleSheet.create({
   swatchWrap: { padding: 3, borderRadius: 14, borderWidth: 2, borderColor: "transparent" },
   swatchWrapOn: { borderColor: "#fff" },
   swatch: { width: 34, height: 34, borderRadius: 9 },
+});
+
+const roomStyles = StyleSheet.create({
+  openTimes: {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 10,
+  },
+  openTimesTitle: { color: theme.text, fontSize: 14.5, fontWeight: "700" },
+  openTimesSub: { color: theme.textFaint, fontSize: 12, marginTop: 2 },
 });

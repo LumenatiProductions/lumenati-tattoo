@@ -51,6 +51,7 @@ export default async function PayPage({
   // Enrich with artist name + service for a friendlier line (best-effort).
   let artistName: string | null = null;
   let serviceDesc: string | null = null;
+  let bookedFor: string | null = null;
   if (admin && row) {
     if (row.artist_id) {
       const { data } = await admin.from("artists").select("name").eq("id", row.artist_id).maybeSingle();
@@ -59,10 +60,20 @@ export default async function PayPage({
     if (row.booking_id) {
       const { data } = await admin
         .from("bookings")
-        .select("service_desc")
+        .select("service_desc, starts_at")
         .eq("id", row.booking_id)
         .maybeSingle();
       serviceDesc = (data?.service_desc as string)?.trim() || null;
+      if (row.kind === "deposit" && data?.starts_at) {
+        bookedFor = new Date(data.starts_at as string).toLocaleString("en-US", {
+          timeZone: process.env.SHOP_TIMEZONE || "America/Denver",
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
     }
   }
 
@@ -103,7 +114,13 @@ export default async function PayPage({
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-600">
                 ✓
               </div>
-              <div className="text-lg font-bold text-ink">Paid</div>
+              <div className="text-lg font-bold text-ink">{bookedFor ? "You're booked." : "Paid"}</div>
+              {bookedFor && (
+                <div className="mt-1 text-sm font-medium text-ink">
+                  {bookedFor}
+                  {artistName ? ` with ${artistName.split(" ")[0]}` : ""}
+                </div>
+              )}
               <div className="mt-1 text-sm text-black/55">
                 {usd(row!.amount_cents + (row!.tip_cents ?? 0))} received
                 {(row!.tip_cents ?? 0) > 0 ? ` (including a ${usd(row!.tip_cents!)} tip — thank you!)` : ""}. You can close this page.

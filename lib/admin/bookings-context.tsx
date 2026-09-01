@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-export type BookingStatus = "scheduled" | "completed" | "no_show" | "cancelled";
+export type BookingStatus = "held" | "scheduled" | "completed" | "no_show" | "cancelled";
 export type DepositStatus = "none" | "held" | "applied" | "forfeited" | "refunded";
 
 // Mirrors the DB row shape (snake_case) so the page reads it directly.

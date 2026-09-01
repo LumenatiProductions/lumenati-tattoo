@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // The public ask-for-time form. POSTs to /api/bookings/request; the desk works
 // the inbox on the Bookings page. Honeypot field ("website") stays hidden —
@@ -34,6 +34,23 @@ async function downscale(file: File): Promise<string> {
     URL.revokeObjectURL(url);
   }
 }
+
+type SlotsReply = {
+  ok: boolean;
+  selfServe: boolean;
+  booksClosed?: boolean;
+  artist?: { id: string; name: string; sessionMinutes: number; depositCents: number };
+  tz?: string;
+  days: { day: string; slots: string[] }[];
+};
+
+const dayShort = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+const dayNum = (day: string) => String(Number(day.slice(8, 10)));
+const timeLabel = (iso: string, tz?: string) =>
+  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz || "America/Denver" });
+const whenLabel = (iso: string, tz?: string) =>
+  new Date(iso).toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz || "America/Denver" });
+const humanMinutes = (m: number) => (m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${(m / 60).toFixed(1)} hours`);
 
 export default function RequestForm({
   artists,
@@ -69,11 +86,40 @@ export default function RequestForm({
     website: "", // honeypot
   });
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<false | "sent" | "waitlisted">(false);
+  const [done, setDone] = useState<false | "sent" | "waitlisted" | "booked">(false);
+  // Self-serve: when the picked artist offers open times, the free-text
+  // "when can you come in" turns into a real picker and the button books it.
+  const [slots, setSlots] = useState<SlotsReply | null>(null);
+  const [day, setDay] = useState<string>("");
+  const [startsAt, setStartsAt] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
   // Reference images, held as downscaled data URLs until submit.
   const [refs, setRefs] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setSlots(null);
+    setDay("");
+    setStartsAt("");
+    if (!f.artistId) return;
+    const q = new URLSearchParams({ artist: f.artistId, ...(shopSlug ? { shop: shopSlug } : {}) });
+    fetch(`/api/book/slots?${q}`)
+      .then((r) => r.json())
+      .then((d: SlotsReply) => {
+        if (!alive || !d?.ok) return;
+        setSlots(d);
+        if (d.selfServe) {
+          const firstOpen = d.days.find((x) => x.slots.length);
+          if (firstOpen) setDay(firstOpen.day);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [f.artistId, shopSlug]);
+  const selfServe = !!slots?.selfServe;
 
   const set = (key: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setF((s) => ({ ...s, [key]: e.target.value }));
@@ -98,9 +144,36 @@ export default function RequestForm({
     if (!f.name.trim()) return setErr("Tell us your name.");
     if (!f.idea.trim()) return setErr("Tell us about the tattoo you want.");
     if (!f.email.trim() && !f.phone.trim()) return setErr("Leave an email or a mobile number so we can reach you.");
+    if (selfServe && !startsAt) return setErr("Pick a time.");
 
     setBusy(true);
     try {
+      if (selfServe) {
+        const r = await fetch("/api/book", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...f, startsAt, ...(shopSlug ? { shopSlug } : {}) }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setErr(d.error || "Could not book that time. Try again.");
+          if (d.taken) {
+            // Refresh the picker so the taken time disappears.
+            setStartsAt("");
+            setSlots(null);
+            const q = new URLSearchParams({ artist: f.artistId, ...(shopSlug ? { shop: shopSlug } : {}) });
+            fetch(`/api/book/slots?${q}`).then((x) => x.json()).then(setSlots).catch(() => {});
+          }
+          return;
+        }
+        if (d.payUrl) {
+          window.location.assign(d.payUrl as string);
+          return;
+        }
+        setDone("booked");
+        return;
+      }
+
       // Upload references first; a failed upload warns but never blocks the ask.
       const referenceUrls: string[] = [];
       let refWarning: string | null = null;
@@ -145,6 +218,19 @@ export default function RequestForm({
   const input = "w-full rounded-lg border border-black/12 bg-white px-3 py-2.5 text-sm";
   const label = "mb-1 block text-xs font-medium uppercase tracking-wide text-black/45";
 
+  if (done === "booked") {
+    return (
+      <div className={`${card} text-center`}>
+        <div className="text-lg font-semibold" style={{ color: accent }}>
+          You&apos;re booked.
+        </div>
+        <p className="mt-1 text-sm text-zinc-500">
+          {startsAt ? `${whenLabel(startsAt, slots?.tz)} with ${slots?.artist?.name ?? "your artist"}. ` : ""}
+          Reminders come by {f.phone.trim() ? "text" : "email"} before your visit.
+        </p>
+      </div>
+    );
+  }
   if (done) {
     const waitlisted = done === "waitlisted";
     return (
@@ -179,10 +265,11 @@ export default function RequestForm({
         </div>
       )}
       <div className={card}>
-        <h1 className="text-lg font-bold">Tell us what you want.</h1>
+        <h1 className="text-lg font-bold">{selfServe ? "Book your session." : "Tell us what you want."}</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          A few details and we&apos;ll get back to you to lock in a time. Deposits are handled once
-          your session is confirmed.
+          {selfServe
+            ? "Pick a time below. It's yours the moment you finish."
+            : "A few details and we'll get back to you to lock in a time. Deposits are handled once your session is confirmed."}
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -251,10 +338,64 @@ export default function RequestForm({
               </p>
             ) : null}
           </label>
-          <label className="block">
-            <span className={label}>When can you come in?</span>
-            <input className={input} value={f.availability} onChange={set("availability")} placeholder="Weekday evenings, any Saturday…" />
-          </label>
+          {selfServe && slots ? (
+            <div>
+              <span className={label}>Pick a time</span>
+              <p className="mb-2 text-xs text-zinc-400">
+                {slots.artist?.sessionMinutes ? `${humanMinutes(slots.artist.sessionMinutes)} session` : "Session"}
+                {slots.artist?.depositCents ? ` · $${(slots.artist.depositCents / 100).toFixed(0)} deposit holds it` : " · no deposit needed"}
+              </p>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                {slots.days.map((d) => {
+                  const on = d.day === day;
+                  const none = d.slots.length === 0;
+                  return (
+                    <button
+                      key={d.day}
+                      type="button"
+                      disabled={none}
+                      onClick={() => {
+                        setDay(d.day);
+                        setStartsAt("");
+                      }}
+                      style={on ? { backgroundColor: accent, borderColor: accent } : undefined}
+                      className={`flex min-w-[3.4rem] flex-col items-center rounded-lg border px-2 py-1.5 text-xs ${
+                        on ? "text-white" : none ? "border-black/8 text-black/30" : "border-black/15 text-zinc-700"
+                      }`}
+                    >
+                      <span className="font-semibold">{dayShort(d.day)}</span>
+                      <span>{dayNum(d.day)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {slots.days.every((d) => d.slots.length === 0) ? (
+                <p className="mt-2 text-sm text-zinc-500">Nothing open in the next two weeks. Send a request below and they&apos;ll find you a time.</p>
+              ) : (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {(slots.days.find((d) => d.day === day)?.slots ?? []).map((iso) => {
+                    const on = iso === startsAt;
+                    return (
+                      <button
+                        key={iso}
+                        type="button"
+                        onClick={() => setStartsAt(iso)}
+                        style={on ? { backgroundColor: accent, borderColor: accent } : undefined}
+                        className={`rounded-lg border px-3 py-1.5 text-sm ${on ? "text-white" : "border-black/15 text-zinc-700"}`}
+                      >
+                        {timeLabel(iso, slots.tz)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <label className="block">
+              <span className={label}>When can you come in?</span>
+              <input className={input} value={f.availability} onChange={set("availability")} placeholder="Weekday evenings, any Saturday…" />
+            </label>
+          )}
 
           <label className="flex items-start gap-2.5">
             <input
@@ -321,7 +462,15 @@ export default function RequestForm({
         style={{ backgroundColor: accent }}
         className="w-full rounded-xl px-4 py-3.5 text-base font-bold text-white shadow-sm disabled:opacity-40"
       >
-        {busy ? "Sending…" : "Send request"}
+        {busy
+          ? selfServe
+            ? "Booking…"
+            : "Sending…"
+          : selfServe
+            ? slots?.artist?.depositCents
+              ? `Book it · $${(slots.artist.depositCents / 100).toFixed(0)} deposit`
+              : "Book it"
+            : "Send request"}
       </button>
       <p className="pb-8 text-center text-[13px] leading-relaxed text-zinc-500">
         By submitting, you agree that {shopName} may text and email you about
