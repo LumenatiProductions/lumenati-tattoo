@@ -8,7 +8,7 @@ import {
 } from "@/lib/admin/compliance-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useRole } from "@/lib/admin/role-context";
-import { Card, Empty, PageHeader, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, Badge, StatRow } from "@/components/admin/ui";
 import { todayLocal } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -107,7 +107,7 @@ export default function CompliancePage() {
         subtitle="Licenses, BBP certs, permits, insurance, and inspections, and a warning before anything lapses. Owner-only."
       />
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <StatRow compact cols={3}>
         <StatCard label="Items tracked" value={String(stats.tracked)} accent />
         <StatCard
           label="Expiring soon"
@@ -120,7 +120,7 @@ export default function CompliancePage() {
           value={String(stats.expired)}
           tone={stats.expired ? "warn" : "neutral"}
         />
-      </div>
+      </StatRow>
 
       {/* The whole point: what's lapsing, up top. */}
       {expiringSoon.length > 0 && (

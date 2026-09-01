@@ -171,7 +171,7 @@ export default function BookingsPage() {
         }
       />
 
-      <StatRow>
+      <StatRow compact>
         <StatCard label="Today" value={String(todayCount)} accent sub="appointments" />
         <StatCard label="Deposits held" value={money(heldDeposits)} tone={heldDeposits ? "warn" : "neutral"} sub="awaiting outcome" />
         <StatCard label="No-show rate" value={`${noShowRate}%`} tone={noShowRate >= 15 ? "warn" : "neutral"} sub={`${noShows} of ${settled} settled`} />

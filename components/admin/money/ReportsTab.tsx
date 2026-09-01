@@ -11,7 +11,6 @@ import {
 } from "@/lib/admin/reports-context";
 import { fmt, fmtPrecise } from "@/lib/admin/calc";
 import { Card, Empty, SectionTitle, StatCard, StatRow, Badge, Dot } from "@/components/admin/ui";
-import ReviewVelocity from "@/components/admin/ReviewVelocity";
 import Insights from "@/components/admin/Insights";
 
 const PRESETS: { key: RangePreset; label: string }[] = [
@@ -112,7 +111,7 @@ function ReportsInner() {
     <div>
       <TabHeader
         title="Reports"
-        subtitle="Shop-wide financials, per-artist roll-ups, and 1099 prep. Admins only."
+        subtitle="Per-artist roll-ups, 1099 prep, and the shop's patterns. Admins only."
         action={
           <>
             {PRESETS.map((p) => (
@@ -188,7 +187,7 @@ function ReportsInner() {
             />
           </StatRow>
 
-          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatRow compact>
             <StatCard label="Card total" value={fmt(data.shop.cardTotal)} />
             <StatCard label="Cash total" value={fmt(data.shop.cashTotal)} />
             <StatCard
@@ -197,7 +196,7 @@ function ReportsInner() {
               sub="their card sales, not shop income"
             />
             <StatCard label="Gusto wages (period)" value={fmt(data.shop.gustoWages)} sub="split artists' share + tips" />
-          </div>
+          </StatRow>
 
           {/* ── Per-artist roll-up ── */}
           <SectionTitle
@@ -321,41 +320,8 @@ function ReportsInner() {
             </table>
           </Card>
 
-          {/* ── Deposits & supplies ── */}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <div>
-              <SectionTitle>Deposits</SectionTitle>
-              <Card>
-                <div className="grid grid-cols-3 divide-x divide-white/8">
-                  <DepCell label="Held" value={fmt(data.deposits.held)} />
-                  <DepCell label="Applied" value={fmt(data.deposits.applied)} />
-                  <DepCell label="Forfeited" value={fmt(data.deposits.forfeited)} tone="good" />
-                </div>
-                <div className="border-t border-white/8 px-4 py-2.5 text-xs text-white/55">
-                  {data.deposits.count} booking{data.deposits.count === 1 ? "" : "s"} with a deposit ·
-                  forfeited no-show deposits count as shop revenue
-                </div>
-              </Card>
-            </div>
-            <div>
-              <SectionTitle>Supplies</SectionTitle>
-              <Card>
-                <div className="grid grid-cols-2 divide-x divide-white/8">
-                  <DepCell label="Stock on hand" value={fmt(data.expenses.supplyValueCents)} />
-                  <DepCell label="Items tracked" value={String(data.expenses.supplyItems)} />
-                </div>
-                <div className="border-t border-white/8 px-4 py-2.5 text-xs text-white/55">
-                  Current inventory value (qty × unit cost). Supplies expenses with a restock
-                  attached land here too.
-                </div>
-              </Card>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <ReviewVelocity />
-          </div>
-
+          {/* Deposits live on Bookings, supplies on Inventory, reviews on Messages
+              (2026-09-01: Reports stopped being the page everything got dumped on). */}
           <Insights />
         </>
       ) : null}

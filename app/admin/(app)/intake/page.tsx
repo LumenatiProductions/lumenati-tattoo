@@ -113,7 +113,7 @@ export default function IntakePage() {
         }
       />
 
-      <StatRow>
+      <StatRow compact>
         <StatCard label="Unsigned today" value={String(unsignedToday)} accent tone={unsignedToday ? "warn" : "good"} sub="today's bookings w/o a form" />
         <StatCard label="Signed today" value={String(signedToday)} tone="good" sub="completed forms" />
         <StatCard label="Awaiting signature" value={String(awaitingSign)} tone={awaitingSign ? "warn" : "neutral"} sub="links sent / tablet pending" />

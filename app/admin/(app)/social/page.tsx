@@ -52,7 +52,7 @@ export default function SocialPage() {
 
       <HealedQueue />
 
-      <StatRow>
+      <StatRow compact>
         <StatCard label="Posts" value={String(posts.length)} accent />
         <StatCard label="Featured" value={String(featured.length)} tone={featured.length ? "good" : "neutral"} />
         <StatCard label="Artists covered" value={`${covered}/${artists.length}`} sub="have a post on the wall" />

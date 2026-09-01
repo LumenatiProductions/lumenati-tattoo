@@ -112,7 +112,7 @@ export default function ClientsPage() {
         }
       />
 
-      <StatRow>
+      <StatRow compact>
         <StatCard label="Clients" value={String(total)} accent />
         <StatCard label="New this month" value={String(newThisMonth)} tone={newThisMonth ? "good" : "neutral"} />
         <StatCard label="Returning" value={`${returningRate}%`} sub={`${returning} came back`} />
@@ -121,7 +121,7 @@ export default function ClientsPage() {
       {/* Bring them back — the retention flywheel's fuel, from data already on file. */}
       <div className="mb-5">
         <SectionTitle>Bring them back</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-wrap gap-2">
           {(
             [
               ["birthdays", "Birthdays this month", retention.birthdays.length],
@@ -132,12 +132,12 @@ export default function ClientsPage() {
             <button
               key={key}
               onClick={() => setRetView((v) => (v === key ? null : key))}
-              className={`rounded-xl border px-4 py-3 text-left transition ${
+              className={`inline-flex items-baseline gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition ${
                 retView === key ? "border-white/12 bg-white/14" : "border-white/12 bg-white/6 hover:bg-white/5"
               }`}
             >
-              <div className="tnum text-2xl font-bold">{count}</div>
-              <div className="text-xs text-white/65">{label}</div>
+              <span className="tnum font-semibold">{count}</span>
+              <span className="text-white/65">{label.toLowerCase()}</span>
             </button>
           ))}
         </div>

@@ -8,17 +8,19 @@ import QueueTab from "@/components/admin/messages/QueueTab";
 import AutomaticTab from "@/components/admin/messages/AutomaticTab";
 import BlastsTab from "@/components/admin/messages/BlastsTab";
 import WordingTab from "@/components/admin/messages/WordingTab";
+import ReviewVelocity from "@/components/admin/ReviewVelocity";
 
 // Messages. Everything the shop sends, one page (Scott, 2026-09-01: four
 // messaging pages became one). Queue = what's going out and when. Automatic =
 // the switches. Wording = what each chair's texts say. Blasts = one message to
 // a group. Owners get all four; an artist gets the wording for their chair.
-type TabKey = "queue" | "automatic" | "wording" | "blasts";
+type TabKey = "queue" | "automatic" | "wording" | "blasts" | "reviews";
 const TABS: { key: TabKey; label: string; roles: string[] }[] = [
   { key: "queue", label: "Queue", roles: ["owner"] },
   { key: "automatic", label: "Automatic", roles: ["owner"] },
   { key: "wording", label: "Wording", roles: ["owner", "artist"] },
   { key: "blasts", label: "Blasts", roles: ["owner"] },
+  { key: "reviews", label: "Reviews", roles: ["owner"] },
 ];
 
 export default function MessagesPage() {
@@ -57,6 +59,7 @@ function MessagesInner() {
         {tab === "automatic" && <AutomaticTab />}
         {tab === "wording" && <WordingTab />}
         {tab === "blasts" && <BlastsTab />}
+        {tab === "reviews" && <ReviewVelocity />}
       </div>
     </div>
   );

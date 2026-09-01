@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, SectionTitle, StatCard } from "@/components/admin/ui";
+import { Card, SectionTitle, StatCard, StatRow } from "@/components/admin/ui";
 
 // Review velocity (Reports). Are review asks turning into stars? Left side:
 // the shop's current Google standing and what changed. Bars: per week, asks
@@ -162,7 +162,7 @@ export default function ReviewVelocity() {
               </div>
             )}
 
-            <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatRow compact>
               <StatCard
                 label="Google rating"
                 value={view.latest?.rating ? `${Number(view.latest.rating).toFixed(1)} ★`.replace(" ★", "") : "·"}
@@ -177,7 +177,7 @@ export default function ReviewVelocity() {
                 sub={view.gained30 === null ? "needs two snapshots" : undefined}
               />
               <StatCard label="Asks sent, 30 days" value={String(view.asks30)} />
-            </div>
+            </StatRow>
 
             {/* Asks vs gained, per week. Honest gaps: a week with no fresh
                 snapshot shows no green bar rather than a fake zero. */}

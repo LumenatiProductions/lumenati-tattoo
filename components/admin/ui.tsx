@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import Link from "next/link";
 
 // One button, every admin surface. `money` is the ONLY pink (per the money-color
@@ -91,6 +91,11 @@ export function Card({
   );
 }
 
+// Inside `<StatRow compact>` every StatCard renders as one quiet inline fact
+// instead of a tile, so a page's context reads as a sentence, not a scoreboard
+// (Scott, 2026-09-01: tiles stay on the Money tabs only).
+const CompactCtx = createContext(false);
+
 export function StatCard({
   label,
   value,
@@ -110,6 +115,15 @@ export function StatCard({
       : tone === "warn"
         ? "text-amber-400"
         : "text-ink";
+  const compact = useContext(CompactCtx);
+  if (compact) {
+    return (
+      <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap" title={sub}>
+        <span className={`tnum text-[15px] font-semibold ${toneText}`}>{value}</span>
+        <span className="text-[13px] text-white/55">{label.charAt(0).toLowerCase() + label.slice(1)}</span>
+      </span>
+    );
+  }
   return (
     <Card className={accent ? "ring-1 ring-brand/30" : ""}>
       <div className="p-4">
@@ -154,10 +168,20 @@ export function PageHeader({
 export function StatRow({
   children,
   cols = 4,
+  compact = false,
 }: {
   children: ReactNode;
   cols?: 3 | 4;
+  /** One line of facts instead of a grid of tiles. */
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <CompactCtx.Provider value={true}>
+        <div className="mb-4 flex flex-wrap items-baseline gap-x-5 gap-y-1 border-b border-white/8 pb-3">{children}</div>
+      </CompactCtx.Provider>
+    );
+  }
   return (
     <div
       className={`mb-5 grid grid-cols-2 gap-3 ${cols === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}

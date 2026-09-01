@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSales } from "@/lib/admin/sales-context";
 import { useArtists } from "@/lib/admin/artists-context";
 import { useBookings } from "@/lib/admin/bookings-context";
@@ -43,6 +43,10 @@ export default function ShopCoach() {
     [sales, bookings, artists, rentOutstanding, dueToday],
   );
 
+  // One line per read; the reasoning opens on demand (Scott, 2026-09-01:
+  // the coach cards were paragraphs).
+  const [open, setOpen] = useState<string | null>(null);
+
   if (tips.length === 0) return null;
 
   return (
@@ -50,19 +54,30 @@ export default function ShopCoach() {
       <SectionTitle>
         Coach <span className="font-normal text-white/50">· reads from your own numbers, nothing invented</span>
       </SectionTitle>
-      <div className="grid gap-3 lg:grid-cols-2">
-        {tips.map((tip) => (
-          <Card key={tip.title} className="flex flex-col p-4">
-            <div className="text-[15px] font-semibold">{tip.title}</div>
-            <p className="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-white/60">{tip.body}</p>
-            {tip.href && (
-              <Link href={tip.href} className="mt-3 text-sm font-semibold text-brand">
-                Open →
-              </Link>
+      <Card>
+        {tips.map((tip, i) => (
+          <div key={tip.title} className={`px-4 py-3 ${i > 0 ? "border-t border-white/8" : ""}`}>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <div className="text-[15px] font-semibold">{tip.title}</div>
+              <button
+                type="button"
+                onClick={() => setOpen((o) => (o === tip.title ? null : tip.title))}
+                className="text-xs font-medium text-white/55 hover:text-white/80"
+              >
+                {open === tip.title ? "Hide" : "Why"}
+              </button>
+              {tip.href && (
+                <Link href={tip.href} className="ml-auto text-sm font-semibold text-brand">
+                  Open →
+                </Link>
+              )}
+            </div>
+            {open === tip.title && (
+              <p className="mt-1.5 max-w-3xl text-[13.5px] leading-relaxed text-white/60">{tip.body}</p>
             )}
-          </Card>
+          </div>
         ))}
-      </div>
+      </Card>
     </div>
   );
 }

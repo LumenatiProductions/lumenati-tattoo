@@ -168,7 +168,7 @@ export default function MarketingPage() {
         subtitle="Reach the shop's client list: one message to a group, sent once."
       />
 
-      <StatRow>
+      <StatRow compact>
         {(segments ?? []).map((s) => (
           <StatCard
             key={s.key}

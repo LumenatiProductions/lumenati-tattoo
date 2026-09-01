@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useInventory, type InventoryItem, type InventoryInput } from "@/lib/admin/inventory-context";
 import { isLow, categoryLabel, CATEGORY_LABELS } from "@/lib/inventory/job";
-import { Card, Empty, PageHeader, SectionTitle, StatCard, Badge } from "@/components/admin/ui";
+import { Card, Empty, PageHeader, SectionTitle, StatCard, Badge, StatRow } from "@/components/admin/ui";
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS);
 const UNIT_OPTIONS = ["each", "box", "bottle"];
@@ -64,7 +64,7 @@ export default function InventoryPage() {
         subtitle="Needles, ink, gloves, tubes, and disposables, with a reorder point on each so you restock before you run out mid-session."
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatRow compact>
         <StatCard label="Items tracked" value={String(stats.tracked)} accent />
         <StatCard
           label="Low / out"
@@ -74,7 +74,7 @@ export default function InventoryPage() {
         />
         <StatCard label="Stock value" value={usd(stats.value)} sub="qty × unit cost" />
         <StatCard label="Categories" value={String(groups.length)} />
-      </div>
+      </StatRow>
 
       {/* The whole point: what needs reordering, up top, with supplier links. */}
       {lowStock.length > 0 && (

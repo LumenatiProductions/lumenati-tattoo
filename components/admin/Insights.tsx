@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useArtists } from "@/lib/admin/artists-context";
 import { fmt } from "@/lib/admin/calc";
-import { Card, SectionTitle, StatCard, Dot } from "@/components/admin/ui";
+import { Card, SectionTitle, StatCard, Dot, StatRow } from "@/components/admin/ui";
 
 // Insights block at the bottom of Reports: the patterns hiding in the data the
 // shop already has. 90-day window, computed server-side (/api/insights).
@@ -46,7 +46,7 @@ export default function Insights() {
         Insights <span className="font-normal text-white/50">· last {data.windowDays} days</span>
       </SectionTitle>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatRow compact>
         <StatCard
           label="Rebooking rate"
           value={`${data.rebooking.pct}%`}
@@ -69,7 +69,7 @@ export default function Insights() {
           value={data.topClients[0] ? fmt(data.topClients[0].spentCents) : "·"}
           sub={data.topClients[0]?.name ?? "no spend data yet"}
         />
-      </div>
+      </StatRow>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Busiest hours */}

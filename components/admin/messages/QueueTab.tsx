@@ -162,7 +162,7 @@ export default function FollowupsPage() {
         }
       />
 
-      <StatRow>
+      <StatRow compact>
         <StatCard label="Due now" value={String(dueToday)} accent tone={dueToday ? "warn" : "neutral"} sub="ready to send" />
         <StatCard label="Pending" value={String(pending)} sub="in the queue" />
         <StatCard label="Sent this week" value={String(sentThisWeek)} tone="good" sub="last 7 days" />
