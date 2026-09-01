@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useBookings } from "@/lib/admin/bookings-context";
 import { useInventory } from "@/lib/admin/inventory-context";
 import { useCompliance } from "@/lib/admin/compliance-context";
@@ -137,15 +136,9 @@ export default function Cockpit() {
 
   return (
     <div className="mb-6">
-      {/* Glance tiles */}
-      <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Tile label="Today" value={`${checkedInToday}/${today}`} sub="checked in" href="/admin/bookings" />
-        <Tile label="Deposits held" value={fmt(depositsHeld)} href="/admin/bookings" />
-        <Tile label="Low stock" value={String(lowStock.length)} href="/admin/inventory" warn={lowStock.length > 0} />
-        <Tile label="Licenses expiring" value={String(expiringSoon.length)} href="/admin/compliance" warn={expiringSoon.length > 0} />
-        <Tile label="Follow-ups due" value={String(followupsDue)} href="/admin/messages?tab=queue" warn={followupsDue > 0} />
-      </div>
-
+      {/* No glance tiles here any more (Scott, 2026-09-01: the desktop was a
+          wall of numbers). Anything that needs a decision is a card below;
+          everything else lives on Money. */}
       <SectionTitle>Needs attention</SectionTitle>
       {items.length === 0 ? (
         <Card>
@@ -247,15 +240,3 @@ function AttentionCard({ item, onOpen, onDismiss }: { item: Item; onOpen: () => 
   );
 }
 
-function Tile({ label, value, sub, href, warn }: { label: string; value: string; sub?: string; href: string; warn?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-xl border bg-white/6 px-4 py-3 transition hover:shadow-sm ${warn ? "border-amber-400/40" : "border-white/10"}`}
-    >
-      <div className="text-xs font-medium uppercase tracking-wide text-white/60">{label}</div>
-      <div className={`tnum mt-1 text-xl font-semibold ${warn ? "text-amber-400" : "text-ink"}`}>{value}</div>
-      {sub && <div className="text-[11px] text-white/55">{sub}</div>}
-    </Link>
-  );
-}

@@ -39,7 +39,7 @@ export default function ShopCoach() {
         artistNames: new Map(artists.map((a) => [a.id, a.name])),
         rentOutstandingCents: rentOutstanding,
         followupsDue: dueToday,
-      }).slice(0, 4),
+      }).slice(0, 2), // two reads, not four: the rest wait their turn
     [sales, bookings, artists, rentOutstanding, dueToday],
   );
 

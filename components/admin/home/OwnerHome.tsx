@@ -1,27 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useSales } from "@/lib/admin/sales-context";
-import { useArtists } from "@/lib/admin/artists-context";
 import { useRent } from "@/lib/admin/rent-context";
 import { useCash } from "@/lib/admin/cash-context";
 import { useSettledStatements } from "@/lib/admin/settlements-context";
-import { shopSummary, fmt } from "@/lib/admin/calc";
-import { StatCard, Card, SectionTitle, MockBanner, Button, PlusIcon } from "@/components/admin/ui";
+import { fmt } from "@/lib/admin/calc";
+import { StatCard, SectionTitle, MockBanner, Button, PlusIcon } from "@/components/admin/ui";
 import Cockpit from "@/components/admin/cockpit/Cockpit";
 import GetSetUp from "@/components/admin/home/GetSetUp";
 import ShopCoach from "@/components/admin/home/ShopCoach";
-import { PageHead, WeekTile, StatementsTable, RentPanel, daysAgoLocal } from "./shared";
+import { PageHead, StatementsTable, daysAgoLocal } from "./shared";
 
-// Owner: the whole shop. The cross-feature cockpit (POS-STARTER-4) on top, then
-// the financial overview.
+// Owner: the whole shop. What needs a decision, the coach, one row of numbers,
+// and every chair's next step. The full money story lives on /admin/money.
 export default function OwnerHome() {
   const { sales, real, loading } = useSales();
-  const { artists } = useArtists();
-  const { invoices: rent, outstandingCents: rentOutstanding, collectedCents: rentCollected, overdue } = useRent();
+  const { outstandingCents: rentOutstanding, overdue } = useRent();
   const { outstandingCents: cashOutstanding } = useCash();
   const { statements: settled, holdingForRenters } = useSettledStatements();
 
-  const s = shopSummary(artists, sales);
   const statements = [...settled].sort((x, y) => y.grossService - x.grossService);
 
   const weekAgo = daysAgoLocal(7);
@@ -33,16 +31,9 @@ export default function OwnerHome() {
   const gross = (s2: (typeof sales)[number]) => s2.serviceCents + s2.tipCents;
   const wkService = sum(wk, (s2) => s2.serviceCents);
   const wkTips = sum(wk, (s2) => s2.tipCents);
-  const wkCard = sum(wk.filter((s2) => s2.method !== "cash"), gross);
-  const wkCash = sum(wk.filter((s2) => s2.method === "cash"), gross);
   // vs the prior 7 days — hidden when last week had nothing to compare against.
   const deltaVs = (now: number, before: number) => (before > 0 ? (now - before) / before : null);
   const dGross = deltaVs(sum(wk, gross), sum(prev, gross));
-  const dService = deltaVs(wkService, sum(prev, (s2) => s2.serviceCents));
-  const dTips = deltaVs(wkTips, sum(prev, (s2) => s2.tipCents));
-  const dCard = deltaVs(wkCard, sum(prev.filter((s2) => s2.method !== "cash"), gross));
-  const dCash = deltaVs(wkCash, sum(prev.filter((s2) => s2.method === "cash"), gross));
-  const dTickets = deltaVs(wk.length, prev.length);
 
   return (
     <div>
@@ -66,49 +57,48 @@ export default function OwnerHome() {
 
       {!real && !loading && <MockBanner source="Stripe" />}
 
-      <SectionTitle>
-        This week <span className="font-normal text-white/50">· last 7 days, same as your Monday email</span>
+      {/* One row of numbers, one range (Scott, 2026-09-01: the old page stacked
+          a six-tile week strip on four period tiles on five glance tiles). The
+          week's take with its trend, then the three amounts that are someone
+          else's money until you move them. Everything else is on Money. */}
+      <SectionTitle
+        action={
+          <Link href="/admin/money" className="text-xs font-medium text-brand">
+            All money →
+          </Link>
+        }
+      >
+        This week <span className="font-normal text-white/50">· last 7 days</span>
       </SectionTitle>
-      <Card className="mb-5">
-        <div className="grid grid-cols-3 divide-x divide-y divide-white/8 sm:grid-cols-6 sm:divide-y-0">
-          <WeekTile label="Gross" value={fmt(wkService + wkTips)} strong delta={dGross} />
-          <WeekTile label="Service" value={fmt(wkService)} delta={dService} />
-          <WeekTile label="Tips" value={fmt(wkTips)} delta={dTips} />
-          <WeekTile label="Card" value={fmt(wkCard)} delta={dCard} />
-          <WeekTile label="Cash" value={fmt(wkCash)} delta={dCash} />
-          <WeekTile label="Tickets" value={String(wk.length)} delta={dTickets} />
-        </div>
-      </Card>
-
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Gross sales" value={fmt(s.grossSales)} sub="service + tips" />
         <StatCard
-          label="Shop revenue"
-          value={fmt(s.splitRevenue + rentCollected)}
-          sub={`${fmt(s.splitRevenue)} from tickets + ${fmt(rentCollected)} rent`}
+          label="Gross"
+          value={fmt(wkService + wkTips)}
+          sub={`${wk.length} ticket${wk.length === 1 ? "" : "s"}${dGross == null ? "" : ` · ${dGross >= 0 ? "+" : ""}${Math.round(dGross * 100)}% vs last week`}`}
           accent
         />
         <StatCard
           label="Holding for renters"
           value={fmt(holdingForRenters)}
-          sub="their card sales, passed through 100%"
-          tone="warn"
+          sub="their card money, hand it over"
+          tone={holdingForRenters > 0 ? "warn" : "neutral"}
         />
         <StatCard
           label="Cash to reconcile"
           value={fmt(cashOutstanding)}
-          sub="in the drawer"
+          sub="logged, not yet counted"
           tone={cashOutstanding > 0 ? "warn" : "good"}
+        />
+        <StatCard
+          label="Rent outstanding"
+          value={fmt(rentOutstanding)}
+          sub={overdue.length ? `${overdue.length} overdue` : "this cycle"}
+          tone={rentOutstanding > 0 ? "warn" : "good"}
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <StatementsTable statements={statements} />
-        </div>
-        <div>
-          <RentPanel rent={rent} outstanding={rentOutstanding} overdueCount={overdue.length} />
-        </div>
+      <div className="mt-4">
+        <StatementsTable statements={statements} />
       </div>
     </div>
   );

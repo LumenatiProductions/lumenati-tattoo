@@ -589,6 +589,41 @@ export async function sendDueFollowups(client: SupabaseClient, tpl: TemplateMap,
  * nothing goes out until Scott flips the switch and at least one channel is
  * live. Manual "send now" from the page always works.
  */
+/**
+ * Stale queue sweep. A queued message only makes sense inside its window: a
+ * visit reminder after the visit is noise, an aftercare text a month late is
+ * worse than none. While automatic sending is off the queue only ever grows,
+ * and the owner's "N follow-ups due" turns into a number nobody can act on.
+ * So: anything pending past its useful window is marked skipped (kept, never
+ * deleted) and stops counting. Runs nightly per shop; safe to re-run.
+ */
+const STALE_DAYS: Record<FollowupKind, number> = {
+  reminder_48h: 1, // the visit already happened
+  reminder_24h: 1,
+  aftercare: 14,
+  review_request: 30,
+  healed_photo: 30,
+  rebook_nudge: 30,
+  birthday: 7,
+};
+export async function expireStaleFollowups(client: SupabaseClient, shopId?: string) {
+  const t = today();
+  let expired = 0;
+  for (const kind of Object.keys(STALE_DAYS) as FollowupKind[]) {
+    let q = client
+      .from("followups")
+      .update({ status: "skipped", error: "Stale: past its window, never sent" })
+      .eq("status", "pending")
+      .eq("kind", kind)
+      .lt("scheduled_for", addDays(t, -STALE_DAYS[kind]))
+      .select("id");
+    if (shopId) q = q.eq("shop_id", shopId);
+    const { data } = await q;
+    expired += data?.length ?? 0;
+  }
+  return expired;
+}
+
 export async function runDailyJob(admin: unknown) {
   const client = admin as SupabaseClient;
   const autosend = process.env.FOLLOWUPS_AUTOSEND === "true";
@@ -600,7 +635,8 @@ export async function runDailyJob(admin: unknown) {
   const results: Record<string, unknown>[] = [];
   for (const s of (shops ?? []) as { id: string }[]) {
     const tpl = await loadTemplates(client, s.id);
-    const enqueued = await enqueueFollowups(client, tpl, s.id);
+    const stale = await expireStaleFollowups(client, s.id);
+    const enqueued = { ...(await enqueueFollowups(client, tpl, s.id)), stale };
     const sent = canSend
       ? await sendDueFollowups(client, tpl, s.id)
       : { sent: 0, skipped: 0, failed: 0, due: 0 };
