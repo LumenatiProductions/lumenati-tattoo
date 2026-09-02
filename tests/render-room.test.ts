@@ -21,6 +21,7 @@ const room = (over: Partial<RoomContent>): RoomContent => ({
   socials: null,
   videoUrl: null,
   videoTitle: null,
+  tvVideoId: null,
   ...over,
 });
 

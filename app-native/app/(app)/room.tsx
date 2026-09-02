@@ -63,6 +63,7 @@ type Room = {
   posters: Poster[] | null;
   video_url: string | null;
   video_title: string | null;
+  tv_video_id: string | null;
   socials: Record<string, string> | null;
 };
 
@@ -115,6 +116,7 @@ export default function MyRoom() {
       .then(({ data }) => setY2k((data?.template as string | null) === "y2k"));
   }, [shopId]);
   const [titleReady, setTitleReady] = useState(false);
+  const [tvReady, setTvReady] = useState(false);
   useEffect(() => {
     (async () => {
       if (!artistId) return;
@@ -127,6 +129,7 @@ export default function MyRoom() {
       if (r) {
         setArcadeReady((r as Record<string, unknown>).video_url !== undefined);
         setTitleReady((r as Record<string, unknown>).video_title !== undefined);
+        setTvReady((r as Record<string, unknown>).tv_video_id !== undefined);
         setRoom({
           ...(r as Room),
           polaroids: (r.polaroids as Polaroid[]) ?? [],
@@ -135,6 +138,7 @@ export default function MyRoom() {
           posters: (r.posters as Poster[] | null) ?? null,
           video_url: (r.video_url as string | null) ?? null,
           video_title: (r.video_title as string | null) ?? null,
+          tv_video_id: (r.tv_video_id as string | null) ?? null,
           socials: (r.socials as Record<string, string> | null) ?? null,
         });
       }
@@ -166,11 +170,12 @@ export default function MyRoom() {
         socials: room.socials,
         ...(arcadeReady ? { video_url: room.video_url } : {}),
         ...(titleReady ? { video_title: room.video_title?.trim() || null } : {}),
+        ...(tvReady ? { tv_video_id: room.tv_video_id } : {}),
       })
       .eq("artist_id", room.artist_id);
     setSaving(false);
     setMsg(error ? error.message : "Saved, your page is live.");
-  }, [room, arcadeReady, titleReady]);
+  }, [room, arcadeReady, titleReady, tvReady]);
 
   // Pick from the library and land it in the public room-photos bucket.
   // Square-crops for the profile shot; galleries keep the framing as shot.
@@ -459,6 +464,9 @@ export default function MyRoom() {
                   onChange={(v) => set("song_id", v)}
                 />
               )}
+              {y2k && tvReady && (
+                <TvPick value={room.tv_video_id} onChange={(v) => set("tv_video_id", v)} />
+              )}
               <Text style={styles.label}>Accent color</Text>
               <View style={styles.swatches}>
                 {COLORS.map((c) => (
@@ -661,6 +669,78 @@ function moveItem<T extends { id: string }>(items: T[], id: string, dir: -1 | 1)
 // beats drag-and-drop on a phone; the order here IS the public order.
 // One social row: the platform's real logo in its brand color, then the field.
 // Filled rows light their logo up so you can see at a glance what's live.
+// The artist's music video: one pick from the shop TV lineup. It becomes the
+// MTV icon on their room's desktop and a track in the room's Winamp.
+type TvChannel = { id: string; num: number; name: string };
+function TvPick({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const [channels, setChannels] = useState<TvChannel[]>([]);
+  const [musicMin, setMusicMin] = useState(111);
+  const [q, setQ] = useState("");
+  useEffect(() => {
+    fetch(`${SITE}/api/tv-channels`)
+      .then((r) => r.json())
+      .then((j) => {
+        setChannels((j.channels as TvChannel[]) ?? []);
+        if (typeof j.musicVideoMin === "number") setMusicMin(j.musicVideoMin);
+      })
+      .catch(() => {});
+  }, []);
+  const current = channels.find((c) => c.id === value) ?? null;
+  const needle = q.trim().toLowerCase();
+  const matches = needle
+    ? channels.filter((c) => c.name.toLowerCase().includes(needle) || String(c.num) === needle)
+    : channels.filter((c) => c.num >= musicMin);
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={styles.label}>Music video (MTV icon on your desktop, and a Winamp track)</Text>
+      {current ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <Text style={{ color: theme.text, fontSize: 15, flex: 1 }}>{current.name}</Text>
+          <Button label="Remove" tone="ghost" onPress={() => onChange(null)} />
+        </View>
+      ) : (
+        <Text style={{ color: theme.textDim, fontSize: 13, marginBottom: 10 }}>None yet. Search the lineup or browse the music videos below.</Text>
+      )}
+      <TextInput
+        value={q}
+        onChangeText={setQ}
+        placeholder="Search: nirvana, outkast, toonami, ch 62..."
+        placeholderTextColor={theme.textFaint}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.socialInput}
+      />
+      <View style={{ marginTop: 8 }}>
+        {matches.slice(0, 12).map((c) => (
+          <Pressable
+            key={c.id}
+            onPress={() => {
+              onChange(c.id);
+              setQ("");
+            }}
+            style={{
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: c.id === value ? "rgba(235,240,255,0.16)" : "transparent",
+            }}
+          >
+            <Text style={{ color: c.id === value ? theme.text : theme.textDim, fontSize: 14 }}>
+              <Text style={{ color: theme.textFaint }}>CH {c.num}  </Text>
+              {c.name}
+            </Text>
+          </Pressable>
+        ))}
+        {matches.length > 12 && (
+          <Text style={{ color: theme.textFaint, fontSize: 12, paddingHorizontal: 12, paddingTop: 6 }}>
+            {matches.length - 12} more. Type to narrow it down.
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function SocialField({
   icon,
   color,

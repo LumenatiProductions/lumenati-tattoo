@@ -8,6 +8,7 @@ import {
   SONGS,
   COLOR_PRESETS,
 } from "@/lib/admin/room-content";
+import { MUSIC_VIDEO_MIN, SHOP_TV_CHANNELS } from "@/lib/kiosk/tv-channels";
 import { useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import { uploadPhoto } from "@/lib/admin/room-data";
@@ -205,6 +206,31 @@ export default function RoomEditorPage() {
                         {s.label}
                       </option>
                     ))}
+                  </select>
+                </Field>
+                )}
+                {isY2k && (
+                <Field label="Music video (the MTV icon on the desktop, and a Winamp track)">
+                  <select
+                    className="inp"
+                    value={room.tvVideoId ?? ""}
+                    onChange={(e) => set("tvVideoId", e.target.value || null)}
+                  >
+                    <option value="">None</option>
+                    <optgroup label="Music videos">
+                      {SHOP_TV_CHANNELS.filter((c) => c.num >= MUSIC_VIDEO_MIN).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="The rest of the shop TV lineup">
+                      {SHOP_TV_CHANNELS.filter((c) => c.num < MUSIC_VIDEO_MIN).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          CH {c.num}: {c.name}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </Field>
                 )}

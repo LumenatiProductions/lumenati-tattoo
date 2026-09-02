@@ -153,6 +153,10 @@
     {title:'Blink-182 -- Mutt (1999)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/blink182-mutt.m4a'},
     {title:'Marilyn Manson -- The Dope Show (1998)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/manson-dope-show.m4a'}
   ];
+  // A room page with a music video pick (window.__ROOM_TV__, set by the room
+  // renderer) gets it as the last track: press play and the MTV window opens.
+  var roomTv=(window.__ROOM_TV__&&typeof window.__ROOM_TV__.id==='string')?window.__ROOM_TV__:null;
+  if(roomTv){playlist.push({title:'MTV -- '+roomTv.title,yt:roomTv.id});}
   // Map page paths to preferred starting track index
   var pageTrackMap={
     '/jd-pruitt':1,           // Goldfinger
@@ -170,10 +174,13 @@
   var roomSong=(typeof window.__ROOM_SONG_ID__==='string'&&songIdMap.hasOwnProperty(window.__ROOM_SONG_ID__))?songIdMap[window.__ROOM_SONG_ID__]:null;
   var currentTrack=(roomSong!==null)?roomSong:((path in pageTrackMap)?pageTrackMap[path]:Math.floor(Math.random()*playlist.length));
 
+  function isYt(){return !!(playlist[currentTrack]&&playlist[currentTrack].yt);}
   function loadTrack(i){
+    if(isYt()&&window.__lmnMtvClose)window.__lmnMtvClose(true); // leaving the video track shuts its window
     currentTrack=i;
-    audio.src=playlist[i].src;
-    marquee.textContent=playlist[i].title+' ***';
+    var t=playlist[i];
+    if(t.yt){audio.pause();audio.removeAttribute('src');elapsed.textContent='MTV';seekFill.style.width='0%';seekThumb.style.left='0%';marquee.textContent=t.title+' *** video ***';}
+    else{audio.src=t.src;marquee.textContent=t.title+' ***';}
   }
 
   function nextTrack(){
@@ -200,9 +207,13 @@
   function startEQ(){if(eqInterval)return;eqInterval=setInterval(function(){for(var i=0;i<bars.length;i++)bars[i].style.height=(Math.random()*18+2)+'px';},100);}
   function stopEQ(){if(eqInterval){clearInterval(eqInterval);eqInterval=null;}for(var i=0;i<bars.length;i++)bars[i].style.height='2px';}
   function clearActive(){playBtn.classList.remove('winamp-active');pauseBtn.classList.remove('winamp-active');stopBtn.classList.remove('winamp-active');}
-  function doPlay(){var p=audio.play();if(p&&p.catch)p.catch(function(){});isPlaying=true;clearActive();playBtn.classList.add('winamp-active');startEQ();}
-  function doPause(){audio.pause();isPlaying=false;clearActive();pauseBtn.classList.add('winamp-active');stopEQ();}
-  function doStop(){audio.pause();audio.currentTime=0;isPlaying=false;clearActive();stopBtn.classList.add('winamp-active');stopEQ();elapsed.textContent='00:00';seekFill.style.width='0%';seekThumb.style.left='0%';}
+  function doPlay(){if(isYt()){if(window.__lmnMtvOpen)window.__lmnMtvOpen();}else{var p=audio.play();if(p&&p.catch)p.catch(function(){});}isPlaying=true;clearActive();playBtn.classList.add('winamp-active');startEQ();}
+  function doPause(){if(isYt()){if(window.__lmnMtvCmd)window.__lmnMtvCmd('pauseVideo');}else{audio.pause();}isPlaying=false;clearActive();pauseBtn.classList.add('winamp-active');stopEQ();}
+  function doStop(){if(isYt()){if(window.__lmnMtvClose)window.__lmnMtvClose(true);}else{audio.pause();audio.currentTime=0;}isPlaying=false;clearActive();stopBtn.classList.add('winamp-active');stopEQ();elapsed.textContent=isYt()?'MTV':'00:00';seekFill.style.width='0%';seekThumb.style.left='0%';}
+  // The MTV window pauses Winamp's audio when it opens from the desktop icon,
+  // and tells Winamp when its close box shuts the video track.
+  window.__winampPauseAudio=function(){if(!isYt()&&isPlaying)doPause();};
+  window.__winampOnTvClosed=function(){if(isYt()&&isPlaying){isPlaying=false;clearActive();stopEQ();}};
   playBtn.addEventListener('click',doPlay);pauseBtn.addEventListener('click',doPause);stopBtn.addEventListener('click',doStop);
   prevBtn.addEventListener('click',function(){prevTrack();});
   nextBtn.addEventListener('click',function(){nextTrack();});

@@ -124,4 +124,6 @@ export interface RoomContent {
   socials: Record<string, string> | null;
   /** Title for the room video; becomes the media player window's filename. */
   videoTitle: string | null;
+  /** YouTube id of the artist's music video pick from the shop TV lineup; null = no MTV icon. */
+  tvVideoId: string | null;
 }

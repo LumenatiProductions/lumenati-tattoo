@@ -1,6 +1,7 @@
 import { readLegacyBlock } from "@/lib/legacy";
 import type { RoomContent } from "./types";
 import { GAME_CATALOG } from "@/lib/arcade/catalog";
+import { tvChannelById } from "@/lib/kiosk/tv-channels";
 export { GAME_CATALOG };
 
 // Renders a public artist room by templating JD's room (the reference room)
@@ -245,6 +246,59 @@ export function renderRoomHtml(
   }
 
   if (!isJd) html = html.replace("JD's Arcade", `${esc(firstName)}'s Arcade`);
+
+  // ── MTV: the artist's music video pick from the shop TV lineup ──
+  // A TV icon on the desktop opens a media player window with the video; the
+  // site-wide Winamp reads window.__ROOM_TV__ and lists it as a track too.
+  const tv = tvChannelById(content.tvVideoId);
+  if (tv) {
+    const file = `${tv.name.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase() || "mtv"}.mpg`;
+    const icon = `    <div class="br-icon" style="cursor:pointer" id="jd-mtv-icon">
+      <div class="br-icon-img"><svg viewBox="0 0 32 32"><line x1="12" y1="8" x2="8" y2="2" stroke="#000" stroke-width="1.2"/><line x1="15" y1="8" x2="19" y2="2" stroke="#000" stroke-width="1.2"/><rect x="3" y="8" width="26" height="18" rx="2" fill="#555" stroke="#000" stroke-width="1"/><rect x="5" y="10" width="17" height="14" rx="1" fill="#1a6bd8" stroke="#000" stroke-width="0.5"/><rect x="24" y="11" width="3.5" height="12" fill="#222"/><circle cx="25.75" cy="14" r="1.1" fill="#ccc"/><circle cx="25.75" cy="18" r="1.1" fill="#ccc"/><text x="13.5" y="20" font-size="6.5" font-family="Arial" font-weight="bold" fill="#fff" text-anchor="middle">MTV</text></svg></div>
+      <span class="br-icon-label">MTV</span>
+    </div>
+`;
+    html = html.replace(
+      '<span class="br-icon-label">Games</span>\n    </div>\n',
+      `<span class="br-icon-label">Games</span>\n    </div>\n${icon}`,
+    );
+    const win = `<!-- MTV window: the artist's music video, Windows Media Player style -->
+<div id="jd-mtv-overlay" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+  <div style="background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.3);max-width:95vw;width:640px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;background:linear-gradient(180deg,#0a246a 0%,#3a6ea5 40%,#0a246a 100%);height:24px;">
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">Windows Media Player — ${esc(file)}</span>
+      <span id="jd-mtv-close" style="font-family:Tahoma,sans-serif;font-size:11px;color:#fff;cursor:pointer;padding:0 6px;">✕</span>
+    </div>
+    <div style="display:flex;padding:1px 4px;background:#ece9d8;border-bottom:1px solid #aca899;gap:0;">
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">File</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">View</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">Play</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 8px;">Help</span>
+    </div>
+    <div style="margin:4px;border:1px solid;border-color:#808080 #fff #fff #808080;overflow:hidden;position:relative;padding-top:56.25%;background:#000;">
+      <iframe id="jd-mtv" src="about:blank" title="${escAttr(tv.name)}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allow="autoplay;encrypted-media;fullscreen" allowfullscreen></iframe>
+    </div>
+    <div style="padding:6px 8px;background:#ece9d8;border-top:1px solid #aca899;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-family:Tahoma,sans-serif;font-size:10px;color:#444;">Playing - ${esc(file)} &nbsp;//&nbsp; MTV ch. ${tv.num}</span>
+      <span id="jd-mtv-unmute" style="font-family:Tahoma,sans-serif;font-size:11px;color:#000;padding:2px 12px;background:linear-gradient(180deg,#fff 0%,#ece9d8 50%,#d4d0c8 100%);border:1px solid;border-color:#fff #404040 #404040 #fff;cursor:pointer;">Sound on</span>
+    </div>
+  </div>
+</div>
+
+`;
+    html = html.replace("<!-- Hidden Game -->", `${win}<!-- Hidden Game -->`);
+    const tvJson = JSON.stringify({ id: tv.id, title: tv.name, num: tv.num }).replace(/</g, "\\u003c");
+    html += `\n<script>window.__ROOM_TV__=${tvJson};
+(function(){var tv=window.__ROOM_TV__,ov=document.getElementById('jd-mtv-overlay'),fr=document.getElementById('jd-mtv');if(!tv||!ov||!fr)return;
+function cmd(f,a){try{fr.contentWindow.postMessage(JSON.stringify({event:'command',func:f,args:a||[]}),'*');}catch(e){}}
+window.__lmnMtvCmd=cmd;
+window.__lmnMtvOpen=function(){if(window.__winampPauseAudio)window.__winampPauseAudio();ov.style.display='flex';if(!fr.getAttribute('src')||fr.getAttribute('src')==='about:blank'){fr.src='https://www.youtube-nocookie.com/embed/'+tv.id+'?autoplay=1&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';}else{cmd('playVideo');}};
+window.__lmnMtvClose=function(silent){ov.style.display='none';fr.src='about:blank';if(!silent&&window.__winampOnTvClosed)window.__winampOnTvClosed();};
+document.getElementById('jd-mtv-icon').addEventListener('click',function(){window.__lmnMtvOpen();});
+document.getElementById('jd-mtv-close').addEventListener('click',function(){window.__lmnMtvClose(false);});
+document.getElementById('jd-mtv-unmute').addEventListener('click',function(){cmd('unMute');cmd('setVolume',[100]);cmd('playVideo');});
+})();</script>`;
+  }
 
   // ── Stickers: chosen catalog set into the five designed wall slots ──
   // (null = artist hasn't picked; the baked-in set stays.)

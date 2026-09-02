@@ -23,6 +23,17 @@
 - **Flash wall parked** (/flash-wall -> /, hero button commented out) until real flash
   is pinned. Its query is now shop-scoped (had been showing the demo tenant's pieces).
 
+- **Kiosk TV rebuilt 9/2 pm:** 158 channels in `lib/kiosk/tv-channels.ts` (TV blocks,
+  MTV/VH1 off-air recordings, video DJ mixes, 69 official music videos as an MTV
+  run from CH 111), captions off, TV mutes when the arcade opens, big back button,
+  Prevue-style GUIDE (crawls, tap tunes). `scripts/tv-check.mjs` proves a channel
+  plays inside an embed on the LIVE domain. NEVER judge a channel on :3002: YouTube
+  refuses licensed videos to localhost embeds ("unavailable"), they play live.
+- **Rooms: MTV pick 9/2 pm.** `room_content.tv_video_id` = a lineup id. Renders an
+  MTV desktop icon + Windows Media Player window, and the site-wide Winamp lists it
+  as the last track (play opens the window). Pickers: admin Room page (Vibe) + app
+  My Page (search, fed by `/api/tv-channels`). JD's room has Nirvana set as a demo.
+
 ## Priority 1: the platform needs its own name + domain (Scott's call)
 
 Scott, end of 9/2: the platform must be a SEPARATE brand from Lumenati Tattoo, on a
