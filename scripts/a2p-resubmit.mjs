@@ -2,7 +2,8 @@
 // Resubmit the Twilio A2P 10DLC campaign on the real domain.
 //
 // The campaign was rejected (30908 privacy policy, 30882 terms) because the
-// policy pages lived on the shared lumenati-tattoo.vercel.app host. Twilio
+// campaign never set PrivacyPolicyUrl / TermsAndConditionsUrl (the vetter
+// does not read links out of MessageFlow) and the pages lived on vercel.app. Twilio
 // only lets you delete + recreate a campaign, so this reads the current one,
 // swaps every vercel.app URL for lumenatitattoo.com, deletes it, and files
 // it again on the same brand + messaging service.
@@ -70,6 +71,10 @@ for (const k of cur.opt_out_keywords || []) form.append("OptOutKeywords", k);
 for (const k of cur.help_keywords || []) form.append("HelpKeywords", k);
 if (cur.opt_in_message) form.set("OptInMessage", cur.opt_in_message);
 for (const k of cur.opt_in_keywords || []) form.append("OptInKeywords", k);
+// The vetter reads these two fields, not the links inside MessageFlow.
+// Every earlier rejection (30908 / 30882) came from leaving them unset.
+form.set("PrivacyPolicyUrl", `${NEW}/privacy`);
+form.set("TermsAndConditionsUrl", `${NEW}/terms`);
 form.set("SubscriberOptIn", "true");
 form.set("AgeGated", "false");
 form.set("DirectLending", "false");
