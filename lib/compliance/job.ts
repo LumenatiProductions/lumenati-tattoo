@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
+import { emailFrom } from "@/lib/email/from";
 
 // How far ahead counts as "expiring soon" (and triggers the owner email).
 export const EXPIRY_WINDOW_DAYS = 30;
@@ -184,7 +185,7 @@ async function emailOwner(
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: `${shopName} <onboarding@resend.dev>`,
+      from: emailFrom(shopName),
       to: recipients,
       subject: `${shopName} — ${rows.length} compliance item${rows.length === 1 ? "" : "s"} need attention`,
       html: alertHtml(rows, shopName, accent),

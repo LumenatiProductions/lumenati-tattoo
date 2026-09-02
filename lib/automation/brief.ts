@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isLow } from "@/lib/inventory/job";
 import { findNoShowCandidates } from "./no-show";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
+import { emailFrom } from "@/lib/email/from";
 
 // Morning brief (POS-STARTER-4): a one-screen "here is today" email to the owner,
 // composed across features. Runs from the daily ops fan-out (no new cron).
@@ -180,7 +181,7 @@ export async function runMorningBrief(admin: unknown) {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: `${shopName} <onboarding@resend.dev>`,
+        from: emailFrom(shopName),
         to: recipients,
         subject: `${shopName} — today: ${g.appts.length} appointment${g.appts.length === 1 ? "" : "s"}`,
         html: briefHtml(g, shopName, accent),

@@ -17,10 +17,28 @@ Once that's in, `isSmsConfigured` flips true and texts turn on automatically.
 - `FOLLOWUPS_AUTOSEND` = `true`
 Until this is `true`, the system quietly *queues* follow-ups but doesn't send them. Flip it when you're ready for messages to actually go out. (Manual "Send now" from the Follow-ups page always works regardless.)
 
-## 3. Email domain (later, after moving it from Squarespace)
-- Move the domain off Squarespace, verify it in Resend.
-- Then set `RESEND_FROM` = `Lumenati Tattoo <hello@yourdomain.com>`.
-- `RESEND_API_KEY` is already set. Until the domain is verified, email sends from a sandbox address that lands in spam, so texts are the better path for now.
+## 3. Email domain — the one thing blocking real email (as of 2026-09-02)
+Two things are broken by the same gap, and neither needs the website moved:
+
+- **Sign-in codes by email fail for everyone except the account owner** (QA
+  lum-034). Supabase Auth already sends through Resend, but from the sandbox
+  address, which only delivers to the Resend account owner's inbox.
+- **No product email reaches clients or artists.** Resend's sandbox sender
+  (`onboarding@resend.dev`) only delivers to the Resend account owner's inbox.
+  Reminders, deposit links, consent forms, rent invoices, receipts, blasts:
+  none of it has been landing.
+
+Fix, in order (the site stays on Squarespace; only DNS records are added):
+1. Resend → Domains → Add domain `mail.lumenatitattoo.com` (a subdomain, so
+   Google Workspace mail on the root domain is untouched).
+2. Squarespace → Domains → lumenatitattoo.com → DNS → add the records Resend
+   shows (one DKIM TXT, one MX + one TXT for `send.mail`, optional DMARC).
+   Wait for Resend to show **Verified** (minutes to an hour).
+3. Vercel → `RESEND_FROM` = `Lumenati Tattoo <hello@mail.lumenatitattoo.com>`,
+   redeploy. Every product email switches over (`lib/email/from.ts`).
+4. `node scripts/set-auth-smtp.mjs signin@mail.lumenatitattoo.com` (needs
+   `SUPABASE_ACCESS_TOKEN` in the shell). Sign-in codes switch to Resend.
+5. Test: sign in with a non-team email on /admin/login.
 
 ## 4. Live Stripe (real card payments)
 - Swap the test keys for live keys, complete Stripe business verification.

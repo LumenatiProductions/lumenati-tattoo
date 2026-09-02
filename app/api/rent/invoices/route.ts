@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateRentInvoices } from "@/lib/rent/job";
 import { siteUrl } from "@/lib/stripe/client";
+import { emailFrom } from "@/lib/email/from";
 
 export const dynamic = "force-dynamic";
 
@@ -117,7 +118,7 @@ export async function POST(req: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Lumenati Tattoo <onboarding@resend.dev>",
+        from: emailFrom(),
         to: [profile.email],
         subject: `Booth rent — ${monthName}`,
         html: `<p style="font-family:Arial,sans-serif;font-size:14px;color:#3f3f46;">Hi ${artist?.name ?? "there"}, your ${monthName} booth rent is ${usd}${inv.due_date ? `, due ${inv.due_date}` : ""}.</p><p><a href="${url}" style="display:inline-block;background:#FF1493;color:#fff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">Pay rent</a></p><p style="font-family:Arial,sans-serif;font-size:12px;color:#a1a1aa;">${url}</p>`,

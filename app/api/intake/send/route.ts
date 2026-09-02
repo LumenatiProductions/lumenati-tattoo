@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSmsConfigured, looksLikePhone, normalizePhone, sendSms } from "@/lib/sms";
 import { renderY2kEmail } from "@/lib/email/y2k";
+import { emailFrom } from "@/lib/email/from";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
     method: "POST",
     headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "Lumenati Tattoo <onboarding@resend.dev>",
+      from: emailFrom(),
       to: [recipient],
       subject: "Lumenati — your consent form is ready to sign",
       html: emailHtml(signUrl),

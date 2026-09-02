@@ -3,6 +3,7 @@ import { resolveStaff } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSmsConfigured, normalizePhone, sendSms } from "@/lib/sms";
 import { SHOP_NAME } from "@/lib/followups/templates";
+import { emailFrom } from "@/lib/email/from";
 import {
   isSegmentKey,
   reachable,
@@ -181,7 +182,7 @@ export async function POST(req: Request) {
     }
   } else {
     const key = process.env.RESEND_API_KEY!;
-    const from = process.env.RESEND_FROM || `${shopName} <onboarding@resend.dev>`;
+    const from = emailFrom(shopName);
     for (const m of members) {
       if (!m.email) {
         failed++;

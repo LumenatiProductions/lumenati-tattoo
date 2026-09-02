@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { secretMatches } from "@/lib/api-auth";
 import { salesSummary, fetchRentInvoices, isSquareConfigured, type RentInvoice } from "@/lib/square/client";
 import { fmt } from "@/lib/admin/calc";
+import { emailFrom } from "@/lib/email/from";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
     method: "POST",
     headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "Lumenati Tattoo <onboarding@resend.dev>",
+      from: emailFrom(),
       to: recipients,
       subject: "Lumenati — this week at the shop",
       html,

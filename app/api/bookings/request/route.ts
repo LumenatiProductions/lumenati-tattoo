@@ -9,6 +9,7 @@ import { pushEvent } from "@/lib/push/send";
 import { renderY2kEmail } from "@/lib/email/y2k";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 import { signPhoto } from "@/lib/storage/photos";
+import { emailFrom } from "@/lib/email/from";
 
 export const dynamic = "force-dynamic";
 
@@ -407,7 +408,7 @@ export async function PATCH(req: Request) {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                from: "Lumenati Tattoo <onboarding@resend.dev>",
+                from: emailFrom(),
                 to: [reqRow.email],
                 subject: `You're booked — secure your spot with the deposit`,
                 html: renderY2kEmail({

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emailFrom } from "@/lib/email/from";
 
-const SHOP_NAME = "Lumenati Tattoo";
 
 // An item needs reordering once it's at or below its threshold. A `reorder_at`
 // of 0 means "only flag when fully out". Shared truth for the route, context,
@@ -96,7 +96,7 @@ async function emailOwner(low: ItemRow[]): Promise<{ emailed: boolean; reason?: 
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: `${SHOP_NAME} <onboarding@resend.dev>`,
+      from: emailFrom(),
       to: recipients,
       subject: `Lumenati — ${low.length} suppl${low.length === 1 ? "y" : "ies"} running low`,
       html: alertHtml(low),

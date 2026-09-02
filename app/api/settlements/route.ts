@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveStaff } from "@/lib/api-auth";
+import { emailFrom } from "@/lib/email/from";
 
 export const dynamic = "force-dynamic";
 
@@ -174,7 +175,7 @@ async function emailReceipt(
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "Lumenati Tattoo <onboarding@resend.dev>",
+      from: emailFrom(),
       to: [profile.email],
       subject: `Settlement receipt — ${artist?.name ?? "your statement"} settled through ${s.settledThrough}`,
       html,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { resolveStaff } from "@/lib/api-auth";
 import { isSmsConfigured, sendSms } from "@/lib/sms";
 import { renderY2kEmail } from "@/lib/email/y2k";
+import { emailFrom } from "@/lib/email/from";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Lumenati Tattoo <onboarding@resend.dev>",
+        from: emailFrom(),
         to: [client.email],
         subject: reschedule ? `Your appointment time changed — now ${when}` : `Reminder: your appointment is ${when}`,
         html: renderY2kEmail({

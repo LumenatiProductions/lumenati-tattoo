@@ -5,6 +5,7 @@ import { isSmsConfigured, sendSms } from "@/lib/sms";
 import { logOpsEvent } from "@/lib/ops-events";
 import { streamEnabledMap } from "@/lib/messaging/streams";
 import { shopDay } from "@/lib/dates";
+import { emailFrom } from "@/lib/email/from";
 
 // In-house rent generation (rent-invoices-schema.sql). Runs in the daily ops
 // fan-out AND behind the Rent page's Generate button: for every active booth
@@ -200,7 +201,7 @@ export async function nudgeRentInvoices(client: SupabaseClient) {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM || "Lumenati Tattoo <onboarding@resend.dev>",
+          from: emailFrom(),
           to: [who.email],
           subject: `Booth rent ${inv.period}`,
           text: body,

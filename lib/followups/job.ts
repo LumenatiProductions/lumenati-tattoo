@@ -12,6 +12,7 @@ import {
 import { isSmsConfigured, normalizePhone, sendSms } from "@/lib/sms";
 import { logOpsEvent } from "@/lib/ops-events";
 import { shopDay } from "@/lib/dates";
+import { emailFrom } from "@/lib/email/from";
 
 // Don't backfill ancient history: only completed bookings within this window get
 // auto-enqueued, so the first run can't blast months of old clients.
@@ -437,10 +438,8 @@ async function postResend(to: string, subject: string, html: string, fromName?: 
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      // RESEND_FROM (once a verified domain is moved over) wins; otherwise the
-      // sandbox sender is labelled with the sending shop's name so a client of
-      // another shop never sees "Lumenati" as the sender.
-      from: process.env.RESEND_FROM || `${fromName?.trim() || SHOP_NAME} <onboarding@resend.dev>`,
+      // Verified address from RESEND_FROM, labelled with the sending shop.
+      from: emailFrom(fromName),
       to: [to],
       subject,
       html,
