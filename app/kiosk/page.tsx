@@ -637,8 +637,9 @@ function PrevueGuide({
   useEffect(() => {
     const el = list.current;
     if (!el) return;
-    // Open on the channel you're watching, a couple of rows down from the top.
-    el.scrollTop = Math.max(0, current * ROW_H - ROW_H * 2);
+    // Open on the channel you're watching, a few rows down so it stays in view
+    // for a while as the grid crawls.
+    el.scrollTop = Math.max(0, current * ROW_H - ROW_H * 5);
     let raf = 0;
     let last = performance.now();
     const step = (t: number) => {
