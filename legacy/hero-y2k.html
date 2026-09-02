@@ -643,7 +643,9 @@
   }, 1000);
 })();
 
-// Visitor counter — increments per unique visit, persists in localStorage
+// Visitor counter — a real one. /api/visitors keeps the count; each browser
+// session bumps it once, everyone else just reads it. The last number seen
+// paints instantly so the sign never sits blank while the fetch is out.
 (function() {
   var container = document.getElementById('lmn-counter-nums');
   if (!container) return;
@@ -659,17 +661,17 @@
     }
   }
 
-  // Base number + localStorage visits
-  var BASE = 4271;
-  var visits = parseInt(localStorage.getItem('lmn-visits') || '0');
-
-  // Increment once per session
-  if (!sessionStorage.getItem('lmn-counted')) {
-    visits++;
-    localStorage.setItem('lmn-visits', visits);
-    sessionStorage.setItem('lmn-counted', '1');
-  }
-
-  renderCount(BASE + visits);
+  var last = parseInt(localStorage.getItem('lmn-visitor-last') || '0', 10);
+  renderCount(last || 4300);
+  var counted = sessionStorage.getItem('lmn-counted');
+  fetch('/api/visitors', { method: counted ? 'GET' : 'POST', credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (typeof j.count !== 'number') return;
+      if (!counted) sessionStorage.setItem('lmn-counted', '1');
+      localStorage.setItem('lmn-visitor-last', String(j.count));
+      renderCount(j.count);
+    })
+    .catch(function() {});
 })();
 </script>
