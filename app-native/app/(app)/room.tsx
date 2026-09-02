@@ -105,6 +105,15 @@ export default function MyRoom() {
   // so the video fields are optional: on a DB without the video_url/video_title
   // columns, those sections simply don't render and saves don't touch them.
   const [arcadeReady, setArcadeReady] = useState(false);
+  // Lumenati's own site (Y2K theme) has the Winamp track, wall stickers,
+  // posters and the page video. Other shops' themes have none of those, so
+  // their artists never see the controls.
+  const [y2k, setY2k] = useState(false);
+  useEffect(() => {
+    if (!shopId) return;
+    supabase.from("shops").select("template").eq("id", shopId).maybeSingle()
+      .then(({ data }) => setY2k((data?.template as string | null) === "y2k"));
+  }, [shopId]);
   const [titleReady, setTitleReady] = useState(false);
   useEffect(() => {
     (async () => {
@@ -441,13 +450,15 @@ export default function MyRoom() {
 
             <SectionTitle>Page vibe</SectionTitle>
             <Card>
-              <Chips
-                label="Winamp track"
-                value={room.song_id}
-                options={SONGS.map((s) => s.id)}
-                display={(id) => SONGS.find((s) => s.id === id)?.label ?? id}
-                onChange={(v) => set("song_id", v)}
-              />
+              {y2k && (
+                <Chips
+                  label="Winamp track"
+                  value={room.song_id}
+                  options={SONGS.map((s) => s.id)}
+                  display={(id) => SONGS.find((s) => s.id === id)?.label ?? id}
+                  onChange={(v) => set("song_id", v)}
+                />
+              )}
               <Text style={styles.label}>Accent color</Text>
               <View style={styles.swatches}>
                 {COLORS.map((c) => (
@@ -462,7 +473,7 @@ export default function MyRoom() {
               </View>
             </Card>
 
-            {arcadeReady && (
+            {arcadeReady && y2k && (
               <>
                 <SectionTitle>Page video</SectionTitle>
                 <Card>
@@ -502,6 +513,8 @@ export default function MyRoom() {
               </>
             )}
 
+            {y2k && (
+            <>
             <SectionTitle>Stickers</SectionTitle>
             <Card>
               <Text style={styles.note}>
@@ -546,6 +559,9 @@ export default function MyRoom() {
               />
               <Button label={saving ? "Uploading…" : "Add a poster"} tone="ghost" onPress={addPoster} disabled={saving || (room.posters ?? []).length >= 4} />
             </Card>
+
+            </>
+            )}
 
             <SectionTitle>Polaroids</SectionTitle>
             <Card>

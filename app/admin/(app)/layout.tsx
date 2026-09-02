@@ -33,9 +33,16 @@ export default async function AppLayout({
   // Membership check (server-side; the billing columns have no client grants).
   // Fails OPEN — a hiccup here must never lock a paying shop out of its books.
   let billing: BillingShellState | null = null;
+  // Which public shape this shop's pages take: y2k = Lumenati's own site,
+  // anything else = artist pages + a roster page under /s/<slug>.
+  let shopSlug: string | null = null;
+  let shopTemplate: string | null = null;
   if (profile.shop_id) {
     const admin = createAdminClient();
     if (admin) {
+      const { data: pub } = await admin.from("shops").select("slug, template").eq("id", profile.shop_id).maybeSingle();
+      shopSlug = (pub?.slug as string | null) ?? null;
+      shopTemplate = (pub?.template as string | null) ?? null;
       const { data: shop } = await admin
         .from("shops")
         .select(SHOP_BILLING_COLS)
@@ -54,6 +61,8 @@ export default async function AppLayout({
       realRole={normalizeRole(profile.role)}
       realArtistId={profile.artist_id}
       shopId={profile.shop_id ?? null}
+      shopSlug={shopSlug}
+      shopTemplate={shopTemplate}
       email={profile.email}
       fullName={profile.full_name}
     >

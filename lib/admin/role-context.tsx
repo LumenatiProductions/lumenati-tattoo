@@ -18,6 +18,11 @@ type RoleCtx = {
   canPreview: boolean;
   /** profiles.shop_id — scope every roster/public-table read to this. */
   shopId: string | null;
+  /** shops.slug + shops.template: where the shop's public pages live and which look they wear. */
+  shopSlug: string | null;
+  shopTemplate: string | null;
+  /** Lumenati's own site (rooms, arcade, Winamp) — the one shop with the Y2K theme. */
+  isY2k: boolean;
 };
 
 const Ctx = createContext<RoleCtx | null>(null);
@@ -28,6 +33,8 @@ export function RoleProvider({
   email,
   fullName,
   shopId,
+  shopSlug = null,
+  shopTemplate = null,
   children,
 }: {
   realRole: Role;
@@ -35,6 +42,8 @@ export function RoleProvider({
   email: string;
   fullName: string | null;
   shopId: string | null;
+  shopSlug?: string | null;
+  shopTemplate?: string | null;
   children: React.ReactNode;
 }) {
   const canPreview = realRole === "owner";
@@ -81,7 +90,7 @@ export function RoleProvider({
 
   return (
     <Ctx.Provider
-      value={{ role, setRole, asArtistId, setAsArtistId, email, fullName, realRole, canPreview, shopId }}
+      value={{ role, setRole, asArtistId, setAsArtistId, email, fullName, realRole, canPreview, shopId, shopSlug, shopTemplate, isY2k: shopTemplate === "y2k" }}
     >
       {children}
     </Ctx.Provider>

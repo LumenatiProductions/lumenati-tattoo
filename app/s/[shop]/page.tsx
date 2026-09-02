@@ -31,7 +31,8 @@ export default async function ShopPage({ params }: { params: Promise<{ shop: str
       </header>
 
       <main className="mx-auto max-w-3xl px-5 pb-16">
-        <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">The artists</h2>
+        <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">The artists</h2>
+        <p className="mb-4 text-sm text-zinc-500">Pick an artist to see their work and book a time.</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {artists.map((a, i) => {
             const room = rooms[i];

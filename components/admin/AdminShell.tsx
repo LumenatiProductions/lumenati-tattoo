@@ -98,7 +98,7 @@ function Sidebar({
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
-  const { role, setRole, asArtistId, setAsArtistId, canPreview, email } = useRole();
+  const { role, setRole, asArtistId, setAsArtistId, canPreview, email, isY2k, shopSlug } = useRole();
   const { artists } = useArtists();
   const pathname = usePathname();
   const router = useRouter();
@@ -267,15 +267,17 @@ function Sidebar({
         )}
 
         <BugReporter variant="rail" collapsed={collapsed} />
+        {/* Lumenati opens its own site; every other shop opens its roster page,
+            because that IS its public presence here (the shop keeps its own website). */}
         <a
-          href="/"
+          href={isY2k || !shopSlug ? "/" : `/s/${shopSlug}`}
           target="_blank"
           rel="noreferrer"
-          title={collapsed ? "View site" : undefined}
+          title={collapsed ? (isY2k ? "View site" : "View my pages") : undefined}
           className={rowCls(false)}
         >
           <NavIcon name="viewsite" className="h-4 w-4 shrink-0 text-white/55" />
-          {!collapsed && <span>View site</span>}
+          {!collapsed && <span>{isY2k ? "View site" : "View my pages"}</span>}
         </a>
         <button onClick={logout} title={collapsed ? "Log out" : undefined} className={`w-full ${rowCls(false)}`}>
           <NavIcon name="logout" className="h-4 w-4 shrink-0 text-white/55" />
@@ -418,6 +420,8 @@ export default function AdminShell({
   email,
   fullName,
   shopId,
+  shopSlug = null,
+  shopTemplate = null,
   billing = null,
   children,
 }: {
@@ -426,11 +430,13 @@ export default function AdminShell({
   email: string;
   fullName: string | null;
   shopId: string | null;
+  shopSlug?: string | null;
+  shopTemplate?: string | null;
   billing?: BillingShellState | null;
   children: React.ReactNode;
 }) {
   return (
-    <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName} shopId={shopId}>
+    <RoleProvider realRole={realRole} realArtistId={realArtistId} email={email} fullName={fullName} shopId={shopId} shopSlug={shopSlug} shopTemplate={shopTemplate}>
       <ArtistsProvider shopId={shopId}>
         <RoomContentProvider>
           <SalesProvider>

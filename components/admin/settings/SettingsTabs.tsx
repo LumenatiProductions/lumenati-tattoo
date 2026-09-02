@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChips, PageHeader } from "@/components/admin/ui";
+import { useRole } from "@/lib/admin/role-context";
 import ShopBranding from "@/components/admin/settings/ShopBranding";
 import BillingTab from "@/components/admin/settings/BillingTab";
 import HealthTab from "@/components/admin/settings/HealthTab";
@@ -33,6 +34,8 @@ export default function SettingsTabs({ square }: { square: SquareProps | null })
 
 function SettingsInner({ square }: { square: SquareProps | null }) {
   const router = useRouter();
+  const { shopSlug, isY2k } = useRole();
+  const pagesUrl = typeof window === "undefined" ? `/s/${shopSlug ?? ""}` : `${window.location.origin}/s/${shopSlug ?? ""}`;
   const params = useSearchParams();
   const tabs: { key: TabKey; label: string }[] = [
     { key: "shop", label: "Shop" },
@@ -54,7 +57,16 @@ function SettingsInner({ square }: { square: SquareProps | null }) {
       <div className="mt-2">
         {tab === "shop" && (
           <>
-            <p className="mb-5 text-sm text-white/65">Your shop&apos;s logo and the look every artist page wears.</p>
+            <p className="mb-2 text-sm text-white/65">Your shop&apos;s logo and the look every artist page wears.</p>
+            {!isY2k && shopSlug && (
+              <p className="mb-5 text-sm text-white/65">
+                Your artists&apos; pages live at{" "}
+                <a href={pagesUrl} target="_blank" rel="noreferrer" className="font-medium text-white underline underline-offset-2">
+                  {pagesUrl.replace(/^https?:\/\//, "")}
+                </a>
+                . That is a booking page, not a website. Keep your site and link to it.
+              </p>
+            )}
             <ShopBranding />
           </>
         )}

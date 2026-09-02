@@ -30,7 +30,7 @@ let uid = 0;
 const newId = (p: string) => `${p}-${Date.now().toString(36)}-${uid++}`;
 
 export default function RoomEditorPage() {
-  const { role, asArtistId } = useRole();
+  const { role, asArtistId, isY2k } = useRole();
   const { get, update, saveState, ready } = useRoomContent();
   const { artists } = useArtists();
 
@@ -192,6 +192,8 @@ export default function RoomEditorPage() {
             <SectionTitle>Vibe</SectionTitle>
             <Card>
               <div className="space-y-4 p-4">
+                {/* Winamp only exists on Lumenati's own site; other shops' themes have no player. */}
+                {isY2k && (
                 <Field label="Now-playing song">
                   <select
                     className="inp"
@@ -205,6 +207,7 @@ export default function RoomEditorPage() {
                     ))}
                   </select>
                 </Field>
+                )}
                 <Field label="Accent color">
                   <div className="flex flex-wrap items-center gap-2">
                     {COLOR_PRESETS.map((c) => (
