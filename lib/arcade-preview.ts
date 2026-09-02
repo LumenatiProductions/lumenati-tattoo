@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { GAME_CATALOG } from "@/lib/admin/render-room";
+import { GAME_CATALOG } from "@/lib/arcade/catalog";
 
 // Two flavors of a standalone, playable arcade window:
 // - /arcade/<game>            — the try-the-games screen with a switcher row.

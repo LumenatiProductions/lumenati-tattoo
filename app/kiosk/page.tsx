@@ -10,6 +10,7 @@ import {
   type KioskBooking,
 } from "@/lib/kiosk/api";
 import { LumenatiLogo } from "@/components/brand/LumenatiLogo";
+import { ARCADE_OPEN_EVENT } from "@/components/kiosk/KioskArcade";
 
 type Screen = "loading" | "setup" | "notconfigured" | "welcome" | "list" | "detail" | "done";
 
@@ -706,9 +707,20 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
         </p>
       </div>
 
-      {/* TV remote — bottom corner, isolated from the check-in tap. */}
+      {/* TV remote — bottom corner, isolated from the check-in tap. ARCADE
+          switches the set over to the game cabinet (KioskArcade, in the layout). */}
+      <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new Event(ARCADE_OPEN_EVENT));
+          }}
+          className="f-pixel rounded-lg border-2 border-pink-500/80 bg-black/70 px-5 py-3.5 text-sm text-pink-400 hover:text-pink-200"
+        >
+          ARCADE
+        </button>
       {tv !== null && (
-        <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+        <>
           <button
             onClick={changeChannel(-1)}
             className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-4 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
@@ -731,8 +743,9 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
           >
             {soundOn ? "♪ ON" : "♪ OFF"}
           </button>
-        </div>
+        </>
       )}
+      </div>
     </div>
   );
 }

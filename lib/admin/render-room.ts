@@ -1,5 +1,7 @@
 import { readLegacyBlock } from "@/lib/legacy";
 import type { RoomContent } from "./types";
+import { GAME_CATALOG } from "@/lib/arcade/catalog";
+export { GAME_CATALOG };
 
 // Renders a public artist room by templating JD's room (the reference room)
 // with an artist's RoomContent. JD keeps his extras (skate game + video); every
@@ -33,17 +35,6 @@ export const STICKER_CATALOG = [
 // game lives in the template (JD's default); the rest live in legacy/games/
 // as drop-in IIFEs that share the template's window shell. The app's picker
 // mirrors id + label.
-export const GAME_CATALOG = [
-  { id: "skate", label: "Ink or Die", exe: "ink_or_die.exe", hint: "SPACE ollie // arrows: tricks + manual" },
-  { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer // machine +50" },
-  { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows, mouse or drag // SPACE launches" },
-  { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires // drag on phones" },
-  { id: "pong", label: "Needle Pong", exe: "needlepong.exe", hint: "W/S, mouse or drag // first to 5", statA: "You", statB: "CPU", livesInit: "0" },
-  { id: "frogger", label: "Walk-In", exe: "walkin.exe", hint: "Arrows or tap to hop // fill all 3 chairs" },
-  { id: "steady", label: "Steady Hand", exe: "steadyhand.exe", hint: "Up/Down or drag // stay on the stencil", statB: "Trust" },
-  { id: "shoprush", label: "Shop Rush", exe: "shoprush.exe", hint: "Arrows or tap to run // seat, then collect", statA: "Cash", statB: "Rep" },
-  { id: "flashmatch", label: "Flash Match", exe: "flashmatch.exe", hint: "Tap a card, or arrows + SPACE // find the pairs" },
-] as const;
 // Each game also writes its hint (and pong its You/CPU labels) into the
 // status bar at init, so the shell is right even before the renderer swap.
 

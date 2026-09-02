@@ -1,5 +1,6 @@
 import "./kiosk.css";
 import { Press_Start_2P, VT323, Share_Tech_Mono } from "next/font/google";
+import KioskArcade from "@/components/kiosk/KioskArcade";
 
 // FULL Y2K kiosk shell. Front-of-house, so it wears the public site's neon/CRT
 // look (not the clean Lumenati console). next/font loads the three retro faces;
@@ -30,6 +31,8 @@ export default function KioskLayout({ children }: { children: React.ReactNode })
       className={`${pixel.variable} ${vt.variable} ${techmono.variable} scanlines y2k-bg relative flex min-h-screen flex-col text-cream`}
     >
       <main className="flicker relative z-10 flex flex-1 flex-col">{children}</main>
+      {/* The arcade cabinet lives outside the screens so its scripts bind once. */}
+      <KioskArcade />
     </div>
   );
 }
