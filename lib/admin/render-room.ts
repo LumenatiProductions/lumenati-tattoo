@@ -64,15 +64,18 @@ export function renderRoomHtml(
   let html = readLegacyBlock("artist-page-y2k.html");
   const firstName = name.split(" ")[0];
 
-  // Closed books: every Book CTA becomes the waitlist door. The /request form
-  // preselects this artist and the API files the ask on their waitlist.
-  if (opts?.booksClosed) {
-    const waitHref = `/request?artist=${escAttr(content.artistId)}`;
+  // Booking from a room is booking with THIS artist: every Book door opens the
+  // request form with them preselected (self-serve slots if they publish them,
+  // otherwise a request that pings their phone). Closed books make it the
+  // waitlist door. The label carries their full name so the client knows.
+  {
+    const bookHref = `/request?artist=${escAttr(content.artistId)}`;
+    const label = opts?.booksClosed ? `Join ${esc(name)}'s waitlist` : `Book with ${esc(name)}`;
     html = html
-      .replaceAll('href="/book"', `href="${waitHref}"`)
-      .replace('<span class="br-icon-label">Book</span>', '<span class="br-icon-label">Waitlist</span>')
-      .replace(`<a class="bedroom-mobile-btn" href="${waitHref}">Book</a>`, `<a class="bedroom-mobile-btn" href="${waitHref}">Waitlist</a>`)
-      .replace(`<a href="${waitHref}" class="br-aim-btn">Book</a>`, `<a href="${waitHref}" class="br-aim-btn">Waitlist</a>`);
+      .replaceAll('href="/book"', `href="${bookHref}"`)
+      .replace('<span class="br-icon-label">Book</span>', `<span class="br-icon-label">${label}</span>`)
+      .replace(`<a class="bedroom-mobile-btn" href="${bookHref}">Book</a>`, `<a class="bedroom-mobile-btn" href="${bookHref}">${label}</a>`)
+      .replace(`<a href="${bookHref}" class="br-aim-btn">Book</a>`, `<a href="${bookHref}" class="br-aim-btn">${label}</a>`);
   }
   // Instagram: the connected socials bag wins; the legacy ig_handle field is
   // the fallback so old rooms render unchanged.

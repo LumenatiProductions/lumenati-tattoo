@@ -43,14 +43,15 @@ describe("the cabinet + video", () => {
     }
   });
 
-  it("closed books swap every Book CTA for the waitlist door", () => {
+  it("every Book door books with this artist by full name; closed books make it their waitlist", () => {
     const open = renderRoomHtml(room({}), "Test Artist", false);
     const closed = renderRoomHtml(room({}), "Test Artist", false, { booksClosed: true });
-    expect(open).toContain('href="/book"');
-    expect(open).not.toContain("Waitlist");
+    expect(open).not.toContain('href="/book"');
+    expect(open).toContain('href="/request?artist=test"');
+    expect((open.match(/>Book with Test Artist</g) ?? []).length).toBe(3);
+    expect(open).not.toContain("waitlist");
     expect(closed).not.toContain('href="/book"');
-    expect(closed).toContain('href="/request?artist=test"');
-    expect((closed.match(/>Waitlist</g) ?? []).length).toBe(3);
+    expect((closed.match(/>Join Test Artist&#39;s waitlist</g) ?? []).length + (closed.match(/>Join Test Artist's waitlist</g) ?? []).length).toBe(3);
   });
 
   it("socials render as desktop icons, mobile buttons, and buddy-info links", () => {
