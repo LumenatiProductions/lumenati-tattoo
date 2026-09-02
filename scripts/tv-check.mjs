@@ -8,6 +8,7 @@
 //
 // Needs playwright: set PLAYWRIGHT_DIR to a node_modules/playwright folder
 // (e.g. another project's) or install it here. Uses the installed Google Chrome.
+const { chromium } = await import(`${process.env.PLAYWRIGHT_DIR ?? "playwright"}/index.mjs`);
 const ids = process.argv.slice(2);
 const ms = 15000;
 const browser = await chromium.launch({ headless: true, channel: "chrome" });
