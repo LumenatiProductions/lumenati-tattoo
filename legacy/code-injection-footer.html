@@ -396,9 +396,7 @@
   .aol-brand .caps { font-family:Arial,sans-serif; font-weight:bold; font-size:10px; letter-spacing:2.2px; }
   .aol-brand .script { font-family:'Snell Roundhand','Brush Script MT','Segoe Script',cursive; font-size:30px; margin-top:-2px; letter-spacing:0.5px; }
   .aol-ver { z-index:1; margin-top:auto; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; }
-  .aol-ver .runner { width:22px; height:22px; position:relative; }
-  .aol-ver .runner .tri { position:absolute; inset:0; background:#fff; clip-path:polygon(50% 0, 100% 100%, 0 100%); }
-  .aol-ver .runner img { position:absolute; left:50%; top:60%; width:12px; transform:translate(-50%,-50%); }
+  .aol-pyr.mini { width:26px; height:26px; } .aol-pyr.mini img { width:12px; }
   .aol-right { flex:1; padding:34px 18px 12px 22px; display:flex; flex-direction:column; }
   .aol-fld { margin-bottom:12px; }
   .aol-fld label { display:block; font-weight:bold; font-size:11px; margin-bottom:3px; }
@@ -414,15 +412,22 @@
   #aol-skip:hover { color:#fff; }
   #aol-click-prompt { position:fixed; inset:0; z-index:99999998; display:flex; align-items:center; justify-content:center; background:#008080; }
   #aol-login-box { width:372px; max-width:94vw; } #aol-dialog { width:440px; max-width:94vw; }
-  /* Connecting: same split window, the steps take the right panel */
-  #aol-steps { min-height:104px; }
-  .aol-step { font-size:11px; color:#444; margin:6px 0; padding-left:20px; position:relative; opacity:0; transition:opacity 0.3s ease; overflow:hidden; }
-  .aol-step:before { content:''; position:absolute; left:2px; top:1px; width:10px; height:10px; border:1px solid; border-color:#808080 #fff #fff #808080; background:#fff; }
-  .aol-step.visible { opacity:1; } .aol-step.active { color:#000; font-weight:bold; } .aol-step.done { color:#000; font-weight:normal; }
-  .aol-step .check { position:absolute; left:2px; top:-2px; color:#000; font-size:12px; font-weight:bold; }
-  .modem-noise { font-family:'Courier New',monospace; letter-spacing:1px; color:#666; } .modem-noise:before { display:none; }
-  #aol-progress-wrap { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #000; height:18px; padding:2px; margin-top:auto; }
+  /* Connecting: icon tiles light up one by one, the mark runs along the bar */
+  .aol-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; }
+  .aol-tile { background:#dcd8cc; border:1px solid; border-color:#808080 #fff #fff #808080; padding:6px 4px 5px; text-align:center; opacity:0.4; transition:opacity 0.3s, background 0.3s; position:relative; }
+  .aol-tile.visible { opacity:1; } .aol-tile.active { background:#fff; border-color:#1a3a98; box-shadow:0 0 0 1px #1a3a98; animation:aol-blink 0.9s steps(2) infinite; }
+  .aol-tile.done { opacity:1; background:#eef1fb; animation:none; border-color:#808080 #fff #fff #808080; box-shadow:none; }
+  .aol-tile .ico { width:32px; height:32px; margin:0 auto 4px; } .aol-tile .ico svg { width:32px; height:32px; }
+  .aol-tile .cap { font-size:9px; line-height:1.15; color:#222; min-height:22px; }
+  .aol-tile.done:after { content:'\2713'; position:absolute; top:-6px; right:-5px; width:14px; height:14px; background:#1a3a98; color:#fff; font-size:10px; font-weight:bold; line-height:14px; text-align:center; border:1px solid #fff; }
+  @keyframes aol-blink { 50% { box-shadow:0 0 0 1px transparent; border-color:#808080 #fff #fff #808080; } }
+  .aol-step:not(.aol-tile) { opacity:0; transition:opacity 0.3s; } .aol-step:not(.aol-tile).visible { opacity:1; }
+  .modem-noise { font-family:'Courier New',monospace; font-size:10px; letter-spacing:1px; color:#666; text-align:center; min-height:13px; }
+  #aol-track { position:relative; margin-top:auto; padding-top:22px; }
+  #aol-progress-wrap { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #000; height:18px; padding:2px; }
   #aol-progress-bar { height:100%; width:0%; transition:width 0.4s ease; background:repeating-linear-gradient(90deg,#000080 0 8px,#fff 8px 10px); }
+  #aol-runner { position:absolute; top:0; left:0; transition:left 0.4s ease; margin-left:-13px; }
+  #aol-runner .aol-pyr.mini .tri { background:#1a3a98; } #aol-runner .aol-pyr.mini .tri2 { background:#fff; } #aol-runner .aol-pyr.mini img { filter:none; }
   #aol-welcome { display:none; text-align:center; font-family:'Snell Roundhand','Brush Script MT','Segoe Script',cursive; font-size:30px; color:#1a3a98; margin:0 0 6px; animation:aol-pulse 0.6s ease-in-out 2; }
   #aol-welcome small { display:block; font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#222; margin-top:2px; }
   @keyframes aol-pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
@@ -437,18 +442,18 @@
       <div class="aol-left">
         <div class="aol-pyr"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati"></div>
         <div class="aol-brand"><div class="caps">LUMENATI</div><div class="script">OnLine</div></div>
-        <div class="aol-ver"><div class="runner"><div class="tri"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><span>version 4.0</span></div>
+        <div class="aol-ver"><div class="aol-pyr mini"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><span>version 4.0</span></div>
       </div>
       <div class="aol-right">
-        <div id="aol-steps">
-          <div class="aol-step" id="aol-s1">Step 1: Dialing 1-800-LUMENATI...</div>
-          <div class="modem-noise aol-step" id="aol-noise">BZZZT KRRRRR EEEE SHHHHH DRRRRR SQUEEEEE</div>
-          <div class="aol-step" id="aol-s2">Step 2: Verifying you're cool enough...</div>
-          <div class="aol-step" id="aol-s3">Step 3: Stealing mom's phone line...</div>
-          <div class="aol-step" id="aol-s4">Step 4: Loading tattoo flash at 56kbps...</div>
+        <div class="aol-tiles">
+          <div class="aol-tile aol-step" id="aol-s1"><div class="ico"><svg viewBox="0 0 32 32"><path d="M6 6h20v6H6z" fill="#c0c0c0" stroke="#000"/><path d="M4 12h24v14H4z" fill="#e8e4d8" stroke="#000"/><rect x="8" y="15" width="16" height="8" fill="#1a3a98"/><circle cx="12" cy="19" r="1.5" fill="#7fff00"/><circle cx="17" cy="19" r="1.5" fill="#ffd600"/><circle cx="22" cy="19" r="1.5" fill="#ff3b30"/><path d="M26 8c3 3 3 8 0 11" fill="none" stroke="#000" stroke-width="1.5"/></svg></div><div class="cap">Dialing<br>1&#8209;800&#8209;LUMENATI</div></div>
+          <div class="aol-tile aol-step" id="aol-s2"><div class="ico"><svg viewBox="0 0 32 32"><path d="M2 12h28" stroke="#000" stroke-width="2"/><path d="M4 12c0 7 2 10 7 10s7-3 7-10zm14 0c0 7 2 10 7 10s7-3 7-10z" fill="#111" stroke="#000"/><path d="M6 14l4 3M20 14l4 3" stroke="#6cf" stroke-width="1.5"/></svg></div><div class="cap">Verifying you're cool enough</div></div>
+          <div class="aol-tile aol-step" id="aol-s3"><div class="ico"><svg viewBox="0 0 32 32"><rect x="4" y="4" width="10" height="16" rx="1" fill="#ece9d8" stroke="#000"/><rect x="7" y="7" width="4" height="6" fill="#1a3a98"/><path d="M9 20c0 6 4 6 8 6s7 0 7-6" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="2 1.5"/><path d="M20 6h8v8h-8z" fill="#ffd600" stroke="#000"/><path d="M22 10h4M24 8v4" stroke="#000"/></svg></div><div class="cap">Stealing mom's phone line</div></div>
+          <div class="aol-tile aol-step" id="aol-s4"><div class="ico"><svg viewBox="0 0 32 32"><path d="M8 4l6 6-2 2-6-6z" fill="#888" stroke="#000"/><rect x="10" y="9" width="12" height="7" transform="rotate(45 16 12.5)" fill="#c0c0c0" stroke="#000"/><path d="M17 15l8 8" stroke="#000" stroke-width="2.5"/><path d="M24 22l3 3" stroke="#000" stroke-width="1.2"/><circle cx="9" cy="24" r="4" fill="#ff1493" stroke="#000"/><path d="M6 9c-3 0-3 4 0 4" fill="none" stroke="#000"/></svg></div><div class="cap">Loading flash at 56k</div></div>
         </div>
+        <div class="modem-noise aol-step" id="aol-noise">BZZZT KRRRRR EEEE SHHHHH DRRRRR SQUEEEEE</div>
         <div id="aol-welcome">Welcome!<small>You've got ink.</small></div>
-        <div id="aol-progress-wrap"><div id="aol-progress-bar"></div></div>
+        <div id="aol-track"><div id="aol-progress-wrap"><div id="aol-progress-bar"></div></div><div id="aol-runner"><div class="aol-pyr mini"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div></div></div>
       </div>
     </div>
   </div>
@@ -461,7 +466,7 @@
       <div class="aol-left">
         <div class="aol-pyr"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati"></div>
         <div class="aol-brand"><div class="caps">LUMENATI</div><div class="script">OnLine</div></div>
-        <div class="aol-ver"><div class="runner"><div class="tri"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><span>version 4.0</span></div>
+        <div class="aol-ver"><div class="aol-pyr mini"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><span>version 4.0</span></div>
       </div>
       <div class="aol-right">
         <div class="aol-fld"><label>Select Screen Name:</label><div class="aol-combo"><span>TattooKid98</span><div class="dd">&#9660;</div></div></div>
@@ -491,11 +496,12 @@ var loginBtn=document.getElementById('aol-login-btn');if(loginBtn)loginBtn.addEv
 clickPrompt.addEventListener('click',function(e){if(e.target===clickPrompt)startSequence();});
 function runSteps(){
 var steps=[{id:'aol-s1',delay:200,progress:5},{id:'aol-noise',delay:600,progress:15},{id:null,delay:1600,progress:25},{id:'aol-s1',delay:1800,progress:30,done:true},{id:'aol-s2',delay:1900,progress:35},{id:null,delay:2800,progress:50},{id:'aol-s2',delay:3000,progress:55,done:true},{id:'aol-s3',delay:3100,progress:60},{id:null,delay:3800,progress:70},{id:'aol-s3',delay:4000,progress:75,done:true},{id:'aol-s4',delay:4100,progress:80},{id:null,delay:4800,progress:90},{id:'aol-s4',delay:5000,progress:95,done:true},{id:'welcome',delay:5200,progress:100},{id:'dismiss',delay:6500,progress:100}];
-steps.forEach(function(step){var t=setTimeout(function(){bar.style.width=step.progress+'%';
+var runner=document.getElementById('aol-runner');
+steps.forEach(function(step){var t=setTimeout(function(){bar.style.width=step.progress+'%';if(runner)runner.style.left=step.progress+'%';
 if(step.id==='welcome'){welcome.style.display='block';try{welcomeAudio.currentTime=0;welcomeAudio.play();}catch(e){}return;}
 if(step.id==='dismiss'){dismiss();return;}if(!step.id)return;
 var el=document.getElementById(step.id);if(!el)return;el.classList.add('visible');
-if(step.done){el.classList.add('done');el.classList.remove('active');el.innerHTML='<span class="check">&#10003;</span> '+el.textContent.replace('...',' - Done');}else{el.classList.add('active');}
+if(step.done){el.classList.add('done');el.classList.remove('active');if(!el.querySelector('.cap'))el.innerHTML='<span class="check">&#10003;</span> '+el.textContent.replace('...',' - Done');}else{el.classList.add('active');}
 },step.delay);timers.push(t);});}
 })();
 </script>
