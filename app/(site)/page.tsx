@@ -2,13 +2,14 @@ import LegacyBlock from "@/components/LegacyBlock";
 import { readLegacyBlock } from "@/lib/legacy";
 import { fetchArtists } from "@/lib/admin/artists-data";
 import { fetchAllRooms } from "@/lib/admin/room-data";
-import { themeArtistsBlock } from "@/lib/site/theme-artists";
+import { renderCrewBlock } from "@/lib/site/theme-artists";
 
 // The Y2K homepage is four Squarespace code blocks stacked in order. The
 // site-wide bundle (Winamp, Clippy, AOL intro, etc.) is rendered by the (site)
-// layout, so it is intentionally not included here. The Crew section is themed
-// live from room data — accents + now-playing follow the app's picks.
-export const revalidate = 300; // the crew changes rarely; cache the render
+// layout, so it is intentionally not included here. The Crew section is BUILT
+// from the roster: one card per active artist, photo/gallery/accent/song from
+// their room. Add an artist in Admin -> Artists and they show up here.
+export const revalidate = 60; // artists edit their rooms in the app; a minute is the most the homepage lags
 
 export default async function HomePage() {
   const hero = readLegacyBlock("hero-y2k.html");
@@ -19,7 +20,7 @@ export default async function HomePage() {
 
   try {
     const [roster, rooms] = await Promise.all([fetchArtists(), fetchAllRooms()]);
-    artists = themeArtistsBlock(artists, roster, rooms);
+    artists = renderCrewBlock(artists, roster, rooms);
   } catch {
     /* data hiccup -> the hand-coded colors still stand */
   }

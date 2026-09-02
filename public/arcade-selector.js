@@ -39,6 +39,15 @@
   function sfxMove() { playSfx(660, 0.05, "square", 0.08); }
   function sfxCoin() { playSfx(988, 0.07, "square", 0.11); setTimeout(function () { playSfx(1319, 0.18, "square", 0.11); }, 70); }
 
+  // Screenshots of each game, drawn beside the list so you know what you're
+  // picking. /arcade/thumbs/<id>.jpg, captured from the real cartridges.
+  var THUMBS = {};
+  GAMES.forEach(function (g) {
+    var im = new Image();
+    im.src = "/arcade/thumbs/" + g.id + ".jpg";
+    THUMBS[g.id] = im;
+  });
+
   var mode = "menu"; // menu | playing
   var sel = 0, frame = 0, rafId = null;
   var iframe = null, menuBtn = null;
@@ -47,7 +56,8 @@
   var stars = [];
   for (var i = 0; i < 36; i++) stars.push({ x: (i * 61) % W, y: (i * 37) % H, s: (i % 3) + 1 });
 
-  var ROW_Y0 = 92, ROW_H = 20, LIST_X = 26;
+  var ROW_Y0 = 92, ROW_H = 20, LIST_X = 18, LIST_W = 196;
+  var PV_X = 226, PV_Y = 84, PV_W = 156, PV_H = 125;
 
   function draw() {
     frame++;
@@ -78,7 +88,7 @@
       if (on) {
         ctx.fillStyle = ACCENT;
         ctx.globalAlpha = 0.28 + 0.1 * Math.sin(frame * 0.15);
-        ctx.fillRect(LIST_X - 8, y - 13, W - 2 * (LIST_X - 8), 18);
+        ctx.fillRect(LIST_X - 8, y - 13, LIST_W, 18);
         ctx.globalAlpha = 1;
       }
       ctx.textAlign = "left";
@@ -86,10 +96,33 @@
       ctx.fillStyle = on ? "#fff" : "rgba(255,255,255,0.62)";
       if (on && frame % 32 < 24) ctx.fillText(">", LIST_X - 2, y);
       ctx.fillText(GAMES[r].label.toUpperCase(), LIST_X + 12, y);
-      ctx.textAlign = "right";
-      ctx.fillStyle = on ? ACCENT : "rgba(255,255,255,0.28)";
-      ctx.fillText(GAMES[r].exe, W - LIST_X, y);
     }
+
+    // Preview panel: the selected game's screenshot in a CRT-ish bezel.
+    var g = GAMES[sel];
+    ctx.fillStyle = "#000";
+    ctx.fillRect(PV_X - 4, PV_Y - 4, PV_W + 8, PV_H + 8);
+    ctx.strokeStyle = ACCENT;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(PV_X - 4, PV_Y - 4, PV_W + 8, PV_H + 8);
+    var im = THUMBS[g.id];
+    if (im && im.complete && im.naturalWidth) {
+      ctx.drawImage(im, PV_X, PV_Y, PV_W, PV_H);
+    } else {
+      ctx.fillStyle = "#0b0718";
+      ctx.fillRect(PV_X, PV_Y, PV_W, PV_H);
+      ctx.textAlign = "center";
+      ctx.font = "7px 'Press Start 2P', monospace";
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillText("NO SIGNAL", PV_X + PV_W / 2, PV_Y + PV_H / 2 + 3);
+    }
+    // Scanlines over the preview only, so it reads as a screen.
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    for (var py = PV_Y; py < PV_Y + PV_H; py += 3) ctx.fillRect(PV_X, py, PV_W, 1);
+    ctx.textAlign = "center";
+    ctx.font = "7px 'Press Start 2P', monospace";
+    ctx.fillStyle = ACCENT;
+    ctx.fillText(g.exe, PV_X + PV_W / 2, PV_Y + PV_H + 18);
 
     // Footer
     ctx.textAlign = "center";
