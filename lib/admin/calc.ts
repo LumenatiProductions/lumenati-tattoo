@@ -1,3 +1,4 @@
+import { renterSplit } from "@/lib/money/renter";
 import type { Artist, Sale } from "./types";
 
 export const fmt = (cents: number): string =>
@@ -78,9 +79,10 @@ export function statementFor(artist: Artist, sales: Sale[]): ArtistStatement {
   let contractorOwed = 0;
 
   if (type === "booth_rent") {
-    // Their money, all of it. The shop only holds what its reader collected.
+    // Their money, all of it. The shop only holds what its reader collected
+    // (lib/money/renter.ts is the one definition every surface shares).
     artistEarnings = grossService + grossTips;
-    passThroughOwed = cardService + cardTips;
+    passThroughOwed = renterSplit(cardService + cardTips, false).passThrough;
   } else if (isSplit) {
     // Same math either way: the shop keeps its cut, the artist's share goes out.
     // The DIFFERENCE is how it goes out — payroll_split becomes W-2 wages via

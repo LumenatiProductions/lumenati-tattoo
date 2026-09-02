@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { renterSplit, isCashSource } from "@/lib/money/renter";
 import { rentByPeriod } from "@/lib/rent/collected";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -112,7 +113,8 @@ type PnlPeriod = {
   key: string;
   grossCollected: number; // every dollar through the shop (service + tips)
   artistShare: number; // payroll artists' cut (their Gusto wages) — never the shop's money
-  passThrough: number; // booth renters' sales — moves through the shop, never income
+  passThrough: number; // booth renters' CARD sales — moves through the shop's reader, never income
+  renterCash: number; // booth renters' cash taken at the chair — never touched the shop; not in grossCollected
   splitIncome: number; // shop's % of split artists' service + ALL of the owner's sales
   unattributedIncome: number; // sales with no current artist -> all shop
   rentIncome: number; // booth rent collected (ledger)
@@ -130,6 +132,7 @@ const blank = (key: string): PnlPeriod => ({
   grossCollected: 0,
   artistShare: 0,
   passThrough: 0,
+  renterCash: 0,
   splitIncome: 0,
   unattributedIncome: 0,
   rentIncome: 0,
@@ -210,12 +213,12 @@ export async function GET(req: Request) {
         (q) => q.eq("shop_id", shopId).eq("deposit_status", "forfeited")),
     ]);
 
-    const grouped = new Map<string, { created_at: string; service_cents: number; tip_cents: number; artist_id: string | null }>();
+    const grouped = new Map<string, { created_at: string; service_cents: number; tip_cents: number; artist_id: string | null; source: string }>();
     for (const r of saleRows) {
       if (reversalRows.has(r.id)) continue;
       const key = `${r.source}|${(r.external_id ?? "").replace(/_(svc|tip)$/, "")}`;
       let g = grouped.get(key);
-      if (!g) grouped.set(key, (g = { created_at: r.occurred_at, service_cents: 0, tip_cents: 0, artist_id: null }));
+      if (!g) grouped.set(key, (g = { created_at: r.occurred_at, service_cents: 0, tip_cents: 0, artist_id: null, source: r.source }));
       if (r.occurred_at < g.created_at) g.created_at = r.occurred_at;
       if (r.kind === "sale") g.service_cents += r.amount_cents;
       else g.tip_cents += r.amount_cents;
@@ -237,12 +240,18 @@ export async function GET(req: Request) {
       const p = at(day);
       const svc = s.service_cents ?? 0;
       const tip = s.tip_cents ?? 0;
-      p.grossCollected += svc + tip;
       const pay = s.artist_id ? payOf.get(s.artist_id) : undefined;
       if (pay?.type === "booth_rent") {
-        // A renter's sale on the shop reader: visible flow, 100% theirs.
-        p.passThrough += svc + tip;
-      } else if (pay?.type === "payroll_salary") {
+        // The shared renter rule (lib/money/renter.ts): card = pass-through the
+        // shop holds; cash never touched the shop, so it isn't "collected".
+        const split = renterSplit(svc + tip, isCashSource(s.source));
+        p.passThrough += split.passThrough;
+        p.renterCash += split.renterCash;
+        p.grossCollected += split.passThrough;
+        continue;
+      }
+      p.grossCollected += svc + tip;
+      if (pay?.type === "payroll_salary") {
         // The salaried owner: his tickets are entirely shop money.
         p.splitIncome += svc + tip;
       } else if (pay) {
@@ -293,6 +302,7 @@ export async function GET(req: Request) {
       t.grossCollected += p.grossCollected;
       t.artistShare += p.artistShare;
       t.passThrough += p.passThrough;
+      t.renterCash += p.renterCash;
       t.splitIncome += p.splitIncome;
       t.unattributedIncome += p.unattributedIncome;
       t.rentIncome += p.rentIncome;
@@ -313,12 +323,12 @@ export async function GET(req: Request) {
       const dollars = (c: number) => (c / 100).toFixed(2);
       const csv = toCsv(
         [
-          "Period", "Gross collected", "Artist share (Gusto wages)", "Renter pass-through",
+          "Period", "Gross collected", "Artist share (Gusto wages)", "Renter pass-through", "Renter cash (theirs, never collected)",
           "Shop ticket income", "Unattributed sales", "Booth rent", "Forfeited deposits", "Income",
           ...cats.map((c) => `Expenses: ${c}`), "Expenses total", "Profit", "Owner draws", "Sales tax collected",
         ],
         [...list, totals].map((p) => [
-          p.key, dollars(p.grossCollected), dollars(p.artistShare), dollars(p.passThrough),
+          p.key, dollars(p.grossCollected), dollars(p.artistShare), dollars(p.passThrough), dollars(p.renterCash),
           dollars(p.splitIncome),
           dollars(p.unattributedIncome), dollars(p.rentIncome), dollars(p.forfeitedDeposits), dollars(p.income),
           ...cats.map((c) => dollars(p.expensesByCategory[c] ?? 0)),

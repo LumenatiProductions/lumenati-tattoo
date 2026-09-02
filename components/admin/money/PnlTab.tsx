@@ -16,6 +16,7 @@ type Period = {
   grossCollected: number;
   artistShare: number;
   passThrough: number;
+  renterCash: number;
   splitIncome: number;
   unattributedIncome: number;
   rentIncome: number;
@@ -250,9 +251,9 @@ export default function PnlPage() {
               </div>
             </Card>
             <p className="mt-2 px-1 text-xs text-white/55">
-              Renter pass-through ({usd(t.passThrough)}) moved through the shop&apos;s reader but
-              belongs to the booth renters. It shows in Gross collected and its own column, never
-              in income.
+              Renter pass-through ({usd(t.passThrough)}) is renters&apos; card money the shop&apos;s reader
+              collected and is holding for them. It shows in Gross collected and its own column, never
+              in income.{t.renterCash > 0 ? ` Renters also took ${usd(t.renterCash)} in cash at the chair; that never touched the shop and is in neither.` : ""}
             </p>
           </div>
           <div>
