@@ -16,12 +16,6 @@ import CoachDeck from "@/components/CoachDeck";
 import { cumulativeSeries, daysInRange, earnedInRange, last7Days, startOf, type Range } from "@/lib/personal";
 import { loadShopMoney, shopCoachTips, type ShopMoney } from "@/lib/shop-coach";
 
-// Local YYYY-MM-DD (the shop day, not UTC).
-const todayLocal = () => {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-};
-
 type StaffStats = {
   apptsToday: number;
   checkedIn: number;
@@ -77,16 +71,21 @@ export default function ShopHome({
   useEffect(() => {
     if (!shopId) return;
     (async () => {
-      const date = todayLocal();
       const nowIso = new Date().toISOString();
+      // Today on the phone's clock, as real instants. A bare date string
+      // compares as UTC midnight, which cut the evening off the day (6:30 PM
+      // Denver is past "T23:59:59" UTC) and undercounted "appointments today".
+      const n = new Date();
+      const dayStart = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+      const dayEnd = new Date(dayStart.getTime() + 86400000);
       const [shopMoney, apptRes, invRes, fuRes, heldRes, compRes, artistsRes, shopRes, rentRes, waitRes] =
         await Promise.all([
           loadShopMoney(),
           supabase
             .from("bookings")
             .select("checked_in_at, status")
-            .gte("starts_at", date)
-            .lte("starts_at", `${date}T23:59:59.999`)
+            .gte("starts_at", dayStart.toISOString())
+            .lt("starts_at", dayEnd.toISOString())
             .neq("status", "cancelled"),
           supabase.from("inventory_items").select("name, qty, reorder_at"),
           supabase.from("followups").select("id", { count: "exact", head: true }).eq("status", "pending").lte("scheduled_for", nowIso),
