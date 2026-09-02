@@ -494,13 +494,13 @@ export async function sendFollowupRow(
   };
   if (row.kind === "healed_photo") {
     // The followup's own uuid is the upload capability — see /api/healed.
-    const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app";
+    const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenatitattoo.com";
     tokens.healed_link = `${base}/healed/${row.id}`;
   }
   if (row.kind === "aftercare") {
     // Same capability pattern: this row's uuid opens the client's day-by-day
     // care timeline (/care/<id> — see /api/care).
-    const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app";
+    const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lumenatitattoo.com";
     tokens.care_link = `${base}/care/${row.id}`;
   }
   if (REMINDER_KINDS.includes(row.kind)) {

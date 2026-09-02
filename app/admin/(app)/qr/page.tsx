@@ -13,7 +13,7 @@ import { PageHead } from "@/components/admin/home/shared";
 // QR is rendered the same way the print card does it: the `qrcode` lib as an
 // inline SVG (dark modules on a white tile), so both cards read identically.
 
-const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenatitattoo.com").replace(/\/$/, "");
 
 // A tenant artist's public page lives at /s/<shop>/<artist>; their stored slug
 // is globally unique as "<shop>--<artist>". Lumenati's own artists live at the

@@ -42,7 +42,7 @@ export default async function ArtistCardPage({
     .maybeSingle();
   if (!artist) notFound();
 
-  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenatitattoo.com").replace(/\/$/, "");
   const url = `${base}/${artist.slug}`;
   const prettyUrl = url.replace(/^https?:\/\//, "");
   // Dark modules on the white tile — the high-contrast direction every phone

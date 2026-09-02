@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     minute: "2-digit",
     timeZone: SHOP_TZ,
   }).format(startsAt);
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://lumenatitattoo.com").replace(/\/$/, "");
 
   let texted = 0;
   const failures: string[] = [];

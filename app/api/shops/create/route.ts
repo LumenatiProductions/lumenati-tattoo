@@ -192,7 +192,7 @@ export async function POST(req: Request) {
     full_name: (b.ownerName ?? "").trim() || null,
     shop_id: shopId,
   });
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://lumenatitattoo.com").replace(/\/$/, "");
   const { data: invData, error: invErr } = await admin.auth.admin.inviteUserByEmail(ownerEmail, {
     redirectTo: `${base}/admin`,
   });

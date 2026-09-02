@@ -3,6 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   // The Y2K assets and Winamp tracks are frozen files — let browsers and the
   // CDN keep them for a year instead of re-asking on every visit.
+  // Old Squarespace URLs that have no twin here.
+  async redirects() {
+    return [
+      { source: "/home", destination: "/", permanent: true },
+      { source: "/waiver", destination: "/contact", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

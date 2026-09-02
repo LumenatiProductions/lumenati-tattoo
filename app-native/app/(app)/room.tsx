@@ -355,7 +355,7 @@ export default function MyRoom() {
             )}
             <Text style={styles.sub}>
               {isOwner ? "Editing this public page" : "This is your public page"}
-              {slug ? ` (lumenati-tattoo.vercel.app/${slug})` : ""}. Changes go live when you save.
+              {slug ? ` (lumenatitattoo.com/${slug})` : ""}. Changes go live when you save.
             </Text>
 
             {!room ? (
