@@ -8,6 +8,9 @@ const nextConfig = {
     return [
       { source: "/home", destination: "/", permanent: true },
       { source: "/waiver", destination: "/contact", permanent: true },
+      // Flash wall is off until real flash is pinned (Scott, 2026-09-02): the
+      // page was showing the pieces we tested with. Temporary on purpose.
+      { source: "/flash-wall", destination: "/", permanent: false },
     ];
   },
   async headers() {

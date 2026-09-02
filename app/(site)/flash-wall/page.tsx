@@ -1,6 +1,7 @@
 import LegacyBlock from "@/components/LegacyBlock";
 import { readLegacyBlock } from "@/lib/legacy";
 import { getSupabase } from "@/lib/supabase";
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 // The flash wall (page-walk item 5): artists pin flash from the app and the
 // corkboard renders the real pieces. With nothing pinned yet the template's
@@ -24,6 +25,9 @@ export default async function FlashWallPage() {
       const { data } = await sb
         .from("flash_pieces")
         .select("src, title, price_cents, status, artists(name)")
+        // This wall is Lumenati's own. Without the shop filter the demo
+        // tenant's test pieces showed up here (caught 2026-09-02).
+        .eq("shop_id", LUMENATI_SHOP_ID)
         .order("created_at", { ascending: false })
         .limit(60);
       const pieces = (data ?? []) as unknown as Piece[];
