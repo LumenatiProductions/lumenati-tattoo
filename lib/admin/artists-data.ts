@@ -23,6 +23,8 @@ type Row = {
 
 // Columns the public/anon key is allowed to read. Sensitive pay columns are
 // deliberately excluded so `select *` never trips the column-level lockdown.
+import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
+
 const PUBLIC_COLS = "id,slug,name,handle,color,guest,active,room_extras,sort";
 
 export function rowToArtist(r: Row): Artist {
@@ -51,6 +53,9 @@ export async function fetchArtists(): Promise<Artist[]> {
   const { data, error } = await sb
     .from("artists")
     .select(PUBLIC_COLS)
+    // The Y2K site is Lumenati's own; other shops' artists live at /s/<shop>.
+    // Without this the demo tenant's artists landed on the homepage (9/2).
+    .eq("shop_id", LUMENATI_SHOP_ID)
     .eq("active", true)
     .order("sort");
   if (error || !data || !data.length) return FALLBACK;
