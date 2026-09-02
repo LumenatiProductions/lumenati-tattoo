@@ -9,7 +9,7 @@ const DESC =
   "The business brain for tattoo shops. Lumenati coaches the shop and every artist, keeps the books, texts the follow-ups, and runs goals and taxes for every chair.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://lumenatitattoo.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://lumenatiapp.com"),
   title: TITLE,
   description: DESC,
   openGraph: {
