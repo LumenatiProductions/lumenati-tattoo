@@ -153,10 +153,13 @@
     {title:'Blink-182 -- Mutt (1999)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/blink182-mutt.m4a'},
     {title:'Marilyn Manson -- The Dope Show (1998)',src:'https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/manson-dope-show.m4a'}
   ];
-  // A room page with a music video pick (window.__ROOM_TV__, set by the room
-  // renderer) gets it as the last track: press play and the MTV window opens.
-  var roomTv=(window.__ROOM_TV__&&typeof window.__ROOM_TV__.id==='string')?window.__ROOM_TV__:null;
-  if(roomTv){playlist.push({title:'MTV -- '+roomTv.title,yt:roomTv.id});}
+  // Room pages (window.__ROOM_TV__, set by the room renderer) swap the m4a
+  // playlist for the shop TV's music video block, starting on the artist's
+  // pick. The sound comes from the YouTube player parked inside the room's
+  // Windows Media Player window; the MTV icon just slides that window in.
+  var roomTv=(window.__ROOM_TV__&&window.__ROOM_TV__.list&&window.__ROOM_TV__.list.length)?window.__ROOM_TV__:null;
+  var ytMode=!!roomTv;
+  if(ytMode){playlist=roomTv.list.map(function(c){return {title:c.name,yt:c.id,num:c.num};});}
   // Map page paths to preferred starting track index
   var pageTrackMap={
     '/jd-pruitt':1,           // Goldfinger
@@ -173,14 +176,37 @@
   var songIdMap={'offspring':0,'goldfinger':1,'no-doubt':2,'shorty':3,'outkast':4,'blink182':5,'manson':6};
   var roomSong=(typeof window.__ROOM_SONG_ID__==='string'&&songIdMap.hasOwnProperty(window.__ROOM_SONG_ID__))?songIdMap[window.__ROOM_SONG_ID__]:null;
   var currentTrack=(roomSong!==null)?roomSong:((path in pageTrackMap)?pageTrackMap[path]:Math.floor(Math.random()*playlist.length));
+  if(ytMode){currentTrack=0;for(var k=0;k<playlist.length;k++){if(playlist[k].yt===roomTv.id){currentTrack=k;break;}}}
 
-  function isYt(){return !!(playlist[currentTrack]&&playlist[currentTrack].yt);}
+  // YouTube plumbing (room pages): the IFrame API over postMessage, no SDK.
+  var yt=ytMode?document.getElementById('jd-mtv'):null,ytLoaded=ytMode?roomTv.id:null,ytDur=0;
+  function ytCmd(f,a){if(yt&&yt.contentWindow){try{yt.contentWindow.postMessage(JSON.stringify({event:'command',func:f,args:a||[]}),'*');}catch(e){}}}
+  if(ytMode){
+    setInterval(function(){if(yt&&yt.contentWindow){try{yt.contentWindow.postMessage(JSON.stringify({event:'listening',id:'winamp',channel:'widget'}),'*');}catch(e){}}},1000);
+    window.addEventListener('message',function(e){
+      if(typeof e.data!=='string'||!yt||e.source!==yt.contentWindow)return;
+      var m;try{m=JSON.parse(e.data);}catch(x){return;}
+      if(m.event==='infoDelivery'&&m.info){
+        if(typeof m.info.duration==='number'&&m.info.duration>0)ytDur=m.info.duration;
+        if(typeof m.info.currentTime==='number'){elapsed.textContent=formatTime(m.info.currentTime);if(ytDur){var pct=Math.min(100,m.info.currentTime/ytDur*100);seekFill.style.width=pct+'%';seekThumb.style.left=pct+'%';}}
+        if(m.info.playerState===1&&!isPlaying){isPlaying=true;clearActive();playBtn.classList.add('winamp-active');startEQ();}
+        if(m.info.playerState===2&&isPlaying){isPlaying=false;clearActive();pauseBtn.classList.add('winamp-active');stopEQ();}
+      }
+      if(m.event==='onStateChange'&&m.info===0){nextTrack();}
+    });
+  }
+
   function loadTrack(i){
-    if(isYt()&&window.__lmnMtvClose)window.__lmnMtvClose(true); // leaving the video track shuts its window
     currentTrack=i;
     var t=playlist[i];
-    if(t.yt){audio.pause();audio.removeAttribute('src');elapsed.textContent='MTV';seekFill.style.width='0%';seekThumb.style.left='0%';marquee.textContent=t.title+' *** video ***';}
-    else{audio.src=t.src;marquee.textContent=t.title+' ***';}
+    marquee.textContent=t.title+' ***';
+    if(ytMode){
+      elapsed.textContent='00:00';seekFill.style.width='0%';seekThumb.style.left='0%';ytDur=0;
+      if(ytLoaded!==t.yt){ytCmd(isPlaying?'loadVideoById':'cueVideoById',[{videoId:t.yt}]);ytLoaded=t.yt;}
+      if(window.__lmnMtvTitle)window.__lmnMtvTitle({name:t.title,num:t.num});
+    } else {
+      audio.src=t.src;
+    }
   }
 
   function nextTrack(){
@@ -201,19 +227,18 @@
   function formatTime(s){if(isNaN(s))return'00:00';var m=Math.floor(s/60),sec=Math.floor(s%60);return(m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;}
   audio.addEventListener('timeupdate',function(){elapsed.textContent=formatTime(audio.currentTime);if(audio.duration&&!isNaN(audio.duration)){var pct=(audio.currentTime/audio.duration)*100;seekFill.style.width=pct+'%';seekThumb.style.left=pct+'%';}});
   audio.addEventListener('ended',function(){nextTrack();});
-  seekBar.addEventListener('click',function(e){if(!audio.duration||isNaN(audio.duration))return;var rect=seekBar.getBoundingClientRect();audio.currentTime=((e.clientX-rect.left)/rect.width)*audio.duration;});
-  function setVolume(p){p=Math.max(0,Math.min(1,p));volFill.style.width=(p*100)+'%';volThumb.style.left=(p*100)+'%';audio.volume=p;}
+  seekBar.addEventListener('click',function(e){var rect=seekBar.getBoundingClientRect(),frac=(e.clientX-rect.left)/rect.width;if(ytMode){if(ytDur)ytCmd('seekTo',[frac*ytDur,true]);return;}if(!audio.duration||isNaN(audio.duration))return;audio.currentTime=frac*audio.duration;});
+  function setVolume(p){p=Math.max(0,Math.min(1,p));volFill.style.width=(p*100)+'%';volThumb.style.left=(p*100)+'%';audio.volume=p;if(ytMode)ytCmd('setVolume',[Math.round(p*100)]);}
   volTrack.addEventListener('click',function(e){var r=volTrack.getBoundingClientRect();setVolume((e.clientX-r.left)/r.width);});
   function startEQ(){if(eqInterval)return;eqInterval=setInterval(function(){for(var i=0;i<bars.length;i++)bars[i].style.height=(Math.random()*18+2)+'px';},100);}
   function stopEQ(){if(eqInterval){clearInterval(eqInterval);eqInterval=null;}for(var i=0;i<bars.length;i++)bars[i].style.height='2px';}
   function clearActive(){playBtn.classList.remove('winamp-active');pauseBtn.classList.remove('winamp-active');stopBtn.classList.remove('winamp-active');}
-  function doPlay(){if(isYt()){if(window.__lmnMtvOpen)window.__lmnMtvOpen();}else{var p=audio.play();if(p&&p.catch)p.catch(function(){});}isPlaying=true;clearActive();playBtn.classList.add('winamp-active');startEQ();}
-  function doPause(){if(isYt()){if(window.__lmnMtvCmd)window.__lmnMtvCmd('pauseVideo');}else{audio.pause();}isPlaying=false;clearActive();pauseBtn.classList.add('winamp-active');stopEQ();}
-  function doStop(){if(isYt()){if(window.__lmnMtvClose)window.__lmnMtvClose(true);}else{audio.pause();audio.currentTime=0;}isPlaying=false;clearActive();stopBtn.classList.add('winamp-active');stopEQ();elapsed.textContent=isYt()?'MTV':'00:00';seekFill.style.width='0%';seekThumb.style.left='0%';}
-  // The MTV window pauses Winamp's audio when it opens from the desktop icon,
-  // and tells Winamp when its close box shuts the video track.
-  window.__winampPauseAudio=function(){if(!isYt()&&isPlaying)doPause();};
-  window.__winampOnTvClosed=function(){if(isYt()&&isPlaying){isPlaying=false;clearActive();stopEQ();}};
+  function doPlay(){if(ytMode){var t=playlist[currentTrack];if(ytLoaded!==t.yt){ytCmd('loadVideoById',[{videoId:t.yt}]);ytLoaded=t.yt;}ytCmd('unMute');ytCmd('playVideo');}else{var p=audio.play();if(p&&p.catch)p.catch(function(){});}isPlaying=true;clearActive();playBtn.classList.add('winamp-active');startEQ();}
+  function doPause(){if(ytMode){ytCmd('pauseVideo');}else{audio.pause();}isPlaying=false;clearActive();pauseBtn.classList.add('winamp-active');stopEQ();}
+  function doStop(){if(ytMode){ytCmd('pauseVideo');ytCmd('seekTo',[0,true]);}else{audio.pause();audio.currentTime=0;}isPlaying=false;clearActive();stopBtn.classList.add('winamp-active');stopEQ();elapsed.textContent='00:00';seekFill.style.width='0%';seekThumb.style.left='0%';}
+  // The MTV icon starts the song if Winamp is idle when the window slides in.
+  window.__winampPlay=doPlay;
+  window.__winampIsPlaying=function(){return isPlaying;};
   playBtn.addEventListener('click',doPlay);pauseBtn.addEventListener('click',doPause);stopBtn.addEventListener('click',doStop);
   prevBtn.addEventListener('click',function(){prevTrack();});
   nextBtn.addEventListener('click',function(){nextTrack();});

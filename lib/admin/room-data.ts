@@ -84,7 +84,7 @@ function emptyRoom(artistId: string): RoomContent {
     posters: null,
     videoUrl: null,
     videoTitle: null,
-    tvVideoId: null,
+    tvVideoId: "7iNbnineUCI", // The Offspring, same as songId
     socials: null,
   };
 }

@@ -5,10 +5,9 @@ import SelfServeSettings from "@/components/admin/room/SelfServeSettings";
 import { useRole } from "@/lib/admin/role-context";
 import {
   useRoomContent,
-  SONGS,
   COLOR_PRESETS,
 } from "@/lib/admin/room-content";
-import { MUSIC_VIDEO_MIN, SHOP_TV_CHANNELS } from "@/lib/kiosk/tv-channels";
+import { MUSIC_VIDEOS, MUSIC_VIDEO_MIN, SHOP_TV_CHANNELS, roomTvId } from "@/lib/kiosk/tv-channels";
 import { useArtists } from "@/lib/admin/artists-context";
 import { createClient } from "@/lib/supabase/browser";
 import { uploadPhoto } from "@/lib/admin/room-data";
@@ -195,36 +194,20 @@ export default function RoomEditorPage() {
               <div className="space-y-4 p-4">
                 {/* Winamp only exists on Lumenati's own site; other shops' themes have no player. */}
                 {isY2k && (
-                <Field label="Now-playing song">
+                <Field label="Their song (Winamp plays it; the video is the MTV icon on their desktop)">
                   <select
                     className="inp"
-                    value={room.songId}
-                    onChange={(e) => set("songId", e.target.value)}
-                  >
-                    {SONGS.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                )}
-                {isY2k && (
-                <Field label="Music video (the MTV icon on the desktop, and a Winamp track)">
-                  <select
-                    className="inp"
-                    value={room.tvVideoId ?? ""}
+                    value={roomTvId(room.songId, room.tvVideoId) ?? ""}
                     onChange={(e) => set("tvVideoId", e.target.value || null)}
                   >
-                    <option value="">None</option>
                     <optgroup label="Music videos">
-                      {SHOP_TV_CHANNELS.filter((c) => c.num >= MUSIC_VIDEO_MIN).map((c) => (
+                      {MUSIC_VIDEOS.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>
                       ))}
                     </optgroup>
-                    <optgroup label="The rest of the shop TV lineup">
+                    <optgroup label="Anything else on the shop TV">
                       {SHOP_TV_CHANNELS.filter((c) => c.num < MUSIC_VIDEO_MIN).map((c) => (
                         <option key={c.id} value={c.id}>
                           CH {c.num}: {c.name}

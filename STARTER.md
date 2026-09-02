@@ -29,10 +29,12 @@
   Prevue-style GUIDE (crawls, tap tunes). `scripts/tv-check.mjs` proves a channel
   plays inside an embed on the LIVE domain. NEVER judge a channel on :3002: YouTube
   refuses licensed videos to localhost embeds ("unavailable"), they play live.
-- **Rooms: MTV pick 9/2 pm.** `room_content.tv_video_id` = a lineup id. Renders an
-  MTV desktop icon + Windows Media Player window, and the site-wide Winamp lists it
-  as the last track (play opens the window). Pickers: admin Room page (Vibe) + app
-  My Page (search, fed by `/api/tv-channels`). JD's room has Nirvana set as a demo.
+- **Rooms: ONE song per artist, from the lineup (9/2 pm).** `room_content.tv_video_id`
+  (legacy `song_id` mapped via LEGACY_SONG_TO_TV; all 8 rows migrated). On a room
+  page Winamp's playlist = the 71 music videos, starting on the pick, sound from a
+  YouTube player parked offscreen inside a Windows Media Player window; the MTV
+  desktop icon slides that window in (same player). Homepage Winamp still m4a.
+  Pickers: admin Room page (Vibe) + app My Page search (`/api/tv-channels`).
 
 ## Priority 1: the platform needs its own name + domain (Scott's call)
 

@@ -173,6 +173,8 @@ export const SHOP_TV_CHANNELS: TvChannel[] = [
   { num: 177, id: "qq09UkPRdFY", len: 249, name: "Mariah Carey - Fantasy" },
   { num: 178, id: "T6QKqFPRZSA", len: 239, name: "Lauryn Hill - Doo Wop (That Thing)" },
   { num: 179, id: "GSoQDaXh144", len: 203, name: "Busta Rhymes - Put Your Hands Where My Eyes Could See" },
+  { num: 180, id: "yFr-qpAmfts", len: 216, name: "blink-182 - Mutt" },
+  { num: 181, id: "tkJQzFNT8II", len: 221, name: "A Day To Remember - You Should've Killed Me When You Had The Chance" },
 ];
 
 /** Channels from here up are single official music videos (the MTV block). */
@@ -180,3 +182,21 @@ export const MUSIC_VIDEO_MIN = 111;
 
 export const tvChannelById = (id: string | null | undefined): TvChannel | null =>
   id ? SHOP_TV_CHANNELS.find((c) => c.id === id) ?? null : null;
+
+/** The music video block: what a room's Winamp holds, and what an artist picks from first. */
+export const MUSIC_VIDEOS = SHOP_TV_CHANNELS.filter((c) => c.num >= MUSIC_VIDEO_MIN);
+
+/** The seven pre-lineup Winamp songs (room_content.song_id) mapped onto the lineup. */
+export const LEGACY_SONG_TO_TV: Record<string, string> = {
+  offspring: "7iNbnineUCI",
+  goldfinger: "h0rSYEoBMYM",
+  "no-doubt": "PHzOOQfhPFg",
+  shorty: "tkJQzFNT8II",
+  outkast: "MYxAiK6VnXw",
+  blink182: "yFr-qpAmfts",
+  manson: "5R682M3ZEyk",
+};
+
+/** The artist's one song: their lineup pick, else their old Winamp song. */
+export const roomTvId = (songId: string | null | undefined, tvVideoId: string | null | undefined): string | null =>
+  tvVideoId ?? (songId ? LEGACY_SONG_TO_TV[songId] ?? null : null);

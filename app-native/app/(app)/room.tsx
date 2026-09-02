@@ -19,15 +19,6 @@ import { apiPost } from "@/lib/appApi";
 // public site re-renders on the next visit. Photo uploads land in the
 // room-photos bucket, exactly like the web editor.
 
-const SONGS: { id: string; label: string }[] = [
-  { id: "offspring", label: "The Offspring" },
-  { id: "goldfinger", label: "Goldfinger" },
-  { id: "no-doubt", label: "No Doubt" },
-  { id: "shorty", label: "A Day to Remember" },
-  { id: "outkast", label: "Outkast" },
-  { id: "blink182", label: "Blink-182" },
-  { id: "manson", label: "Marilyn Manson" },
-];
 const COLORS = ["#FF1493", "#FFD700", "#7FFF00", "#1493FF", "#9b59b6", "#FF6347", "#00E0C0", "#FF8A00", "#B026FF"];
 
 // Legacy gallery photos live at site-relative paths (/legacy-assets/...);
@@ -455,15 +446,6 @@ export default function MyRoom() {
 
             <SectionTitle>Page vibe</SectionTitle>
             <Card>
-              {y2k && (
-                <Chips
-                  label="Winamp track"
-                  value={room.song_id}
-                  options={SONGS.map((s) => s.id)}
-                  display={(id) => SONGS.find((s) => s.id === id)?.label ?? id}
-                  onChange={(v) => set("song_id", v)}
-                />
-              )}
               {y2k && tvReady && (
                 <TvPick value={room.tv_video_id} onChange={(v) => set("tv_video_id", v)} />
               )}
@@ -669,8 +651,8 @@ function moveItem<T extends { id: string }>(items: T[], id: string, dir: -1 | 1)
 // beats drag-and-drop on a phone; the order here IS the public order.
 // One social row: the platform's real logo in its brand color, then the field.
 // Filled rows light their logo up so you can see at a glance what's live.
-// The artist's music video: one pick from the shop TV lineup. It becomes the
-// MTV icon on their room's desktop and a track in the room's Winamp.
+// The artist's song: one pick from the shop TV lineup. The room's Winamp
+// plays it (and the rest of the music video block); the MTV icon shows it.
 type TvChannel = { id: string; num: number; name: string };
 function TvPick({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const [channels, setChannels] = useState<TvChannel[]>([]);
@@ -692,14 +674,14 @@ function TvPick({ value, onChange }: { value: string | null; onChange: (v: strin
     : channels.filter((c) => c.num >= musicMin);
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={styles.label}>Music video (MTV icon on your desktop, and a Winamp track)</Text>
+      <Text style={styles.label}>Your song (Winamp plays it; the MTV icon on your desktop shows the video)</Text>
       {current ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <Text style={{ color: theme.text, fontSize: 15, flex: 1 }}>{current.name}</Text>
           <Button label="Remove" tone="ghost" onPress={() => onChange(null)} />
         </View>
       ) : (
-        <Text style={{ color: theme.textDim, fontSize: 13, marginBottom: 10 }}>None yet. Search the lineup or browse the music videos below.</Text>
+        <Text style={{ color: theme.textDim, fontSize: 13, marginBottom: 10 }}>Pick one. Search the lineup or browse the music videos below.</Text>
       )}
       <TextInput
         value={q}

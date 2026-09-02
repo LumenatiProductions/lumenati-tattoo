@@ -1,4 +1,5 @@
 import type { Artist } from "@/lib/admin/types";
+import { roomTvId, tvChannelById } from "@/lib/kiosk/tv-channels";
 import type { RoomContent } from "@/lib/admin/types";
 
 // Theme the homepage Crew section from ROOM DATA instead of the hand-coded
@@ -69,7 +70,7 @@ export function themeArtistsBlock(
       );
     }
     // The marquee: both spans carry the same text (seamless loop).
-    const title = SONG_TITLES[room.songId];
+    const title = tvChannelById(roomTvId(room.songId, room.tvVideoId))?.name ?? SONG_TITLES[room.songId];
     if (title) {
       const cardStart = m.index;
       const cardEnd = html.indexOf('<div class="lmn-artist"', cardStart + 10);
@@ -112,7 +113,7 @@ const igUrl = (handle: string | null | undefined, socials: Record<string, string
 function crewCard(idx: number, artist: Artist, room: RoomContent): string {
   const slug = artist.slug;
   const exe = `${slug.replace(/-/g, "_")}.exe`;
-  const song = SONG_TITLES[room.songId] ?? SONG_TITLES.offspring;
+  const song = tvChannelById(roomTvId(room.songId, room.tvVideoId))?.name ?? SONG_TITLES[room.songId] ?? SONG_TITLES.offspring;
   const gallery = room.portfolio.map((p) => p.src).filter(Boolean);
   const ig = igUrl(room.igHandle, room.socials);
   const slides = gallery
