@@ -39,6 +39,16 @@
   YouTube player parked offscreen inside a Windows Media Player window; the MTV
   desktop icon slides that window in (same player). Homepage Winamp still m4a.
   Pickers: admin Room page (Vibe) + app My Page search (`/api/tv-channels`).
+- **Rooms, 9/2 evening:** windows size to content; site-wide pointer drag engine in
+  the footer bundle (freezes flow, raises grabbed item, stickers grabbable through the
+  header/polaroid/icon layers). Drops persist: per browser (localStorage `lmn-desk:<id>`)
+  and, when owner/artist is signed in, to `room_content.layout` via PATCH
+  `/api/room/layout` (toast "Desk saved for everyone"; reset-desk button). Unset rooms
+  (all but JD) show placeholders: UNDER CONSTRUCTION poster, gray polaroids, classic
+  stickers, Squarespace card photo as profile. Every Book door = `/request?artist=<id>`
+  labeled "Book with <Full Name>" ("Join <Name>'s waitlist" when closed). Address is
+  3100 N Downing St everywhere. Legacy images: `scripts/optimize-legacy-assets.mjs`
+  writes WebP + `webpifyLegacyAssets()` rewrites any path at render.
 
 ## Priority 1: the platform needs its own name + domain (Scott's call)
 
