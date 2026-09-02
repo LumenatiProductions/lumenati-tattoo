@@ -1,0 +1,7 @@
+appId: com.lumenati.app
+---
+- tapOn: "Me, tab, 6 of 6"
+- waitForAnimationToEnd
+- tapOn: "My Page"
+- waitForAnimationToEnd
+

@@ -1,0 +1,12 @@
+appId: com.lumenati.app
+---
+- tapOn: "Use email instead"
+- extendedWaitUntil:
+    visible: "Email me a code"
+    timeout: 8000
+- tapOn:
+    id: ".*"
+    optional: true
+- tapOn: "you@shop.com"
+- inputText: "applereview@lumenati.app"
+- tapOn: "Email me a code"

@@ -84,7 +84,7 @@ export default function ShopHome({
           loadShopMoney(),
           supabase
             .from("bookings")
-            .select("checked_in_at")
+            .select("checked_in_at, status")
             .gte("starts_at", date)
             .lte("starts_at", `${date}T23:59:59.999`)
             .neq("status", "cancelled"),
@@ -97,7 +97,7 @@ export default function ShopHome({
           supabase.from("rent_invoices").select("amount_cents").eq("status", "pending"),
           supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("active", true),
         ]);
-      const appts = (apptRes.data ?? []) as { checked_in_at: string | null }[];
+      const appts = (apptRes.data ?? []) as { checked_in_at: string | null; status: string }[];
       const inv = (invRes.data ?? []) as { name: string; qty: number; reorder_at: number }[];
       const held = (heldRes.data ?? []) as { deposit_cents: number }[];
       const comp = (compRes.data ?? []) as { status: string }[];
@@ -108,7 +108,9 @@ export default function ShopHome({
       setShopRow(sr ? { id: sr.id, goal_weekly_cents: sr.goal_weekly_cents ?? 0 } : null);
       setStats({
         apptsToday: appts.length,
-        checkedIn: appts.filter((b) => b.checked_in_at).length,
+        // "Done" = checked in at the kiosk OR already completed at the chair; a
+        // finished session without a kiosk tap still counts (lum-036).
+        checkedIn: appts.filter((b) => b.checked_in_at || b.status === "completed").length,
         lowNames: low.filter((i) => Number(i.qty) > 0).map((i) => i.name),
         outNames: low.filter((i) => Number(i.qty) <= 0).map((i) => i.name),
         followupsDue: (fuRes as { count?: number }).count ?? 0,
@@ -205,7 +207,7 @@ export default function ShopHome({
   if (ops && stats.rentOutstanding)
     attention.push({ icon: "home-outline", sev: "med", text: `${money(stats.rentOutstanding)} booth rent outstanding`, href: "/rent" });
   if (stats.apptsToday)
-    attention.push({ icon: "calendar-outline", sev: "low", text: `${stats.apptsToday} appointment${stats.apptsToday === 1 ? "" : "s"} today`, detail: `${stats.checkedIn} checked in`, href: "/bookings" });
+    attention.push({ icon: "calendar-outline", sev: "low", text: `${stats.apptsToday} appointment${stats.apptsToday === 1 ? "" : "s"} today`, detail: `${stats.checkedIn} done or checked in`, href: "/bookings" });
   if (stats.depositsHeld)
     attention.push({ icon: "card-outline", sev: "low", text: `${money(stats.depositsHeld)} in deposits held`, href: "/bookings" });
 
@@ -309,7 +311,7 @@ export default function ShopHome({
           <Stat
             label="Today"
             value={`${stats.checkedIn}/${stats.apptsToday}`}
-            sub="checked in"
+            sub="done or checked in"
             onPress={() => router.push("/bookings")}
           />
           <Stat label="Deposits held" value={money(stats.depositsHeld)} onPress={() => router.push("/bookings")} />

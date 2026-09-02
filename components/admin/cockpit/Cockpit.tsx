@@ -67,7 +67,7 @@ export default function Cockpit() {
   }, []);
 
   const checkedInToday = useMemo(
-    () => bookings.filter((b) => isToday(b.starts_at) && b.checked_in_at).length,
+    () => bookings.filter((b) => isToday(b.starts_at) && (b.checked_in_at || b.status === "completed")).length,
     [bookings],
   );
   const outOfStock = useMemo(() => lowStock.filter((i) => i.qty <= 0), [lowStock]);
@@ -103,7 +103,7 @@ export default function Cockpit() {
     if (followupsDue)
       out.push({ key: "fu", sev: "med", label: `${followupsDue} follow-up${followupsDue === 1 ? "" : "s"} due`, detail: followupsPending ? `${followupsPending} pending total` : undefined, href: "/admin/messages?tab=queue" });
     if (today)
-      out.push({ key: "appts", sev: "low", label: `${today} appointment${today === 1 ? "" : "s"} today`, detail: `${checkedInToday} checked in`, href: "/admin/bookings" });
+      out.push({ key: "appts", sev: "low", label: `${today} appointment${today === 1 ? "" : "s"} today`, detail: `${checkedInToday} done or checked in`, href: "/admin/bookings" });
     if (depositsHeld)
       out.push({ key: "dep", sev: "low", label: `${fmt(depositsHeld)} in deposits held`, href: "/admin/bookings" });
     return out

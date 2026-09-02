@@ -38,10 +38,20 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
 
   if (!rows) return null;
 
-  const upcoming = rows.filter((b) => b.status === "scheduled" && new Date(b.starts_at).getTime() > Date.now() - 15 * 60000);
-  const next = upcoming[0];
+  // Three states for a scheduled session, by the clock (lum-035): still
+  // ahead, in the chair right now (start passed, end hasn't), or past its end
+  // and never closed out. Only "completed" counts as done; the copy never says
+  // the day is over while a row is still open.
+  const now = Date.now();
+  const endOf = (b: TodayBooking) => (b.ends_at ? Date.parse(b.ends_at) : Date.parse(b.starts_at) + 60 * 60000);
+  const scheduled = rows.filter((b) => b.status === "scheduled");
+  const live = scheduled.filter((b) => Date.parse(b.starts_at) <= now && endOf(b) > now);
+  const upcoming = scheduled.filter((b) => Date.parse(b.starts_at) > now);
+  const open = scheduled.filter((b) => endOf(b) <= now);
+  const next = live[0] ?? upcoming[0];
   const rest = rows.filter((b) => b.id !== next?.id);
   const done = rows.filter((b) => b.status === "completed").length;
+  const stillOpen = open[0];
 
   return (
     <View style={{ marginBottom: 4 }}>
@@ -65,12 +75,27 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.heroWhen}>
-                  {untilLabel(next.starts_at)} · {fmtTime(next.starts_at)}
+                  {live.includes(next) ? "In the chair now" : untilLabel(next.starts_at)} · {fmtTime(next.starts_at)}
                 </Text>
                 <Text style={styles.heroName}>{next.clientName}</Text>
                 {next.service_desc ? <Text style={styles.heroDesc}>{next.service_desc}</Text> : null}
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.textFaint} />
+            </Pressable>
+          ) : stillOpen ? (
+            <Pressable
+              onPress={() => {
+                tap();
+                router.push("/bookings");
+              }}
+              style={({ pressed }) => [styles.emptyRow, pressed && { opacity: 0.75 }]}
+            >
+              <Ionicons name="alert-circle-outline" size={18} color={theme.warn} />
+              <Text style={styles.emptyText}>
+                {stillOpen.clientName} at {fmtTime(stillOpen.starts_at)} is still open. Mark it done or a no-show.
+                {open.length > 1 ? ` ${open.length - 1} more like it.` : ""}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.textFaint} />
             </Pressable>
           ) : (
             <View style={styles.emptyRow}>
@@ -91,6 +116,7 @@ export default function TodayCard({ artistId, reloadKey = 0 }: { artistId?: stri
                     {b.service_desc ? <Text style={styles.rowDesc}> · {b.service_desc}</Text> : null}
                   </Text>
                   {b.status === "completed" && <Ionicons name="checkmark" size={14} color={theme.good} />}
+                  {open.includes(b) && <Text style={styles.openTag}>open</Text>}
                 </View>
               ))}
             </View>
@@ -113,4 +139,5 @@ const styles = StyleSheet.create({
   rowDesc: { color: theme.textFaint, fontWeight: "400" },
   emptyRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   emptyText: { color: theme.textDim, fontSize: 13.5, flex: 1, lineHeight: 19 },
+  openTag: { color: theme.warn, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
 });

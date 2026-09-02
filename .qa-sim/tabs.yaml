@@ -1,0 +1,14 @@
+appId: com.lumenati.app
+---
+- tapOn: "Bookings, tab, 2 of 6"
+- waitForAnimationToEnd
+- takeScreenshot: /Users/scottmcdonald/lumenati-tattoo/.qa-sim/m-bookings
+- tapOn: "Money, tab, 3 of 6"
+- waitForAnimationToEnd
+- takeScreenshot: /Users/scottmcdonald/lumenati-tattoo/.qa-sim/m-money
+- tapOn: "Clients, tab, 4 of 6"
+- waitForAnimationToEnd
+- takeScreenshot: /Users/scottmcdonald/lumenati-tattoo/.qa-sim/m-clients
+- tapOn: "Me, tab, 6 of 6"
+- waitForAnimationToEnd
+- takeScreenshot: /Users/scottmcdonald/lumenati-tattoo/.qa-sim/m-me
