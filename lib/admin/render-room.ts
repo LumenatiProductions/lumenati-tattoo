@@ -325,11 +325,17 @@ var mb=document.getElementById('jd-mob-mtv');if(mb)mb.addEventListener('click',f
   }
 
   // ── Wall posters: the artist's own, taped into the four designed spots ──
+  // An empty list means the artist hasn't set the room up: JD's posters come
+  // down and one honest UNDER CONSTRUCTION sign goes up in the big left spot.
   if (content.posters) {
-    const posters = content.posters
-      .slice(0, POSTER_SLOTS.length)
+    const posterList = content.posters.length
+      ? content.posters
+      : [{ id: "placeholder", src: "/room/placeholder-poster.svg" }];
+    const slots = content.posters.length ? POSTER_SLOTS : [POSTER_SLOTS[2]];
+    const posters = posterList
+      .slice(0, slots.length)
       .map((pp, i) => {
-        const slot = POSTER_SLOTS[i];
+        const slot = slots[i];
         const tapes = i % 2 === 0
           ? '<div class="wall-poster-tape tl"></div>\n    <div class="wall-poster-tape tr"></div>'
           : '<div class="wall-poster-tape tl"></div>';
