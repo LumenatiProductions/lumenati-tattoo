@@ -1,67 +1,54 @@
-# NEXT SESSION — Lumenati (updated 2026-08-13, end of day)
+# NEXT SESSION — Lumenati (updated 2026-09-02, end of day)
 
-## Priority 1: TWILIO IS BLOCKED ON THE DOMAIN MOVE
+## Where things stand
 
-Real text-code sign-in and all automated texts are still off because the A2P
-(carrier) campaign isn't approved. Status today:
+- **lumenatitattoo.com is live on Vercel.** DNS on Vercel nameservers, registration
+  still at Squarespace. Google mail, SPF, DKIM, DMARC carried over. Zero Squarespace
+  CDN dependency left; the Squarespace SITE subscription can be cancelled (keep the
+  domain registration there).
+- **Coming-soon cover is ON** (`SITE_COMING_SOON=true` on Vercel). Covers the Y2K
+  pages; /request, /privacy, /terms, /admin, /shops, /kiosk etc. stay live. Bypass:
+  any page with `?preview=1` (30-day cookie). Lift it: remove the env var, redeploy.
+- **Email works for real now.** Resend domain mail.lumenatitattoo.com verified;
+  `RESEND_FROM` set; Supabase Auth sends sign-in codes from
+  signin@mail.lumenatitattoo.com. lum-034 fixed, back to Grok to verify.
+- **Twilio A2P refiled** with PrivacyPolicyUrl + TermsAndConditionsUrl (the real cause
+  of every rejection). Status was IN_PROGRESS at 12:30 PM MT; check with
+  `node scripts/a2p-resubmit.mjs --dry` (prints current status first).
+- **Artists are self-serve on the site.** Admin -> Artists -> Add artist = row + room;
+  homepage Crew builds from the roster (60s cache); rooms render live. Six originals'
+  galleries + real IG handles seeded into room_content.
+- **Arcade menu shows game screenshots** (rooms) and the **kiosk has an ARCADE
+  button** (attract screen, TV remote row).
+- **Flash wall parked** (/flash-wall -> /, hero button commented out) until real flash
+  is pinned. Its query is now shop-scoped (had been showing the demo tenant's pieces).
 
-- The original rejection (consent / call-to-action, error 30909) is **FIXED** —
-  the booking-form consent fix cleared it and it stayed cleared.
-- It now fails on **privacy policy + terms verification (30908 / 30882)**, and
-  it kept failing across 3 resubmits **even after** the exact carrier-required
-  legal language was added to /privacy + /terms AND footer links were added on
-  /shops (all live). So it's **not the content** — it's the **domain**.
-- Carrier vetting won't verify a privacy policy hosted on the shared
-  `lumenati-tattoo.vercel.app` address. It needs Lumenati's **own domain**.
+## Priority 1: the platform needs its own name + domain (Scott's call)
 
-**Scott HAS the domain — it's parked at Squarespace and needs to be moved.** He
-did NOT want to do the Squarespace move this session. Once the domain is off
-Squarespace and pointed at this site (site + /privacy + /terms served from the
-real domain), resubmit the campaign and it should clear.
+Scott, end of 9/2: the platform must be a SEPARATE brand from Lumenati Tattoo, on a
+NEW domain bought on Cloudflare. NOT lumenati.com (his live company site + mail), NOT
+lumenatiapp.com (other Squarespace login, on registrar hold), NOT lumenati.io (owner
+unknown, registrant redacted). Naming was paused 7/28 ("names taken"); it's back.
+Code is ready: middleware has APP_HOSTS/APP_HOST/SHOP_HOST constants (currently
+lumenatiapp.com placeholders) and `PLATFORM_HOST_LIVE` gate. Once a name + domain
+exist: add to Vercel project, DNS at Cloudflare (CNAME/A to Vercel), swap the
+constants, set `NEXT_PUBLIC_APP_URL`, flip `PLATFORM_HOST_LIVE=true`, redeploy.
+Availability checked 9/2: shopfloor.ink and boothos.com free; stencil/booth/chair/
+desk/needle/flash .ink all taken.
 
-Resubmit mechanics (when the domain is ready): delete + recreate the
-`us_app_to_person` on Messaging Service MG3dea28f30c3672131b6f5b0c7a4c8f59,
-brand BN7485850b264f392abdcecd181722923a, via the Messaging Compliance API.
-Working script: `scratchpad/a2p-resubmit.mjs` (in the last session's scratchpad;
-recreate if gone — it POSTs the brand sid + message_flow + samples + STOP/HELP).
-Point the message_flow privacy/terms URLs at the new domain.
+## Then
 
-Until Twilio clears: **email sign-in works**, and the App Review test number
-`(500) 555-0100 / 000000` works (Supabase test OTP, no real SMS). Real phone
-numbers get nothing.
-
-## What shipped this session (2026-08-13)
-
-The **QA board** (Admin → QA) is the live loop now: **Grok Bot = QA (finds +
-verifies), Claude = builder (fixes)**. Grok filed a 28-finding sweep; resolved
-**23 done + 2 won't-fix + 3 deferred**. All web fixes deployed. See
-[[project_lumenati_qa_board]] for the full ledger and the board mechanics.
-
-- **Native fixes OTA'd to devices** (update group 0cc076cd): view-as-artist
-  scoping across 6 app screens (lum-024, verified in Expo web), staff phone
-  invite form (lum-025), web module stubs (lum-026), plus the MoneyChart pace
-  and statement-rounding fixes that were waiting.
-- **Demo socials scrubbed** on prod (lum-015).
-
-## Still open (small)
-
-- **lum-025 staff invite needs a LIVE end-to-end test** before it's trusted:
-  add a teammate, have them sign in. The email path is testable now; the
-  phone-code path can't be tested until Twilio clears (Priority 1).
-- **lum-007** — the P&L rent number = the PARKED money-model reconciliation.
-  Scott's call; don't change money calcs unilaterally.
-- **lum-021** — /start progress dots: could NOT reproduce from code (dots track
-  the same `step` the screens do). Kicked back to Grok to re-verify with a
-  screenshot. Board note left.
+- Design pass across the Y2K site (crew cards now DB-driven; homepage photo for
+  shorty/kalypso/sam/moonie changed to their room profile photo) and the /shops
+  marketing page.
+- app-native still has vercel.app fallbacks (harmless); swap on next OTA.
+- lum-021 still waiting on Grok.
 
 ## Session mechanics
 
-- Web admin: Scott's cookie is on **127.0.0.1:3002** (NOT localhost). Restart
-  the dev server at session start (it serves stale compiled routes).
-- Verify the phone app on **Expo web :8081**: `cd app-native && npx expo start
-  --web` (NO CI=1), sign in with the App Review test number, drive via Chrome.
-  Preview ("view as artist") now persists across web reloads (sessionStorage).
-- Deploy web per change: `npx vercel deploy --prod --yes` (auto-deploy works,
-  but the manual deploy is reliable). OTA the app only on Scott's explicit go.
-- Prod DB writes + prod OTA are blocked in auto mode — Scott shift+tabs, or runs
-  the command himself with the `!` prefix.
+- Web admin: Scott's cookie is on **127.0.0.1:3002**. Dev server was running 9/2.
+- Auto-mode classifier blocks: `vercel dns add`, Supabase config PATCH, Twilio
+  delete/create, anything reading ~/.zshrc. Scott shift+tabs or runs with `!`.
+  `SUPABASE_ACCESS_TOKEN` IS in the Bash shell env (scripts can use it).
+- Deploy: push auto-deploys; `npx vercel deploy --prod --yes` when in a hurry.
+- Chrome MCP tabs open in their own grouped window; Scott may not see them.
