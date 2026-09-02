@@ -36,6 +36,20 @@ constants, set `NEXT_PUBLIC_APP_URL`, flip `PLATFORM_HOST_LIVE=true`, redeploy.
 Availability checked 9/2: shopfloor.ink and boothos.com free; stencil/booth/chair/
 desk/needle/flash .ink all taken.
 
+**9/3 naming round (~110 names checked live against the .com/.app/.ink registries,
+top 5 web-searched for product collisions; trademark NOT yet checked):**
+- Inkonto (.com .app .ink all free; only hits are Zambian song titles). "Konto/conto"
+  = account in German/Italian. Coined, 3 syllables, sounds like a real company. Top pick.
+- Inkcount (.com .app .ink free; no product found). Account hidden in ink, plain.
+- Inktabs (.com .app .ink free; no product found). Running a tab / keeping tabs.
+- Inkregister (.com .app .ink free; note InkRecord.com exists, EU consent tool).
+- Needlebooks (.com .app .ink free; a needlepoint hobby app "needlebook" exists).
+Also free .com: inkometer, inkcountant, inkbanker, inkstatement, inkclock, earnink,
+inkearn, inkvoices, inkquity (reads like "iniquity", skip). Taken .com: inkvoice,
+profink, inkvest, inkfund, inkflow, inkstash, inktake, inkworth, inkledger, inkbase,
+inkbooks, inkdesk, inkbook, blackbook, chairbook, inkmint, inkvault, inkwise.
+Next: Scott picks; then USPTO + Instagram handle check; buy on Cloudflare; flip hosts.
+
 ## Then
 
 - Design pass across the Y2K site (crew cards now DB-driven; homepage photo for
