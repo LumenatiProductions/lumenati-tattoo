@@ -14,10 +14,12 @@ export default function SiteLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const signon = readLegacyBlock("aol-signon.html");
   const bundle = readLegacyBlock("code-injection-footer.html");
   return (
     <>
       {children}
+      <LegacyBlock html={signon} />
       <LegacyBlock html={bundle} fireLoad />
     </>
   );

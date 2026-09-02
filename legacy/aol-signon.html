@@ -1,0 +1,157 @@
+<!-- ═══ AOL LOADING SCREEN ═══ -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+  /* ── Lumenati OnLine: the Mac AOL 3.0 "Welcome" window ── */
+  #aol-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#1e2a5e; background-image:radial-gradient(ellipse at 50% 40%, #33448c 0%, #1e2a5e 60%, #141c42 100%); z-index:9999999; display:flex; align-items:center; justify-content:center; flex-direction:column; font-family:Geneva,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; color:#000; transition:opacity 0.8s ease; opacity:1; }
+  #aol-overlay.fade-out { opacity:0; pointer-events:none; }
+  .aol-win { background:#dcdcdc; border:1px solid #000; box-shadow:1px 1px 0 #000, 3px 3px 0 rgba(0,0,0,0.35); }
+  .aol-tb { height:20px; background:repeating-linear-gradient(180deg,#000 0 1px,#dcdcdc 1px 3px); position:relative; display:flex; align-items:center; justify-content:center; user-select:none; border-bottom:1px solid #000; }
+  .aol-tb-l { background:#dcdcdc; padding:0 8px; font-family:Chicago,Geneva,'Helvetica Neue',Arial,sans-serif; font-weight:bold; font-size:13px; letter-spacing:0.2px; display:flex; align-items:center; gap:6px; }
+  .aol-tb-ico { display:none; }
+  .aol-tb-r { position:absolute; right:6px; top:3px; display:flex; gap:0; }
+  .aol-tb-r span:nth-child(1), .aol-tb-r span:nth-child(3) { display:none; }
+  .aol-tb-r span { width:12px; height:12px; background:#dcdcdc; border:1px solid #000; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #888; font-size:0; }
+  .aol-tb:before { content:''; position:absolute; left:6px; top:3px; width:12px; height:12px; background:#dcdcdc; border:1px solid #000; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #888; }
+  .aol-split { display:flex; background:#d8d8d8; background-image:radial-gradient(#b9b9b9 0.6px, transparent 0.7px); background-size:3px 3px; }
+  .aol-left { width:96px; flex:none; position:relative; overflow:hidden; background:#4a55b8 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.014' numOctaves='4' seed='3'/><feColorMatrix values='0 0 0 0 0.28  0 0 0 0 0.30  0 0 0 0 0.70  0 0 0 0.85 0'/></filter><rect width='300' height='300' fill='%234a55b8'/><rect width='300' height='300' filter='url(%23m)' opacity='0.95'/></svg>"); background-size:100% 100%; border-right:1px solid #222; box-shadow:inset -1px 0 0 rgba(255,255,255,0.25); }
+  .aol-right { flex:1; padding:16px 22px 14px 26px; display:flex; flex-direction:column; }
+  .aol-hero { display:flex; flex-direction:column; align-items:center; margin-bottom:8px; color:#2a3aa8; }
+  .aol-lockup { width:118px; height:auto; display:block; }
+  .aol-ghost { position:absolute; width:230px; height:auto; left:-52px; top:18px; opacity:0.3; filter:brightness(0) invert(1); pointer-events:none; }
+  #aol-runner img { width:26px; height:26px; display:block; }
+  .aol-hero .ver { font-size:10px; color:#222; margin-top:6px; }
+  .aol-fld { margin-bottom:9px; }
+  .aol-fld label { display:block; font-weight:bold; font-size:12px; margin-bottom:3px; }
+  .aol-fld.dim label { color:#8a8a8a; }
+  .aol-combo { height:22px; display:flex; align-items:center; background:#d8d8d8; border:1px solid #000; border-radius:4px; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #909090, 1px 1px 0 #000; font-size:12px; font-weight:bold; }
+  .aol-combo span { padding:0 10px; flex:1; white-space:nowrap; overflow:hidden; }
+  .aol-combo .dd { width:22px; height:100%; flex:none; border-left:1px solid #000; display:flex; align-items:center; justify-content:center; font-size:8px; box-shadow:inset 1px 0 0 #fff; }
+  .aol-text { height:22px; display:flex; align-items:center; background:#fff; border:1px solid #000; border-radius:4px; box-shadow:1px 1px 0 #000; font-size:12px; }
+  .aol-text span { padding:0 8px; }
+  .aol-btns { display:flex; justify-content:flex-end; gap:12px; margin-top:auto; padding-top:10px; }
+  .aol-btn { min-width:64px; height:24px; padding:0 12px; background:#2a3aa8; color:#fff; border:1px solid #101a5a; border-radius:6px; box-shadow:inset 1px 1px 0 rgba(255,255,255,0.35), 2px 2px 0 rgba(0,0,0,0.55); font-family:Chicago,Geneva,'Helvetica Neue',Arial,sans-serif; font-weight:bold; font-size:13px; letter-spacing:0.2px; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; }
+  .aol-btn:active { box-shadow:inset 1px 1px 0 rgba(0,0,0,0.4); transform:translate(1px,1px); }
+  .aol-note { font-size:10px; color:#666; margin-top:8px; text-align:right; }
+  #aol-skip { position:fixed; bottom:18px; right:18px; color:rgba(255,255,255,0.75); font-family:Geneva,Arial,sans-serif; font-size:12px; cursor:pointer; text-decoration:underline; background:none; border:none; padding:8px 12px; z-index:99999999; }
+  #aol-skip:hover { color:#fff; }
+  #aol-click-prompt { position:fixed; inset:0; z-index:99999998; display:flex; align-items:center; justify-content:center; background:#1e2a5e; background-image:radial-gradient(ellipse at 50% 40%, #33448c 0%, #1e2a5e 60%, #141c42 100%); }
+  #aol-login-box { width:400px; max-width:94vw; } #aol-dialog { width:440px; max-width:94vw; }
+  /* Connecting: icon tiles light up one by one, the mark runs along the bar */
+  .aol-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; }
+  .aol-tile { background:#e6e6e6; border:1px solid #000; border-radius:4px; box-shadow:1px 1px 0 #000; padding:6px 4px 5px; text-align:center; opacity:0.4; transition:opacity 0.3s, background 0.3s; position:relative; }
+  .aol-tile.visible { opacity:1; } .aol-tile.active { background:#fff; animation:aol-blink 0.9s steps(2) infinite; }
+  .aol-tile.done { opacity:1; background:#eef0fa; animation:none; }
+  .aol-tile .ico { width:32px; height:32px; margin:0 auto 4px; } .aol-tile .ico svg { width:32px; height:32px; }
+  .aol-tile .cap { font-size:9px; line-height:1.15; color:#222; min-height:22px; }
+  .aol-tile.done:after { content:'\2713'; position:absolute; top:-6px; right:-5px; width:14px; height:14px; background:#2a3aa8; color:#fff; font-size:10px; font-weight:bold; line-height:14px; text-align:center; border-radius:50%; border:1px solid #fff; }
+  @keyframes aol-blink { 50% { background:#e6e6e6; } }
+  .aol-step:not(.aol-tile) { opacity:0; transition:opacity 0.3s; } .aol-step:not(.aol-tile).visible { opacity:1; }
+  .modem-noise { font-family:Monaco,'Courier New',monospace; font-size:10px; letter-spacing:1px; color:#666; text-align:center; min-height:13px; }
+  #aol-track { position:relative; margin-top:auto; padding-top:22px; }
+  #aol-progress-wrap { background:#fff; border:1px solid #000; border-radius:3px; height:16px; padding:2px; box-shadow:1px 1px 0 #000; }
+  #aol-progress-bar { height:100%; width:0%; transition:width 0.4s ease; background:repeating-linear-gradient(90deg,#2a3aa8 0 8px,#fff 8px 10px); }
+  #aol-runner { position:absolute; top:0; left:0; transition:left 0.4s ease; margin-left:-13px; }
+  #aol-welcome { display:none; text-align:center; font-family:'Snell Roundhand','Brush Script MT','Segoe Script',cursive; font-size:30px; color:#2a3aa8; margin:0 0 6px; animation:aol-pulse 0.6s ease-in-out 2; }
+  #aol-welcome small { display:block; font-family:Geneva,Arial,sans-serif; font-size:11px; color:#222; margin-top:2px; }
+  @keyframes aol-pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+  /* The busy signal: the Mac alert that comes up instead of a connection while the site is covered */
+  #aol-alert-wrap { display:none; position:fixed; inset:0; z-index:99999999; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); }
+  .aol-alert { width:420px; max-width:94vw; padding-bottom:12px; }
+  .aol-alert-body { display:flex; gap:16px; padding:18px 18px 4px; }
+  .aol-stop { width:44px; height:44px; flex:none; background:#d8342a; clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%); display:flex; align-items:center; justify-content:center; }
+  .aol-stop span { color:#fff; font-family:Chicago,Geneva,Arial,sans-serif; font-weight:bold; font-size:26px; line-height:1; }
+  .aol-alert-text { font-size:12px; line-height:1.45; }
+  .aol-alert-text p { margin:8px 0 0; } .aol-alert-text a { color:#2a3aa8; font-weight:bold; text-decoration:none; }
+  .aol-alert .aol-btns { padding:8px 18px 0; }
+  a.aol-btn { text-decoration:none; }
+  @media (min-width:900px) { #aol-alert-wrap .aol-win { zoom:1.35; } #aol-login-box, #aol-dialog { zoom:1.35; } #aol-skip { font-size:14px; } }
+  @media (max-width:500px) { .aol-left { width:56px; } .aol-right { padding:12px 12px 10px 14px; } .aol-btns { gap:8px; } .aol-btn { min-width:0; flex:1; } }
+</style>
+<div id="aol-overlay">
+  <div id="aol-dialog">
+  <div class="aol-win">
+    <div class="aol-tb"><span class="aol-tb-l"><span class="aol-tb-ico"><img src="/brand/lumenati-online-icon-blue.png" alt=""></span>Connecting</span><span class="aol-tb-r"><span>_</span><span>&#9633;</span><span>&#10005;</span></span></div>
+    <div class="aol-split">
+      <div class="aol-left"><img class="aol-ghost" src="/brand/lumenati-online-lockup-transparent.png" alt=""></div>
+      <div class="aol-right">
+        <div class="aol-hero"><img class="aol-lockup" src="/brand/lumenati-online-lockup-transparent.png" alt="Lumenati OnLine"><div class="ver">Lumenati OnLine v3.0.1</div></div>
+        <div class="aol-tiles">
+          <div class="aol-tile aol-step" id="aol-s1"><div class="ico"><svg viewBox="0 0 32 32"><path d="M6 6h20v6H6z" fill="#c0c0c0" stroke="#000"/><path d="M4 12h24v14H4z" fill="#e8e4d8" stroke="#000"/><rect x="8" y="15" width="16" height="8" fill="#1a3a98"/><circle cx="12" cy="19" r="1.5" fill="#7fff00"/><circle cx="17" cy="19" r="1.5" fill="#ffd600"/><circle cx="22" cy="19" r="1.5" fill="#ff3b30"/><path d="M26 8c3 3 3 8 0 11" fill="none" stroke="#000" stroke-width="1.5"/></svg></div><div class="cap">Dialing<br>1&#8209;800&#8209;LUMENATI</div></div>
+          <div class="aol-tile aol-step" id="aol-s2"><div class="ico"><svg viewBox="0 0 32 32"><path d="M2 12h28" stroke="#000" stroke-width="2"/><path d="M4 12c0 7 2 10 7 10s7-3 7-10zm14 0c0 7 2 10 7 10s7-3 7-10z" fill="#111" stroke="#000"/><path d="M6 14l4 3M20 14l4 3" stroke="#6cf" stroke-width="1.5"/></svg></div><div class="cap">Verifying you're cool enough</div></div>
+          <div class="aol-tile aol-step" id="aol-s3"><div class="ico"><svg viewBox="0 0 32 32"><rect x="4" y="4" width="10" height="16" rx="1" fill="#ece9d8" stroke="#000"/><rect x="7" y="7" width="4" height="6" fill="#1a3a98"/><path d="M9 20c0 6 4 6 8 6s7 0 7-6" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="2 1.5"/><path d="M20 6h8v8h-8z" fill="#ffd600" stroke="#000"/><path d="M22 10h4M24 8v4" stroke="#000"/></svg></div><div class="cap">Stealing mom's phone line</div></div>
+          <div class="aol-tile aol-step" id="aol-s4"><div class="ico"><svg viewBox="0 0 32 32"><path d="M8 4l6 6-2 2-6-6z" fill="#888" stroke="#000"/><rect x="10" y="9" width="12" height="7" transform="rotate(45 16 12.5)" fill="#c0c0c0" stroke="#000"/><path d="M17 15l8 8" stroke="#000" stroke-width="2.5"/><path d="M24 22l3 3" stroke="#000" stroke-width="1.2"/><circle cx="9" cy="24" r="4" fill="#ff1493" stroke="#000"/><path d="M6 9c-3 0-3 4 0 4" fill="none" stroke="#000"/></svg></div><div class="cap">Loading flash at 56k</div></div>
+        </div>
+        <div class="modem-noise aol-step" id="aol-noise">BZZZT KRRRRR EEEE SHHHHH DRRRRR SQUEEEEE</div>
+        <div id="aol-welcome">Welcome!<small>You've got ink.</small></div>
+        <div id="aol-track"><div id="aol-progress-wrap"><div id="aol-progress-bar"></div></div><div id="aol-runner"><img src="/brand/lumenati-online-icon-blue.png" alt=""></div></div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div id="aol-click-prompt">
+    <div id="aol-login-box">
+  <div class="aol-win">
+    <div class="aol-tb"><span class="aol-tb-l"><span class="aol-tb-ico"><img src="/brand/lumenati-online-icon-blue.png" alt=""></span>Welcome</span><span class="aol-tb-r"><span>_</span><span>&#9633;</span><span>&#10005;</span></span></div>
+    <div class="aol-split">
+      <div class="aol-left"><img class="aol-ghost" src="/brand/lumenati-online-lockup-transparent.png" alt=""></div>
+      <div class="aol-right">
+        <div class="aol-hero"><img class="aol-lockup" src="/brand/lumenati-online-lockup-transparent.png" alt="Lumenati OnLine"><div class="ver">Lumenati OnLine v3.0.1</div></div>
+        <div class="aol-fld"><label>Select Screen Name</label><div class="aol-combo"><span>Guest</span><div class="dd">&#9660;</div></div></div>
+        <div class="aol-fld dim"><label>Enter Password</label><div class="aol-text"><span>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div></div>
+        <div class="aol-fld"><label>Select Location</label><div class="aol-combo"><span>TCP (for Tattoo Shop)</span><div class="dd">&#9660;</div></div></div>
+        <div class="aol-btns"><div class="aol-btn">Setup</div><div class="aol-btn">Help</div><div class="aol-btn" id="aol-login-btn">Sign On</div></div>
+        <div class="aol-note" id="aol-login-sound">Sound on for the full experience.</div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+  <button id="aol-skip">Skip &raquo;</button>
+  <div id="aol-alert-wrap">
+    <div class="aol-win aol-alert">
+      <div class="aol-tb"><span class="aol-tb-l">Lumenati OnLine</span></div>
+      <div class="aol-alert-body">
+        <div class="aol-stop"><span>!</span></div>
+        <div class="aol-alert-text">
+          <b>Unable to connect to Lumenati OnLine.</b>
+          <p>The new site isn't online yet. The shop is. Bookings, questions, walk-ins: reach us the old way for now.</p>
+          <p><a href="mailto:hi@lumenatitattoo.com">hi@lumenatitattoo.com</a><br><a href="https://instagram.com/lumenati.tattoo" target="_blank" rel="noopener noreferrer">@lumenati.tattoo</a><br>3100 N Downing St, Denver</p>
+        </div>
+      </div>
+      <div class="aol-btns"><a class="aol-btn" href="/request">Get Inked</a><div class="aol-btn" id="aol-alert-ok">OK</div></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){var comingSoon=!!window.__AOL_COMING_SOON__; // /coming-soon: the sign-on IS the cover; it dials and never connects
+if(/[?&]intro=1/.test(location.search))sessionStorage.removeItem('aol_seen'); // ?intro=1 brings the sign-on back any time
+if(!comingSoon&&sessionStorage.getItem('aol_seen')){var el=document.getElementById('aol-overlay');if(el)el.parentNode.removeChild(el);return;}
+var overlay=document.getElementById('aol-overlay'),bar=document.getElementById('aol-progress-bar'),skip=document.getElementById('aol-skip'),welcome=document.getElementById('aol-welcome'),timers=[],dialupAudio,welcomeAudio;
+// Preload both audio files
+dialupAudio=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aol-dialup.mp3');dialupAudio.volume=0.5;dialupAudio.preload='auto';
+welcomeAudio=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aol-welcome.mp3');welcomeAudio.volume=0.8;welcomeAudio.preload='auto';
+function playDialUp(){try{dialupAudio.currentTime=0;dialupAudio.play();}catch(e){}}
+function dismiss(){timers.forEach(function(t){clearTimeout(t);});sessionStorage.setItem('aol_seen','1');overlay.classList.add('fade-out');if(dialupAudio){try{dialupAudio.pause();}catch(e){}}setTimeout(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);},900);}
+skip.addEventListener('click',dismiss);
+if(comingSoon)skip.style.display='none';
+var alertWrap=document.getElementById('aol-alert-wrap'),alertOk=document.getElementById('aol-alert-ok');
+if(alertOk)alertOk.addEventListener('click',function(){location.reload();});
+// The busy signal (480 + 620 Hz, the North American cadence), synthesized so no file is needed.
+function playBusy(){try{var ctx=new (window.AudioContext||window.webkitAudioContext)();var t0=ctx.currentTime;for(var i=0;i<4;i++){var g=ctx.createGain();g.gain.value=0.12;g.connect(ctx.destination);[480,620].forEach(function(f){var o=ctx.createOscillator();o.type='sine';o.frequency.value=f;o.connect(g);o.start(t0+i);o.stop(t0+i+0.5);});}}catch(e){}}
+function busy(){if(dialupAudio){try{dialupAudio.pause();}catch(e){}}playBusy();alertWrap.style.display='flex';}
+var clickPrompt=document.getElementById('aol-click-prompt'),started=false;
+function startSequence(){if(started)return;started=true;clickPrompt.style.display='none';playDialUp();runSteps();}
+var loginBtn=document.getElementById('aol-login-btn');if(loginBtn)loginBtn.addEventListener('click',startSequence);
+clickPrompt.addEventListener('click',function(e){if(e.target===clickPrompt)startSequence();});
+function runSteps(){
+var steps=comingSoon?[{id:'aol-s1',delay:200,progress:5},{id:'aol-noise',delay:600,progress:15},{id:null,delay:1600,progress:25},{id:'aol-s1',delay:1800,progress:30,done:true},{id:'aol-s2',delay:1900,progress:35},{id:null,delay:2800,progress:42},{id:'busy',delay:3600,progress:42}]:[{id:'aol-s1',delay:200,progress:5},{id:'aol-noise',delay:600,progress:15},{id:null,delay:1600,progress:25},{id:'aol-s1',delay:1800,progress:30,done:true},{id:'aol-s2',delay:1900,progress:35},{id:null,delay:2800,progress:50},{id:'aol-s2',delay:3000,progress:55,done:true},{id:'aol-s3',delay:3100,progress:60},{id:null,delay:3800,progress:70},{id:'aol-s3',delay:4000,progress:75,done:true},{id:'aol-s4',delay:4100,progress:80},{id:null,delay:4800,progress:90},{id:'aol-s4',delay:5000,progress:95,done:true},{id:'welcome',delay:5200,progress:100},{id:'dismiss',delay:6500,progress:100}];
+var runner=document.getElementById('aol-runner');
+steps.forEach(function(step){var t=setTimeout(function(){bar.style.width=step.progress+'%';if(runner)runner.style.left=step.progress+'%';
+if(step.id==='welcome'){welcome.style.display='block';try{welcomeAudio.currentTime=0;welcomeAudio.play();}catch(e){}return;}
+if(step.id==='dismiss'){dismiss();return;}if(step.id==='busy'){busy();return;}if(!step.id)return;
+var el=document.getElementById(step.id);if(!el)return;el.classList.add('visible');
+if(step.done){el.classList.add('done');el.classList.remove('active');if(!el.querySelector('.cap'))el.innerHTML='<span class="check">&#10003;</span> '+el.textContent.replace('...',' - Done');}else{el.classList.add('active');}
+},step.delay);timers.push(t);});}
+})();
+</script>
+

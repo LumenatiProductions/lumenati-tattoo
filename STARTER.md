@@ -9,6 +9,10 @@
 - **Coming-soon cover is ON** (`SITE_COMING_SOON=true` on Vercel). Covers the Y2K
   pages; /request, /privacy, /terms, /admin, /shops, /kiosk etc. stay live. Bypass:
   any page with `?preview=1` (30-day cookie). Lift it: remove the env var, redeploy.
+  **9/2 pm: the cover IS the Lumenati OnLine sign-on** (legacy/aol-signon.html, Mac
+  AOL 3.0 Welcome window, Grok's brand set in public/brand): Sign On dials, two steps,
+  then a Mac busy-signal alert with contact + Get Inked. Lift the cover and the same
+  screen connects for real (it also fronts the real site; `?intro=1` replays it).
 - **Email works for real now.** Resend domain mail.lumenatitattoo.com verified;
   `RESEND_FROM` set; Supabase Auth sends sign-in codes from
   signin@mail.lumenatitattoo.com. lum-034 fixed, back to Grok to verify.
