@@ -18,6 +18,7 @@ type Row = {
   video_url: string | null;
   video_title: string | null;
   tv_video_id?: string | null;
+  layout?: Record<string, { l: number; t: number }> | null;
   socials: Record<string, string> | null;
 };
 
@@ -36,6 +37,7 @@ const rowToContent = (r: Row): RoomContent => ({
   videoUrl: r.video_url ?? null,
   videoTitle: r.video_title ?? null,
   tvVideoId: r.tv_video_id ?? null,
+  layout: r.layout ?? null,
   socials: r.socials ?? null,
 });
 
@@ -54,6 +56,7 @@ const contentToRow = (c: RoomContent): Row => ({
   video_url: c.videoUrl,
   video_title: c.videoTitle,
   tv_video_id: c.tvVideoId,
+  layout: c.layout,
   socials: c.socials,
 });
 
@@ -85,6 +88,7 @@ function emptyRoom(artistId: string): RoomContent {
     videoUrl: null,
     videoTitle: null,
     tvVideoId: "7iNbnineUCI", // The Offspring, same as songId
+    layout: null,
     socials: null,
   };
 }

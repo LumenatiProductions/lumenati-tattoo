@@ -200,6 +200,7 @@ export function renderCrewBlock(html: string, artists: Artist[], rooms: Record<s
     videoUrl: null,
     videoTitle: null,
     tvVideoId: null,
+    layout: null,
     socials: null,
   });
 

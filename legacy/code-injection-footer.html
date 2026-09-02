@@ -35,7 +35,7 @@
 // comes to the front, and picking a window out of the desktop's flow freezes
 // every other window in place first so nothing jumps into the gap.
 (function(){
-  var zTop=500;
+  var zTop=500,onDrop=null,resetBtn=null;
   var NO_GRAB='a, button, input, textarea, select, .br-btn, .br-aim-btn, .br-thumb, .br-lightbox, .bedroom-mobile-btn';
   var smallTouch=('ontouchstart' in window)&&window.innerWidth<768; // phones scroll, they don't drag
   document.addEventListener('dragstart',function(e){if(e.target.closest&&e.target.closest('.lmn-draggable'))e.preventDefault();});
@@ -86,6 +86,7 @@
       if(!active||e.pointerId!==active.id)return;
       try{handle.releasePointerCapture(e.pointerId);}catch(x){}
       active=null;el.classList.remove('lmn-dragging');document.body.classList.remove('lmn-drag-live');
+      if(container&&onDrop)onDrop(el);
     }
     handle.addEventListener('pointermove',move);
     handle.addEventListener('pointerup',end);
@@ -98,10 +99,56 @@
   document.head.appendChild(css);
 
   // Artist rooms: windows and wall things move; the desktop is the container.
+  // Every drop is remembered: in this browser always, and on the room itself
+  // when the shop owner (or the artist) is signed in, so it becomes everyone's.
   var bedroom=document.querySelector('.bedroom');
+  var roomKey=window.__ROOM_KEY__||null,layout=null,storeKey=roomKey?'lmn-desk:'+roomKey:null;
+  function readLocal(){try{var v=storeKey&&localStorage.getItem(storeKey);return v?JSON.parse(v):null;}catch(e){return null;}}
+  function writeLocal(){try{if(storeKey){if(layout&&Object.keys(layout).length)localStorage.setItem(storeKey,JSON.stringify(layout));else localStorage.removeItem(storeKey);}}catch(e){}}
+  var toastEl=null,toastT=null;
+  function toast(msg){if(!toastEl){toastEl=document.createElement('div');toastEl.style.cssText='position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:#000;color:#fff;font:12px Tahoma,Arial,sans-serif;padding:8px 14px;border:1px solid #fff;z-index:2147483647;opacity:0;transition:opacity .25s;pointer-events:none';document.body.appendChild(toastEl);}toastEl.textContent=msg;toastEl.style.opacity='1';clearTimeout(toastT);toastT=setTimeout(function(){toastEl.style.opacity='0';},1800);}
+  var saveT=null;
+  function saveRemote(){if(!roomKey)return;clearTimeout(saveT);saveT=setTimeout(function(){
+    fetch('/api/room/layout',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({artistId:roomKey,layout:layout})})
+      .then(function(r){if(r.ok)toast(layout?'Desk saved for everyone':'Desk reset for everyone');})
+      .catch(function(){});
+  },500);}
   if(bedroom){
     var sel='.br-win, .bedroom-sticker, .bedroom-wall-poster, .bedroom-polaroid, .bedroom-poster';
-    [].slice.call(bedroom.querySelectorAll(sel)).forEach(function(el){attach(el,{container:bedroom});});
+    var counts={};
+    [].slice.call(bedroom.querySelectorAll(sel)).forEach(function(el){
+      var type=el.classList.contains('br-win')?'win':el.classList.contains('bedroom-sticker')?'sticker':el.classList.contains('bedroom-wall-poster')?'poster':el.classList.contains('bedroom-polaroid')?'polaroid':'big';
+      counts[type]=(counts[type]||0)+1;el.dataset.lmnKey=type+'-'+(counts[type]-1);
+      attach(el,{container:bedroom});
+    });
+    onDrop=function(el){
+      if(!el.dataset.lmnKey)return;
+      var crect=bedroom.getBoundingClientRect(),r=el.getBoundingClientRect();
+      layout=layout||{};
+      layout[el.dataset.lmnKey]={l:Math.round(((r.left-crect.left)/crect.width)*10000)/100,t:Math.round(r.top-crect.top)};
+      writeLocal();saveRemote();
+      if(resetBtn)resetBtn.style.display='';
+    };
+    // Restore: this browser's arrangement wins, then the room's saved one.
+    var saved=readLocal()||window.__ROOM_LAYOUT__||null;
+    if(saved&&!smallTouch&&window.innerWidth>=768&&Object.keys(saved).length){
+      layout=saved;
+      freezeFlow(bedroom);
+      var crect0=bedroom.getBoundingClientRect();
+      [].slice.call(bedroom.querySelectorAll('[data-lmn-key]')).forEach(function(el){
+        var p=saved[el.dataset.lmnKey];if(!p)return;
+        var cs=getComputedStyle(el);
+        if(cs.position!=='absolute'&&cs.position!=='fixed'){el.style.width=el.getBoundingClientRect().width+'px';el.style.position='absolute';}
+        el.style.left=(p.l/100*crect0.width)+'px';el.style.top=p.t+'px';el.style.right='auto';el.style.bottom='auto';el.style.margin='0';
+        var bottom=p.t+el.getBoundingClientRect().height+32;if(bottom>bedroom.clientHeight)bedroom.style.minHeight=bottom+'px';
+      });
+    }
+    // Reset: back to the designed desk (and, if allowed, for everyone).
+    resetBtn=document.createElement('button');
+    resetBtn.type='button';resetBtn.textContent='\u21ba reset desk';
+    resetBtn.style.cssText='position:fixed;left:12px;bottom:12px;z-index:2147483000;background:rgba(0,0,0,0.55);color:#fff;border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:6px 10px;font:11px Tahoma,Arial,sans-serif;cursor:pointer;display:'+(layout?'':'none');
+    resetBtn.addEventListener('click',function(){layout=null;writeLocal();saveRemote();setTimeout(function(){location.reload();},650);});
+    if(!smallTouch)document.body.appendChild(resetBtn);
   }
   window.lmnDrag={attach:attach};
 })();

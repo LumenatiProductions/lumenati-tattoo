@@ -126,4 +126,6 @@ export interface RoomContent {
   videoTitle: string | null;
   /** YouTube id of the artist's music video pick from the shop TV lineup; null = no MTV icon. */
   tvVideoId: string | null;
+  /** Where the owner left things on the desk: item key -> { l: % of room width, t: px }. null = designed layout. */
+  layout: Record<string, { l: number; t: number }> | null;
 }
