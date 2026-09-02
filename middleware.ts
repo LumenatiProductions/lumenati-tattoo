@@ -96,11 +96,15 @@ export async function middleware(request: NextRequest) {
       res.cookies.set(PREVIEW_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
       return res;
     }
-    if (request.cookies.get(PREVIEW_COOKIE)?.value === "1") return NextResponse.next();
+    // ?preview=0 drops the bypass again, so the cover can be seen as a visitor sees it.
+    const dropPreview = searchParams.get("preview") === "0";
+    if (!dropPreview && request.cookies.get(PREVIEW_COOKIE)?.value === "1") return NextResponse.next();
     const url = request.nextUrl.clone();
     url.pathname = "/coming-soon";
     url.search = "";
-    return NextResponse.rewrite(url);
+    const res = NextResponse.rewrite(url);
+    if (dropPreview) res.cookies.set(PREVIEW_COOKIE, "", { path: "/", maxAge: 0 });
+    return res;
   }
 
   return NextResponse.next();
