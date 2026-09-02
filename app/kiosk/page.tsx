@@ -449,19 +449,51 @@ function Row({ label, value, tone }: { label: string; value: string; tone: "good
 // buttons surf the dial via the IFrame API (loadVideoById — no iframe reload,
 // mute state survives). pointer-events-none so a tap anywhere still checks in.
 const SHOP_TV_CHANNELS: { num: number; id: string; len: number }[] = [
-  { num: 2, id: "30wEwDz9WyM", len: 1698 },   // Good Morning America, 1992
-  { num: 4, id: "ZD2GyA9hOqk", len: 4494 },   // Married with Children marathon
-  { num: 5, id: "F1EYfSPThCk", len: 7234 },   // Nick Rewind: Clarissa, Kenan & Kel
-  { num: 7, id: "hb5u3UD-A1k", len: 4308 },   // ABC TGIF commercials 1994-1996
-  { num: 9, id: "GZnPR9CkqJs", len: 6307 },   // TMNT (1987) marathon
-  { num: 11, id: "XTMjcM7HPUE", len: 7480 },  // 90s Nick cartoon chaos
-  { num: 13, id: "mT0RNrTDHkI", len: 3582 },  // Bob Ross one-hour special (PBS dial)
-  { num: 25, id: "xGgXu_m1_9I", len: 36413 }, // Fox Kids Saturday morning, 10h w/ commercials
+  // Every id was loaded inside a real embed and the player raised no error.
+  // Most long "full broadcast with commercials" uploads are claim-blocked on
+  // third-party sites (YouTube error 150) even though they play on youtube.com,
+  // so a video can look fine in a browser tab and still be dead on the kiosk.
+  { num: 2, id: "30wEwDz9WyM", len: 1698 }, // Good Morning America, 1992
+  { num: 3, id: "YUU3DrBMXm4", len: 14920 }, // CBS + Fox + Nick off-air recording, Sept 7 1990
+  { num: 4, id: "ZD2GyA9hOqk", len: 4494 }, // Married with Children marathon
+  { num: 5, id: "F1EYfSPThCk", len: 7234 }, // Nick Rewind: Clarissa, Kenan & Kel
+  { num: 6, id: "_Py4gOq2auQ", len: 28870 }, // Toonami 24h broadcast, 2000-2004
+  { num: 7, id: "VU4NgzAwtR0", len: 11746 }, // Fox Kids Saturday morning 1997-98 w/ commercials
+  { num: 8, id: "KyBcToJTHLU", len: 15372 }, // 1996 Saturday morning cartoons w/ commercials
+  { num: 9, id: "GZnPR9CkqJs", len: 6307 }, // TMNT (1987) marathon
+  { num: 10, id: "6tWgcvdHus8", len: 15986 }, // Kids WB Saturday morning 1998 w/ commercials
+  { num: 11, id: "9Xnu_DXywZg", len: 4353 }, // Cartoon Cartoon Fridays, Feb 2001
+  { num: 12, id: "dXO5fy_TMug", len: 7891 }, // Adult Swim, Nov 2002, w/ bumps + commercials
+  { num: 13, id: "mT0RNrTDHkI", len: 3582 }, // Bob Ross one-hour special (PBS dial)
+  { num: 14, id: "VFv6wS2rvmg", len: 12644 }, // Nick Jr block, March 1991, w/ commercials
+  { num: 15, id: "hA6yImfjShY", len: 10828 }, // PBS Kids 2000 w/ programming breaks
+  { num: 17, id: "suQwDHk4OeI", len: 14441 }, // Cartoon Fridays 2001-2002 w/ commercials
+  { num: 19, id: "QPzrkORZ58k", len: 1794 }, // MTV Singled Out, Jan 1996
+  { num: 21, id: "1cAoLB7Z0xU", len: 2774 }, // MTV News + commercials, Feb 1996
+  { num: 23, id: "hfSiA-g_wy4", len: 1204 }, // Sifl and Olly S1E1
+  { num: 24, id: "n2OmmfPMZtw", len: 3581 }, // Ch. 42 retro broadcast w/ commercials, vol 6
+  { num: 26, id: "coiB-Bc_xik", len: 1708 }, // Pyramid, Feb 2003, cable recording w/ commercials
   { num: 27, id: "EflI45HbiOQ", len: 12319 }, // 90s kids game shows w/ commercials
-  { num: 33, id: "y0BerpDmVSE", len: 61 },    // Clarissa theme (the joke channel)
-  { num: 38, id: "AeRTwWCCRaA", len: 3639 },  // late-90s basic cable commercials
-  { num: 62, id: "UNb6iN-iALk", len: 3514 },  // 1990s commercials (Chicago VHS rips)
-  { num: 99, id: "xBFuNlPzZrk", len: 31179 }, // Cartoon Network, 8h40m
+  { num: 29, id: "X2jMS9G818M", len: 6765 }, // TV Shop: early-2000s infomercials
+  { num: 30, id: "F13M8ebkY54", len: 12100 }, // vintage late-night infomercials
+  { num: 31, id: "E-iBU5zsa4o", len: 16783 }, // classic infomercials, 4h39m
+  { num: 33, id: "y0BerpDmVSE", len: 61 }, // Clarissa theme (the joke channel)
+  { num: 35, id: "llcn969FFXo", len: 2304 }, // 30+ minutes of 2000s commercials
+  { num: 36, id: "vBDSkBYekn8", len: 4021 }, // one hour of early-90s commercials
+  { num: 37, id: "BIndTLOlvhc", len: 6612 }, // RAD 90s toy commercial marathon
+  { num: 39, id: "fnc5Wsb8FHU", len: 3550 }, // hour of 90s snack + candy commercials
+  { num: 40, id: "CSNLpF-hToA", len: 4056 }, // over an hour of 90s cereal commercials
+  { num: 41, id: "Mva_T3Vg6WE", len: 6340 }, // PlayStation commercials
+  { num: 42, id: "ASuG1MPMwBw", len: 5090 }, // KTVU late-90s news clips + commercials
+  { num: 44, id: "ZUlR_IDcs_k", len: 3600 }, // Weather Channel local forecast 1989 mix
+  { num: 46, id: "eoAe-GalitU", len: 2598 }, // Disney Afternoon commercials, Dec 1996
+  { num: 47, id: "Q8cZIZis6kM", len: 2743 }, // Cartoon Network commercials, summer 2001
+  { num: 48, id: "pbbYs-Ki1x8", len: 3035 }, // Cartoon Network City bumpers
+  { num: 50, id: "Zo8QZfwRIGs", len: 2373 }, // WFXT Fox Sunday night commercials, Feb 2003
+  { num: 51, id: "ZDiD6jvZtbI", len: 1676 }, // 1999 commercials
+  { num: 57, id: "a49st9Evt-M", len: 16978 }, // King of Queens marathon
+  { num: 58, id: "y-WRr0z4TVg", len: 7357 }, // The Nanny marathon
+  { num: 62, id: "UNb6iN-iALk", len: 3514 }, // 1990s commercials (Chicago VHS rips)
 ];
 // Random tune-in inside a video, leaving runway so it never starts at the end.
 const tuneIn = (len: number) => (len < 300 ? 0 : Math.floor(Math.random() * (len - 120)));
@@ -563,6 +595,12 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       JSON.stringify({ event: "command", func, args }),
       "*",
     );
+  // No captions on the shop TV: YouTube switches them on for any viewer whose
+  // account has them on, and they land as big subtitles across the attract screen.
+  const hideCaptions = () => {
+    tvCommand("setOption", ["captions", "track", {}]);
+    tvCommand("unloadModule", ["captions"]);
+  };
   const toggleSound = (e: React.MouseEvent) => {
     e.stopPropagation(); // the sound button must not start check-in
     if (soundOn) {
@@ -594,6 +632,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
       } else {
         tvCommand("mute");
       }
+      hideCaptions();
     }, 900);
     playStaticSfx(soundOn);
     setStatics(true);
@@ -616,6 +655,7 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
         JSON.stringify({ event: "listening", id: "shoptv", channel: "widget" }),
         "*",
       );
+      hideCaptions();
     }, 1500);
     const endedGuard = { current: false };
     const onMessage = (e: MessageEvent) => {
