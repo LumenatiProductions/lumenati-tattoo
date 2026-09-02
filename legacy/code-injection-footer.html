@@ -27,6 +27,85 @@
 </script>
 
 <!-- ═══ WINAMP PLAYER ═══ -->
+<script>
+// ── Drag engine (site-wide) ─────────────────────────────────────────────
+// One grab behaviour for everything that moves: room windows, stickers,
+// posters, polaroids, Winamp. Pointer events (mouse, pen, touch on tablets),
+// pointer capture so a fast drag never loses the element, the grabbed thing
+// comes to the front, and picking a window out of the desktop's flow freezes
+// every other window in place first so nothing jumps into the gap.
+(function(){
+  var zTop=500;
+  var NO_GRAB='a, button, input, textarea, select, .br-btn, .br-aim-btn, .br-thumb, .br-lightbox, .bedroom-mobile-btn';
+  var smallTouch=('ontouchstart' in window)&&window.innerWidth<768; // phones scroll, they don't drag
+  document.addEventListener('dragstart',function(e){if(e.target.closest&&e.target.closest('.lmn-draggable'))e.preventDefault();});
+
+  function freezeFlow(container){
+    if(container.__lmnFrozen)return;container.__lmnFrozen=true;
+    var items=[].slice.call(container.querySelectorAll('.br-win')),rects=[];
+    var crect=container.getBoundingClientRect();
+    items.forEach(function(el){rects.push(el.getBoundingClientRect());});
+    container.style.minHeight=container.getBoundingClientRect().height+'px';
+    items.forEach(function(el,i){var r=rects[i];var cs=getComputedStyle(el);if(cs.position==='absolute'||cs.position==='fixed')return;
+      el.style.width=r.width+'px';el.style.position='absolute';el.style.left=(r.left-crect.left)+'px';el.style.top=(r.top-crect.top)+'px';el.style.margin='0';});
+  }
+
+  function attach(el,opts){
+    opts=opts||{};
+    if(el.__lmnDrag)return;el.__lmnDrag=true;
+    el.classList.add('lmn-draggable');
+    var handle=opts.handle||el,container=opts.container||null,fixed=!!opts.fixed;
+    if(!smallTouch)handle.style.touchAction='none';
+    var active=null;
+    handle.addEventListener('pointerdown',function(e){
+      if(smallTouch)return;
+      if(e.button!==0&&e.pointerType==='mouse')return;
+      if(e.target.closest&&e.target.closest(NO_GRAB))return;
+      if(container)freezeFlow(container);
+      var r=el.getBoundingClientRect();
+      var base=fixed?{left:0,top:0}:(el.offsetParent||document.body).getBoundingClientRect();
+      var cs=getComputedStyle(el);
+      if(cs.position!=='absolute'&&cs.position!=='fixed'){el.style.width=r.width+'px';el.style.position=fixed?'fixed':'absolute';}
+      el.style.left=(r.left-base.left)+'px';el.style.top=(r.top-base.top)+'px';el.style.right='auto';el.style.bottom='auto';el.style.margin='0';el.style.transition='none';
+      el.style.zIndex=String(++zTop);
+      active={id:e.pointerId,offX:e.clientX-r.left,offY:e.clientY-r.top,w:r.width,h:r.height,base:base};
+      try{handle.setPointerCapture(e.pointerId);}catch(x){}
+      el.classList.add('lmn-dragging');document.body.classList.add('lmn-drag-live');
+      e.preventDefault();
+    });
+    function move(e){
+      if(!active||e.pointerId!==active.id)return;
+      var x=e.clientX-active.offX,y=e.clientY-active.offY;
+      if(fixed){x=Math.max(0,Math.min(window.innerWidth-active.w,x));y=Math.max(0,Math.min(window.innerHeight-active.h,y));}
+      else{x=Math.max(-active.w*0.6,x);y=Math.max(-active.h*0.3,y);}
+      el.style.left=(x-active.base.left)+'px';el.style.top=(y-active.base.top)+'px';
+      // The desktop grows to keep a window dragged past its bottom edge in reach.
+      if(container){var bottom=(y-active.base.top)+active.h+32;if(bottom>container.clientHeight)container.style.minHeight=bottom+'px';}
+    }
+    function end(e){
+      if(!active||e.pointerId!==active.id)return;
+      try{handle.releasePointerCapture(e.pointerId);}catch(x){}
+      active=null;el.classList.remove('lmn-dragging');document.body.classList.remove('lmn-drag-live');
+    }
+    handle.addEventListener('pointermove',move);
+    handle.addEventListener('pointerup',end);
+    handle.addEventListener('pointercancel',end);
+    handle.addEventListener('lostpointercapture',end);
+  }
+
+  var css=document.createElement('style');
+  css.textContent='.lmn-draggable{cursor:grab}.lmn-draggable.lmn-dragging{cursor:grabbing}body.lmn-drag-live{user-select:none;-webkit-user-select:none}body.lmn-drag-live iframe{pointer-events:none}';
+  document.head.appendChild(css);
+
+  // Artist rooms: windows and wall things move; the desktop is the container.
+  var bedroom=document.querySelector('.bedroom');
+  if(bedroom){
+    var sel='.br-win, .bedroom-sticker, .bedroom-wall-poster, .bedroom-polaroid, .bedroom-poster';
+    [].slice.call(bedroom.querySelectorAll(sel)).forEach(function(el){attach(el,{container:bedroom});});
+  }
+  window.lmnDrag={attach:attach};
+})();
+</script>
 <div id="winamp-player">
   <div id="winamp-titlebar">
     <div id="winamp-grip-left" class="winamp-grip"></div>
@@ -244,13 +323,8 @@
   nextBtn.addEventListener('click',function(){nextTrack();});
   closeBtn.addEventListener('click',function(e){e.stopPropagation();player.classList.toggle('winamp-shaded');});
   minBtn.addEventListener('click',function(e){e.stopPropagation();player.classList.toggle('winamp-shaded');});
-  var isDragging=false,dragOffX=0,dragOffY=0;
-  titlebar.addEventListener('mousedown',function(e){if(e.target.tagName==='BUTTON')return;isDragging=true;var r=player.getBoundingClientRect();dragOffX=e.clientX-r.left;dragOffY=e.clientY-r.top;player.style.transition='none';e.preventDefault();});
-  document.addEventListener('mousemove',function(e){if(!isDragging)return;var x=Math.max(0,Math.min(window.innerWidth-player.offsetWidth,e.clientX-dragOffX)),y=Math.max(0,Math.min(window.innerHeight-player.offsetHeight,e.clientY-dragOffY));player.style.left=x+'px';player.style.top=y+'px';player.style.right='auto';player.style.bottom='auto';});
-  document.addEventListener('mouseup',function(){isDragging=false;});
-  titlebar.addEventListener('touchstart',function(e){if(e.target.tagName==='BUTTON')return;isDragging=true;var r=player.getBoundingClientRect(),t=e.touches[0];dragOffX=t.clientX-r.left;dragOffY=t.clientY-r.top;player.style.transition='none';},{passive:true});
-  document.addEventListener('touchmove',function(e){if(!isDragging)return;var t=e.touches[0],x=Math.max(0,Math.min(window.innerWidth-player.offsetWidth,t.clientX-dragOffX)),y=Math.max(0,Math.min(window.innerHeight-player.offsetHeight,t.clientY-dragOffY));player.style.left=x+'px';player.style.top=y+'px';player.style.right='auto';player.style.bottom='auto';},{passive:true});
-  document.addEventListener('touchend',function(){isDragging=false;});
+  // Dragging: the site-wide engine (below), title bar is the handle.
+  if(window.lmnDrag)window.lmnDrag.attach(player,{handle:titlebar,fixed:true});
   setVolume(0.75);
 })();
 </script>

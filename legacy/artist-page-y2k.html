@@ -13,6 +13,7 @@
     display: flex;
     flex-wrap: wrap;
     align-content: flex-start;
+    align-items: flex-start; /* each window is as tall as its own content, never its row */
     gap: 16px;
     justify-content: center;
     overflow: hidden;
@@ -72,6 +73,8 @@
     max-width: 100%;
   }
 
+  .br-titlebar { cursor: grab; }
+  .lmn-dragging, .lmn-dragging .br-titlebar { cursor: grabbing !important; }
   .br-titlebar {
     display: flex;
     align-items: center;
@@ -949,75 +952,7 @@
 })();
 </script>
 
-<script>
-// Drag to rearrange — desktop only
-(function() {
-  if ('ontouchstart' in window && window.innerWidth < 768) return;
-
-  document.addEventListener('dragstart', function(e) { e.preventDefault(); });
-
-  var bedroom = document.querySelector('.bedroom');
-  if (!bedroom) return;
-  var dragging = null, offX = 0, offY = 0;
-
-  // Match selectors for draggable items
-  var selectors = '.br-win, .bedroom-sticker, .bedroom-wall-poster, .bedroom-polaroid, .bedroom-poster';
-
-  function findDraggable(target) {
-    // Walk up from click target to find the draggable container
-    var el = target;
-    while (el && el !== bedroom) {
-      if (el.matches && el.matches(selectors)) return el;
-      el = el.parentElement;
-    }
-    return null;
-  }
-
-  bedroom.addEventListener('mousedown', function(e) {
-    // Skip links, buttons, thumbs (lightbox)
-    if (e.target.closest('a, button, .br-aim-btn, .br-thumb, .br-lightbox')) return;
-
-    var el = findDraggable(e.target);
-    if (!el) return;
-
-    e.preventDefault();
-    dragging = el;
-    var rect = el.getBoundingClientRect();
-    var parentRect = bedroom.getBoundingClientRect();
-    offX = e.clientX - rect.left;
-    offY = e.clientY - rect.top;
-
-    var pos = getComputedStyle(el).position;
-    if (pos === 'static' || pos === 'relative') {
-      el.style.position = 'absolute';
-      el.style.left = (rect.left - parentRect.left) + 'px';
-      el.style.top = (rect.top - parentRect.top) + 'px';
-    }
-    el.style.zIndex = 100;
-    el.style.cursor = 'grabbing';
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (!dragging) return;
-    var parentRect = bedroom.getBoundingClientRect();
-    dragging.style.left = (e.clientX - offX - parentRect.left) + 'px';
-    dragging.style.top = (e.clientY - offY - parentRect.top) + 'px';
-    dragging.style.right = 'auto';
-    dragging.style.bottom = 'auto';
-  });
-
-  document.addEventListener('mouseup', function() {
-    if (dragging) {
-      dragging.style.cursor = 'grab';
-      dragging = null;
-      document.body.style.userSelect = '';
-      document.body.style.webkitUserSelect = '';
-    }
-  });
-})();
-</script>
+<!-- Drag to rearrange: the site-wide drag engine (code-injection-footer) handles .bedroom items. -->
 
 <!-- Lightbox -->
 <div class="br-lightbox" id="br-lightbox">
