@@ -350,6 +350,9 @@ var mb=document.getElementById('jd-mob-mtv');if(mb)mb.addEventListener('click',f
 
   // The Winamp widget (site-wide bundle) starts on the artist's actual pick.
   html += `\n<script>window.__ROOM_SONG_ID__=${JSON.stringify(content.songId)};</script>`;
+  // The drag engine (footer bundle) restores the owner's desk layout and saves
+  // new ones to /api/room/layout, keyed by the artist id.
+  html += `\n<script>window.__ROOM_KEY__=${JSON.stringify(content.artistId)};window.__ROOM_LAYOUT__=${JSON.stringify(content.layout ?? null).replace(/</g, "\\u003c")};</script>`;
 
   // The cabinet selector reads the catalog + whose room this is (the artist id
   // rides the embed URL so Flash Match can deal from their flash wall).
