@@ -351,6 +351,121 @@ export default function RoomEditorPage() {
             </Card>
           </section>
 
+          {/* ── Lumenati-only room dressing (the Y2K theme has a media player window,
+              wall stickers and taped posters; other themes have none). ── */}
+          {isY2k && (
+            <>
+              <section>
+                <SectionTitle>Page video</SectionTitle>
+                <Card>
+                  <div className="space-y-3 p-4">
+                    <p className="text-xs text-white/55">
+                      {room.videoUrl
+                        ? "Your clip plays in your page's media player window."
+                        : "Drop a clip into your page's media player window (mp4 or mov, under 60MB)."}
+                    </p>
+                    {room.videoUrl && (
+                      <>
+                        <video src={room.videoUrl} controls preload="metadata" className="max-h-56 w-full rounded-lg bg-black" />
+                        <Field label="Video title">
+                          <input className="inp" value={room.videoTitle ?? ""} onChange={(e) => set("videoTitle", e.target.value)} placeholder="my shop tour" />
+                        </Field>
+                      </>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <UploadButton
+                        artistId={artistId}
+                        accept="video/mp4,video/quicktime,.mp4,.mov"
+                        maxBytes={60 * 1024 * 1024}
+                        onPick={(src) => set("videoUrl", src)}
+                      >
+                        {room.videoUrl ? "Replace video" : "Add a video"}
+                      </UploadButton>
+                      {room.videoUrl && (
+                        <button
+                          onClick={() => {
+                            set("videoUrl", null);
+                            set("videoTitle", null);
+                          }}
+                          className="rounded-lg border border-rose-400/30 px-3 py-1.5 text-sm font-medium text-rose-400 hover:bg-rose-400/10"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </section>
+
+              <section>
+                <SectionTitle>Stickers</SectionTitle>
+                <Card>
+                  <div className="p-4">
+                    <p className="text-xs text-white/55">
+                      Slap up to seven on your walls, click to toggle.{room.stickers === null ? " Using the classic set until you pick." : ""}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {STICKERS.map((st) => {
+                        const on = (room.stickers ?? []).includes(st.id);
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => {
+                              const cur = room.stickers ?? [];
+                              set("stickers", on ? cur.filter((x) => x !== st.id) : [...cur, st.id].slice(0, 7));
+                            }}
+                            className={`rounded-xl border-2 p-2 ${on ? "border-white/60 bg-white/10" : "border-white/12 hover:border-white/30"}`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={st.src} alt={st.id} className="h-12 w-12 object-contain" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </Card>
+              </section>
+
+              <section>
+                <SectionTitle
+                  action={
+                    <UploadButton
+                      small
+                      artistId={artistId}
+                      disabled={(room.posters ?? []).length >= 4}
+                      onPick={(src) => set("posters", [...(room.posters ?? []), { id: newId("wp"), src }].slice(0, 4))}
+                    >
+                      + Add poster
+                    </UploadButton>
+                  }
+                >
+                  Wall posters
+                </SectionTitle>
+                <Card>
+                  <div className="p-4">
+                    <p className="mb-3 text-xs text-white/55">
+                      Up to four, taped to your walls in the designed spots.{room.posters === null ? " Using the classic set until you add your own." : ""}
+                    </p>
+                    {(room.posters ?? []).length === 0 && <Empty>No posters yet.</Empty>}
+                    <div className="space-y-3">
+                      {(room.posters ?? []).map((pp) => (
+                        <Row key={pp.id} src={pp.src} onRemove={() => set("posters", (room.posters ?? []).filter((x) => x.id !== pp.id))}>
+                          <span className="text-xs text-white/45">Poster</span>
+                        </Row>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </section>
+            </>
+          )}
+
+          <section>
+            <SectionTitle>Flash wall</SectionTitle>
+            <FlashWallEditor artistId={artistId} />
+          </section>
+
         </div>
 
         {/* ── Live preview: the REAL public page, per the shop's actual skin ── */}
@@ -507,17 +622,28 @@ function UploadButton({
   onPick,
   children,
   small,
+  accept = "image/*",
+  maxBytes,
+  disabled,
 }: {
   artistId: string;
   onPick: (src: string) => void;
   children: React.ReactNode;
   small?: boolean;
+  /** Same bucket for everything; the room video just needs a different picker. */
+  accept?: string;
+  maxBytes?: number;
+  disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (maxBytes && file.size > maxBytes) {
+      alert(`That file is over ${Math.round(maxBytes / 1024 / 1024)}MB. Trim it down and try again.`);
+      return;
+    }
     setBusy(true);
     try {
       // Supabase Storage when configured, else a local data-URL preview.
@@ -532,7 +658,7 @@ function UploadButton({
   return (
     <label
       className={`inline-flex cursor-pointer items-center rounded-lg font-medium ${
-        busy ? "opacity-50" : ""
+        busy || disabled ? "pointer-events-none opacity-50" : ""
       } ${
         small
           ? "bg-brand px-2.5 py-1 text-xs text-white hover:opacity-90"
@@ -540,8 +666,97 @@ function UploadButton({
       }`}
     >
       {busy ? "Uploading…" : children}
-      <input type="file" accept="image/*" onChange={onChange} className="hidden" disabled={busy} />
+      <input type="file" accept={accept} onChange={onChange} className="hidden" disabled={busy || disabled} />
     </label>
+  );
+}
+
+// Mirrors STICKER_CATALOG in lib/admin/render-room.ts and the app — keep ids in sync.
+const STICKERS: { id: string; src: string }[] = [
+  { id: "bolt", src: "/legacy-assets/sqsp-013.png" },
+  { id: "8ball", src: "/legacy-assets/sqsp-002.png" },
+  { id: "skateboard", src: "/legacy-assets/sqsp-015.png" },
+  { id: "rainbow", src: "/legacy-assets/sqsp-022.png" },
+  { id: "smilie", src: "/legacy-assets/sqsp-014.png" },
+  { id: "tongue", src: "/legacy-assets/sqsp-020.png" },
+  { id: "stars", src: "/legacy-assets/sqsp-030.png" },
+];
+
+// Flash wall pieces live in their own table and go live the moment they're
+// pinned (same as the app). Price + claimed toggle write straight through.
+type Flash = { id: string; src: string; title: string | null; price_cents: number; status: string };
+function FlashWallEditor({ artistId }: { artistId: string }) {
+  const [flash, setFlash] = useState<Flash[]>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+  const sb = createClient();
+  const load = async () => {
+    const { data } = await sb
+      .from("flash_pieces")
+      .select("id, src, title, price_cents, status")
+      .eq("artist_id", artistId)
+      .order("created_at", { ascending: false });
+    setFlash((data ?? []) as Flash[]);
+  };
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artistId]);
+  const add = async (src: string) => {
+    const { error } = await sb.from("flash_pieces").insert({ artist_id: artistId, src });
+    setMsg(error ? `Could not pin it: ${error.message}` : "Pinned. Set a price below.");
+    load();
+  };
+  const patch = async (id: string, p: Partial<Flash>) => {
+    setFlash((cur) => cur.map((f) => (f.id === id ? { ...f, ...p } : f)));
+    await sb.from("flash_pieces").update(p).eq("id", id);
+  };
+  const remove = async (id: string) => {
+    setFlash((cur) => cur.filter((f) => f.id !== id));
+    await sb.from("flash_pieces").delete().eq("id", id);
+  };
+  return (
+    <Card className="ring-1 ring-brand/30">
+      <div className="p-4">
+        <p className="text-sm font-semibold">Live the second you pin it, no save needed.</p>
+        <p className="mt-1 text-xs text-white/55">Your flash on your page and the shop&apos;s wall. Mark a piece claimed the moment someone grabs it.</p>
+        <div className="mt-3 space-y-3">
+          {flash.length === 0 && <Empty>Nothing pinned yet.</Empty>}
+          {flash.map((f) => (
+            <div key={f.id} className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={f.src} alt="" className="h-16 w-16 rounded-lg object-cover ring-1 ring-white/15" />
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1 text-sm text-white/65">
+                  $
+                  <input
+                    className="inp w-24"
+                    inputMode="decimal"
+                    value={f.price_cents > 0 ? String(f.price_cents / 100) : ""}
+                    onChange={(e) => patch(f.id, { price_cents: Math.max(0, Math.round((Number(e.target.value) || 0) * 100)) })}
+                    placeholder="price"
+                  />
+                </label>
+                <button
+                  onClick={() => patch(f.id, { status: f.status === "claimed" ? "available" : "claimed" })}
+                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${f.status === "claimed" ? "border-amber-400/40 text-amber-300" : "border-white/12 text-white/75 hover:bg-white/6"}`}
+                >
+                  {f.status === "claimed" ? "Claimed · tap to relist" : "Available · tap when claimed"}
+                </button>
+                <button onClick={() => remove(f.id)} className="rounded-lg border border-rose-400/30 px-2.5 py-1 text-xs font-medium text-rose-400 hover:bg-rose-400/10">
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3">
+          <UploadButton artistId={artistId} onPick={add}>
+            Pin new flash
+          </UploadButton>
+          {msg && <span className="ml-3 text-xs text-white/60">{msg}</span>}
+        </div>
+      </div>
+    </Card>
   );
 }
 
