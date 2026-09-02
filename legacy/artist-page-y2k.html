@@ -73,6 +73,12 @@
     max-width: 100%;
   }
 
+  /* The name header, polaroid strip and icon column are full-width layout
+     blocks that overlap the wall. They pass the pointer through to whatever
+     sticker or poster is under them; only their real content stays clickable. */
+  .bedroom-header, .bedroom-polaroid-row, .bedroom-icons { pointer-events: none; }
+  .bedroom-header a, .bedroom-header button, .bedroom-polaroid, .bedroom-icons .br-icon, .bedroom-icons a { pointer-events: auto; }
+  .bedroom-sticker, .bedroom-wall-poster, .bedroom-poster { cursor: grab; }
   .br-titlebar { cursor: grab; }
   .lmn-dragging, .lmn-dragging .br-titlebar { cursor: grabbing !important; }
   .br-titlebar {
