@@ -10,7 +10,7 @@ import { LumenatiLogo } from "@/components/LumenatiLogo";
 // (shouldCreateUser: false — an unknown number gets a friendly nudge).
 
 // Where the privacy policy lives (App Store requires it reachable in-app).
-const SITE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+const SITE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenatitattoo.com").replace(/\/$/, "");
 
 // "(209) 555-0144" -> "+12095550144"; null if it doesn't look like a number.
 function e164(raw: string): string | null {

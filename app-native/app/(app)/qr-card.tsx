@@ -20,7 +20,7 @@ import { success } from "@/lib/haptics";
 // drop it on flash sheets and IG stories. The print-ready 4x6 lives in the
 // web admin (Artists & Pay > QR card); this is the pocket version.
 
-const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenatitattoo.com").replace(/\/$/, "");
 
 type Me = { slug: string; name: string; handle: string; color: string };
 

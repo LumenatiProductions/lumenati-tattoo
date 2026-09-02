@@ -18,7 +18,7 @@ import { success, trouble } from "@/lib/haptics";
 // and the caption is one tap from your clipboard for stories and DMs. Text
 // blasts to clients come later — Twilio and consent copy still gate outbound.
 
-const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenatitattoo.com").replace(/\/$/, "");
 
 type Campaign = {
   id: string;

@@ -16,7 +16,7 @@ import { Card } from "@/components/ui";
 // work, YOUR bank) because an artist sets themselves up on their phone. Self
 // retires once every step is done; a Hide sticks it away for good.
 
-const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenati-tattoo.vercel.app").replace(/\/$/, "");
+const SITE = (process.env.EXPO_PUBLIC_API_URL ?? "https://lumenatitattoo.com").replace(/\/$/, "");
 const HIDE_KEY = "lum-artist-setup-hidden";
 
 type Step = {

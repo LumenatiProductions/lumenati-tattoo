@@ -429,7 +429,7 @@ export default function MyRoom() {
               {photoPreview || room.profile_photo ? (
                 <View>
                   <Image
-                    source={{ uri: photoPreview ?? (room.profile_photo.startsWith("http") ? room.profile_photo : `https://lumenati-tattoo.vercel.app${room.profile_photo}`) }}
+                    source={{ uri: photoPreview ?? (room.profile_photo.startsWith("http") ? room.profile_photo : `https://lumenatitattoo.com${room.profile_photo}`) }}
                     style={styles.avatar}
                   />
                   {photoPreview ? (
