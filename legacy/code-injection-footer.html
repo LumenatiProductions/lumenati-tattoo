@@ -375,99 +375,102 @@
 <!-- ═══ AOL LOADING SCREEN ═══ -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-  /* ── Lumenati OnLine: the AOL 4.0 sign-on, Win95 chrome over the teal desktop ── */
+  /* ── Lumenati OnLine: the Windows AOL 4.0 "Sign On" dialog, on the Win95 desktop ── */
   #aol-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#008080; z-index:9999999; display:flex; align-items:center; justify-content:center; flex-direction:column; font-family:Tahoma,'MS Sans Serif',Arial,sans-serif; font-size:11px; color:#000; transition:opacity 0.8s ease; opacity:1; }
   #aol-overlay.fade-out { opacity:0; pointer-events:none; }
-  .aol-win { background:#c0c0c0; border:1px solid; border-color:#dfdfdf #000 #000 #dfdfdf; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 2px 2px 0 rgba(0,0,0,0.35); padding:2px; }
-  .aol-tb { background:#000080; color:#fff; height:18px; padding:1px 2px 1px 4px; display:flex; align-items:center; justify-content:space-between; user-select:none; }
-  .aol-tb-l { display:flex; align-items:center; gap:5px; font-weight:bold; font-size:11px; letter-spacing:0; }
-  .aol-tb-ico { width:14px; height:14px; background:#1b41a6; border:1px solid #fff; display:flex; align-items:center; justify-content:center; }
-  .aol-tb-ico img { width:9px; height:9px; filter:brightness(0) invert(1); }
+  .aol-win { background:#c0c0c0; border:1px solid; border-color:#dfdfdf #000 #000 #dfdfdf; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #808080, 3px 3px 0 rgba(0,0,0,0.35); padding:2px; }
+  .aol-tb { background:#000080; color:#fff; height:18px; padding:1px 2px 1px 3px; display:flex; align-items:center; justify-content:space-between; user-select:none; }
+  .aol-tb-l { display:flex; align-items:center; gap:5px; font-weight:bold; font-size:11px; }
+  .aol-tb-ico { width:14px; height:14px; background:#1a3a98; display:flex; align-items:center; justify-content:center; }
+  .aol-tb-ico img { width:10px; height:10px; filter:brightness(0) invert(1); }
   .aol-tb-r { display:flex; gap:2px; }
-  .aol-tb-r span { width:16px; height:14px; background:#c0c0c0; color:#000; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080; font-size:10px; font-weight:bold; line-height:12px; text-align:center; font-family:Tahoma,Arial,sans-serif; }
-  .aol-menu { display:flex; gap:0; padding:2px 2px 3px; }
-  .aol-menu span { padding:1px 6px; } .aol-menu span u { text-decoration:underline; }
-  .aol-banner { height:84px; background:linear-gradient(180deg,#2a55c8 0%,#1b41a6 55%,#12318a 100%); border:1px solid; border-color:#808080 #fff #fff #808080; margin:0 6px 4px; display:flex; align-items:center; gap:16px; padding:0 18px; position:relative; overflow:hidden; }
-  .aol-banner:after { content:''; position:absolute; right:-30px; top:-40px; width:170px; height:170px; border-radius:50%; background:rgba(255,255,255,0.06); }
-  .aol-mark { width:58px; height:58px; position:relative; flex:none; }
-  .aol-mark .tri { position:absolute; inset:0; background:#ffd600; clip-path:polygon(50% 4%, 98% 92%, 2% 92%); }
-  .aol-mark .tri2 { position:absolute; inset:0; background:#1b41a6; clip-path:polygon(50% 22%, 84% 84%, 16% 84%); }
-  .aol-mark img { position:absolute; left:50%; top:56%; width:30px; transform:translate(-50%,-50%); filter:brightness(0) invert(1); }
-  .aol-wordmark { color:#fff; font-family:'Arial Black',Arial,sans-serif; font-weight:900; font-size:30px; line-height:0.95; letter-spacing:-0.5px; text-shadow:2px 2px 0 rgba(0,0,0,0.35); }
-  .aol-wordmark small { display:block; font-family:Tahoma,Arial,sans-serif; font-weight:normal; font-size:11px; letter-spacing:0.4px; margin-top:6px; text-shadow:none; opacity:0.95; }
-  .aol-form { padding:6px 14px 4px; display:grid; grid-template-columns:132px 1fr; row-gap:8px; column-gap:8px; align-items:center; }
-  .aol-form label { text-align:right; }
-  .aol-combo, .aol-text { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf; height:21px; display:flex; align-items:center; font-size:11px; }
+  .aol-tb-r span { width:16px; height:14px; background:#c0c0c0; color:#000; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080; font-size:9px; font-weight:bold; line-height:12px; text-align:center; }
+  .aol-split { display:flex; border:1px solid; border-color:#808080 #fff #fff #808080; margin:2px 0 0; background:#f2f0ea; }
+  .aol-left { width:118px; flex:none; position:relative; background:#1a3a98 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='7'/><feColorMatrix values='0 0 0 0 0.10  0 0 0 0 0.22  0 0 0 0 0.62  0 0 0 0.9 0'/></filter><rect width='220' height='220' fill='%231a3a98'/><rect width='220' height='220' filter='url(%23m)' opacity='0.9'/></svg>"); background-size:100% 100%; color:#fff; display:flex; flex-direction:column; align-items:center; padding:22px 8px 10px; box-shadow:inset -2px 0 0 rgba(0,0,0,0.25); }
+  .aol-left:after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.14), transparent 55%); pointer-events:none; }
+  .aol-pyr { width:74px; height:74px; position:relative; z-index:1; }
+  .aol-pyr .tri { position:absolute; inset:0; background:#fff; clip-path:polygon(50% 0, 100% 100%, 0 100%); }
+  .aol-pyr .tri2 { position:absolute; inset:0; background:#1a3a98; clip-path:polygon(50% 18%, 88% 90%, 12% 90%); }
+  .aol-pyr img { position:absolute; left:50%; top:60%; width:36px; transform:translate(-50%,-50%); filter:brightness(0) invert(1); }
+  .aol-brand { z-index:1; margin-top:8px; text-align:center; line-height:1; }
+  .aol-brand .caps { font-family:Arial,sans-serif; font-weight:bold; font-size:10px; letter-spacing:2.2px; }
+  .aol-brand .script { font-family:'Snell Roundhand','Brush Script MT','Segoe Script',cursive; font-size:30px; margin-top:-2px; letter-spacing:0.5px; }
+  .aol-ver { z-index:1; margin-top:auto; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; }
+  .aol-ver .runner { width:22px; height:22px; position:relative; }
+  .aol-ver .runner .tri { position:absolute; inset:0; background:#fff; clip-path:polygon(50% 0, 100% 100%, 0 100%); }
+  .aol-ver .runner img { position:absolute; left:50%; top:60%; width:12px; transform:translate(-50%,-50%); }
+  .aol-right { flex:1; padding:34px 18px 12px 22px; display:flex; flex-direction:column; }
+  .aol-fld { margin-bottom:12px; }
+  .aol-fld label { display:block; font-weight:bold; font-size:11px; margin-bottom:3px; }
+  .aol-combo, .aol-text { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #000, inset -1px -1px 0 #dfdfdf; height:20px; display:flex; align-items:center; font-size:11px; }
   .aol-combo span, .aol-text span { padding:0 4px; flex:1; white-space:nowrap; overflow:hidden; }
-  .aol-combo .dd { width:16px; height:17px; margin:1px; flex:none; background:#c0c0c0; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080; display:flex; align-items:center; justify-content:center; font-size:8px; }
-  .aol-btns { display:flex; align-items:stretch; gap:8px; padding:10px 14px 8px; }
-  .aol-btn { background:#c0c0c0; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf; padding:6px 12px; font-family:Tahoma,Arial,sans-serif; font-size:11px; font-weight:bold; letter-spacing:0.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; user-select:none; }
-  .aol-btn:active { border-color:#000 #fff #fff #000; box-shadow:inset 1px 1px 0 #808080; }
-  #aol-login-btn { flex:1.6; padding:6px 14px; }
-  #aol-login-btn .aol-mark { width:30px; height:30px; } #aol-login-btn .aol-mark img { width:15px; }
-  #aol-login-btn b { font-size:13px; }
-  .aol-status { margin:2px 6px 4px; display:flex; gap:4px; }
-  .aol-status span { flex:1; border:1px solid; border-color:#808080 #fff #fff #808080; padding:2px 5px; color:#222; font-size:11px; }
-  .aol-status span.v { flex:none; }
+  .aol-combo .dd { width:15px; height:16px; margin:1px; flex:none; background:#c0c0c0; border:1px solid; border-color:#fff #000 #000 #fff; box-shadow:inset -1px -1px 0 #808080; display:flex; align-items:center; justify-content:center; font-size:7px; }
+  .aol-btns { display:flex; justify-content:flex-end; gap:8px; margin-top:auto; padding-top:8px; }
+  .aol-btn { min-width:64px; height:22px; padding:0 8px; background:linear-gradient(180deg,#5b7be0 0%,#2f52c4 45%,#1b3aa6 100%); border:1px solid; border-color:#9fb4f0 #0b1f66 #0b1f66 #9fb4f0; box-shadow:inset 1px 1px 0 rgba(255,255,255,0.35), 1px 1px 0 #000; color:#fff; font-family:Arial,sans-serif; font-size:10px; font-weight:bold; letter-spacing:0.6px; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; text-shadow:1px 1px 0 rgba(0,0,0,0.5); }
+  .aol-btn:active { border-color:#0b1f66 #9fb4f0 #9fb4f0 #0b1f66; box-shadow:none; }
+  #aol-login-btn { min-width:74px; }
+  .aol-note { font-size:10px; color:#555; margin-top:10px; text-align:right; }
   #aol-skip { position:fixed; bottom:18px; right:18px; color:rgba(255,255,255,0.75); font-family:Tahoma,Arial,sans-serif; font-size:12px; cursor:pointer; text-decoration:underline; background:none; border:none; padding:8px 12px; z-index:99999999; }
   #aol-skip:hover { color:#fff; }
   #aol-click-prompt { position:fixed; inset:0; z-index:99999998; display:flex; align-items:center; justify-content:center; background:#008080; }
-  #aol-login-box, #aol-dialog { width:440px; max-width:94vw; }
-  /* Connecting: same window, the steps under the banner */
-  #aol-steps { margin:8px 14px; min-height:120px; }
-  .aol-step { font-size:11px; color:#444; margin:5px 0; padding-left:20px; position:relative; opacity:0; transition:opacity 0.3s ease; overflow:hidden; }
-  .aol-step:before { content:''; position:absolute; left:2px; top:2px; width:10px; height:10px; border:1px solid; border-color:#808080 #fff #fff #808080; background:#fff; }
+  #aol-login-box { width:372px; max-width:94vw; } #aol-dialog { width:440px; max-width:94vw; }
+  /* Connecting: same split window, the steps take the right panel */
+  #aol-steps { min-height:104px; }
+  .aol-step { font-size:11px; color:#444; margin:6px 0; padding-left:20px; position:relative; opacity:0; transition:opacity 0.3s ease; overflow:hidden; }
+  .aol-step:before { content:''; position:absolute; left:2px; top:1px; width:10px; height:10px; border:1px solid; border-color:#808080 #fff #fff #808080; background:#fff; }
   .aol-step.visible { opacity:1; } .aol-step.active { color:#000; font-weight:bold; } .aol-step.done { color:#000; font-weight:normal; }
-  .aol-step.done:before { background:#fff; } .aol-step .check { position:absolute; left:2px; top:-1px; color:#000; font-size:12px; font-weight:bold; }
+  .aol-step .check { position:absolute; left:2px; top:-2px; color:#000; font-size:12px; font-weight:bold; }
   .modem-noise { font-family:'Courier New',monospace; letter-spacing:1px; color:#666; } .modem-noise:before { display:none; }
-  #aol-progress-wrap { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #000; height:18px; margin:0 14px 10px; padding:2px; }
+  #aol-progress-wrap { background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; box-shadow:inset 1px 1px 0 #000; height:18px; padding:2px; margin-top:auto; }
   #aol-progress-bar { height:100%; width:0%; transition:width 0.4s ease; background:repeating-linear-gradient(90deg,#000080 0 8px,#fff 8px 10px); }
-  #aol-welcome { display:none; text-align:center; font-family:'Arial Black',Arial,sans-serif; font-size:24px; color:#000080; font-style:italic; margin:6px 0 4px; animation:aol-pulse 0.6s ease-in-out 2; }
-  #aol-welcome small { display:block; font-family:Tahoma,Arial,sans-serif; font-size:12px; font-style:normal; color:#222; margin-top:2px; }
+  #aol-welcome { display:none; text-align:center; font-family:'Snell Roundhand','Brush Script MT','Segoe Script',cursive; font-size:30px; color:#1a3a98; margin:0 0 6px; animation:aol-pulse 0.6s ease-in-out 2; }
+  #aol-welcome small { display:block; font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#222; margin-top:2px; }
   @keyframes aol-pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
-  @media (min-width:900px) { #aol-login-box, #aol-dialog { zoom:1.35; } #aol-skip { font-size:14px; } }
-  @media (max-width:500px) { .aol-form { grid-template-columns:1fr; row-gap:3px; } .aol-form label { text-align:left; margin-top:4px; } .aol-banner { height:70px; padding:0 12px; } .aol-wordmark { font-size:22px; } .aol-btns { flex-wrap:wrap; } #aol-login-btn { flex-basis:100%; } }
+  @media (min-width:900px) { #aol-login-box, #aol-dialog { zoom:1.4; } #aol-skip { font-size:14px; } }
+  @media (max-width:500px) { .aol-left { width:88px; padding-top:14px; } .aol-pyr { width:56px; height:56px; } .aol-pyr img { width:28px; } .aol-brand .script { font-size:22px; } .aol-right { padding:16px 12px 10px 14px; } .aol-btns { flex-wrap:wrap; } }
 </style>
 <div id="aol-overlay">
   <div id="aol-dialog">
   <div class="aol-win">
-    <div class="aol-tb"><span class="aol-tb-l"><span class="aol-tb-ico"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></span>Lumenati OnLine</span><span class="aol-tb-r"><span>_</span><span>&#9633;</span><span>&#10005;</span></span></div>
-    <div class="aol-banner">
-      <div class="aol-mark"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati"></div>
-      <div class="aol-wordmark">Lumenati<br>OnLine<small>So easy to use, no wonder it's #1 in tattoos.</small></div>
+    <div class="aol-tb"><span class="aol-tb-l"><span class="aol-tb-ico"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></span>Connecting</span><span class="aol-tb-r"><span>_</span><span>&#9633;</span><span>&#10005;</span></span></div>
+    <div class="aol-split">
+      <div class="aol-left">
+        <div class="aol-pyr"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati"></div>
+        <div class="aol-brand"><div class="caps">LUMENATI</div><div class="script">OnLine</div></div>
+        <div class="aol-ver"><div class="runner"><div class="tri"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><span>version 4.0</span></div>
+      </div>
+      <div class="aol-right">
+        <div id="aol-steps">
+          <div class="aol-step" id="aol-s1">Step 1: Dialing 1-800-LUMENATI...</div>
+          <div class="modem-noise aol-step" id="aol-noise">BZZZT KRRRRR EEEE SHHHHH DRRRRR SQUEEEEE</div>
+          <div class="aol-step" id="aol-s2">Step 2: Verifying you're cool enough...</div>
+          <div class="aol-step" id="aol-s3">Step 3: Stealing mom's phone line...</div>
+          <div class="aol-step" id="aol-s4">Step 4: Loading tattoo flash at 56kbps...</div>
+        </div>
+        <div id="aol-welcome">Welcome!<small>You've got ink.</small></div>
+        <div id="aol-progress-wrap"><div id="aol-progress-bar"></div></div>
+      </div>
     </div>
-    <div id="aol-steps">
-      <div class="aol-step" id="aol-s1">Step 1: Dialing 1-800-LUMENATI...</div>
-      <div class="modem-noise aol-step" id="aol-noise">BZZZT KRRRRR EEEE SHHHHH DRRRRR SQUEEEEE</div>
-      <div class="aol-step" id="aol-s2">Step 2: Verifying you're cool enough...</div>
-      <div class="aol-step" id="aol-s3">Step 3: Stealing mom's phone line...</div>
-      <div class="aol-step" id="aol-s4">Step 4: Loading tattoo flash at 56kbps...</div>
-    </div>
-    <div id="aol-welcome">Welcome!<small>You've got ink.</small></div>
-    <div id="aol-progress-wrap"><div id="aol-progress-bar"></div></div>
-    <div class="aol-status"><span>Connecting at 56,000 bps</span><span class="v">v4.0</span></div>
   </div>
   </div>
   <div id="aol-click-prompt">
     <div id="aol-login-box">
   <div class="aol-win">
     <div class="aol-tb"><span class="aol-tb-l"><span class="aol-tb-ico"><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></span>Sign On</span><span class="aol-tb-r"><span>_</span><span>&#9633;</span><span>&#10005;</span></span></div>
-    <div class="aol-menu"><span><u>F</u>ile</span><span><u>E</u>dit</span><span><u>S</u>ign On</span><span><u>H</u>elp</span></div>
-    <div class="aol-banner">
-      <div class="aol-mark"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati"></div>
-      <div class="aol-wordmark">Lumenati<br>OnLine<small>So easy to use, no wonder it's #1 in tattoos.</small></div>
+    <div class="aol-split">
+      <div class="aol-left">
+        <div class="aol-pyr"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt="Lumenati"></div>
+        <div class="aol-brand"><div class="caps">LUMENATI</div><div class="script">OnLine</div></div>
+        <div class="aol-ver"><div class="runner"><div class="tri"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><span>version 4.0</span></div>
+      </div>
+      <div class="aol-right">
+        <div class="aol-fld"><label>Select Screen Name:</label><div class="aol-combo"><span>TattooKid98</span><div class="dd">&#9660;</div></div></div>
+        <div class="aol-fld"><label>Enter Password:</label><div class="aol-text"><span>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div></div>
+        <div class="aol-fld"><label>Select Location:</label><div class="aol-combo"><span>Denver, CO (Home)</span><div class="dd">&#9660;</div></div></div>
+        <div class="aol-btns"><div class="aol-btn">SETUP</div><div class="aol-btn">HELP</div><div class="aol-btn" id="aol-login-btn">SIGN ON</div></div>
+        <div class="aol-note" id="aol-login-sound">Sound on for the full experience.</div>
+      </div>
     </div>
-    <div class="aol-form">
-      <label>Select Screen Name:</label><div class="aol-combo"><span>TattooKid98</span><div class="dd">&#9660;</div></div>
-      <label>Enter Password:</label><div class="aol-text"><span>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div>
-      <label>Select Location:</label><div class="aol-combo"><span>Denver, CO (Home)</span><div class="dd">&#9660;</div></div>
-    </div>
-    <div class="aol-btns">
-      <div class="aol-btn" id="aol-login-btn"><div class="aol-mark"><div class="tri"></div><div class="tri2"></div><img src="https://images.squarespace-cdn.com/content/v1/60007bfc3f491826496124f4/1611187721246-14W7RHXSK8ZJIL8X3V6U/lumenati_bw_logo.png" alt=""></div><b>SIGN ON</b></div>
-      <div class="aol-btn">SETUP</div>
-      <div class="aol-btn">HELP</div>
-    </div>
-    <div class="aol-status"><span id="aol-login-sound">Sound on for the full experience.</span><span class="v">v4.0</span></div>
   </div>
     </div>
   </div>
