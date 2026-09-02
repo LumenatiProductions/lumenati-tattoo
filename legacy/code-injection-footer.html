@@ -473,7 +473,8 @@
   <button id="aol-skip">Skip &raquo;</button>
 </div>
 <script>
-(function(){if(sessionStorage.getItem('aol_seen')){var el=document.getElementById('aol-overlay');if(el)el.parentNode.removeChild(el);return;}
+(function(){if(/[?&]intro=1/.test(location.search))sessionStorage.removeItem('aol_seen'); // ?intro=1 brings the sign-on back any time
+if(sessionStorage.getItem('aol_seen')){var el=document.getElementById('aol-overlay');if(el)el.parentNode.removeChild(el);return;}
 var overlay=document.getElementById('aol-overlay'),bar=document.getElementById('aol-progress-bar'),skip=document.getElementById('aol-skip'),welcome=document.getElementById('aol-welcome'),timers=[],dialupAudio,welcomeAudio;
 // Preload both audio files
 dialupAudio=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lumenati-tattoo/main/aol-dialup.mp3');dialupAudio.volume=0.5;dialupAudio.preload='auto';
