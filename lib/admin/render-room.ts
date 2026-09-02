@@ -289,6 +289,11 @@ export function renderRoomHtml(
 
 `;
     html = html.replace("<!-- Hidden Game -->", `${win}<!-- Hidden Game -->`);
+    // Phones hide the desktop icons; the action row gets an MTV button instead.
+    html = html.replace(
+      '<a class="bedroom-mobile-btn" href="#" id="jd-mob-game">Games</a>',
+      '<a class="bedroom-mobile-btn" href="#" id="jd-mob-game">Games</a>\n    <a class="bedroom-mobile-btn" href="#" id="jd-mob-mtv">MTV</a>',
+    );
     const list = MUSIC_VIDEOS.map((c) => ({ id: c.id, name: c.name, num: c.num }));
     const tvJson = JSON.stringify({ id: tv.id, list }).replace(/</g, "\\u003c");
     html += `\n<script>window.__ROOM_TV__=${tvJson};
@@ -299,6 +304,7 @@ window.__lmnMtvClose=function(){ov.style.transform='translateX(-300vw)';};
 window.__lmnMtvTitle=function(c){var t=document.getElementById('jd-mtv-title'),s=document.getElementById('jd-mtv-status');if(t)t.textContent='Windows Media Player \u2014 '+mpg(c.name);if(s)s.textContent='Playing - '+mpg(c.name)+'  //  MTV ch. '+c.num;};
 document.getElementById('jd-mtv-icon').addEventListener('click',function(){window.__lmnMtvOpen();});
 document.getElementById('jd-mtv-close').addEventListener('click',function(){window.__lmnMtvClose();});
+var mb=document.getElementById('jd-mob-mtv');if(mb)mb.addEventListener('click',function(e){e.preventDefault();window.__lmnMtvOpen();});
 })();</script>`;
   }
 

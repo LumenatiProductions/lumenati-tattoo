@@ -212,8 +212,9 @@
   #winamp-volume-fill { height:100%; width:75%; background:linear-gradient(90deg,#006600 0%,#00cc00 100%); border-radius:1px 0 0 1px; }
   #winamp-volume-thumb { position:absolute; top:-2px; left:75%; width:8px; height:12px; background:linear-gradient(180deg,#8a8a70 0%,#5a5a48 100%); border:1px solid #9a9a80; border-right-color:#3a3a2e; border-bottom-color:#3a3a2e; border-radius:1px; cursor:pointer; transform:translateX(-4px); }
 
-  @media (max-width:600px) { #winamp-player { width:220px; bottom:10px; right:10px; } #winamp-elapsed { font-size:14px !important; } #winamp-visualizer { height:14px; } #winamp-transport button { width:24px; height:18px; font-size:8px; } }
-  @media (max-width:400px) { #winamp-player { width:190px; bottom:5px; right:5px; } #winamp-volume-row { display:none; } }
+  /* Phones: Winamp docks across the bottom, shaded to its title bar until tapped, so it never sits on top of a window. */
+  @media (max-width:600px) { #winamp-player { left:0; right:0; bottom:0; width:100%; border-left:0; border-right:0; border-bottom:0; border-radius:0; } #winamp-titlebar { height:30px; } #winamp-elapsed { font-size:14px !important; } #winamp-visualizer { height:14px; } #winamp-transport button { width:30px; height:24px; font-size:9px; } }
+  @media (max-width:400px) { #winamp-volume-row { display:none; } }
 </style>
 
 <script>
@@ -323,6 +324,9 @@
   nextBtn.addEventListener('click',function(){nextTrack();});
   closeBtn.addEventListener('click',function(e){e.stopPropagation();player.classList.toggle('winamp-shaded');});
   minBtn.addEventListener('click',function(e){e.stopPropagation();player.classList.toggle('winamp-shaded');});
+  // Phones: docked and shaded to start; a tap on the title bar opens it.
+  var phone=window.innerWidth<=600;
+  if(phone){player.classList.add('winamp-shaded');titlebar.addEventListener('click',function(e){if(e.target.tagName==='BUTTON')return;player.classList.toggle('winamp-shaded');});}
   // Dragging: the site-wide engine (below), title bar is the handle.
   if(window.lmnDrag)window.lmnDrag.attach(player,{handle:titlebar,fixed:true});
   setVolume(0.75);
