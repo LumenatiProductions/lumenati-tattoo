@@ -73,22 +73,34 @@ export default function KioskArcade() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "3px 4px",
+            padding: "4px 6px 4px 8px",
             background: "linear-gradient(180deg,#FF1493 0%,#c8006e 100%)",
-            height: 24,
+            height: 48,
           }}
         >
           <span style={{ fontFamily: "Tahoma,sans-serif", fontSize: 11, fontWeight: "bold", color: "#fff", textShadow: "1px 1px 0 rgba(0,0,0,0.3)" }}>
             arcade.exe // Lumenati Arcade
           </span>
-          <span
-            role="button"
+          {/* The way out, sized for a walk-up tapping an iPad: a real button, not title-bar text. */}
+          <button
+            type="button"
             aria-label="Back to check-in"
             onClick={close}
-            style={{ fontFamily: "Tahoma,sans-serif", fontSize: 11, color: "#fff", cursor: "pointer", padding: "0 6px" }}
+            className="f-pixel"
+            style={{
+              fontSize: 14,
+              letterSpacing: "0.05em",
+              color: "#ff8ad0",
+              background: "#000",
+              border: "2px solid #fff",
+              borderRadius: 8,
+              padding: "9px 18px",
+              cursor: "pointer",
+              boxShadow: "2px 2px 0 rgba(0,0,0,0.4)",
+            }}
           >
-            BACK TO CHECK-IN &#10005;
-          </span>
+            &#9664; BACK TO CHECK-IN
+          </button>
         </div>
         <div style={{ padding: 4, background: "#ece9d8" }}>
           <canvas

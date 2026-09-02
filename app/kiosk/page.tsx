@@ -713,6 +713,11 @@ function Welcome({ onBegin }: { onBegin: () => void }) {
         <button
           onClick={(e) => {
             e.stopPropagation();
+            // The cabinet has its own sound; the TV goes quiet when it boots.
+            if (soundOn) {
+              tvCommand("mute");
+              setSoundOn(false);
+            }
             window.dispatchEvent(new Event(ARCADE_OPEN_EVENT));
           }}
           className="f-pixel rounded-lg border-2 border-pink-500/80 bg-black/70 px-5 py-3.5 text-sm text-pink-400 hover:text-pink-200"
