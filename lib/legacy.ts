@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import assetManifest from "./asset-manifest.json";
 
@@ -8,6 +8,27 @@ import assetManifest from "./asset-manifest.json";
 const assetEntries = Object.entries(assetManifest as Record<string, string>).sort(
   (a, b) => b[0].length - a[0].length,
 );
+
+
+// Optimized copies: scripts/optimize-legacy-assets.mjs writes a capped WebP
+// beside each Squarespace-era image. Any markup that names the original
+// (manifest hits, hard-coded paths, room_content rows) gets the WebP instead.
+const webpStems = new Set(
+  (() => {
+    try {
+      return readdirSync(path.join(process.cwd(), "public", "legacy-assets"))
+        .filter((f) => f.endsWith(".webp"))
+        .map((f) => f.replace(/\.webp$/, ""));
+    } catch {
+      return [] as string[];
+    }
+  })(),
+);
+export function webpifyLegacyAssets(html: string): string {
+  return html.replace(/\/legacy-assets\/([A-Za-z0-9_-]+)\.(png|jpe?g)\b/g, (m, stem) =>
+    webpStems.has(stem) ? `/legacy-assets/${stem}.webp` : m,
+  );
+}
 
 /**
  * Reads a legacy Squarespace block out of /legacy and returns its raw HTML.
@@ -37,6 +58,7 @@ export function readLegacyBlock(name: string): string {
   for (const [cdnUrl, localPath] of assetEntries) {
     if (html.includes(cdnUrl)) html = html.split(cdnUrl).join(localPath);
   }
+  html = webpifyLegacyAssets(html);
 
   // Every legacy image defers until it scrolls near the viewport. The blocks
   // are injected client-side after mount anyway, so nothing here is LCP; the

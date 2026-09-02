@@ -1,4 +1,4 @@
-import { readLegacyBlock } from "@/lib/legacy";
+import { readLegacyBlock, webpifyLegacyAssets } from "@/lib/legacy";
 import type { RoomContent } from "./types";
 import { GAME_CATALOG } from "@/lib/arcade/catalog";
 import { MUSIC_VIDEOS, roomTvId, tvChannelById } from "@/lib/kiosk/tv-channels";
@@ -350,5 +350,5 @@ var mb=document.getElementById('jd-mob-mtv');if(mb)mb.addEventListener('click',f
   const games = GAME_CATALOG.map((g) => ({ id: g.id, label: g.label, exe: g.exe }));
   html += `\n<script>window.__ARCADE_GAMES__=${JSON.stringify(games).replace(/</g, "\\u003c")};window.__ARCADE_ARTIST__=${JSON.stringify(content.artistId)};window.__ARCADE_ACCENT__=${JSON.stringify(content.accentColor)};</script>`;
 
-  return html;
+  return webpifyLegacyAssets(html);
 }

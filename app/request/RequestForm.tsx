@@ -405,8 +405,8 @@ export default function RequestForm({
               className="mt-0.5 h-4 w-4 rounded border-black/20 accent-zinc-800"
             />
             <span className="text-sm text-zinc-600">
-              Text or email me news, flash days, and offers from the shop (optional). Reply STOP
-              anytime to stop.
+              Text or email me news, flash days, and offers from the shop (optional). Message
+              frequency varies. Message and data rates may apply. Reply STOP anytime to stop.
             </span>
           </label>
 

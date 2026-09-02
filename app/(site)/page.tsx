@@ -1,5 +1,5 @@
 import LegacyBlock from "@/components/LegacyBlock";
-import { readLegacyBlock } from "@/lib/legacy";
+import { readLegacyBlock, webpifyLegacyAssets } from "@/lib/legacy";
 import { fetchArtists } from "@/lib/admin/artists-data";
 import { fetchAllRooms } from "@/lib/admin/room-data";
 import { renderCrewBlock } from "@/lib/site/theme-artists";
@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   try {
     const [roster, rooms] = await Promise.all([fetchArtists(), fetchAllRooms()]);
-    artists = renderCrewBlock(artists, roster, rooms);
+    artists = webpifyLegacyAssets(renderCrewBlock(artists, roster, rooms));
   } catch {
     /* data hiccup -> the hand-coded colors still stand */
   }

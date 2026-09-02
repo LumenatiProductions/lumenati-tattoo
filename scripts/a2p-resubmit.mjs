@@ -60,8 +60,30 @@ const swap = (s) => (typeof s === "string" ? s.split(OLD).join(NEW) : s);
 const form = new URLSearchParams();
 form.set("BrandRegistrationSid", cur.brand_registration_sid);
 form.set("Description", swap(cur.description));
-form.set("MessageFlow", swap(cur.message_flow));
-for (const s of cur.message_samples) form.append("MessageSamples", swap(s));
+// 9/2 rejection 30913: "marketing consent was combined with other consents". The
+// form always had a separate, unchecked marketing checkbox; the filing just never
+// said so. Spell both consents out, and keep every sample transactional.
+const MESSAGE_FLOW =
+  "End users opt in on the public booking request form at https://lumenatitattoo.com/request. " +
+  "They enter their name and mobile number. Directly above the Send button they see this disclosure and agree to it by submitting: " +
+  "'By submitting, you agree that Lumenati Tattoo may text and email you about your appointment: reminders, consent forms, and aftercare. " +
+  "Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help,' with links to our Privacy Policy " +
+  "(https://lumenatitattoo.com/privacy) and Terms (https://lumenatitattoo.com/terms). This consent covers transactional appointment messages only. " +
+  "Marketing consent is collected separately, on the same form, with its own checkbox that is unchecked by default: " +
+  "'Text or email me news, flash days, and offers from the shop (optional). Message frequency varies. Message and data rates may apply. Reply STOP to opt out.' " +
+  "Clients who leave that box unchecked never receive marketing messages. " +
+  "Clients can also opt in to appointment texts in person at the studio or by phone when they book, and can ask to be texted when a slot opens. " +
+  "Booth renters and artists opt in when they join the studio and give their number for shop notifications like rent invoices. " +
+  "Every message includes STOP to opt out and HELP for help. Opt-in data is never shared with third parties.";
+const SAMPLES = [
+  "Lumenati Tattoo: reminder, you have a tattoo appointment tomorrow at 2:00 PM with your artist at 3100 N Downing St. Need to reschedule? Reply here or call the shop. Reply STOP to opt out.",
+  "Lumenati Tattoo: your consent form is ready to sign before your appointment. It takes about two minutes: https://lumenatitattoo.com/sign/example Reply STOP to opt out.",
+  "Lumenati Tattoo: you asked us to text you when a spot opened with your artist. One just did, this Friday: https://lumenatitattoo.com/claim/example Reply STOP to opt out.",
+  "Lumenati Tattoo: thanks for coming in today. Your aftercare guide and healing timeline are here: https://lumenatitattoo.com/care/example Reply STOP to opt out.",
+  "Lumenati Tattoo: your booth rent invoice for this month is ready. View and pay it here: https://lumenatitattoo.com/admin/rent Reply STOP to opt out.",
+];
+form.set("MessageFlow", MESSAGE_FLOW);
+for (const s of SAMPLES) form.append("MessageSamples", s);
 form.set("UsAppToPersonUsecase", cur.us_app_to_person_usecase);
 form.set("HasEmbeddedLinks", String(cur.has_embedded_links));
 form.set("HasEmbeddedPhone", String(cur.has_embedded_phone));
@@ -81,8 +103,8 @@ form.set("DirectLending", "false");
 
 console.log(`Current campaign ${cur.sid}: ${cur.campaign_status}`);
 console.log("Filing with:");
-console.log("  message_flow:", swap(cur.message_flow).slice(0, 200) + "...");
-console.log("  samples:", cur.message_samples.map(swap).join("\n           "));
+console.log("  message_flow:", MESSAGE_FLOW.slice(0, 200) + "...");
+console.log("  samples:", SAMPLES.join("\n           "));
 if (dry) process.exit(0);
 
 const del = await fetch(`${base}/${cur.sid}`, { method: "DELETE", headers: { Authorization: auth } });

@@ -525,13 +525,17 @@
     .lmn-artist-img-wrap img { object-position: center center; }
     .lmn-artist[data-color="0"] .lmn-artist-img-wrap img { object-position: calc(50% + 25px) center; }
 
-    .lmn-artist-info { padding: 12px; gap: 8px; }
-    .lmn-artist-name { font-size: clamp(20px, 5vw, 32px); white-space: normal; }
+    /* Phones: the card stacks. Photo left, name + now-playing beside it, and
+       the room button gets the whole width underneath so it's a real tap target. */
+    .lmn-win-content { height: auto; }
+    .lmn-artist-img-wrap { width: 104px; }
+    .lmn-artist-info { flex-direction: column; align-items: stretch; justify-content: center; padding: 12px 14px; gap: 10px; }
+    .lmn-artist-name { font-size: clamp(22px, 6.5vw, 34px); white-space: normal; }
 
-    .lmn-artist-meta { flex-direction: column; align-items: flex-end; gap: 6px; }
+    .lmn-artist-meta { flex-direction: row; align-items: center; gap: 8px; width: 100%; }
     .lmn-artist-ig { font-size: 7px; padding: 6px 10px; }
     .lmn-artist-ig-handle { font-size: 12px; }
-    .lmn-artist-room { font-size: 6px; padding: 5px 8px; display: inline-block !important; }
+    .lmn-artist-room { flex: 1; text-align: center; font-size: 8px; padding: 10px 12px; display: inline-block !important; }
 
     .lmn-carousel-slide { width: calc(33.33% - 2px); }
     .lmn-artist.is-open .lmn-gallery-wrap { max-height: 600px; }
@@ -579,7 +583,7 @@
 
   /* Mobile adjustments */
   @media (max-width: 640px) {
-    .lmn-now-playing { max-width: 140px; }
+    .lmn-now-playing { max-width: 100%; }
     .lmn-now-playing-track span { font-size: 13px; }
   }
 </style>
