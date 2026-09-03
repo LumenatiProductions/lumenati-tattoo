@@ -48,6 +48,25 @@
     THUMBS[g.id] = im;
   });
 
+  // The wall's one-liners: top score + plays per game, for the preview panel.
+  var WALL = {};
+  function fmtScore(id, s) {
+    var n = String(s).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (id === "shoprush") return "$" + n;
+    if (id === "pong") return s + "/5 BEAT";
+    return n;
+  }
+  function loadWall() {
+    try {
+      var q = "all=1" + (ARTIST ? "&artist=" + encodeURIComponent(ARTIST) : "");
+      fetch("/api/arcade/scores?" + q, { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j && j.games) WALL = j.games; })
+        .catch(function () {});
+    } catch (e) {}
+  }
+  var DEVICE = window.__ARCADE_DEVICE__ || "";
+
   var mode = "menu"; // menu | playing
   var sel = 0, frame = 0, rafId = null;
   var iframe = null, menuBtn = null;
@@ -123,6 +142,18 @@
     ctx.font = "7px 'Press Start 2P', monospace";
     ctx.fillStyle = ACCENT;
     ctx.fillText(g.exe, PV_X + PV_W / 2, PV_Y + PV_H + 18);
+    // The wall's top run for this game, plus how many have tried.
+    var wg = WALL[g.id];
+    ctx.font = "6px 'Press Start 2P', monospace";
+    if (wg && wg.top) {
+      ctx.fillStyle = "#FFD700";
+      ctx.fillText("WALL " + wg.top.n + " " + fmtScore(g.id, wg.top.s), PV_X + PV_W / 2, PV_Y + PV_H + 32);
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.fillText(wg.plays + " PLAYS" + (wg.playsToday ? " // " + wg.playsToday + " TODAY" : ""), PV_X + PV_W / 2, PV_Y + PV_H + 44);
+    } else if (wg) {
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.fillText("WALL IS EMPTY. BE FIRST", PV_X + PV_W / 2, PV_Y + PV_H + 32);
+    }
 
     // Footer
     ctx.textAlign = "center";
@@ -160,6 +191,7 @@
     iframe = document.createElement("iframe");
     var q = [];
     if (ARTIST) q.push("artist=" + encodeURIComponent(ARTIST));
+    if (DEVICE) q.push("device=" + encodeURIComponent(DEVICE));
     if (FORCE_TOUCH) q.push("touch=1");
     iframe.src = "/arcade-embed/" + g.id + (q.length ? "?" + q.join("&") : "");
     iframe.setAttribute("title", g.label);
@@ -183,7 +215,7 @@
     canvas.style.visibility = "";
     if (statusEl) statusEl.style.display = "";
     setHint(GAMES.length + " games // INSERT COIN");
-    if (mode !== "menu") { mode = "menu"; startLoop(); }
+    if (mode !== "menu") { mode = "menu"; loadWall(); startLoop(); }
   }
 
   // Keyboard: only while the cabinet is open and showing the menu.
@@ -216,9 +248,9 @@
   // Boot when the cabinet opens; closing it (the titlebar ✕) also ejects the
   // cartridge so the next open lands back on the menu, silent.
   var obs = new MutationObserver(function () {
-    if (overlay.style.display === "flex") { setHint(GAMES.length + " games // INSERT COIN"); startLoop(); }
+    if (overlay.style.display === "flex") { setHint(GAMES.length + " games // INSERT COIN"); loadWall(); startLoop(); }
     else menu();
   });
   obs.observe(overlay, { attributes: true, attributeFilter: ["style"] });
-  if (overlay.style.display === "flex") startLoop();
+  if (overlay.style.display === "flex") { loadWall(); startLoop(); }
 })();

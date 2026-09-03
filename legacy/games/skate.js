@@ -612,147 +612,21 @@
     }
   }
 
-  // ── Shop leaderboard: top 5 on this machine, signed with three initials ──
-  var BOARD_KEY = 'lumenati-arcade-skate-board';
-  var board = [];
-  try { board = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]') || []; } catch (e) {}
-  var initials = ['A', 'A', 'A'];
-  try {
-    var lastN = localStorage.getItem('lumenati-arcade-initials');
-    if (lastN && lastN.length === 3) initials = lastN.split('');
-  } catch (e) {}
-  var initSlot = 0, boardIdx = -1, finalScore = 0;
-  var LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-  function fmtBoard(v) { return String(v); }
-
-  function enterBoard(v) {
-    finalScore = v;
-    boardIdx = -1;
-    initSlot = 0;
-    mode = (v > 0 && (board.length < 5 || v > board[board.length - 1].s)) ? 'enter' : 'over';
-    say(mode === 'enter' ? 'high-score' : 'game-over', 350);
-  }
-
-  function commitInitials() {
-    var name = initials.join('');
-    try { localStorage.setItem('lumenati-arcade-initials', name); } catch (e) {}
-    board.push({ n: name, s: finalScore });
-    board.sort(function(a, b) { return b.s - a.s; });
-    board = board.slice(0, 5);
-    boardIdx = -1;
-    for (var i = 0; i < board.length; i++) {
-      if (boardIdx === -1 && board[i].s === finalScore && board[i].n === name) boardIdx = i;
-    }
-    try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); } catch (e) {}
-    mode = 'over';
-  }
-
-  function cycleInit(dir) {
-    initials[initSlot] = LETTERS[(LETTERS.indexOf(initials[initSlot]) + dir + 26) % 26];
-  }
-
-  document.addEventListener('keydown', function(e) {
-    if (!window.skateRunning || mode !== 'enter') return;
-    e.preventDefault();
-    if (/^Key[A-Z]$/.test(e.code)) {
-      initials[initSlot] = e.code.charAt(3);
-      if (initSlot < 2) initSlot++;
-    } else if (e.code === 'ArrowUp') cycleInit(1);
-    else if (e.code === 'ArrowDown') cycleInit(-1);
-    else if (e.code === 'ArrowLeft') initSlot = Math.max(0, initSlot - 1);
-    else if (e.code === 'ArrowRight') initSlot = Math.min(2, initSlot + 1);
-    else if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) {
-      if (initSlot < 2) initSlot++;
-      else commitInitials();
-    } else if (e.code === 'Backspace') initSlot = Math.max(0, initSlot - 1);
+  // ── The shop wall: the shared leaderboard (public/arcade-board.js) ──
+  // Every cabinet, room and the kiosk post to the same wall; this game only
+  // hands over the final score and draws what the module gives back.
+  var wall = window.ArcadeBoard.attach({
+    game: 'skate', canvas: canvas, ctx: ctx, W: W, H: H,
+    title: 'GAME OVER', again: 'SPACE or TAP to ride again',
+    isActive: function () { return !!window.skateRunning; },
+    getMode: function () { return mode; }, setMode: function (m) { mode = m; },
+    getFrame: function () { return frame; },
+    say: function (n) { say(n, 350); },
   });
-  function enterTap(clientX, clientY) {
-    var r = canvas.getBoundingClientRect();
-    var x = (clientX - r.left) * (W / r.width), y = (clientY - r.top) * (H / r.height);
-    if (x > W / 2 - 50 && x < W / 2 + 50 && y > 224 && y < 258) { commitInitials(); return; }
-    if (y < 132 || y > 214) return;
-    initSlot = x < W / 2 - 20 ? 0 : x > W / 2 + 20 ? 2 : 1;
-    if (y < 174) cycleInit(1); else cycleInit(-1);
-  }
-  canvas.addEventListener('click', function(e) { if (mode === 'enter') enterTap(e.clientX, e.clientY); });
-  canvas.addEventListener('touchstart', function(e) {
-    if (mode === 'enter') { e.preventDefault(); enterTap(e.touches[0].clientX, e.touches[0].clientY); }
-  }, { passive: false });
+  function enterBoard(v) { wall.enter(v, { level: level }); }
+  function drawInitials() { wall.drawInitials(); }
+  function drawBoard() { wall.drawBoard(); }
 
-  function drawInitials() {
-    ctx.fillStyle = 'rgba(0,0,0,0.82)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = YELLOW;
-    ctx.font = 'bold 18px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('HIGH SCORE!', W / 2, 70);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px monospace';
-    ctx.fillText(fmtBoard(finalScore), W / 2, 94);
-    ctx.fillStyle = '#9aa';
-    ctx.font = '10px monospace';
-    ctx.fillText('SIGN THE WALL', W / 2, 118);
-    for (var i = 0; i < 3; i++) {
-      var x = W / 2 + (i - 1) * 40;
-      var active = i === initSlot;
-      if (active) {
-        ctx.fillStyle = PINK;
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText('\u25b2', x, 146);
-        ctx.fillText('\u25bc', x, 208);
-      }
-      ctx.fillStyle = active && Math.floor(frame / 8) % 2 === 0 ? PINK : '#fff';
-      ctx.font = 'bold 30px monospace';
-      ctx.fillText(initials[i], x, 184);
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fillRect(x - 12, 190, 24, 2);
-    }
-    ctx.fillStyle = PINK;
-    ctx.fillRect(W / 2 - 40, 226, 80, 26);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText('OK', W / 2, 243);
-    ctx.fillStyle = '#9aa';
-    ctx.font = '9px monospace';
-    ctx.fillText('TYPE or ARROWS // SPACE confirms', W / 2, 274);
-  }
-
-  function drawBoard() {
-    ctx.fillStyle = 'rgba(0,0,0,0.82)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = PINK;
-    ctx.font = 'bold 24px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', W / 2, 58);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px monospace';
-    ctx.fillText('Score: ' + fmtBoard(finalScore), W / 2, 84);
-    ctx.fillStyle = CYAN;
-    ctx.font = 'bold 11px monospace';
-    ctx.fillText('SHOP LEADERBOARD', W / 2, 116);
-    ctx.font = 'bold 13px monospace';
-    for (var i = 0; i < 5; i++) {
-      var ly = 140 + i * 24;
-      var e2 = board[i];
-      var mine = i === boardIdx;
-      ctx.fillStyle = mine ? YELLOW : (e2 ? '#fff' : 'rgba(255,255,255,0.25)');
-      ctx.textAlign = 'left';
-      ctx.fillText((i + 1) + '.', 100, ly);
-      ctx.fillText(e2 ? e2.n : '---', 134, ly);
-      ctx.textAlign = 'right';
-      ctx.fillText(e2 ? fmtBoard(e2.s) : '-', 300, ly);
-      if (mine && Math.floor(frame / 10) % 2 === 0) {
-        ctx.textAlign = 'left';
-        ctx.fillStyle = PINK;
-        ctx.fillText('\u25b8', 84, ly);
-      }
-    }
-    ctx.fillStyle = YELLOW;
-    ctx.font = '11px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('SPACE or TAP to ride again', W / 2, 286);
-  }
 
   // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
   function drawIntro() {

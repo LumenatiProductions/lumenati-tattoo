@@ -360,7 +360,7 @@ var mb=document.getElementById('jd-mob-mtv');if(mb)mb.addEventListener('click',f
   // The cabinet selector reads the catalog + whose room this is (the artist id
   // rides the embed URL so Flash Match can deal from their flash wall).
   const games = GAME_CATALOG.map((g) => ({ id: g.id, label: g.label, exe: g.exe }));
-  html += `\n<script>window.__ARCADE_GAMES__=${JSON.stringify(games).replace(/</g, "\\u003c")};window.__ARCADE_ARTIST__=${JSON.stringify(content.artistId)};window.__ARCADE_ACCENT__=${JSON.stringify(content.accentColor)};</script>`;
+  html += `\n<script>window.__ARCADE_GAMES__=${JSON.stringify(games).replace(/</g, "\\u003c")};window.__ARCADE_ARTIST__=${JSON.stringify(content.artistId)};window.__ARCADE_ACCENT__=${JSON.stringify(content.accentColor)};window.__ARCADE_DEVICE__="room";</script>`;
 
   return webpifyLegacyAssets(html);
 }

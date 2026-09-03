@@ -12,6 +12,13 @@ function gameSource(id: string): string {
   return readFileSync(path.join(process.cwd(), "legacy", "games", `${id}.js`), "utf8");
 }
 
+// The shared wall module rides inline ahead of the game: LegacyBlock re-runs
+// scripts by cloning them, and an external src would load after the inline
+// game had already asked for window.ArcadeBoard.
+function boardSource(): string {
+  return readFileSync(path.join(process.cwd(), "public", "arcade-board.js"), "utf8");
+}
+
 export function buildArcadePreviewHtml(
   gameId: string,
   opts: { embed?: boolean; flashSrcs?: string[] } = {},
@@ -45,7 +52,10 @@ export function buildArcadePreviewHtml(
   </div>
 </div>
 <script>window.__ARCADE_EMBED__=${JSON.stringify(gameId)};</script>
-${flash}<script id="jd-arcade-game">
+${flash}<script id="jd-arcade-board">
+${boardSource()}
+</script>
+<script id="jd-arcade-game">
 ${gameSource(gameId)}
 </script>
 <script src="/arcade-cabinet.js"></script>
@@ -72,7 +82,7 @@ ${gameSource(gameId)}
     g.id === gameId
       ? `<span style="padding:4px 8px;background:#FF1493;color:#fff;font-weight:bold;">${g.label}</span>`
       : `<a href="/arcade/${g.id}" style="padding:4px 8px;color:#9ef;text-decoration:none;">${g.label}</a>`,
-  ).join("");
+  ).join("") + `<a href="/arcade" style="padding:4px 8px;color:#FFD700;text-decoration:none;font-weight:bold;">Hall of Fame</a>`;
 
   return `
 <div style="min-height:100vh;background:#14101c;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;font-family:Tahoma,sans-serif;">
@@ -91,9 +101,13 @@ ${gameSource(gameId)}
       <span id="jd-game-hint">${game.hint}</span>
     </div>
   </div>
-  <div style="margin-top:12px;color:#9aa;font-size:12px;">Every page has the full cabinet — this is just the test bench.</div>
+  <div style="margin-top:12px;color:#9aa;font-size:12px;">Every page has the full cabinet. This is just the test bench. Scores post to the <a href="/arcade" style="color:#FFD700;">shop wall</a>.</div>
 </div>
-${flash}<script id="jd-arcade-game">
+${flash}<script>window.__ARCADE_DEVICE__='preview';</script>
+<script id="jd-arcade-board">
+${boardSource()}
+</script>
+<script id="jd-arcade-game">
 ${gameSource(gameId)}
 </script>
 <script src="/arcade-cabinet.js"></script>

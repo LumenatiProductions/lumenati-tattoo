@@ -27,11 +27,13 @@ export async function GET(
 ) {
   const { game } = await ctx.params;
   const artist = req.nextUrl.searchParams.get("artist") || "";
+  // Which cabinet this run came from, for the wall's records.
+  const device = /^[a-z]{2,12}$/.test(req.nextUrl.searchParams.get("device") || "") ? req.nextUrl.searchParams.get("device")! : artist ? "room" : "web";
   const flashSrcs =
     game === "flashmatch" && artist ? await fetchFlashSrcs(artist) : [];
   const body = buildArcadePreviewHtml(game, { embed: true, flashSrcs });
   if (!body) return new NextResponse("not found", { status: 404 });
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${game}</title></head><body>${body}</body></html>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${game}</title></head><body><script>window.__ARCADE_DEVICE__=${JSON.stringify(device)};</script>${body}</body></html>`;
   return new NextResponse(html, {
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });

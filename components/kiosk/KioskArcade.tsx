@@ -14,6 +14,7 @@ declare global {
     __ARCADE_GAMES__?: { id: string; label: string; exe: string }[];
     __ARCADE_ARTIST__?: string;
     __ARCADE_ACCENT__?: string;
+    __ARCADE_DEVICE__?: string;
   }
 }
 
@@ -26,6 +27,7 @@ export default function KioskArcade() {
     window.__ARCADE_GAMES__ = GAME_CATALOG.map((g) => ({ id: g.id, label: g.label, exe: g.exe }));
     window.__ARCADE_ARTIST__ = "";
     window.__ARCADE_ACCENT__ = "#FF1493";
+    window.__ARCADE_DEVICE__ = "kiosk"; // the wall records which cabinet a run came from
     // Load the cabinet scripts once; they grab the canvas/overlay by id.
     for (const src of ["/arcade-selector.js", "/arcade-cabinet.js"]) {
       if (document.querySelector(`script[src="${src}"]`)) continue;

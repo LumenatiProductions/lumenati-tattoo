@@ -8,6 +8,8 @@ import vm from "node:vm";
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
 
+const BOARD_SRC = readFileSync(path.join(ROOT, "public", "arcade-board.js"), "utf8");
+
 function gameSources() {
   const out = {};
   for (const id of ["snake", "bricks", "shooter", "pong", "frogger", "steady", "shoprush", "flashmatch", "skate"]) {
@@ -76,6 +78,8 @@ function makeSandbox() {
       createElement: () => ({ style: {} }),
     },
     requestAnimationFrame: (cb) => { rafCb = cb; return 1; },
+    // The wall module posts runs; here the server is a stub that answers empty.
+    fetch: () => Promise.resolve({ status: 200, json: () => Promise.resolve({ alltime: [], today: [], plays: 0, playsToday: 0 }) }),
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
@@ -99,6 +103,7 @@ function makeSandbox() {
 
 function runGame(id, src, opts = {}) {
   const h = makeSandbox();
+  vm.runInContext(BOARD_SRC, h.sandbox, { filename: "arcade-board.js" });
   vm.runInContext(src, h.sandbox, { filename: `${id}.js` });
   h.openOverlay();
 
@@ -166,6 +171,7 @@ for (const [id, src] of Object.entries(sources)) {
 try {
   const fast = sources.skate.replace("1 + Math.floor(dist / 4000)", "1 + Math.floor(dist / 250)");
   const h = makeSandbox();
+  vm.runInContext(BOARD_SRC, h.sandbox, { filename: "arcade-board.js" });
   vm.runInContext(fast, h.sandbox, { filename: "skate-fast.js" });
   h.openOverlay();
   let t = 0;
