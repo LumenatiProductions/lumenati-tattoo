@@ -22,6 +22,7 @@ const APP_ROUTES = new Set([
   "shops",
   "start",
   "terms",
+  "tv",
 ]);
 
 const PREVIEW_COOKIE = "lmn-preview";

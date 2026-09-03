@@ -4,23 +4,19 @@ import { GAME_CATALOG, formatScore } from "@/lib/arcade/catalog";
 import { readWall, type Wall } from "@/lib/arcade/scores";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
-// The Hall of Fame: every game's shop wall, out in the open at /arcade. What
-// the cabinets show at game over, for anyone with the link. Live on every
-// load (a fresh high score should be on the wall before the player finds
-// their phone).
+// The arcade floor at /arcade: nine cabinets in a dark room, each with its
+// marquee lit, the game on its screen and the wall's top run glowing on the
+// glass. Tap a cabinet's screen for its full wall, PLAY to drop a coin. Live
+// on every load.
 export const dynamic = "force-dynamic";
 
 const PINK = "#FF1493";
 const LIME = "#7FFF00";
 const CYAN = "#00FFFF";
 const YELLOW = "#FFD700";
+const TRIM = [PINK, CYAN, LIME, YELLOW, "#B026FF", "#FF6347", CYAN, PINK, LIME];
 
-function when(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Denver" });
-}
-
-export default async function ArcadeHallPage() {
+export default async function ArcadeFloorPage() {
   const admin = createAdminClient();
   const walls: Record<string, Wall> = {};
   if (admin) {
@@ -29,147 +25,121 @@ export default async function ArcadeHallPage() {
   }
   const totalPlays = Object.values(walls).reduce((n, w) => n + w.plays, 0);
   const todayPlays = Object.values(walls).reduce((n, w) => n + w.playsToday, 0);
-  const legends = GAME_CATALOG.map((g) => ({ g, top: walls[g.id]?.alltime[0] ?? null })).filter((x) => x.top);
+  const ticker = GAME_CATALOG.map((g) => {
+    const top = walls[g.id]?.alltime[0];
+    return top ? `${g.label.toUpperCase()}  ${top.n}  ${formatScore(g.id, top.s).toUpperCase()}` : `${g.label.toUpperCase()}  WALL OPEN`;
+  }).join("     //     ");
 
   return (
-    <main className="hof">
+    <main className="floor">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
       <style>{`
-        .hof{min-height:100vh;background:#14101c;color:#fff;font-family:Tahoma,Verdana,sans-serif;padding:28px 16px 80px;}
-        .hof .px{font-family:'Press Start 2P',monospace;}
-        .hof-nav{max-width:1180px;margin:0 auto 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:'Press Start 2P',monospace;font-size:8px;color:rgba(255,255,255,0.45);}
-        .hof-nav a{color:${CYAN};text-decoration:none;background:#000;border:1px solid ${CYAN};padding:9px 12px;}
-        .hof-nav a:hover{color:#fff;border-color:#fff;}
-        .hof-head{max-width:1180px;margin:0 auto 18px;text-align:center;}
-        .hof-head h1{font-family:'Press Start 2P',monospace;font-size:clamp(16px,3vw,28px);color:${PINK};margin:0 0 10px;letter-spacing:1px;text-shadow:0 0 18px rgba(255,20,147,0.45);}
-        .hof-head h1 span{color:#fff;}
-        .hof-sub{font-family:'Press Start 2P',monospace;font-size:9px;color:rgba(255,255,255,0.55);line-height:2;}
-        .hof-sub b{color:${YELLOW};font-weight:normal;}
-        .hof-legends{max-width:1180px;margin:18px auto 26px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
-        .hof-legend{background:#000;border:1px solid rgba(255,255,255,0.18);padding:7px 10px;font-family:'Press Start 2P',monospace;font-size:8px;color:rgba(255,255,255,0.7);display:flex;gap:10px;align-items:center;}
-        .hof-legend b{color:${YELLOW};font-weight:normal;}
-        .hof-legend i{color:${CYAN};font-style:normal;}
-        .hof-grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:18px;}
-        @media (min-width:1000px){.hof-grid{grid-template-columns:repeat(3,1fr);}}
-        .hof-win{background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.35);color:#111;display:flex;flex-direction:column;}
-        .hof-bar{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:linear-gradient(180deg,${PINK} 0%,#c8006e 100%);height:24px;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);}
-        .hof-bar span:last-child{font-weight:normal;opacity:0.85;}
-        .hof-shot{position:relative;margin:4px;background:#000;border:1px solid;border-color:#808080 #fff #fff #808080;overflow:hidden;aspect-ratio:400/320;}
-        .hof-shot img{display:block;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;}
-        .hof-shot::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.22) 0 1px,transparent 1px 3px);pointer-events:none;}
-        .hof-name{position:absolute;left:0;right:0;bottom:0;padding:8px 10px;background:linear-gradient(0deg,rgba(0,0,0,0.85),rgba(0,0,0,0));font-family:'Press Start 2P',monospace;font-size:11px;color:#fff;}
-        .hof-name small{display:block;margin-top:5px;font-size:7px;color:${CYAN};}
-        .hof-blurb{padding:6px 10px 0;font-size:11px;color:#333;line-height:1.45;}
-        .hof-boards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 10px 10px;font-family:'Press Start 2P',monospace;}
-        .hof-board h3{margin:0 0 6px;font-size:8px;font-weight:normal;color:#666;letter-spacing:0.5px;}
-        .hof-board h3.wall{color:#0a7f8a;}
-        .hof-board h3.today{color:#4b8f00;}
-        .hof-board ol{list-style:none;margin:0;padding:0;background:#000;border:1px solid;border-color:#808080 #fff #fff #808080;}
-        .hof-board li{display:grid;grid-template-columns:18px 1fr auto;gap:6px;align-items:baseline;padding:4px 7px;font-size:8px;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.06);}
-        .hof-board li:last-child{border-bottom:0;}
-        .hof-board li.top{color:#fff;}
-        .hof-board li.top .n{color:${YELLOW};}
-        .hof-board li.empty{color:rgba(255,255,255,0.22);}
-        .hof-board li .r{color:rgba(255,255,255,0.45);text-align:right;}
-        .hof-board li .s{color:${LIME};}
-        .hof-board li .d{grid-column:2/4;font-size:6px;color:rgba(255,255,255,0.35);margin-top:-2px;}
-        .hof-foot{display:flex;justify-content:flex-end;gap:8px;align-items:center;padding:0 10px 10px;font-size:10px;color:#555;}
-        .hof-play.ghost{background:#000;color:${CYAN};border-color:#555 #000 #000 #555;}
-        .hof-play{display:inline-block;background:${PINK};color:#fff;text-decoration:none;font-family:'Press Start 2P',monospace;font-size:9px;padding:8px 14px;border:2px solid;border-color:#ff8ad0 #8a004a #8a004a #ff8ad0;box-shadow:2px 2px 0 rgba(0,0,0,0.35);}
-        .hof-play:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,0.35);}
-        .hof-back{display:block;max-width:1180px;margin:30px auto 0;text-align:center;font-family:'Press Start 2P',monospace;font-size:8px;color:rgba(255,255,255,0.45);}
-        .hof-back a{color:${CYAN};text-decoration:none;}
+        .floor{min-height:100vh;background:#050308;color:#fff;font-family:'Press Start 2P',monospace;position:relative;overflow:hidden;padding:0 0 70px;}
+        .floor::before{content:"";position:absolute;inset:0;pointer-events:none;background:
+          radial-gradient(ellipse 40% 30% at 15% 10%,rgba(255,20,147,0.22),transparent 70%),
+          radial-gradient(ellipse 35% 30% at 85% 15%,rgba(0,255,255,0.16),transparent 70%),
+          radial-gradient(ellipse 50% 30% at 50% 100%,rgba(176,38,255,0.18),transparent 70%);}
+        .floor::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0.35;background-image:
+          repeating-linear-gradient(45deg,rgba(255,255,255,0.025) 0 2px,transparent 2px 28px),
+          repeating-linear-gradient(-45deg,rgba(255,255,255,0.025) 0 2px,transparent 2px 28px);}
+        .fl-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;font-size:8px;color:rgba(255,255,255,0.5);}
+        .fl-top a{color:${CYAN};text-decoration:none;border:1px solid ${CYAN};padding:9px 12px;background:rgba(0,0,0,0.6);}
+        .fl-top a:hover{color:#fff;border-color:#fff;}
+        .fl-sign{position:relative;z-index:2;text-align:center;padding:22px 16px 6px;}
+        .fl-sign h1{margin:0;font-size:clamp(16px,3.6vw,30px);color:${PINK};letter-spacing:2px;text-shadow:0 0 8px rgba(255,20,147,0.9),0 0 26px rgba(255,20,147,0.6),0 0 60px rgba(255,20,147,0.4);animation:fl-buzz 4s infinite;}
+        @keyframes fl-buzz{0%,92%,100%{opacity:1}93%{opacity:0.55}95%{opacity:1}97%{opacity:0.7}}
+        .fl-sign p{margin:12px 0 0;font-size:8px;color:rgba(255,255,255,0.55);line-height:2;}
+        .fl-sign p b{color:${YELLOW};font-weight:normal;}
+        .fl-ticker{position:relative;z-index:2;margin:18px auto 30px;max-width:1240px;overflow:hidden;border-top:1px solid rgba(255,255,255,0.12);border-bottom:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.5);}
+        .fl-ticker div{white-space:nowrap;padding:10px 0;font-size:9px;color:${YELLOW};display:inline-block;animation:fl-scroll 60s linear infinite;}
+        @keyframes fl-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+        .fl-row{position:relative;z-index:2;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:34px 22px;padding:0 20px;}
+        @media (min-width:700px){.fl-row{grid-template-columns:repeat(3,1fr);}}
+        .cab{display:flex;flex-direction:column;position:relative;filter:drop-shadow(0 18px 24px rgba(0,0,0,0.7));}
+        .cab-marquee{margin:0 6px;padding:12px 8px 10px;text-align:center;font-size:clamp(8px,1.2vw,10px);color:#fff;border:3px solid #1c1c24;border-bottom:0;border-radius:6px 6px 0 0;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(0,0,0,0.2)),var(--trim);text-shadow:0 0 8px rgba(0,0,0,0.8),0 0 14px rgba(255,255,255,0.5);letter-spacing:1px;box-shadow:0 0 22px var(--trim),inset 0 0 18px rgba(0,0,0,0.35);}
+        .cab-body{background:linear-gradient(180deg,#1b1b24,#0e0e14);border:3px solid #1c1c24;border-left-color:var(--trim);border-right-color:var(--trim);padding:12px 14px 14px;}
+        .cab-screen{display:block;position:relative;background:#000;border:6px solid #06060a;box-shadow:inset 0 0 0 2px #2a2a33,0 0 18px rgba(0,0,0,0.9);aspect-ratio:400/320;overflow:hidden;text-decoration:none;color:#fff;}
+        .cab-screen img{display:block;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;opacity:0.92;transition:opacity .2s;}
+        .cab-screen:hover img{opacity:1;}
+        .cab-screen::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.25) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.5) 100%);pointer-events:none;}
+        .cab-top{position:absolute;left:0;right:0;bottom:0;padding:8px;background:linear-gradient(0deg,rgba(0,0,0,0.9),rgba(0,0,0,0));z-index:1;font-size:7px;line-height:1.9;}
+        .cab-top b{display:block;font-weight:normal;color:${YELLOW};font-size:9px;text-shadow:0 0 8px rgba(255,215,0,0.8);}
+        .cab-top i{font-style:normal;color:rgba(255,255,255,0.75);}
+        .cab-top s{text-decoration:none;color:${CYAN};display:block;margin-top:2px;}
+        .cab-panel{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 10px;background:linear-gradient(180deg,#2a2a36,#15151c);border:2px solid #101016;border-radius:4px;}
+        .cab-stick{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7ac8,#c00c6e 60%,#5a0030);box-shadow:0 3px 0 #000,0 0 10px rgba(255,20,147,0.6);position:relative;}
+        .cab-stick::before{content:"";position:absolute;left:9px;top:18px;width:4px;height:9px;background:#333;}
+        .cab-btns{display:flex;gap:6px;}
+        .cab-btn{width:14px;height:14px;border-radius:50%;box-shadow:0 2px 0 #000,inset 0 2px 3px rgba(255,255,255,0.4);}
+        .cab-play{font-family:inherit;font-size:8px;color:#fff;background:${PINK};text-decoration:none;padding:9px 12px;border:2px solid;border-color:#ff8ad0 #8a004a #8a004a #ff8ad0;box-shadow:2px 2px 0 rgba(0,0,0,0.5);}
+        .cab-play:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,0.5);}
+        .cab-coin{margin:0 10px;padding:8px 10px;display:flex;justify-content:space-between;font-size:7px;color:rgba(255,255,255,0.5);background:#0a0a0f;border:2px solid #1c1c24;border-top:0;}
+        .cab-coin b{color:${YELLOW};font-weight:normal;}
+        .cab-coin a{color:${CYAN};text-decoration:none;}
+        .cab-legs{height:10px;margin:0 22px;background:#0a0a0f;border:2px solid #1c1c24;border-top:0;}
+        .fl-foot{position:relative;z-index:2;margin-top:44px;text-align:center;font-size:7px;color:rgba(255,255,255,0.4);line-height:2.2;}
+        .fl-foot a{color:${CYAN};text-decoration:none;}
       `}</style>
 
-      <nav className="hof-nav">
+      <nav className="fl-top">
         <a href="/">&#9664; EXIT TO LUMENATI ONLINE</a>
-        <span>PICK A CABINET. EVERY WALL IS ITS OWN SCREEN.</span>
+        <span><b style={{ color: YELLOW, fontWeight: "normal" }}>{todayPlays.toLocaleString("en-US")}</b> PLAYS TODAY // <b style={{ color: YELLOW, fontWeight: "normal" }}>{totalPlays.toLocaleString("en-US")}</b> ALL TIME</span>
       </nav>
-      <header className="hof-head">
-        <h1>LUMENATI ARCADE <span>// HALL OF FAME</span></h1>
-        <div className="hof-sub">
-          NINE CABINETS. ONE WALL. SIGN IT AT ANY GAME OVER.
-          <br />
-          <b>{todayPlays.toLocaleString("en-US")}</b> PLAYS TODAY // <b>{totalPlays.toLocaleString("en-US")}</b> ALL TIME // TODAY RESETS AT MIDNIGHT, DENVER
-        </div>
+
+      <header className="fl-sign">
+        <h1>LUMENATI ARCADE</h1>
+        <p>NINE CABINETS. ONE WALL. SIGN IT AT ANY GAME OVER.<br />TAP A SCREEN FOR ITS HIGH SCORES <b>//</b> PLAY DROPS A COIN</p>
       </header>
 
-      {legends.length > 0 && (
-        <div className="hof-legends">
-          {legends.map(({ g, top }) => (
-            <div className="hof-legend" key={g.id}>
-              <i>{g.label.toUpperCase()}</i>
-              <b>{top!.n}</b>
-              <span>{formatScore(g.id, top!.s)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="fl-ticker" aria-hidden="true">
+        <div>{ticker}     //     {ticker}     //     </div>
+      </div>
 
-      <div className="hof-grid">
-        {GAME_CATALOG.map((g) => {
+      <div className="fl-row">
+        {GAME_CATALOG.map((g, i) => {
           const w = walls[g.id];
-          const alltime = w?.alltime ?? [];
-          const today = w?.today ?? [];
+          const top = w?.alltime[0];
+          const today = w?.today[0];
           return (
-            <section className="hof-win" key={g.id} id={g.id}>
-              <div className="hof-bar">
-                <span>{g.exe}</span>
-                <span>{(w?.plays ?? 0).toLocaleString("en-US")} plays</span>
-              </div>
-              <div className="hof-shot">
-                <img src={`/arcade/thumbs/${g.id}.jpg`} alt={`${g.label} screenshot`} loading="lazy" />
-                <div className="hof-name">
-                  {g.label.toUpperCase()}
-                  <small>{alltime[0] ? `WALL: ${alltime[0].n} ${formatScore(g.id, alltime[0].s).toUpperCase()}` : "WALL IS EMPTY. BE FIRST."}</small>
+            <section className="cab" key={g.id} id={g.id} style={{ ["--trim" as string]: TRIM[i] }}>
+              <div className="cab-marquee">{g.label.toUpperCase()}</div>
+              <div className="cab-body">
+                <Link className="cab-screen" href={`/arcade/${g.id}/wall`} title={`${g.label} high scores`}>
+                  <img src={`/arcade/thumbs/${g.id}.jpg`} alt={`${g.label} screen`} loading="lazy" />
+                  <div className="cab-top">
+                    {top ? (
+                      <>
+                        <b>{top.n}  {formatScore(g.id, top.s).toUpperCase()}</b>
+                        <i>TOP OF THE WALL{today ? `  //  TODAY ${today.n} ${formatScore(g.id, today.s).toUpperCase()}` : ""}</i>
+                      </>
+                    ) : (
+                      <b>WALL IS OPEN. BE FIRST.</b>
+                    )}
+                    <s>HIGH SCORES &#9654;</s>
+                  </div>
+                </Link>
+                <div className="cab-panel">
+                  <div className="cab-stick" />
+                  <div className="cab-btns">
+                    <span className="cab-btn" style={{ background: TRIM[i] }} />
+                    <span className="cab-btn" style={{ background: "#fff" }} />
+                  </div>
+                  <Link className="cab-play" href={`/arcade/${g.id}`}>PLAY</Link>
                 </div>
               </div>
-              <p className="hof-blurb">{g.blurb}</p>
-              <div className="hof-boards">
-                <div className="hof-board">
-                  <h3 className="wall">SHOP WALL</h3>
-                  <ol>
-                    {Array.from({ length: 5 }).map((_, i) => {
-                      const e = alltime[i];
-                      return (
-                        <li key={i} className={e ? (i === 0 ? "top" : "") : "empty"}>
-                          <span className="r">{i + 1}</span>
-                          <span className="n">{e ? e.n : "---"}</span>
-                          <span className="s">{e ? formatScore(g.id, e.s) : "-"}</span>
-                          {e && <span className="d">{when(e.at)}{e.l > 1 ? ` // LVL ${e.l}` : ""}</span>}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-                <div className="hof-board">
-                  <h3 className="today">TODAY</h3>
-                  <ol>
-                    {Array.from({ length: 3 }).map((_, i) => {
-                      const e = today[i];
-                      return (
-                        <li key={i} className={e ? (i === 0 ? "top" : "") : "empty"}>
-                          <span className="r">{i + 1}</span>
-                          <span className="n">{e ? e.n : "---"}</span>
-                          <span className="s">{e ? formatScore(g.id, e.s) : "-"}</span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                  <h3 className="today" style={{ marginTop: 10 }}>{(w?.playsToday ?? 0).toLocaleString("en-US")} PLAYS TODAY</h3>
-                </div>
+              <div className="cab-coin">
+                <span><b>{(w?.plays ?? 0).toLocaleString("en-US")}</b> PLAYS</span>
+                <span>{(w?.playsToday ?? 0).toLocaleString("en-US")} TODAY</span>
               </div>
-              <div className="hof-foot">
-                <Link className="hof-play ghost" href={`/arcade/${g.id}/wall`}>FULL WALL</Link>
-                <Link className="hof-play" href={`/arcade/${g.id}`}>PLAY</Link>
-              </div>
+              <div className="cab-legs" />
             </section>
           );
         })}
       </div>
 
-      <div className="hof-back">
-        EVERY ARTIST PAGE AND THE FRONT DESK IPAD RUN THE SAME CABINET // <a href="/">BACK TO LUMENATI ONLINE</a>
+      <div className="fl-foot">
+        EVERY ARTIST PAGE AND THE FRONT DESK IPAD RUN THE SAME CABINET<br />
+        <a href="/">BACK TO LUMENATI ONLINE</a>
       </div>
     </main>
   );

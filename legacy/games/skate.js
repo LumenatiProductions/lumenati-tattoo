@@ -641,11 +641,24 @@
       if (ob.type === 'spill' && !player.onGround) continue;
       if (player.x + player.w - 4 > ox && player.x + 4 < ox + ob.w &&
           player.y + player.h > ob.y && player.y < ob.y + ob.h) {
+        // Pigeons sit right where an ollie peaks, so they steal the line
+        // instead of a life: a scare, not a bail (three of those in a row at
+        // the start of level 2 read like the game ending for no reason).
+        if (ob.type === 'pigeon') {
+          loseLine('PIGEON');
+          addPopup(player.x + player.w / 2, player.y - 32, 'PIGEON! LINE GONE', '#ddd');
+          spawnParticles(ox + ob.w / 2, ob.y, '#cfcfcf', 8);
+          shake = 5;
+          playSfx(1400, 0.06, 'square', 0.08);
+          obstacles.splice(i, 1);
+          continue;
+        }
         lives--;
         hitsThisLevel++;
         sfxHit();
         document.getElementById('jd-br-lives').textContent = lives;
-        player.invincible = 90;
+        addPopup(player.x + player.w / 2, player.y - 34, lives > 0 ? 'BAILED // ' + lives + (lives === 1 ? ' BOARD LEFT' : ' BOARDS LEFT') : 'BAILED // OUT OF BOARDS', '#FF5050');
+        player.invincible = 110;
         player.bailT = 36;
         looseBoard = { x: player.x + 10, y: player.y + 17, vx: 3 + Math.random() * 2, vy: -5 - Math.random() * 2, rot: 0, t: 60 };
         loseLine('BAILED');
@@ -1342,6 +1355,16 @@
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, wall.best(), score), 8, 26);
+    // Boards left, on the screen where the run is (the status strip is easy to miss).
+    for (var li = 0; li < 3; li++) {
+      var alive = li < lives;
+      var bx = 8 + li * 18, by = 33;
+      ctx.fillStyle = alive ? (lives === 1 && Math.floor(frame / 8) % 2 === 0 ? '#FF5050' : PINK) : 'rgba(255,255,255,0.18)';
+      ctx.fillRect(bx, by, 14, 3);
+      ctx.fillStyle = alive ? '#fff' : 'rgba(255,255,255,0.18)';
+      ctx.fillRect(bx + 2, by + 3, 3, 2);
+      ctx.fillRect(bx + 9, by + 3, 3, 2);
+    }
     ctx.fillStyle = LIME;
     ctx.textAlign = 'center';
     ctx.fillText('LEVEL ' + level + (hitsThisLevel === 0 ? ' // NO BAIL' : ''), W / 2, 14);
