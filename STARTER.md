@@ -1,4 +1,4 @@
-# NEXT SESSION — Lumenati (updated 2026-09-02, end of day)
+# NEXT SESSION — Lumenati (updated 2026-09-02, late: the polish walk)
 
 ## Where things stand
 
@@ -50,18 +50,32 @@
   3100 N Downing St everywhere. Legacy images: `scripts/optimize-legacy-assets.mjs`
   writes WebP + `webpifyLegacyAssets()` rewrites any path at render.
 
-## Priority 1: the platform needs its own name + domain (Scott's call)
+## Priority 1: the polish walk (Scott, end of 9/2: "polish this fucking thing to the max")
 
-Scott, end of 9/2: the platform must be a SEPARATE brand from Lumenati Tattoo, on a
-NEW domain bought on Cloudflare. NOT lumenati.com (his live company site + mail), NOT
-lumenatiapp.com (other Squarespace login, on registrar hold), NOT lumenati.io (owner
-unknown, registrant redacted). Naming was paused 7/28 ("names taken"); it's back.
-Code is ready: middleware has APP_HOSTS/APP_HOST/SHOP_HOST constants (currently
-lumenatiapp.com placeholders) and `PLATFORM_HOST_LIVE` gate. Once a name + domain
-exist: add to Vercel project, DNS at Cloudflare (CNAME/A to Vercel), swap the
-constants, set `NEXT_PUBLIC_APP_URL`, flip `PLATFORM_HOST_LIVE=true`, redeploy.
-Availability checked 9/2: shopfloor.ink and boothos.com free; stencil/booth/chair/
-desk/needle/flash .ink all taken.
+Page by page, together, one change at a time. Scott clears each page before we
+move on (never jump ahead). Order:
+1. **Desktop Command Center (`/admin`, dev on 127.0.0.1:3002, Scott's cookie there).**
+   Start at the top of the nav and go down. On each page: open it in Chrome, look at
+   it with Scott, fix what he calls out, re-check, then next page.
+2. **Phone app (`app-native`, Expo).** Same drill, screen by screen: Today, Bookings,
+   Clients, Cash, My Page, Settings... Use Scott's Metro (never kill it) and the sim
+   or Expo web on :8081 (`npx expo start --web`, App Review phone (500)555-0100 /
+   000000 per the QA memory).
+Rules of the walk: minimum change per ask, amplify don't replace, plain-English
+labels, no emojis/em dashes, verify in Chrome before saying done. Log anything
+bigger than a tweak as a follow-up at the bottom of this file instead of derailing.
+
+## Parked (not for the walk)
+- Platform name + Cloudflare domain: Scott's pick (shortlist below).
+- Twilio A2P campaign QE2c6890da8086d771620e9b13fadeba0b: refiled 9/2 6:45 PM
+  after 30913 (marketing consent separated); IN_PROGRESS = human review. Check
+  with `node scripts/a2p-resubmit.mjs --dry`. When VERIFIED, SMS turns on by itself.
+- One quick check Scott hasn't done yet: signed into admin, move a window in any
+  room -> toast "Desk saved for everyone" (saves room_content.layout). Visitors got
+  a 401 as designed; the owner path is untested.
+- lum-021 still with Grok. The QA board has nothing waiting on the builder.
+
+## Platform name shortlist (Scott's call)
 
 **9/3 naming round (~110 names checked live against the .com/.app/.ink registries,
 top 5 web-searched for product collisions; trademark NOT yet checked):**
@@ -77,13 +91,6 @@ profink, inkvest, inkfund, inkflow, inkstash, inktake, inkworth, inkledger, inkb
 inkbooks, inkdesk, inkbook, blackbook, chairbook, inkmint, inkvault, inkwise.
 Next: Scott picks; then USPTO + Instagram handle check; buy on Cloudflare; flip hosts.
 
-## Then
-
-- Design pass across the Y2K site (crew cards now DB-driven; homepage photo for
-  shorty/kalypso/sam/moonie changed to their room profile photo) and the /shops
-  marketing page.
-- app-native still has vercel.app fallbacks (harmless); swap on next OTA.
-- lum-021 still waiting on Grok.
 
 ## Session mechanics
 
