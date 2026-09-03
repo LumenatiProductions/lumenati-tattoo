@@ -268,7 +268,7 @@ export function renderRoomHtml(
       `<span class="br-icon-label">Games</span>\n    </div>\n${icon}`,
     );
     const win = `<!-- MTV window: the room's song as its video, Windows Media Player style. Parked offscreen (still playing) until the MTV icon slides it in. -->
-<div id="jd-mtv-overlay" style="display:flex;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;transform:translateX(-300vw);">
+<div id="jd-mtv-overlay" aria-hidden="true" style="display:flex;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;transform:translateX(-300vw);">
   <div style="background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.3);max-width:95vw;width:640px;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;background:linear-gradient(180deg,#0a246a 0%,#3a6ea5 40%,#0a246a 100%);height:24px;">
       <span id="jd-mtv-title" style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">Windows Media Player — ${esc(mpg(tv.name))}</span>
@@ -302,8 +302,8 @@ export function renderRoomHtml(
     html += `\n<script>window.__ROOM_TV__=${tvJson};
 (function(){var ov=document.getElementById('jd-mtv-overlay');if(!ov)return;
 function mpg(n){return (n.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toLowerCase()||'mtv')+'.mpg';}
-window.__lmnMtvOpen=function(){ov.style.transform='';if(window.__winampPlay&&!(window.__winampIsPlaying&&window.__winampIsPlaying()))window.__winampPlay();};
-window.__lmnMtvClose=function(){ov.style.transform='translateX(-300vw)';};
+window.__lmnMtvOpen=function(){ov.style.transform='';ov.removeAttribute('aria-hidden');if(window.__winampPlay&&!(window.__winampIsPlaying&&window.__winampIsPlaying()))window.__winampPlay();};
+window.__lmnMtvClose=function(){ov.style.transform='translateX(-300vw)';ov.setAttribute('aria-hidden','true');};
 window.__lmnMtvTitle=function(c){var t=document.getElementById('jd-mtv-title'),s=document.getElementById('jd-mtv-status');if(t)t.textContent='Windows Media Player \u2014 '+mpg(c.name);if(s)s.textContent='Playing - '+mpg(c.name)+'  //  MTV ch. '+c.num;};
 document.getElementById('jd-mtv-icon').addEventListener('click',function(){window.__lmnMtvOpen();});
 document.getElementById('jd-mtv-close').addEventListener('click',function(){window.__lmnMtvClose();});

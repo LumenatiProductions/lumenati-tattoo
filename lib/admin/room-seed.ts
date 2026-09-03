@@ -56,7 +56,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
   elaine: {
     artistId: "elaine",
     tagline: "fine line // florals // electric energy",
-    bio: "Electric Elaine here. delicate fine-line and floral work. tap edit and make this your own :)",
+    bio: "Electric Elaine. delicate fine-line and florals with a little electricity in them. small pieces, big pieces, first tattoos welcome. DM me on IG to book or swing by the shop and say hi.",
     igHandle: "electric.elaine",
     songId: "no-doubt",
     accentColor: "#FFD700",
@@ -74,7 +74,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
   shorty: {
     artistId: "shorty",
     tagline: "bold // traditional // loud",
-    bio: "ShorTy. traditional and bold. this is a starter bio — edit me from the command center.",
+    bio: "ShorTy. bold traditional, the kind that still reads from across the room in twenty years. flash always on the wall, walk-ins always welcome. DM to book or just show up.",
     igHandle: "shorty.tattoo",
     songId: "shorty",
     accentColor: "#7FFF00",
@@ -92,7 +92,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
   kalypso: {
     artistId: "kalypso",
     tagline: "color // realism // royalty",
-    bio: "King Kalypso. color realism. edit this to tell your story.",
+    bio: "King Kalypso. color realism -- portraits, animals, anything that needs to look alive on skin. bring your reference and let's build it. DM to book a consult.",
     igHandle: "king.kalypso",
     songId: "outkast",
     accentColor: "#1493FF",
@@ -131,7 +131,7 @@ export const ROOM_CONTENT: Record<string, RoomContent> = {
   moonie: {
     artistId: "moonie",
     tagline: "dark // surreal // dreamy",
-    bio: "Moonie B. Jones, guest spot. dark surreal pieces. edit me!",
+    bio: "Moonie B. Jones, guest spot. dark, surreal, dreamy pieces -- if it feels like a fever dream, that's the point. limited dates while I'm in town, DM to grab one.",
     igHandle: "moonie.b.jones",
     songId: "manson",
     accentColor: "#FF6347",

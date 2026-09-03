@@ -10,7 +10,7 @@
   .aol-tb-ico { display:none; }
   .aol-tb-r { position:absolute; right:6px; top:3px; display:flex; gap:0; }
   .aol-tb-r span:nth-child(1), .aol-tb-r span:nth-child(3) { display:none; }
-  .aol-tb-r span { width:12px; height:12px; background:#dcdcdc; border:1px solid #000; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #888; font-size:0; }
+  .aol-tb-r span { cursor:pointer; width:12px; height:12px; background:#dcdcdc; border:1px solid #000; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #888; font-size:0; }
   .aol-tb:before { content:''; position:absolute; left:6px; top:3px; width:12px; height:12px; background:#dcdcdc; border:1px solid #000; box-shadow:inset 1px 1px 0 #fff, inset -1px -1px 0 #888; }
   .aol-split { display:flex; background:#d8d8d8; background-image:radial-gradient(#b9b9b9 0.6px, transparent 0.7px); background-size:3px 3px; }
   .aol-left { width:96px; flex:none; position:relative; overflow:hidden; background:#4a55b8 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.014' numOctaves='4' seed='3'/><feColorMatrix values='0 0 0 0 0.28  0 0 0 0 0.30  0 0 0 0 0.70  0 0 0 0.85 0'/></filter><rect width='300' height='300' fill='%234a55b8'/><rect width='300' height='300' filter='url(%23m)' opacity='0.95'/></svg>"); background-size:100% 100%; border-right:1px solid #222; box-shadow:inset -1px 0 0 rgba(255,255,255,0.25); }
@@ -133,6 +133,8 @@ welcomeAudio=new Audio('https://raw.githubusercontent.com/LumenatiProductions/lu
 function playDialUp(){try{dialupAudio.currentTime=0;dialupAudio.play();}catch(e){}}
 function dismiss(){timers.forEach(function(t){clearTimeout(t);});sessionStorage.setItem('aol_seen','1');overlay.classList.add('fade-out');if(dialupAudio){try{dialupAudio.pause();}catch(e){}}setTimeout(function(){if(overlay.parentNode)overlay.parentNode.removeChild(overlay);},900);}
 skip.addEventListener('click',dismiss);
+// The title-bar boxes close the window too (lum-039). On the coming-soon cover there is no way out, same as Skip.
+if(!comingSoon){Array.prototype.forEach.call(overlay.querySelectorAll('.aol-tb-r span'),function(b){b.addEventListener('click',function(e){e.stopPropagation();dismiss();});});}
 if(comingSoon)skip.style.display='none';
 var alertWrap=document.getElementById('aol-alert-wrap'),alertOk=document.getElementById('aol-alert-ok');
 if(alertOk)alertOk.addEventListener('click',function(){location.reload();});
