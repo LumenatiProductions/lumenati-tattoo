@@ -91,7 +91,10 @@ export async function middleware(request: NextRequest) {
   // Site-wide "coming soon" cover (Scott, 2026-09-02). Flip with the
   // SITE_COMING_SOON env var. ?preview=1 on any page sets a cookie that lets
   // you through to the real site.
-  if (process.env.SITE_COMING_SOON === "true" && isPublicSitePath(pathname)) {
+  // /tv is an app route (no Y2K chrome) but it is a front door for visitors,
+  // so the cover holds it too.
+  const underCover = isPublicSitePath(pathname) || pathname === "/tv" || pathname.startsWith("/tv/");
+  if (process.env.SITE_COMING_SOON === "true" && underCover) {
     if (searchParams.get("preview") === "1") {
       const res = NextResponse.next();
       res.cookies.set(PREVIEW_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
