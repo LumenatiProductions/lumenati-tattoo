@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GAME_CATALOG, formatScore } from "@/lib/arcade/catalog";
-import { readWall, TODAY_SIZE, WALL_SIZE, type Wall } from "@/lib/arcade/scores";
+import { readWall, type Wall } from "@/lib/arcade/scores";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
 // The Hall of Fame: every game's shop wall, out in the open at /arcade. What
@@ -37,6 +37,9 @@ export default async function ArcadeHallPage() {
       <style>{`
         .hof{min-height:100vh;background:#14101c;color:#fff;font-family:Tahoma,Verdana,sans-serif;padding:28px 16px 80px;}
         .hof .px{font-family:'Press Start 2P',monospace;}
+        .hof-nav{max-width:1180px;margin:0 auto 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:'Press Start 2P',monospace;font-size:8px;color:rgba(255,255,255,0.45);}
+        .hof-nav a{color:${CYAN};text-decoration:none;background:#000;border:1px solid ${CYAN};padding:9px 12px;}
+        .hof-nav a:hover{color:#fff;border-color:#fff;}
         .hof-head{max-width:1180px;margin:0 auto 18px;text-align:center;}
         .hof-head h1{font-family:'Press Start 2P',monospace;font-size:clamp(16px,3vw,28px);color:${PINK};margin:0 0 10px;letter-spacing:1px;text-shadow:0 0 18px rgba(255,20,147,0.45);}
         .hof-head h1 span{color:#fff;}
@@ -70,13 +73,18 @@ export default async function ArcadeHallPage() {
         .hof-board li .r{color:rgba(255,255,255,0.45);text-align:right;}
         .hof-board li .s{color:${LIME};}
         .hof-board li .d{grid-column:2/4;font-size:6px;color:rgba(255,255,255,0.35);margin-top:-2px;}
-        .hof-foot{display:flex;justify-content:space-between;align-items:center;padding:0 10px 10px;font-size:10px;color:#555;}
+        .hof-foot{display:flex;justify-content:flex-end;gap:8px;align-items:center;padding:0 10px 10px;font-size:10px;color:#555;}
+        .hof-play.ghost{background:#000;color:${CYAN};border-color:#555 #000 #000 #555;}
         .hof-play{display:inline-block;background:${PINK};color:#fff;text-decoration:none;font-family:'Press Start 2P',monospace;font-size:9px;padding:8px 14px;border:2px solid;border-color:#ff8ad0 #8a004a #8a004a #ff8ad0;box-shadow:2px 2px 0 rgba(0,0,0,0.35);}
         .hof-play:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,0.35);}
         .hof-back{display:block;max-width:1180px;margin:30px auto 0;text-align:center;font-family:'Press Start 2P',monospace;font-size:8px;color:rgba(255,255,255,0.45);}
         .hof-back a{color:${CYAN};text-decoration:none;}
       `}</style>
 
+      <nav className="hof-nav">
+        <a href="/">&#9664; EXIT TO LUMENATI ONLINE</a>
+        <span>PICK A CABINET. EVERY WALL IS ITS OWN SCREEN.</span>
+      </nav>
       <header className="hof-head">
         <h1>LUMENATI ARCADE <span>// HALL OF FAME</span></h1>
         <div className="hof-sub">
@@ -121,7 +129,7 @@ export default async function ArcadeHallPage() {
                 <div className="hof-board">
                   <h3 className="wall">SHOP WALL</h3>
                   <ol>
-                    {Array.from({ length: WALL_SIZE }).map((_, i) => {
+                    {Array.from({ length: 5 }).map((_, i) => {
                       const e = alltime[i];
                       return (
                         <li key={i} className={e ? (i === 0 ? "top" : "") : "empty"}>
@@ -137,7 +145,7 @@ export default async function ArcadeHallPage() {
                 <div className="hof-board">
                   <h3 className="today">TODAY</h3>
                   <ol>
-                    {Array.from({ length: TODAY_SIZE }).map((_, i) => {
+                    {Array.from({ length: 3 }).map((_, i) => {
                       const e = today[i];
                       return (
                         <li key={i} className={e ? (i === 0 ? "top" : "") : "empty"}>
@@ -152,7 +160,7 @@ export default async function ArcadeHallPage() {
                 </div>
               </div>
               <div className="hof-foot">
-                <span>{g.hint}</span>
+                <Link className="hof-play ghost" href={`/arcade/${g.id}/wall`}>FULL WALL</Link>
                 <Link className="hof-play" href={`/arcade/${g.id}`}>PLAY</Link>
               </div>
             </section>

@@ -89,8 +89,12 @@ ${gameSource(gameId)}
   <div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:2px;justify-content:center;font-size:12px;max-width:640px;">${switcher}</div>
   <div style="background:#ece9d8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:3px 3px 0 rgba(0,0,0,0.3);max-width:95vw;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;background:linear-gradient(180deg,#FF1493 0%,#c8006e 100%);height:24px;">
-      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">${game.exe} — Try the Arcade</span>
-      <span style="font-family:Tahoma,sans-serif;font-size:11px;color:#fff;padding:0 4px;">preview</span>
+      <span style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">${game.exe} // Try the Arcade</span>
+      <span style="display:flex;gap:4px;align-items:center;">
+        <a href="/arcade/${gameId}/wall" style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-decoration:none;padding:1px 8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.5);">WALL</a>
+        <a href="/arcade" style="font-family:Tahoma,sans-serif;font-size:11px;font-weight:bold;color:#fff;text-decoration:none;padding:1px 8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.5);">GAMES</a>
+        <a href="/" title="Exit to Lumenati OnLine" style="font-family:Tahoma,sans-serif;font-size:12px;font-weight:bold;color:#000;text-decoration:none;width:18px;height:16px;line-height:16px;text-align:center;background:#ece9d8;border:1px solid;border-color:#fff #808080 #808080 #fff;">&#10005;</a>
+      </span>
     </div>
     <div id="jd-game-overlay" style="display:none;padding:4px;background:#ece9d8;">
       <canvas id="jd-skate-canvas" width="400" height="320" style="display:block;width:600px;max-width:100%;height:auto;image-rendering:pixelated;touch-action:none;border:1px solid;border-color:#808080 #fff #fff #808080;background:#000;"></canvas>

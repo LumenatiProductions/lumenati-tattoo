@@ -74,6 +74,9 @@
     var myRank = 0, myTodayRank = 0, madeWall = false, madeToday = false;
     var status = ''; // '' | 'posting' | 'posted' | 'offline' | 'blocked'
     var shakeT = 0, revealT = 0;
+    // The cabinet beat: every run ends on a big GAME OVER card with the score
+    // counting up before the wall says anything. Sign-in input waits for it.
+    var BEAT = 95, beatT = BEAT;
     var runStart = now();
     var synced = false;
 
@@ -115,7 +118,7 @@
       finalScore = Math.max(0, Math.floor(score || 0));
       finalLevel = (extra && extra.level) || 1;
       finalMeta = (extra && extra.meta) || null;
-      myRank = 0; myTodayRank = 0; initSlot = 0; status = ''; shakeT = 0; revealT = 0;
+      myRank = 0; myTodayRank = 0; initSlot = 0; status = ''; shakeT = 0; revealT = 0; beatT = 0;
       madeWall = finalScore > 0 && slotOn(alltime, finalScore, WALL_SIZE) > 0;
       madeToday = finalScore > 0 && slotOn(today, finalScore, TODAY_SIZE) > 0;
       var duration = Math.round((now() - runStart) / 1000);
@@ -144,8 +147,9 @@
 
     function commitInitials() {
       var name = initials.join('');
-      if (BLOCKED[name]) { status = 'blocked'; shakeT = 24; return; }
+      if (BLOCKED[name]) { status = 'blocked'; shakeT = 24; blip(160, 0.18, 0.08); return; }
       lsSet('lumenati-arcade-initials', name);
+      blip(988, 0.07, 0.07); setTimeout(function () { blip(1319, 0.16, 0.07); }, 70);
       // Land it on the local boards right away; the server's answer replaces
       // them (and confirms the rank) when it comes back.
       var row = { n: name, s: finalScore, l: finalLevel, at: new Date().toISOString() };
@@ -167,15 +171,30 @@
     function byScore(x, y) { return y.s - x.s || (x.at < y.at ? -1 : x.at > y.at ? 1 : 0); }
     function indexOfRow(list, row) { for (var i = 0; i < list.length; i++) if (list[i] === row) return i + 1; return 0; }
 
+    var sfxCtx;
+    function blip(freq, dur, vol) {
+      try {
+        if (!sfxCtx) sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (sfxCtx.state === 'suspended') { try { sfxCtx.resume(); } catch (e) {} }
+        var osc = sfxCtx.createOscillator(), g = sfxCtx.createGain();
+        osc.type = 'square'; osc.frequency.value = freq;
+        g.gain.setValueAtTime(vol || 0.06, sfxCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, sfxCtx.currentTime + dur);
+        osc.connect(g); g.connect(sfxCtx.destination);
+        osc.start(); osc.stop(sfxCtx.currentTime + dur);
+      } catch (e) {}
+    }
     function cycleInit(d) {
       initials[initSlot] = LETTERS[(LETTERS.indexOf(initials[initSlot]) + d + 26) % 26];
       if (status === 'blocked') status = '';
+      blip(880, 0.04);
     }
 
     // Keyboard on the sign-in screen: type letters, arrows to dial, SPACE/ENTER to confirm.
     document.addEventListener('keydown', function (e) {
       if (!active() || mode() !== 'enter') return;
       e.preventDefault();
+      if (beatT < BEAT) return;
       if (/^Key[A-Z]$/.test(e.code)) {
         initials[initSlot] = e.code.charAt(3);
         if (status === 'blocked') status = '';
@@ -190,6 +209,7 @@
       } else if (e.code === 'Backspace') initSlot = Math.max(0, initSlot - 1);
     });
     function enterTap(clientX, clientY) {
+      if (beatT < BEAT) return;
       var r = canvas.getBoundingClientRect();
       var x = (clientX - r.left) * (W / r.width), y = (clientY - r.top) * (H / r.height);
       if (x > W / 2 - 50 && x < W / 2 + 50 && y > 224 && y < 258) { commitInitials(); return; }
@@ -202,9 +222,114 @@
       if (active() && mode() === 'enter') { e.preventDefault(); var t = (e.targetTouches && e.targetTouches[0]) || e.touches[0]; enterTap(t.clientX, t.clientY); }
     }, { passive: false });
 
+    // Cabinet glass: scanlines and a soft vignette over every wall screen.
+    function crt() {
+      ctx.fillStyle = 'rgba(0,0,0,0.16)';
+      for (var y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+      var g = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.85);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,0.45)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    function credit(f) {
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('CREDIT 1', 10, H - 8);
+      if (Math.floor(f / 30) % 2 === 0) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = YELLOW;
+        ctx.fillText('PRESS START', W - 10, H - 8);
+      }
+    }
+
+    // ── The GAME OVER card: first thing after a run, before the wall speaks ──
+    function drawBeat() {
+      var t = beatT, f = frame();
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.88, 0.5 + t / 60) + ')';
+      ctx.fillRect(0, 0, W, H);
+      var title = typeof o.title === 'function' ? o.title() : (o.title || 'GAME OVER');
+      var pop = t < 12 ? 1 + (12 - t) / 10 : 1;
+      ctx.textAlign = 'center';
+      ctx.font = 'bold ' + Math.round(30 * pop) + 'px monospace';
+      ctx.fillStyle = t < 8 ? '#fff' : PINK;
+      ctx.fillText(title, W / 2, 128);
+      if (t > 20) {
+        var k = Math.min(1, (t - 20) / 45);
+        var shown = Math.floor(finalScore * (1 - Math.pow(1 - k, 3)));
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 22px monospace';
+        ctx.fillText(fmt(shown), W / 2, 176);
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(o.scoreLabel || 'SCORE', W / 2, 152);
+      }
+      if (t > 70) {
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = '9px monospace';
+        ctx.fillText(o.levelLabel ? o.levelLabel(finalLevel) : ('REACHED LEVEL ' + finalLevel), W / 2, 200);
+      }
+      credit(f);
+      crt();
+      if (t >= BEAT - 4) { ctx.fillStyle = 'rgba(255,255,255,' + ((t - (BEAT - 4)) / 4) * 0.5 + ')'; ctx.fillRect(0, 0, W, H); }
+      ctx.restore();
+    }
+
+    // ── Attract card: the wall between title screens, for the intro loop ──
+    // Games call this from their intro for a slice of the cycle; it draws a
+    // full screen so the title scene underneath can be anything.
+    function drawAttract() {
+      var f = frame();
+      ctx.save();
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = PINK;
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('HIGH SCORES', W / 2, 44);
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font = '9px monospace';
+      ctx.fillText((o.label || game).toUpperCase() + ' // THE SHOP WALL', W / 2, 62);
+      var LX = 30, LW = 170, RX = 226, RW = 150, TOP = 100, ROW = 17;
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillStyle = CYAN; ctx.fillText('ALL TIME', LX, 86);
+      ctx.fillStyle = LIME; ctx.fillText('TODAY', RX, 86);
+      ctx.font = 'bold 12px monospace';
+      for (var i = 0; i < 8; i++) {
+        var e = alltime[i], y = TOP + i * ROW;
+        ctx.fillStyle = e ? (i === 0 ? YELLOW : '#fff') : 'rgba(255,255,255,0.2)';
+        ctx.textAlign = 'right'; ctx.fillText(String(i + 1), LX + 16, y);
+        ctx.textAlign = 'left'; ctx.fillText(e ? e.n : '---', LX + 28, y);
+        ctx.textAlign = 'right'; ctx.fillText(e ? fmt(e.s) : '-', LX + LW, y);
+      }
+      for (var j = 0; j < 5; j++) {
+        var t = today[j], yy = TOP + j * ROW;
+        ctx.fillStyle = t ? (j === 0 ? YELLOW : '#fff') : 'rgba(255,255,255,0.2)';
+        ctx.textAlign = 'right'; ctx.fillText(String(j + 1), RX + 12, yy);
+        ctx.textAlign = 'left'; ctx.fillText(t ? t.n : '---', RX + 24, yy);
+        ctx.textAlign = 'right'; ctx.fillText(t ? fmt(t.s) : '-', RX + RW, yy);
+      }
+      ctx.textAlign = 'left';
+      ctx.font = '9px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(withNum(playsToday) + ' PLAYS TODAY', RX, TOP + 5 * ROW + 6);
+      ctx.fillText(withNum(plays) + ' ALL TIME', RX, TOP + 5 * ROW + 18);
+      ctx.textAlign = 'center';
+      if (Math.floor(f / 30) % 2 === 0) { ctx.fillStyle = YELLOW; ctx.font = 'bold 11px monospace'; ctx.fillText('INSERT COIN', W / 2, 268); }
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = '9px monospace';
+      ctx.fillText('SIGN THE WALL AT GAME OVER', W / 2, 290);
+      crt();
+      ctx.restore();
+    }
+
     // ── The sign-in screen ──
     function drawInitials() {
       var f = frame();
+      if (beatT < BEAT) { beatT++; drawBeat(); return; }
       if (shakeT > 0) shakeT--;
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.84)';
@@ -212,7 +337,7 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 18px monospace';
-      ctx.fillText(madeWall ? 'YOU MADE THE WALL' : 'TOP OF THE DAY', W / 2, 62);
+      ctx.fillText(madeWall ? 'HIGH SCORE!' : 'TOP OF THE DAY', W / 2, 62);
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 15px monospace';
       ctx.fillText(fmt(finalScore), W / 2, 88);
@@ -251,12 +376,14 @@
       ctx.fillStyle = status === 'blocked' ? '#ff6347' : '#9aa';
       ctx.font = '9px monospace';
       ctx.fillText(status === 'blocked' ? 'NOT THOSE LETTERS. TRY OTHERS' : ('ontouchstart' in window ? 'TAP the arrows // OK signs it' : 'TYPE or ARROWS // SPACE signs it'), W / 2, 274);
+      crt();
       ctx.restore();
     }
 
     // ── The game-over screen: the shop wall beside today's board ──
     function drawBoard() {
       var f = frame();
+      if (beatT < BEAT) { beatT++; drawBeat(); return; }
       revealT++;
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.86)';
@@ -354,6 +481,7 @@
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.font = '9px monospace';
       ctx.fillText('the whole wall: lumenatitattoo.com/arcade', W / 2, 308);
+      crt();
       ctx.restore();
     }
 
@@ -361,7 +489,10 @@
       enter: enter,
       drawInitials: drawInitials,
       drawBoard: drawBoard,
+      drawAttract: drawAttract,
       refresh: refresh,
+      // true while the GAME OVER card is still up (games can hold their own restart on it)
+      inBeat: function () { return beatT < BEAT; },
       markStart: function () { runStart = now(); },
       top: function () { return alltime[0] || null; },
       best: function () { return alltime[0] ? alltime[0].s : 0; },

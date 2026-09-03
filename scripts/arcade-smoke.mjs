@@ -129,7 +129,7 @@ function runGame(id, src, opts = {}) {
     if (id === "pong" && h.spans["jd-br-lives"].textContent === "5") { died = true; scoreAtDeath = "0"; break; }
   }
   if (!died) throw new Error(`never reached game over in ${maxFrames} frames`);
-  step(30);
+  step(130); // the GAME OVER card holds input for ~95 frames
 
   // 3. sign initials (no-op when the score did not qualify), then restart
   h.key("KeyS"); h.key("KeyC"); h.key("KeyO");
