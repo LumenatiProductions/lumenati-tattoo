@@ -120,7 +120,7 @@ export default async function GameWallPage({ params }: { params: Promise<{ game:
           __html: `(function(){
   var game=${JSON.stringify(game)}, fmt=${JSON.stringify(spec.fmt)};
   function money(n){return String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');}
-  function score(s){ if(fmt==='dollars') return '$'+money(s); if(fmt==='pong') return s+'/5 BEAT'; return money(s); }
+  function score(s){ if(fmt==='dollars') return '$'+money(s); return money(s); }
   function when(iso){ try{ return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'America/Denver'}).toUpperCase(); }catch(e){ return ''; } }
   function fill(sel, rows, withDate){
     var ol=document.querySelector('[data-board="'+sel+'"]'); if(!ol) return;

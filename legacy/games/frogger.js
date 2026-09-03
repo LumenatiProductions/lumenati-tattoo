@@ -80,19 +80,33 @@
     })(seq[i][0], seq[i][1], i === seq.length - 1);
   }
 
-  var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF';
+
+  var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF', ORANGE = '#ff8c1a';
   var CELL = 40, COLS = 10;
   // Rows top to bottom: 0 shop, 1-3 traffic, 4 median, 5-6 traffic, 7 start
   var ROW_Y = [0, 40, 80, 120, 160, 200, 240, 280];
   var DOOR_COLS = [2, 5, 8];
+  var LANE_ROWS = [1, 2, 3, 5, 6];
   var LANE_DIRS = { 1: 1, 2: -1, 3: 1, 5: -1, 6: 1 };
   var CAR_COLORS = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
+
+  // Every night has its own weather and light. Rush hour lands every third
+  // night: faster lanes, one more car in each, and the streets are wet.
+  var NIGHTS = [
+    { name: 'NIGHT', tint: 'rgba(20,30,90,0.10)', lamp: 'rgba(255,220,150,0.16)', sky: '#1c1c24' },
+    { name: 'LATE NIGHT', tint: 'rgba(90,20,130,0.14)', lamp: 'rgba(255,200,230,0.14)', sky: '#1a1520' },
+    { name: 'DUSK', tint: 'rgba(255,120,40,0.10)', lamp: 'rgba(255,210,150,0.10)', sky: '#241c1c' },
+    { name: 'RAIN', tint: 'rgba(40,90,140,0.18)', lamp: 'rgba(200,230,255,0.16)', sky: '#161c24', rain: true },
+  ];
+  function nightOf(w) { return NIGHTS[(w - 1) % NIGHTS.length]; }
+  function isRush(w) { return w % 3 === 0; }
 
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
   var score, lives, wave, frame;
   var player, lanes, doors, invuln, hopT;
-  var patience, patienceMax, amb, bannerT, bannerText, bestRow;
+  var patience, patienceMax, amb, bannerT, bannerText, bannerColor, bestRow;
+  var streak, popups, parts, shake, pickup, pickupCd, slicks, stats, dieFlash;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-frogger') || '0', 10) || 0; } catch(e) {}
@@ -100,33 +114,68 @@
     if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-frogger', String(best)); } catch(e) {} }
   }
 
+  // The streak multiplier: chairs filled in a row without getting flattened.
+  // x1, x1.5, x2 ... up to x4. Dying resets it.
+  function mult() { return Math.min(4, 1 + streak * 0.5); }
+  function fmtMult() { var m = mult(); return 'x' + (m % 1 === 0 ? m : m.toFixed(1)); }
+  function award(pts, x, y, label, color) {
+    score += pts;
+    document.getElementById('jd-br-score').textContent = score;
+    addPopup(x, y, (label ? label + ' ' : '') + '+' + pts, color || '#fff');
+  }
+  function addPopup(x, y, text, color) {
+    popups.push({ x: x, y: y, text: text, color: color, life: 55 });
+  }
+  function burst(x, y, n, color, spread, gravity) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, sp = 0.6 + Math.random() * (spread || 2.4);
+      parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.8, life: 24 + Math.random() * 26, color: color, s: 1 + Math.random() * 2, g: gravity === undefined ? 0.08 : gravity, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4 });
+    }
+  }
+
   function makeLanes() {
-    // {row, dir, speed, cars: [{x}], w} — later nights squeeze in extra cars
+    // Lane recipes: {row, dir, speed, n, w, kind}. Later nights swap in
+    // supply carts (small, quick) and delivery scooters (smaller, quicker),
+    // squeeze in extra traffic, and rush hour pushes everything harder.
     var defs = [
-      { row: 1, dir: 1,  speed: 1.5, n: 2, w: 64 },
-      { row: 2, dir: -1, speed: 2.2, n: 3, w: 52 },
-      { row: 3, dir: 1,  speed: 1.1, n: 2, w: 88 }, // the slow bus
-      { row: 5, dir: -1, speed: 1.8, n: 3, w: 52 },
-      { row: 6, dir: 1,  speed: 2.6, n: 2, w: 56 }
+      { row: 1, dir: 1,  speed: 1.5, n: 2, w: 64, kind: 'car' },
+      { row: 2, dir: -1, speed: 2.2, n: 3, w: 52, kind: 'car' },
+      { row: 3, dir: 1,  speed: 1.1, n: 2, w: 88, kind: 'bus' }, // the slow bus
+      { row: 5, dir: -1, speed: 1.8, n: 3, w: 52, kind: 'car' },
+      { row: 6, dir: 1,  speed: 2.6, n: 2, w: 56, kind: 'car' }
     ];
+    if (wave >= 3) defs[3] = { row: 5, dir: -1, speed: 2.4, n: 4, w: 34, kind: 'cart' };
+    if (wave >= 4) defs[0] = { row: 1, dir: 1, speed: 3.1, n: 3, w: 30, kind: 'scooter' };
+    if (wave >= 6) defs[4] = { row: 6, dir: 1, speed: 3.0, n: 3, w: 30, kind: 'scooter' };
     lanes = [];
     for (var i = 0; i < defs.length; i++) {
       var d = defs[i];
       var n = d.n;
       if (wave >= 2 && d.n === 2) n++;
-      if (wave >= 4 && d.n === 3) n++;
-      n = Math.min(4, n);
+      if (wave >= 5 && d.kind === 'car') n++;
+      if (isRush(wave)) n++;
+      n = Math.min(d.kind === 'bus' ? 3 : 5, n);
       var cars = [];
       var spacing = (W + d.w + 60) / n;
       for (var j = 0; j < n; j++) {
-        cars.push({ x: j * spacing + Math.random() * 40, color: CAR_COLORS[(i * 2 + j) % CAR_COLORS.length], taxi: Math.random() < 0.18 });
+        cars.push({ x: j * spacing + Math.random() * 40, color: CAR_COLORS[(i * 2 + j + wave) % CAR_COLORS.length], taxi: d.kind === 'car' && Math.random() < 0.18, nm: false, wob: Math.random() * 6 });
       }
-      lanes.push({ row: d.row, dir: d.dir, speed: d.speed, w: d.w, cars: cars });
+      lanes.push({ row: d.row, dir: d.dir, speed: d.speed * (isRush(wave) ? 1.25 : 1), w: d.w, kind: d.kind, cars: cars });
+    }
+    // Wet floor on the median from night 3: land on it and you keep sliding.
+    slicks = [];
+    if (wave >= 3) {
+      var ns = wave >= 6 ? 2 : 1;
+      while (slicks.length < ns) {
+        var c = 1 + Math.floor(Math.random() * (COLS - 2));
+        if (slicks.indexOf(c) === -1 && DOOR_COLS.indexOf(c) === -1) slicks.push(c);
+      }
     }
   }
 
   function resetPlayer() {
-    player = { col: 4, row: 7 };
+    var startCol = 4;
+    player = { col: startCol, row: 7, fx: startCol * CELL + CELL / 2, fy: ROW_Y[7] + CELL / 2, fromX: 0, fromY: 0, face: 0 };
     hopT = 0;
     bestRow = 7;
     patienceMax = Math.max(480, 720 - (wave - 1) * 60);
@@ -139,7 +188,9 @@
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     doors = [false, false, false];
-    amb = null; bannerT = 0; bannerText = '';
+    amb = null; bannerT = 0; bannerText = ''; bannerColor = LIME;
+    streak = 0; popups = []; parts = []; shake = 0; pickup = null; pickupCd = 240; slicks = []; dieFlash = 0;
+    stats = { chairs: 0, bestStreak: 0, near: 0, tips: 0 };
     makeLanes();
     resetPlayer();
     var hintEl = document.getElementById('jd-game-hint');
@@ -148,10 +199,18 @@
     startLoop();
   }
 
-  function die() {
+  function banner(text, color, t) { bannerT = t || 90; bannerText = text; bannerColor = color || LIME; }
+
+  function die(reason) {
     lives--;
     document.getElementById('jd-br-lives').textContent = lives;
     sfxHit();
+    shake = 14; dieFlash = 10;
+    var px = player.fx, py = player.fy;
+    burst(px, py, 18, reason === 'cold' ? '#8ab' : '#e74c3c', 3, 0.1);
+    // The flash printout goes flying
+    for (var i = 0; i < 5; i++) parts.push({ x: px, y: py - 4, vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 2, life: 60, color: '#fff', s: 4, g: 0.06, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.5, paper: true });
+    streak = 0;
     if (lives <= 0) {
       enterBoard(score);
       saveBest();
@@ -159,6 +218,18 @@
     } else {
       resetPlayer();
       invuln = 60;
+    }
+  }
+
+  function landOn(col, row) {
+    // Pickups: the floor of a busy street has its perks
+    if (pickup && pickup.col === col && pickup.row === row) {
+      var x = col * CELL + CELL / 2, y = ROW_Y[row] + 10;
+      if (pickup.kind === 'tip') { award(50 * mult(), x, y, 'TIP JAR', YELLOW); stats.tips++; burst(x, y, 10, YELLOW, 2, 0.05); }
+      else if (pickup.kind === 'coffee') { patience = Math.min(patienceMax, patience + 240); award(25, x, y, 'COFFEE', CYAN); burst(x, y, 8, '#c9a27a', 1.6, 0.04); }
+      else { award(75 * mult(), x, y, 'FLASH SHEET', PINK); burst(x, y, 10, PINK, 2, 0.05); }
+      pickup = null; pickupCd = 300 + Math.random() * 240;
+      sfxDoor();
     }
   }
 
@@ -171,20 +242,28 @@
       var d = DOOR_COLS.indexOf(player.col);
       if (dx === 0 && d !== -1 && !doors[d]) {
         doors[d] = true;
+        stats.chairs++;
         sayCallout(patience < patienceMax * 0.25 ? 'frogger-c2' : 'frogger-c1');
-        score += 100;
-        document.getElementById('jd-br-score').textContent = score;
+        var cx = player.col * CELL + CELL / 2, cy = 46;
+        // Chair pay: the seat plus a time bonus for hustle, times the streak.
+        var timeB = Math.round((patience / patienceMax) * 150 / 10) * 10;
+        var m = mult();
+        award(Math.round((100 + timeB) * m), cx, cy + 14, 'CHAIR ' + fmtMult(), m > 1 ? YELLOW : '#fff');
+        if (timeB >= 100) addPopup(cx, cy + 30, 'QUICK +' + timeB, CYAN);
+        streak++;
+        if (streak > stats.bestStreak) stats.bestStreak = streak;
+        burst(cx, cy, 16, LIME, 2.6, 0.06);
+        shake = Math.max(shake, 4);
         sfxDoor();
         if (doors[0] && doors[1] && doors[2]) {
-          score += 250;
-          document.getElementById('jd-br-score').textContent = score;
+          var nb = Math.round((250 + 100 * (wave - 1)) * mult());
+          award(nb, W / 2, H / 2 + 10, 'NIGHT CLEAR', LIME);
           doors = [false, false, false];
           wave++;
-          bannerT = 100;
-          bannerText = 'NIGHT ' + wave;
+          banner(isRush(wave) ? 'RUSH HOUR' : nightOf(wave).name + ' ' + wave, isRush(wave) ? ORANGE : LIME, 110);
           say('frogger-c3', 300);
           makeLanes();
-          amb = null;
+          amb = null; pickup = null;
           sfxWave();
         }
         resetPlayer();
@@ -192,15 +271,26 @@
       return;
     }
     if (nr < 1) return;
+    player.fromX = player.fx; player.fromY = player.fy;
     player.col = nc;
     player.row = nr;
+    if (dx !== 0) player.face = dx;
     if (nr < bestRow) {
       bestRow = nr;
-      score += 10;
-      document.getElementById('jd-br-score').textContent = score;
+      award(Math.round(10 * mult()), player.col * CELL + CELL / 2, ROW_Y[nr] + 4, '', 'rgba(255,255,255,0.7)');
     }
     hopT = 6;
     sfxHop();
+    landOn(nc, nr);
+    // Wet floor: the hop keeps going one more cell in the same direction
+    if (nr === 4 && slicks.indexOf(nc) !== -1) {
+      var sc = nc + dx, sr = nr + dy;
+      if (sr >= 1 && sc >= 0 && sc < COLS) {
+        player.slip = { dx: dx, dy: dy, t: 7 };
+        addPopup(player.col * CELL + CELL / 2, ROW_Y[4] + 6, 'WET FLOOR', CYAN);
+        playSfx(300, 0.12, 'sawtooth', 0.08);
+      }
+    }
   }
 
   function update() {
@@ -210,20 +300,54 @@
     if (invuln > 0) invuln--;
     if (hopT > 0) hopT--;
     if (bannerT > 0) bannerT--;
+    if (shake > 0) shake--;
+    if (dieFlash > 0) dieFlash--;
+
+    // A slip finishes the hop in the same direction
+    if (player.slip) {
+      if (--player.slip.t <= 0) {
+        var s = player.slip; player.slip = null;
+        var nc = player.col + s.dx, nr = player.row + s.dy;
+        if (nr >= 1 && nc >= 0 && nc < COLS) {
+          player.fromX = player.fx; player.fromY = player.fy;
+          player.col = nc; player.row = nr; hopT = 6;
+          if (nr < bestRow) bestRow = nr;
+          landOn(nc, nr);
+        }
+      }
+    }
+
+    for (var i = popups.length - 1; i >= 0; i--) {
+      popups[i].y -= 0.55; popups[i].life--;
+      if (popups[i].life <= 0) popups.splice(i, 1);
+    }
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.rot += p.vr; p.life--;
+      if (p.life <= 0) parts.splice(i, 1);
+    }
 
     // The client is only patient for so long
     if (invuln === 0) patience--;
     if (patience <= 0) {
-      bannerT = 70;
-      bannerText = 'COLD FEET!';
-      die();
+      banner('COLD FEET!', '#ff4444', 70);
+      die('cold');
       return;
     }
 
+    // Something worth grabbing shows up on the street now and then
+    if (!pickup) {
+      if (--pickupCd <= 0) {
+        var rows = [1, 2, 3, 4, 5, 6];
+        var kinds = ['tip', 'tip', 'flash', 'coffee'];
+        if (patience < patienceMax * 0.5) kinds.push('coffee', 'coffee');
+        pickup = { col: Math.floor(Math.random() * COLS), row: rows[Math.floor(Math.random() * rows.length)], kind: kinds[Math.floor(Math.random() * kinds.length)], life: 480 };
+      }
+    } else if (--pickup.life <= 0) { pickup = null; pickupCd = 240 + Math.random() * 240; }
+
     // Ambulance: night 2+, a warning flash then a streak down one lane
     if (wave >= 2 && !amb && frame % 540 === 200) {
-      var laneRows = [1, 2, 3, 5, 6];
-      var row = laneRows[Math.floor(Math.random() * laneRows.length)];
+      var row = LANE_ROWS[Math.floor(Math.random() * LANE_ROWS.length)];
       var dir = LANE_DIRS[row];
       amb = { row: row, dir: dir, x: dir > 0 ? -90 : W + 90, warnT: 55 };
       sfxSiren();
@@ -237,32 +361,41 @@
         if (amb && invuln === 0 && amb.row === player.row) {
           var apx = player.col * CELL + 13;
           if (apx + 14 > amb.x && apx < amb.x + 70) {
-            die();
+            die('amb');
             return;
           }
         }
       }
     }
 
-    var mult = 1 + (wave - 1) * 0.18;
+    var speedMult = 1 + (wave - 1) * 0.15;
     for (var i = 0; i < lanes.length; i++) {
       var ln = lanes[i];
       for (var j = 0; j < ln.cars.length; j++) {
         var car = ln.cars[j];
-        car.x += ln.dir * ln.speed * mult;
-        if (ln.dir > 0 && car.x > W + 40) car.x = -ln.w - 40;
-        if (ln.dir < 0 && car.x < -ln.w - 40) car.x = W + 40;
+        car.x += ln.dir * ln.speed * speedMult;
+        if (ln.dir > 0 && car.x > W + 40) { car.x = -ln.w - 40; car.nm = false; }
+        if (ln.dir < 0 && car.x < -ln.w - 40) { car.x = W + 40; car.nm = false; }
       }
-      // Collision on the player's row — hitbox matches the drawn sprite, a
-      // touch forgiving, so near-misses feel like near-misses
+      // Collision on the player's row: hitbox matches the drawn sprite, a
+      // touch forgiving, so near-misses feel like near-misses (and pay)
       if (invuln === 0 && ln.row === player.row) {
         var px = player.col * CELL + 13, pw = 14;
-        var py = ROW_Y[player.row] + 6;
         for (var j = 0; j < ln.cars.length; j++) {
           var car = ln.cars[j];
           if (px + pw > car.x && px < car.x + ln.w) {
-            die();
+            die('car');
             return;
+          }
+          if (!car.nm) {
+            var gap = car.x > px + pw ? car.x - (px + pw) : px - (car.x + ln.w);
+            if (gap >= 0 && gap < 7) {
+              car.nm = true;
+              stats.near++;
+              award(Math.round(15 * mult()), player.fx, player.fy - 22, 'CLOSE!', ORANGE);
+              burst(player.fx + (car.x > px ? 10 : -10), player.fy + 8, 5, 'rgba(200,200,200,0.8)', 1.2, 0.02);
+              playSfx(1200, 0.05, 'square', 0.06);
+            }
           }
         }
       }
@@ -272,7 +405,7 @@
   // ── Input ──
   function start() {
     if (mode === 'intro') { mode = 'play'; return; }
-    if (mode === 'over') { init(); mode = 'play'; return; }
+    if (mode === 'over') { if (wall.inBeat()) return; init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
   var KEYS = {
@@ -317,50 +450,546 @@
     else hop(0, dy > 0 ? 1 : -1);
   });
 
-  function drawCar(x, y, w, color, dir, taxi) {
+  // ── Vehicles ──
+  function beam(x, y, dir, len, h, alpha) {
+    var g = ctx.createLinearGradient(dir > 0 ? x : x - len, 0, dir > 0 ? x + len : x, 0);
+    g.addColorStop(0, 'rgba(255,240,180,' + alpha + ')');
+    g.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    if (dir > 0) { ctx.moveTo(x, y); ctx.lineTo(x + len, y - h); ctx.lineTo(x + len, y + h + 6); ctx.lineTo(x, y + 6); }
+    else { ctx.moveTo(x, y); ctx.lineTo(x - len, y - h); ctx.lineTo(x - len, y + h + 6); ctx.lineTo(x, y + 6); }
+    ctx.closePath(); ctx.fill();
+  }
+  function wheel(x, y, r) {
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.arc(x, y, r * 0.45, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawCar(car, y, w, dir, kind) {
+    var x = car.x, color = car.color;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
-    ctx.ellipse(x + w / 2, y + 31, w / 2, 3, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + w / 2, y + 32, w / 2, 3, 0, 0, Math.PI * 2);
     ctx.fill();
-    if (taxi) color = '#f2c14e';
+    if (kind === 'cart') {
+      // Supply cart: chrome frame, bottles rattling on top
+      beam(dir > 0 ? x + w : x, y + 14, dir, 22, 4, 0.12);
+      ctx.fillStyle = '#9aa3ad';
+      ctx.fillRect(x + 2, y + 12, w - 4, 14);
+      ctx.fillStyle = '#c9d1d9';
+      ctx.fillRect(x + 2, y + 12, w - 4, 2);
+      ctx.fillRect(x + 2, y + 19, w - 4, 1);
+      var bob = Math.sin(frame * 0.5 + car.wob) * 1;
+      var bcol = ['#2ecc71', '#00bcf1', '#f1c40f'];
+      for (var b = 0; b < 3; b++) {
+        ctx.fillStyle = bcol[b];
+        ctx.fillRect(x + 5 + b * 9, y + 5 + (b === 1 ? bob : -bob), 6, 8);
+        ctx.fillStyle = '#eee';
+        ctx.fillRect(x + 6 + b * 9, y + 3 + (b === 1 ? bob : -bob), 4, 3);
+      }
+      wheel(x + 6, y + 28, 3); wheel(x + w - 6, y + 28, 3);
+      return;
+    }
+    if (kind === 'scooter') {
+      // Delivery scooter: rider hunched over, box on the back
+      beam(dir > 0 ? x + w : x, y + 14, dir, 30, 5, 0.16);
+      ctx.fillStyle = '#c0392b';
+      ctx.fillRect(x + 6, y + 16, w - 12, 8);
+      ctx.fillStyle = '#e8b04a';
+      ctx.fillRect(dir > 0 ? x + 2 : x + w - 12, y + 8, 10, 10);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(dir > 0 ? x + 15 : x + w - 22, y + 6, 7, 7); // helmet
+      ctx.fillStyle = '#334';
+      ctx.fillRect(dir > 0 ? x + 14 : x + w - 22, y + 12, 8, 6); // rider
+      wheel(x + 5, y + 27, 4); wheel(x + w - 5, y + 27, 4);
+      ctx.fillStyle = YELLOW;
+      ctx.fillRect(dir > 0 ? x + w - 3 : x, y + 14, 3, 3);
+      return;
+    }
+    if (car.taxi) color = '#f2c14e';
+    beam(dir > 0 ? x + w : x, y + 12, dir, kind === 'bus' ? 44 : 34, 6, 0.18);
+    // Body, roof and trim
     ctx.fillStyle = color;
-    ctx.fillRect(x, y + 8, w, 20);
-    if (taxi) {
-      ctx.fillStyle = '#14121a';
-      ctx.fillRect(x + w / 2 - 7, y + 4, 14, 5);
-      ctx.fillStyle = '#f2c14e';
-      ctx.fillRect(x + w / 2 - 5, y + 5, 10, 3);
-    }
+    ctx.fillRect(x, y + 10, w, 18);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(x, y + 24, w, 4);
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillRect(x, y + 8, w, 3);
-    // Cabin windows
-    ctx.fillStyle = '#bde';
-    if (w > 70) {
-      for (var wx = x + 6; wx < x + w - 10; wx += 14) ctx.fillRect(wx, y + 11, 8, 6);
+    ctx.fillRect(x + 2, y + 10, w - 4, 2);
+    if (kind === 'bus') {
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(x, y + 6, w, 5);
+      ctx.fillStyle = '#bde';
+      for (var wx = x + 6; wx < x + w - 10; wx += 14) ctx.fillRect(wx, y + 13, 9, 7);
+      ctx.fillStyle = '#ffdca8';
+      ctx.fillRect(dir > 0 ? x + w - 16 : x + 4, y + 4, 12, 5);
+      ctx.fillStyle = '#222';
+      ctx.font = 'bold 5px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('16', dir > 0 ? x + w - 10 : x + 10, y + 8);
     } else {
-      ctx.fillRect(dir > 0 ? x + w - 22 : x + 8, y + 11, 14, 7);
+      // Cabin with a roof line and two windows
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(x + w * 0.25, y + 5, w * 0.5, 6);
+      ctx.fillStyle = '#bde';
+      ctx.fillRect(x + w * 0.28, y + 6, w * 0.2, 7);
+      ctx.fillRect(x + w * 0.52, y + 6, w * 0.2, 7);
+      if (car.taxi) {
+        ctx.fillStyle = '#14121a';
+        ctx.fillRect(x + w / 2 - 7, y + 1, 14, 5);
+        ctx.fillStyle = '#f2c14e';
+        ctx.fillRect(x + w / 2 - 5, y + 2, 10, 3);
+        ctx.fillStyle = '#111';
+        for (var cx = x + 3; cx < x + w - 3; cx += 6) ctx.fillRect(cx, y + 18, 3, 3);
+      }
     }
-    // Wheels
+    wheel(x + 9, y + 28, 4); wheel(x + w - 9, y + 28, 4);
+    if (kind === 'bus') wheel(x + w / 2, y + 28, 4);
+    // Headlights and taillights
+    ctx.fillStyle = '#fff6cc';
+    ctx.fillRect(dir > 0 ? x + w - 3 : x, y + 13, 3, 4);
+    ctx.fillStyle = '#ff3b3b';
+    ctx.fillRect(dir > 0 ? x : x + w - 3, y + 13, 3, 4);
+  }
+
+  function drawPickup() {
+    if (!pickup) return;
+    var x = pickup.col * CELL + CELL / 2, y = ROW_Y[pickup.row] + CELL / 2 + Math.sin(frame * 0.15) * 2;
+    var fade = pickup.life < 90 && Math.floor(frame / 5) % 2 === 0;
+    if (fade) return;
+    var glow = ctx.createRadialGradient(x, y, 2, x, y, 18);
+    var gc = pickup.kind === 'tip' ? '255,215,0' : pickup.kind === 'coffee' ? '0,255,255' : '255,20,147';
+    glow.addColorStop(0, 'rgba(' + gc + ',0.35)');
+    glow.addColorStop(1, 'rgba(' + gc + ',0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 18, y - 18, 36, 36);
+    if (pickup.kind === 'tip') {
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillRect(x - 6, y - 6, 12, 13);
+      ctx.fillStyle = '#c8ffe0';
+      ctx.fillRect(x - 5, y - 5, 10, 11);
+      ctx.fillStyle = '#2f8f4e';
+      ctx.fillRect(x - 3, y - 2, 6, 3);
+      ctx.fillRect(x - 3, y + 2, 6, 3);
+      ctx.fillStyle = YELLOW;
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('$', x, y - 7);
+    } else if (pickup.kind === 'coffee') {
+      ctx.fillStyle = '#f4f4f4';
+      ctx.fillRect(x - 5, y - 4, 10, 11);
+      ctx.fillStyle = '#5a3a22';
+      ctx.fillRect(x - 5, y - 6, 10, 3);
+      ctx.fillStyle = '#f4f4f4';
+      ctx.fillRect(x + 5, y - 1, 3, 5);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      var st = (frame * 0.1) % 6;
+      ctx.fillRect(x - 2 + Math.sin(frame * 0.2) * 1.5, y - 12 - st, 1, 4);
+      ctx.fillRect(x + 1 - Math.sin(frame * 0.2) * 1.5, y - 14 - st, 1, 4);
+    } else {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x - 6, y - 7, 12, 14);
+      ctx.fillStyle = PINK;
+      ctx.fillRect(x - 3, y - 4, 6, 2);
+      ctx.fillRect(x - 4, y - 1, 8, 2);
+      ctx.fillRect(x - 3, y + 2, 6, 2);
+      ctx.fillStyle = LIME;
+      ctx.fillRect(x - 1, y + 4, 2, 2);
+    }
+  }
+
+  function drawWalkIn() {
+    var blink = invuln > 0 && Math.floor(frame / 4) % 2 === 0;
+    if (blink || mode === 'over') return;
+    // Position interpolates between cells over the hop, with an arc
+    var tx = player.col * CELL + CELL / 2, ty = ROW_Y[player.row] + CELL / 2;
+    var k = hopT > 0 ? 1 - hopT / 6 : 1;
+    var ease = 1 - (1 - k) * (1 - k);
+    player.fx = hopT > 0 ? player.fromX + (tx - player.fromX) * ease : tx;
+    player.fy = hopT > 0 ? player.fromY + (ty - player.fromY) * ease : ty;
+    var arc = hopT > 0 ? Math.sin(k * Math.PI) * 7 : 0;
+    var sx = hopT > 0 ? 1 - Math.sin(k * Math.PI) * 0.18 : 1;
+    var sy = hopT > 0 ? 1 + Math.sin(k * Math.PI) * 0.22 : 1;
+    var px = player.fx, py = player.fy - arc;
+    // Shadow stays on the floor and shrinks with the hop
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(player.fx, player.fy + 13, 8 * (1 - arc / 20), 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(px, py + 12);
+    ctx.scale(sx, sy);
+    ctx.translate(-px, -(py + 12));
+    var legA = hopT > 0 ? Math.sin(k * Math.PI * 2) * 3 : 0;
+    var idle = hopT === 0 ? Math.sin(frame * 0.12) * 0.6 : 0;
+    // legs
+    ctx.fillStyle = '#f0c8a0';
+    ctx.fillRect(px - 5, py + 6 + legA, 3, 6);
+    ctx.fillRect(px + 2, py + 6 - legA, 3, 6);
     ctx.fillStyle = '#111';
-    ctx.fillRect(x + 4, y + 26, 10, 5);
-    ctx.fillRect(x + w - 14, y + 26, 10, 5);
-    // Headlight
-    ctx.fillStyle = YELLOW;
-    ctx.fillRect(dir > 0 ? x + w - 3 : x, y + 12, 3, 4);
+    ctx.fillRect(px - 6, py + 11 + legA, 4, 2);
+    ctx.fillRect(px + 2, py + 11 - legA, 4, 2);
+    // body: black tee, a little jacket edge
+    ctx.fillStyle = '#222';
+    ctx.fillRect(px - 6, py - 6 + idle, 12, 12);
+    ctx.fillStyle = '#333';
+    ctx.fillRect(px - 6, py - 6 + idle, 3, 12);
+    // arm and the flash printout
+    ctx.fillStyle = '#f0c8a0';
+    ctx.fillRect(px + 4, py - 3 + idle, 3, 5);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(px + 2, py - 4 + idle, 7, 9);
+    ctx.fillStyle = PINK;
+    ctx.fillRect(px + 4, py - 1 + idle, 3, 1);
+    ctx.fillRect(px + 3, py + 1 + idle, 5, 1);
+    // head, hair, face
+    ctx.fillStyle = '#f0c8a0';
+    ctx.fillRect(px - 5, py - 14 + idle, 10, 8);
+    ctx.fillStyle = PINK;
+    ctx.fillRect(px - 6, py - 17 + idle, 12, 5);
+    ctx.fillRect(px - 6, py - 12 + idle, 2, 4);
+    ctx.fillStyle = '#222';
+    var ex = player.face >= 0 ? px + 1 : px - 3;
+    ctx.fillRect(ex, py - 11 + idle, 2, 2);
+    if (player.face === 0) ctx.fillRect(px - 3, py - 11 + idle, 2, 2);
+    // a shiver when patience is low
+    if (patience < patienceMax * 0.3 && Math.floor(frame / 3) % 2 === 0) {
+      ctx.fillStyle = CYAN;
+      ctx.fillRect(px - 9, py - 10 + idle, 2, 2);
+      ctx.fillRect(px + 8, py - 12 + idle, 2, 2);
+    }
+    ctx.restore();
+  }
+
+  function drawShop() {
+    ctx.fillStyle = '#2a1a2e';
+    ctx.fillRect(0, 0, W, 40);
+    // brick texture
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    for (var by = 0; by < 40; by += 6) for (var bx = (by / 6) % 2 * 8; bx < W; bx += 16) ctx.fillRect(bx, by, 14, 5);
+    ctx.fillStyle = '#3a2440';
+    ctx.fillRect(0, 34, W, 6);
+    // Neon sign with glow
+    var on = Math.floor(frame / 30) % 2 === 0;
+    var ng = ctx.createRadialGradient(W / 2, 10, 4, W / 2, 10, 60);
+    ng.addColorStop(0, on ? 'rgba(255,20,147,0.35)' : 'rgba(255,20,147,0.15)');
+    ng.addColorStop(1, 'rgba(255,20,147,0)');
+    ctx.fillStyle = ng;
+    ctx.fillRect(W / 2 - 60, 0, 120, 40);
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = on ? PINK : '#c8006e';
+    ctx.fillText('* TATTOO *', W / 2, 14);
+    // Three shop windows, each with a chair
+    for (var i = 0; i < 3; i++) {
+      var dx = DOOR_COLS[i] * CELL + 4;
+      var lit = doors[i];
+      ctx.fillStyle = lit ? '#3a2a14' : '#171720';
+      ctx.fillRect(dx, 16, CELL - 8, 24);
+      if (lit) {
+        var wg = ctx.createLinearGradient(0, 16, 0, 40);
+        wg.addColorStop(0, 'rgba(255,200,120,0.35)');
+        wg.addColorStop(1, 'rgba(255,200,120,0.05)');
+        ctx.fillStyle = wg;
+        ctx.fillRect(dx, 16, CELL - 8, 24);
+        // light spills onto the sidewalk below
+        var sg = ctx.createLinearGradient(0, 40, 0, 62);
+        sg.addColorStop(0, 'rgba(255,200,120,0.18)');
+        sg.addColorStop(1, 'rgba(255,200,120,0)');
+        ctx.fillStyle = sg;
+        ctx.fillRect(dx - 4, 40, CELL, 22);
+      }
+      // the chair
+      ctx.fillStyle = lit ? '#6b2a2a' : '#2a2a34';
+      ctx.fillRect(dx + 6, 28, 20, 8);
+      ctx.fillRect(dx + 20, 20, 6, 10);
+      ctx.fillStyle = lit ? '#8a3a3a' : '#33333f';
+      ctx.fillRect(dx + 6, 26, 20, 3);
+      if (lit) {
+        // client laid back, artist bent over with the machine buzzing
+        ctx.fillStyle = '#f0c8a0';
+        ctx.fillRect(dx + 8, 24, 10, 4);
+        ctx.fillRect(dx + 20, 22, 5, 5);
+        ctx.fillStyle = PINK;
+        ctx.fillRect(dx + 20, 20, 6, 3);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(dx + 2, 18, 7, 7);
+        ctx.fillRect(dx + 3, 24, 6, 6);
+        ctx.fillStyle = '#f0c8a0';
+        ctx.fillRect(dx + 3, 19, 5, 4);
+        if (Math.floor(frame / 3) % 2 === 0) {
+          ctx.fillStyle = CYAN;
+          ctx.fillRect(dx + 10 + (frame % 4), 22, 2, 2);
+        }
+      } else {
+        ctx.fillStyle = 'rgba(255,20,147,' + (0.45 + 0.25 * Math.sin(frame * 0.1 + i)) + ')';
+        ctx.font = '8px monospace';
+        ctx.fillText('OPEN', dx + CELL / 2 - 4, 24);
+        ctx.font = 'bold 12px monospace';
+      }
+      ctx.fillStyle = lit ? LIME : PINK;
+      ctx.fillRect(dx, 16, CELL - 8, 2);
+    }
+  }
+
+  function drawStreet(night) {
+    ctx.fillStyle = night.sky;
+    ctx.fillRect(0, 40, W, H - 40);
+    // asphalt grain
+    ctx.fillStyle = 'rgba(255,255,255,0.025)';
+    for (var gy = 40; gy < H; gy += 4) ctx.fillRect(0, gy, W, 1);
+    // Median + start sidewalks with curbs
+    var walks = [ROW_Y[4], ROW_Y[7]];
+    for (var w = 0; w < 2; w++) {
+      var wy = walks[w];
+      ctx.fillStyle = '#3c3c46';
+      ctx.fillRect(0, wy, W, CELL);
+      ctx.fillStyle = '#4a4a55';
+      for (var x = 0; x < W; x += 20) ctx.fillRect(x, wy, 1, CELL);
+      ctx.fillStyle = '#55555f';
+      ctx.fillRect(0, wy, W, 2);
+      ctx.fillStyle = '#26262e';
+      ctx.fillRect(0, wy + CELL - 2, W, 2);
+    }
+    // Crosswalk zebra at the start, worn
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    for (var zx = 8; zx < W; zx += 40) ctx.fillRect(zx, ROW_Y[6] + 2, 24, CELL - 4);
+    // Lane dashes and a manhole
+    ctx.fillStyle = '#5a5a30';
+    for (var i = 0; i < LANE_ROWS.length; i++) {
+      var y = ROW_Y[LANE_ROWS[i]];
+      if (LANE_ROWS[i] !== 3 && LANE_ROWS[i] !== 6) {
+        for (var x2 = 0; x2 < W; x2 += 40) ctx.fillRect(x2 + 10, y + 38, 20, 3);
+      }
+    }
+    ctx.fillStyle = '#2c2c34';
+    ctx.beginPath(); ctx.ellipse(310, ROW_Y[2] + 20, 11, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#44444e'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(310, ROW_Y[2] + 20, 11, 6, 0, 0, Math.PI * 2); ctx.stroke();
+    // Street lamps pour light onto the lanes
+    for (var l = 0; l < 2; l++) {
+      var lpx = 140 + l * 180;
+      for (var rr2 = 0; rr2 < 2; rr2++) {
+        var lpy = rr2 === 0 ? ROW_Y[4] : ROW_Y[7];
+        var pool = ctx.createRadialGradient(lpx, lpy - 18, 4, lpx, lpy - 18, 60);
+        pool.addColorStop(0, night.lamp);
+        pool.addColorStop(1, 'rgba(255,220,150,0)');
+        ctx.fillStyle = pool;
+        ctx.fillRect(lpx - 60, lpy - 78, 120, 120);
+        ctx.fillStyle = '#3a3a44';
+        ctx.fillRect(lpx - 1, lpy - 34, 3, 36);
+        ctx.fillStyle = '#ffe1aa';
+        ctx.fillRect(lpx - 4, lpy - 38, 9, 5);
+      }
+    }
+    // Median street furniture: newspaper boxes and a hydrant
+    var boxes = [['#2d6cdf', 10], ['#e8283c', 32]];
+    for (var b = 0; b < boxes.length; b++) {
+      var bxx = boxes[b][1];
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(bxx + 8, ROW_Y[4] + 33, 9, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = boxes[b][0];
+      ctx.fillRect(bxx, ROW_Y[4] + 10, 16, 22);
+      ctx.fillStyle = '#cfd6dd';
+      ctx.fillRect(bxx + 2, ROW_Y[4] + 13, 12, 8);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(bxx + 2, ROW_Y[4] + 24, 12, 2);
+      ctx.fillRect(bxx + 12, ROW_Y[4] + 22, 3, 1);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(66, ROW_Y[4] + 33, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e8283c';
+    ctx.fillRect(62, ROW_Y[4] + 18, 8, 14);
+    ctx.fillRect(59, ROW_Y[4] + 22, 14, 4);
+    ctx.fillRect(64, ROW_Y[4] + 14, 4, 5);
+    // Wet floor: a mop bucket and a shining spill
+    for (var s = 0; s < slicks.length; s++) {
+      var sx = slicks[s] * CELL, sy = ROW_Y[4];
+      ctx.fillStyle = 'rgba(120,200,255,0.22)';
+      ctx.beginPath(); ctx.ellipse(sx + 20, sy + 22, 17, 9, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + 0.2 * Math.sin(frame * 0.2 + s)) + ')';
+      ctx.fillRect(sx + 12, sy + 18, 8, 1);
+      ctx.fillRect(sx + 24, sy + 24, 5, 1);
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(sx + 30, sy + 6, 8, 10);
+      ctx.fillStyle = '#c9a000';
+      ctx.fillRect(sx + 30, sy + 6, 8, 2);
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(sx + 34, sy - 2, 1, 9);
+      ctx.fillStyle = '#c9c9c9';
+      ctx.fillRect(sx + 31, sy - 4, 7, 3);
+      ctx.font = 'bold 5px monospace';
+      ctx.fillStyle = '#111';
+      ctx.textAlign = 'center';
+      ctx.fillText('WET', sx + 34, sy + 13);
+    }
+  }
+
+  function drawRain() {
+    ctx.strokeStyle = 'rgba(180,210,255,0.28)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var i = 0; i < 40; i++) {
+      var rx = ((i * 97 + frame * 3) % (W + 40)) - 20;
+      var ry = ((i * 53 + frame * 9) % (H + 20)) - 10;
+      ctx.moveTo(rx, ry); ctx.lineTo(rx - 2, ry + 9);
+    }
+    ctx.stroke();
+    // wet-road reflections under the lamps
+    ctx.fillStyle = 'rgba(255,240,200,0.05)';
+    ctx.fillRect(120, ROW_Y[5], 40, 80);
+    ctx.fillRect(300, ROW_Y[5], 40, 80);
+  }
+
+  function draw() {
+    if (mode === 'intro') { drawIntro(); return; }
+    var night = nightOf(wave);
+    ctx.save();
+    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+    drawStreet(night);
+    drawShop();
+
+    // Ambulance warning: the lane flashes before it streaks through
+    if (amb && amb.warnT > 0 && Math.floor(frame / 5) % 2 === 0) {
+      ctx.fillStyle = 'rgba(255,40,40,0.18)';
+      ctx.fillRect(0, ROW_Y[amb.row], W, CELL);
+      ctx.fillStyle = '#ff4444';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = amb.dir > 0 ? 'left' : 'right';
+      ctx.fillText('!!', amb.dir > 0 ? 4 : W - 4, ROW_Y[amb.row] + 24);
+    }
+
+    drawPickup();
+
+    // Traffic
+    for (var i = 0; i < lanes.length; i++) {
+      var ln = lanes[i];
+      for (var j = 0; j < ln.cars.length; j++) drawCar(ln.cars[j], ROW_Y[ln.row], ln.w, ln.dir, ln.kind);
+    }
+
+    // Ambulance
+    if (amb && amb.warnT === 0) {
+      var ay = ROW_Y[amb.row];
+      beam(amb.dir > 0 ? amb.x + 70 : amb.x, ay + 12, amb.dir, 60, 8, 0.22);
+      ctx.fillStyle = '#f4f4f4';
+      ctx.fillRect(amb.x, ay + 6, 70, 24);
+      ctx.fillStyle = '#dd2222';
+      ctx.fillRect(amb.x, ay + 16, 70, 5);
+      ctx.fillStyle = '#bde';
+      ctx.fillRect(amb.dir > 0 ? amb.x + 50 : amb.x + 6, ay + 9, 14, 8);
+      var lit = Math.floor(frame / 4) % 2 === 0;
+      ctx.fillStyle = lit ? '#ff2222' : '#2266ff';
+      ctx.fillRect(amb.x + 30, ay + 2, 10, 5);
+      var lg = ctx.createRadialGradient(amb.x + 35, ay + 4, 2, amb.x + 35, ay + 4, 40);
+      lg.addColorStop(0, lit ? 'rgba(255,40,40,0.3)' : 'rgba(40,100,255,0.3)');
+      lg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(amb.x - 5, ay - 36, 80, 80);
+      wheel(amb.x + 12, ay + 30, 5); wheel(amb.x + 58, ay + 30, 5);
+    }
+
+    drawWalkIn();
+
+    // Particles
+    for (var p = 0; p < parts.length; p++) {
+      var pt = parts[p];
+      ctx.globalAlpha = Math.max(0, Math.min(1, pt.life / 20));
+      ctx.fillStyle = pt.color;
+      if (pt.paper) {
+        ctx.save(); ctx.translate(pt.x, pt.y); ctx.rotate(pt.rot);
+        ctx.fillRect(-3, -4, 6, 8);
+        ctx.fillStyle = PINK; ctx.fillRect(-1, -1, 3, 1);
+        ctx.restore();
+      } else ctx.fillRect(pt.x, pt.y, pt.s, pt.s);
+    }
+    ctx.globalAlpha = 1;
+
+    // Night tint and weather
+    ctx.fillStyle = night.tint;
+    ctx.fillRect(0, 40, W, H - 40);
+    if (night.rain || isRush(wave)) drawRain();
+    if (dieFlash > 0) { ctx.fillStyle = 'rgba(255,60,60,' + (dieFlash / 10) * 0.25 + ')'; ctx.fillRect(0, 0, W, H); }
+
+    // Popups
+    for (var q = 0; q < popups.length; q++) {
+      var pp = popups[q];
+      ctx.globalAlpha = Math.min(1, pp.life / 18);
+      ctx.fillStyle = pp.color;
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(pp.text, pp.x, pp.y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, W, 16);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('SCORE: ' + score, 8, 12);
+    ctx.fillStyle = '#9aa';
+    ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = isRush(wave) ? ORANGE : YELLOW;
+    ctx.fillText((isRush(wave) ? 'RUSH ' : '') + 'NIGHT ' + wave, W - 8, 12);
+    if (streak > 0 && mode === 'play') {
+      ctx.fillStyle = mult() >= 4 ? PINK : YELLOW;
+      ctx.font = 'bold 10px monospace';
+      ctx.fillText('STREAK ' + fmtMult(), W - 8, 60);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '7px monospace';
+      ctx.fillText(streak + ' CHAIR' + (streak === 1 ? '' : 'S') + ' IN A ROW', W - 8, 70);
+    }
+    // Client patience: the walk-in walks if you dawdle
+    if (mode === 'play') {
+      var pr = Math.max(0, patience / patienceMax);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(W / 2 - 40, 5, 80, 5);
+      ctx.fillStyle = pr > 0.35 ? LIME : (Math.floor(frame / 6) % 2 === 0 ? '#ff4444' : '#992222');
+      ctx.fillRect(W / 2 - 40, 5, 80 * pr, 5);
+      if (pr < 0.35 && Math.floor(frame / 12) % 2 === 0) {
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 7px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('COLD FEET', W / 2, 24);
+      }
+    }
+    if (bannerT > 0 && mode === 'play') {
+      ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = bannerColor;
+      ctx.font = 'bold 24px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(bannerText, W / 2, H / 2 - 30);
+      if (bannerText === 'RUSH HOUR') {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText('FASTER LANES // MORE TRAFFIC // WET STREETS', W / 2, H / 2 - 12);
+      }
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
+    }
+
+    if (mode === 'enter') drawInitials();
+    if (mode === 'over') drawBoard();
   }
 
   // ── The shop wall: the shared leaderboard (public/arcade-board.js) ──
   // Every cabinet, room and the kiosk post to the same wall; this game only
   // hands over the final score and draws what the module gives back.
   var wall = window.ArcadeBoard.attach({
-    game: 'frogger', canvas: canvas, ctx: ctx, W: W, H: H,
+    game: 'frogger', label: 'Walk-In', canvas: canvas, ctx: ctx, W: W, H: H,
     title: 'GAME OVER', again: 'SPACE or TAP to cross again',
+    levelLabel: function (l) { return 'REACHED NIGHT ' + l; },
     isActive: function () { return !!window.skateRunning; },
     getMode: function () { return mode; }, setMode: function (m) { mode = m; },
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
   });
-  function enterBoard(v) { wall.enter(v, { level: wave }); }
+  function enterBoard(v) { wall.enter(v, { level: wave, meta: { chairs: stats.chairs, streak: stats.bestStreak, near: stats.near, tips: stats.tips } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -368,6 +997,8 @@
   // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
   function drawIntro() {
     var t = introT;
+    // Attract cycle: power-on, title scene, then the shop wall for a stretch
+    if (t >= 300) { wall.drawAttract(); return; }
     ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, W, H);
     if (t < 70) {
@@ -453,8 +1084,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or TAP to hop // door +100, all 3 chairs +250', W / 2, H - 42);
-    ctx.fillText('beat their cold feet, dodge the ambulance // nights get meaner', W / 2, H - 29);
+    ctx.fillText('ARROWS or TAP to hop // chairs in a row stack the multiplier', W / 2, H - 42);
+    ctx.fillText('grab tips and coffee, squeak past traffic for CLOSE bonuses', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -466,190 +1097,6 @@
     }
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
-  }
-
-  function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
-    // Road base
-    ctx.fillStyle = '#1c1c24';
-    ctx.fillRect(0, 0, W, H);
-
-    // Shop row
-    ctx.fillStyle = '#2a1a2e';
-    ctx.fillRect(0, 0, W, 40);
-    ctx.fillStyle = '#3a2440';
-    ctx.fillRect(0, 34, W, 6);
-    // Neon sign
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? PINK : '#c8006e';
-    ctx.fillText('* TATTOO *', W / 2, 14);
-    // Doors
-    for (var i = 0; i < 3; i++) {
-      var dx = DOOR_COLS[i] * CELL + 4;
-      ctx.fillStyle = doors[i] ? '#0a0a0a' : '#171720';
-      ctx.fillRect(dx, 18, CELL - 8, 22);
-      ctx.fillStyle = doors[i] ? LIME : PINK;
-      ctx.fillRect(dx, 18, CELL - 8, 2);
-      if (doors[i]) {
-        // A happy client already inside
-        ctx.fillStyle = LIME;
-        ctx.fillRect(dx + 12, 24, 8, 12);
-        ctx.fillRect(dx + 14, 20, 4, 4);
-      } else {
-        ctx.fillStyle = 'rgba(255,20,147,0.6)';
-        ctx.font = '9px monospace';
-        ctx.fillText('OPEN', dx + CELL / 2 - 4, 32);
-        ctx.font = 'bold 12px monospace';
-      }
-    }
-
-    // Median + start sidewalks
-    ctx.fillStyle = '#3c3c46';
-    ctx.fillRect(0, ROW_Y[4], W, CELL);
-    ctx.fillRect(0, ROW_Y[7], W, CELL);
-    ctx.fillStyle = '#4a4a55';
-    for (var x = 0; x < W; x += 20) {
-      ctx.fillRect(x, ROW_Y[4], 1, CELL);
-      ctx.fillRect(x, ROW_Y[7], 1, CELL);
-    }
-
-    // Lane dashes
-    ctx.fillStyle = '#5a5a30';
-    var laneRows = [1, 2, 3, 5, 6];
-    for (var i = 0; i < laneRows.length; i++) {
-      var y = ROW_Y[laneRows[i]];
-      if (laneRows[i] !== 3 && laneRows[i] !== 6) {
-        for (var x = 0; x < W; x += 40) ctx.fillRect(x + 10, y + 38, 20, 3);
-      }
-    }
-
-    // Street lamps pour light onto the lanes
-    for (var i = 0; i < 2; i++) {
-      var lpx = 140 + i * 180;
-      for (var rr2 = 0; rr2 < 2; rr2++) {
-        var lpy = rr2 === 0 ? ROW_Y[4] : ROW_Y[7];
-        var pool = ctx.createRadialGradient(lpx, lpy - 18, 4, lpx, lpy - 18, 60);
-        pool.addColorStop(0, 'rgba(255,220,150,0.14)');
-        pool.addColorStop(1, 'rgba(255,220,150,0)');
-        ctx.fillStyle = pool;
-        ctx.fillRect(lpx - 60, lpy - 78, 120, 120);
-        ctx.fillStyle = '#3a3a44';
-        ctx.fillRect(lpx - 1, lpy - 34, 3, 36);
-        ctx.fillStyle = '#ffe1aa';
-        ctx.fillRect(lpx - 4, lpy - 38, 9, 5);
-      }
-    }
-
-    // Median street furniture: newspaper boxes and a hydrant
-    var boxes = [['#2d6cdf', 10], ['#e8283c', 32]];
-    for (var i = 0; i < boxes.length; i++) {
-      var bxx = boxes[i][1];
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath(); ctx.ellipse(bxx + 8, ROW_Y[4] + 33, 9, 2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = boxes[i][0];
-      ctx.fillRect(bxx, ROW_Y[4] + 10, 16, 22);
-      ctx.fillStyle = '#cfd6dd';
-      ctx.fillRect(bxx + 2, ROW_Y[4] + 13, 12, 8);
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(bxx + 2, ROW_Y[4] + 24, 12, 2);
-      ctx.fillRect(bxx + 12, ROW_Y[4] + 22, 3, 1);
-    }
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(66, ROW_Y[4] + 33, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#e8283c';
-    ctx.fillRect(62, ROW_Y[4] + 18, 8, 14);
-    ctx.fillRect(59, ROW_Y[4] + 22, 14, 4);
-    ctx.fillRect(64, ROW_Y[4] + 14, 4, 5);
-
-    // Ambulance warning: the lane flashes before it streaks through
-    if (amb && amb.warnT > 0 && Math.floor(frame / 5) % 2 === 0) {
-      ctx.fillStyle = 'rgba(255,40,40,0.18)';
-      ctx.fillRect(0, ROW_Y[amb.row], W, CELL);
-      ctx.fillStyle = '#ff4444';
-      ctx.font = 'bold 9px monospace';
-      ctx.textAlign = amb.dir > 0 ? 'left' : 'right';
-      ctx.fillText('!!', amb.dir > 0 ? 4 : W - 4, ROW_Y[amb.row] + 24);
-    }
-
-    // Cars
-    for (var i = 0; i < lanes.length; i++) {
-      var ln = lanes[i];
-      for (var j = 0; j < ln.cars.length; j++) {
-        drawCar(ln.cars[j].x, ROW_Y[ln.row], ln.w, ln.cars[j].color, ln.dir, ln.cars[j].taxi);
-      }
-    }
-
-    // Ambulance
-    if (amb && amb.warnT === 0) {
-      var ay = ROW_Y[amb.row];
-      ctx.fillStyle = '#f4f4f4';
-      ctx.fillRect(amb.x, ay + 6, 70, 24);
-      ctx.fillStyle = '#dd2222';
-      ctx.fillRect(amb.x, ay + 16, 70, 5);
-      ctx.fillStyle = '#bde';
-      ctx.fillRect(amb.dir > 0 ? amb.x + 50 : amb.x + 6, ay + 9, 14, 8);
-      ctx.fillStyle = Math.floor(frame / 4) % 2 === 0 ? '#ff2222' : '#2266ff';
-      ctx.fillRect(amb.x + 30, ay + 2, 10, 5);
-      ctx.fillStyle = '#111';
-      ctx.fillRect(amb.x + 6, ay + 28, 12, 5);
-      ctx.fillRect(amb.x + 52, ay + 28, 12, 5);
-    }
-
-    // Player: the walk-in client (pink-haired, clutching a flash printout)
-    var blink = invuln > 0 && Math.floor(frame / 4) % 2 === 0;
-    if (!blink && mode !== 'over') {
-      var px = player.col * CELL + CELL / 2;
-      var py = ROW_Y[player.row] + CELL / 2 + (hopT > 0 ? -4 : 0);
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.beginPath();
-      ctx.ellipse(px, ROW_Y[player.row] + CELL / 2 + 13, 8, 2.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f0c8a0';
-      ctx.fillRect(px - 5, py - 14, 10, 8); // head
-      ctx.fillStyle = PINK;
-      ctx.fillRect(px - 6, py - 16, 12, 4); // hair
-      ctx.fillStyle = '#222';
-      ctx.fillRect(px - 6, py - 6, 12, 12); // body
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(px + 2, py - 4, 6, 8); // the flash printout
-      ctx.fillStyle = '#f0c8a0';
-      ctx.fillRect(px - 5, py + 6, 3, 6);
-      ctx.fillRect(px + 2, py + 6, 3, 6);
-    }
-
-    // HUD
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('SCORE: ' + score, 8, 12);
-    ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = YELLOW;
-    ctx.fillText('NIGHT ' + wave, W - 8, 12);
-    // Client patience: the walk-in walks if you dawdle
-    if (mode === 'play') {
-      var pr = Math.max(0, patience / patienceMax);
-      ctx.fillStyle = 'rgba(255,255,255,0.25)';
-      ctx.fillRect(W / 2 - 40, 5, 80, 5);
-      ctx.fillStyle = pr > 0.35 ? LIME : (Math.floor(frame / 6) % 2 === 0 ? '#ff4444' : '#992222');
-      ctx.fillRect(W / 2 - 40, 5, 80 * pr, 5);
-    }
-    if (bannerT > 0 && mode === 'play') {
-      ctx.globalAlpha = Math.min(1, bannerT / 25);
-      ctx.fillStyle = bannerText === 'COLD FEET!' ? '#ff4444' : LIME;
-      ctx.font = 'bold 24px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(bannerText, W / 2, H / 2 - 30);
-      ctx.globalAlpha = 1;
-      ctx.font = 'bold 10px monospace';
-    }
-
-    if (mode === 'enter') drawInitials();
-    if (mode === 'over') drawBoard();
-
-
   }
 
   // Fixed-step loop on requestAnimationFrame
@@ -668,7 +1115,7 @@
     try {
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 540) introT = 70; }
       acc -= 16.67;
     }
     draw();

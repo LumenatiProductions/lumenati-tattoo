@@ -46,6 +46,12 @@
   }
   var upHeld = false, downHeld = false, grabT = 0, grabTotal = 0, wasGrabbing = false;
   var manualT = 0, wasManual = false, grindTilt = 0, usedNose = false, usedFive = false;
+  // The line: every trick since your wheels last touched flat ground pools
+  // into linePts, combo is the multiplier, and the whole thing banks when you
+  // land. Land mid-spin and it banks at half. Bail and it is gone.
+  var linePts = 0, lineTricks = [], bestLine = 0, trickCount = 0, comboMax = 1;
+  var looseBoard = null; // the deck flying off on a bail
+  var hitsThisLevel = 0, manualBal = 0, manualBailT = 0, lineFlashT = 0;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-skate') || '0', 10) || 0; } catch(e) {}
@@ -103,6 +109,8 @@
     { name: 'THE FRONT RANGE', scene: 'range',     top: '#2b1b4e', bot: '#c85a54', ground: '#5c5450', dash: '#7a6e66', lights: true,  stars: false, moon: false, sun: '#ffd27a', sunY: 205 },
     { name: 'RED ROCKS',       scene: 'redrocks',  top: '#2e78c8', bot: '#93c6e8', ground: '#8a5a46', dash: '#a37058', lights: false, stars: false, moon: false, sun: '#fff3b0', sunY: 58 },
     { name: 'THE FLATIRONS',   scene: 'flatirons', top: '#3a1c5e', bot: '#e8642c', ground: '#54484e', dash: '#78645e', lights: true,  stars: false, moon: false, sun: '#ff9a3c', sunY: 175 },
+    { name: 'BRECKENRIDGE',    scene: 'range',     top: '#5a6a86', bot: '#c8d2de', ground: '#d8dde4', dash: '#aab2bc', lights: false, stars: false, moon: false, sun: null,      sunY: 0, weather: 'snow' },
+    { name: 'COLFAX AT NIGHT', scene: 'city',      top: '#080614', bot: '#1c1240', ground: '#3e3e48', dash: '#5a5a66', lights: true,  stars: false, moon: true,  sun: null,      sunY: 0, weather: 'rain' },
   ];
 
   // Colors
@@ -142,15 +150,18 @@
     usedHeel = false; usedShove = false; usedImp = false; usedBack = false; lastUpTap = -99;
     upHeld = false; downHeld = false; grabT = 0; grabTotal = 0; wasGrabbing = false;
     manualT = 0; wasManual = false; grindTilt = 0; usedNose = false; usedFive = false;
+    linePts = 0; lineTricks = []; bestLine = 0; trickCount = 0; comboMax = 1;
+    hitsThisLevel = 0; manualBal = 0; manualBailT = 0; lineFlashT = 0;
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
-    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0 };
+    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0, pushT: 0, popT: 0, bailT: 0 };
+    looseBoard = null;
     obstacles = []; collectibles = []; rails = []; particles = []; buildings = []; popups = [];
     for (var i = 0; i < 10; i++) buildings.push(makeBuilding(i * 80));
     spawnInitial();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'TAP ollie // swipe: tricks, swipe down: manual' : 'SPACE ollie // arrows: tricks + manual';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'TAP ollie // swipe: tricks // swipe down + hold: manual keeps the line alive' : 'SPACE ollie // arrows: tricks // hold DOWN on landing to manual the line on // UP balances';
     window.skateRunning = true;
     startLoop();
   }
@@ -172,6 +183,8 @@
       if (level >= 2) types.push('pigeon');
       if (level >= 3) types.push('spill', 'spill');
       if (level >= 4) types.push('stack');
+      if (level >= 5) types.push('dog');
+      if (level >= 6) types.push('cyclist', 'dog');
       obstacles.push(makeObstacle(types[Math.floor(Math.random() * types.length)], sx));
     } else if (r < 0.75) {
       var cy = GROUND_Y - 40 - Math.random() * 30;
@@ -191,6 +204,8 @@
     if (type === 'pigeon') return { type: 'pigeon', x: x, y: GROUND_Y - 52, w: 14, h: 10 };
     if (type === 'spill') return { type: 'spill', x: x, y: GROUND_Y - 4, w: 34, h: 4 };
     if (type === 'stack') return { type: 'stack', x: x, y: GROUND_Y - 40, w: 16, h: 40 };
+    if (type === 'dog') return { type: 'dog', x: x, y: GROUND_Y - 12, w: 18, h: 12, minGap: 99 };
+    if (type === 'cyclist') return { type: 'cyclist', x: x, y: GROUND_Y - 30, w: 18, h: 30, minGap: 99 };
     return { type: 'cone', x: x, y: GROUND_Y - 14, w: 12, h: 14 };
   }
 
@@ -207,27 +222,78 @@
     }
   }
 
+  // Landing dust: gray puffs that swell and drift instead of falling
+  function spawnDust(x, y, count) {
+    for (var i = 0; i < count; i++) {
+      particles.push({ x: x + (Math.random() - 0.5) * 10, y: y - 2, vx: (Math.random() - 0.7) * 2.2, vy: -Math.random() * 0.8, life: 22 + Math.random() * 12, color: 'rgba(200,190,170,0.5)', size: 2 + Math.random() * 3, dust: true });
+    }
+  }
+  // Grind sparks: hot, bright, thrown back along the rail
+  function spawnSparks(x, y, count) {
+    var cols = ['#fff', YELLOW, '#ff8a00', '#ffb060'];
+    for (var i = 0; i < count; i++) {
+      particles.push({ x: x, y: y, vx: -1.5 - Math.random() * 3, vy: -Math.random() * 2.2, life: 10 + Math.random() * 12, color: cols[Math.floor(Math.random() * cols.length)], size: 1 + Math.random() * 1.5 });
+    }
+  }
+
   function addPopup(x, y, text, color) {
     popups.push({ x: x, y: y, text: text, color: color, life: 45 });
   }
 
+  // A trick goes into the line, not the score. Repeating a trick inside one
+  // line pays half and does not grow the multiplier (variety is the game).
   function trick(base, x, y, label) {
-    var pts = base * combo;
-    score += pts;
-    document.getElementById('jd-br-score').textContent = score;
-    addPopup(x, y, (label ? label + ' ' : '') + '+' + pts + (combo > 1 ? ' x' + combo : ''), combo > 1 ? YELLOW : '#fff');
-    if (combo < 5) {
+    var stale = lineTricks.indexOf(label) !== -1;
+    var pts = stale ? Math.ceil(base / 2) : base;
+    linePts += pts;
+    lineTricks.push(label);
+    trickCount++;
+    if (!stale && combo < 8) {
       combo++;
       if (combo === 5) sayLingo();
     }
+    if (combo > comboMax) comboMax = combo;
     comboTimer = 150;
-    if (combo > 2) sfxCombo(combo);
+    addPopup(x, y, label + (stale ? ' STALE +' : ' +') + pts, stale ? '#9aa' : (combo > 1 ? YELLOW : '#fff'));
+    if (combo > 2 && !stale) sfxCombo(combo);
+  }
+
+  function resetLine() { linePts = 0; lineTricks = []; combo = 1; comboTimer = 0; }
+
+  // Wheels down on flat ground: the line pays out. Still spinning when you
+  // touch down is a sketchy landing and pays half.
+  function bank(sketchy) {
+    if (linePts <= 0) { resetLine(); return; }
+    var total = Math.round(linePts * combo * (sketchy ? 0.5 : 1));
+    score += total;
+    document.getElementById('jd-br-score').textContent = score;
+    var px = player.x + player.w / 2, py = player.y - 18;
+    var label = sketchy ? 'SKETCHY +' + total : (lineTricks.length >= 3 ? 'LINE x' + combo + ' +' + total : 'LANDED +' + total);
+    addPopup(px, py, label, sketchy ? '#ff9a3c' : LIME);
+    if (total >= 300) {
+      shake = Math.min(10, 3 + total / 200);
+      spawnParticles(px, GROUND_Y, YELLOW, Math.min(30, 8 + total / 60));
+      lineFlashT = 18;
+    }
+    if (total >= 1500) { bannerT = 80; bannerText = 'LEGENDARY LINE'; lingoCd = 0; sayLingo(); }
+    else if (total >= 500) { bannerT = 60; bannerText = 'SICK LINE'; sayLingo(); }
+    if (!sketchy && lineTricks.length >= 2) sfxCombo(6);
+    if (total > bestLine) bestLine = total;
+    resetLine();
+  }
+
+  // A bail throws the whole line away.
+  function loseLine(reason) {
+    if (linePts > 0) {
+      addPopup(player.x + player.w / 2, player.y - 18, reason + ' LOST +' + (linePts * combo), '#ff5050');
+    }
+    resetLine();
   }
 
   // ── Input: hold to ollie higher, tap again mid-air to kickflip ──
   function press() {
     if (mode === 'intro') { mode = 'play'; return; }
-    if (mode === 'over') { init(); mode = 'play'; return; }
+    if (mode === 'over') { if (wall.inBeat()) return; init(); mode = 'play'; return; }
 
     holdingJump = true;
     jumpBuffer = 7;
@@ -242,6 +308,8 @@
     if (player.onGround || player.grinding || coyote > 0) {
       player.vy = -9.2;
       player.onGround = false;
+      player.popT = 8;
+      spawnDust(player.x + 4, GROUND_Y, 3);
       coyote = 0;
       jumpBuffer = 0;
       flipped = false;
@@ -313,9 +381,9 @@
         player.vy = Math.min(player.vy, -5);
         sfxFlip();
         trick(25, player.x + player.w / 2, player.y - 8, 'IMPOSSIBLE');
-      } else {
-        downHeld = true;
       }
+      // Keep holding DOWN through the landing and you roll into a manual.
+      downHeld = true;
     }
   });
   document.addEventListener('keyup', function(e) {
@@ -382,18 +450,31 @@
       sayLingo();
       sfxCombo(4);
       spawnParticles(player.x + player.w / 2, player.y, YELLOW, 14);
+      // Getting to the next town pays, and getting there without a bail pays more.
+      var townBonus = 100 * (level - 1);
+      score += townBonus;
+      addPopup(player.x + player.w / 2, player.y - 30, 'NEW TOWN +' + townBonus, LIME);
+      if (hitsThisLevel === 0 && level > 1) {
+        var cleanBonus = 250 * (level - 1);
+        score += cleanBonus;
+        addPopup(player.x + player.w / 2, player.y - 44, 'NO BAIL +' + cleanBonus, YELLOW);
+      }
+      hitsThisLevel = 0;
+      document.getElementById('jd-br-score').textContent = score;
     }
-    speed = Math.min(9, 3.6 + level * 0.55 + dist / 9000);
+    speed = Math.min(9.5, 3.6 + level * 0.55 + dist / 9000);
     if (bannerT > 0) bannerT--;
     if (shieldT > 0) shieldT--;
 
     // Distance drip: the longer you ride, the more it counts
     if (frame % 30 === 0) {
-      score += 1;
+      score += level >= 3 ? 2 : 1;
       document.getElementById('jd-br-score').textContent = score;
     }
 
-    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 1; }
+    if (comboTimer > 0) comboTimer--;
+    if (manualBailT > 0) manualBailT--;
+    if (lineFlashT > 0) lineFlashT--;
     if (lingoCd > 0) lingoCd--;
     if (shake > 0) shake *= 0.85;
     if (player.squash > 0) player.squash *= 0.8;
@@ -421,7 +502,18 @@
       player.vy = 0;
       if (!player.onGround) {
         spawnParticles(player.x + player.w / 2, GROUND_Y, ORANGE, 4);
+        spawnDust(player.x + player.w / 2, GROUND_Y, 5);
         player.squash = 6;
+        var spinning = player.flipT > 0 || player.heelT > 0 || player.shoveT > 0 || player.impT > 0 || player.backT > 0;
+        if (linePts > 0) {
+          if (downHeld && manualBailT === 0) {
+            // Rolled into a manual: the line lives on.
+            addPopup(player.x + player.w / 2, player.y - 18, spinning ? 'SKETCHY LINK' : 'LINKED', spinning ? '#ff9a3c' : CYAN);
+            if (spinning) linePts = Math.ceil(linePts / 2);
+          } else {
+            bank(spinning);
+          }
+        }
       }
       player.onGround = true;
       player.grinding = false;
@@ -437,36 +529,42 @@
     var grabbing = upHeld && !player.onGround && !player.grinding && player.backT === 0;
     if (grabbing) {
       grabT++;
+      if (grabT === 1) trick(10, player.x + player.w / 2, player.y - 10, 'MELON');
       if (grabT % 8 === 0) {
-        var g = 2 * combo;
-        score += g;
-        grabTotal += g;
-        document.getElementById('jd-br-score').textContent = score;
-        comboT = 240;
+        linePts += 2;
+        grabTotal += 2;
         spawnParticles(player.x + player.w / 2, player.y + player.h, CYAN, 2);
       }
     } else {
-      if (wasGrabbing && grabTotal > 0) {
-        addPopup(player.x + player.w / 2, player.y - 10, 'MELON +' + grabTotal, CYAN);
-        if (combo < 5) combo++;
-        comboT = 240;
-      }
+      if (wasGrabbing && grabTotal >= 10) addPopup(player.x + player.w / 2, player.y - 10, 'HELD +' + grabTotal, CYAN);
       grabT = 0; grabTotal = 0;
     }
     wasGrabbing = grabbing;
 
     // Manual: ride the back wheels for ticking style points
-    var manual = downHeld && player.onGround && !player.grinding;
+    // Manual: back wheels only. The board wants to tip back; UP leans you
+    // forward. Tip past the edge and you bail, and the line goes with it.
+    var manual = downHeld && player.onGround && !player.grinding && manualBailT === 0;
     if (manual) {
       manualT++;
-      if (manualT === 1) addPopup(player.x + player.w / 2, player.y - 10, 'MANUAL', YELLOW);
+      if (manualT === 1) { manualBal = 0.1; trick(5, player.x + player.w / 2, player.y - 10, 'MANUAL'); }
+      manualBal += 0.004 + level * 0.0008 + manualBal * (0.022 + level * 0.002) + (Math.random() - 0.5) * 0.03 + (upHeld ? -0.05 : 0);
       if (manualT % 12 === 0) {
-        score += combo;
-        document.getElementById('jd-br-score').textContent = score;
-        comboT = 240;
+        linePts += 2;
         spawnParticles(player.x + 2, GROUND_Y, YELLOW, 1);
       }
+      if (manualBal > 1 || manualBal < -1) {
+        manualBailT = 40;
+        player.squash = 8;
+        shake = 6;
+        spawnDust(player.x + player.w / 2, GROUND_Y, 6);
+        sfxHit();
+        spawnParticles(player.x + player.w / 2, GROUND_Y, '#fff', 8);
+        loseLine('TIPPED');
+        manualT = 0;
+      }
     } else {
+      if (wasManual && manualT > 0 && linePts > 0 && manualBailT === 0) bank(false);
       manualT = 0;
     }
     wasManual = manual;
@@ -488,9 +586,9 @@
               rail.scored = true;
               trick(25, player.x + player.w / 2, railTop - 12, 'GRIND');
               spawnParticles(player.x + player.w / 2, railTop, CYAN, 8);
+              spawnSparks(player.x + 4, railTop + 2, 8);
             }
             if (frame % 6 === 0) sfxGrind();
-            if (frame % 3 === 0) spawnParticles(player.x + player.w / 2, railTop + 2, YELLOW, 1);
             break;
           }
         }
@@ -500,12 +598,8 @@
     // Locked into a grind: sparks, buzz, and style points the whole way
     if (player.grinding) {
       if (frame % 6 === 0) sfxGrind();
-      if (frame % 3 === 0) spawnParticles(player.x + player.w / 2, player.y + player.h + 2, YELLOW, 1);
-      if (frame % 12 === 0) {
-        score += combo;
-        document.getElementById('jd-br-score').textContent = score;
-        comboT = 240;
-      }
+      if (frame % 2 === 0) spawnSparks(player.x + 4, player.y + player.h + 2, 2);
+      if (frame % 12 === 0) linePts += 2;
     }
 
     // Fell off the end of a rail — grant coyote frames for a late ollie
@@ -524,19 +618,39 @@
       if (ob.type === 'pigeon') {
         ob.x -= 1.1;
         ob.y = GROUND_Y - 52 + Math.sin(frame * 0.12 + i) * 5;
+      } else if (ob.type === 'dog') {
+        ob.x -= 1.5;
+      } else if (ob.type === 'cyclist') {
+        ob.x -= 2.3;
       }
       var ox = ob.x - scrollX;
       if (ox < -60) { obstacles.splice(i, 1); continue; }
+      // Close call: clear something by a hair and it goes on the line.
+      if (ob.type !== 'spill') {
+        if (ob.minGap === undefined) ob.minGap = 99;
+        if (!player.onGround && player.x + player.w > ox && player.x < ox + ob.w) {
+          var gap = ob.y - (player.y + player.h);
+          if (gap >= 0 && gap < ob.minGap) ob.minGap = gap;
+        }
+        if (!ob.near && ox + ob.w < player.x) {
+          ob.near = true;
+          if (ob.minGap < 7) trick(10, player.x + player.w / 2, player.y - 8, 'CLOSE CALL');
+        }
+      }
       if (player.invincible > 0 || shieldT > 0) continue;
       if (ob.type === 'spill' && !player.onGround) continue;
       if (player.x + player.w - 4 > ox && player.x + 4 < ox + ob.w &&
           player.y + player.h > ob.y && player.y < ob.y + ob.h) {
         lives--;
+        hitsThisLevel++;
         sfxHit();
         document.getElementById('jd-br-lives').textContent = lives;
         player.invincible = 90;
-        combo = 1; comboTimer = 0;
-        shake = 8;
+        player.bailT = 36;
+        looseBoard = { x: player.x + 10, y: player.y + 17, vx: 3 + Math.random() * 2, vy: -5 - Math.random() * 2, rot: 0, t: 60 };
+        loseLine('BAILED');
+        shake = 12;
+        spawnDust(player.x + player.w / 2, GROUND_Y, 8);
         spawnParticles(ox + ob.w / 2, ob.y, '#FF0000', 10);
         obstacles.splice(i, 1);
         if (lives <= 0) {
@@ -557,15 +671,16 @@
       if (player.x + player.w > cx && player.x < cx + col.w &&
           player.y + player.h > col.y && player.y < col.y + col.h) {
         col.collected = true;
-        var pts = col.kind === 'eagle' ? 25 : col.kind === 'skull' ? 15 : col.kind === 'horseshoe' ? 25 : 10;
+        var basePts = col.kind === 'eagle' ? 25 : col.kind === 'skull' ? 15 : col.kind === 'horseshoe' ? 25 : 10;
+        var pts = basePts * combo; // flash snatched mid-line pays the multiplier, instantly, no risk
         score += pts;
         if (col.kind === 'horseshoe') {
           shieldT = 300;
           bannerT = 60;
           bannerText = 'LUCKY SHIELD!';
-          addPopup(cx + col.w / 2, col.y - 6, 'LUCKY +25', YELLOW);
-        } else if (col.kind === 'eagle' || col.kind === 'skull') {
-          addPopup(cx + col.w / 2, col.y - 6, col.kind.toUpperCase() + ' +' + pts, col.kind === 'eagle' ? YELLOW : '#fff');
+          addPopup(cx + col.w / 2, col.y - 6, 'LUCKY +' + pts, YELLOW);
+        } else if (col.kind === 'eagle' || col.kind === 'skull' || combo > 1) {
+          addPopup(cx + col.w / 2, col.y - 6, col.kind.toUpperCase() + ' +' + pts + (combo > 1 ? ' x' + combo : ''), col.kind === 'eagle' ? YELLOW : '#fff');
         }
         sfxCollect();
         document.getElementById('jd-br-score').textContent = score;
@@ -586,7 +701,7 @@
     for (var i = 0; i < collectibles.length; i++) { if (collectibles[i].x > furthest) furthest = collectibles[i].x; }
     for (var i = 0; i < rails.length; i++) { if (rails[i].x > furthest) furthest = rails[i].x; }
     while (furthest < scrollX + W + 400) {
-      furthest += 120 + Math.random() * 100;
+      furthest += Math.max(84, 120 - level * 5) + Math.random() * 100;
       spawnAt(furthest);
     }
 
@@ -603,9 +718,22 @@
     // Particles + popups
     for (var i = particles.length - 1; i >= 0; i--) {
       var p = particles[i];
-      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--;
+      p.x += p.vx; p.y += p.vy; p.life--;
+      if (p.dust) { p.size += 0.22; p.vx *= 0.94; p.vy *= 0.9; }
+      else p.vy += 0.15;
       if (p.life <= 0) particles.splice(i, 1);
     }
+    if (looseBoard) {
+      looseBoard.x += looseBoard.vx; looseBoard.y += looseBoard.vy; looseBoard.vy += 0.4; looseBoard.rot += 0.3; looseBoard.t--;
+      if (looseBoard.y > GROUND_Y - 2) { looseBoard.y = GROUND_Y - 2; looseBoard.vy *= -0.4; looseBoard.vx *= 0.7; }
+      looseBoard.x -= speed;
+      if (looseBoard.t <= 0) looseBoard = null;
+    }
+    if (player.pushT > 0) player.pushT--;
+    if (player.popT > 0) player.popT--;
+    if (player.bailT > 0) player.bailT--;
+    // A push every so often while rolling flat: the leg comes off the deck
+    if (player.onGround && !player.grinding && !wasManual && player.bailT === 0 && frame % 44 === 0) player.pushT = 16;
     for (var i = popups.length - 1; i >= 0; i--) {
       popups[i].y -= 0.6; popups[i].life--;
       if (popups[i].life <= 0) popups.splice(i, 1);
@@ -623,7 +751,7 @@
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
   });
-  function enterBoard(v) { wall.enter(v, { level: level }); }
+  function enterBoard(v) { wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -631,6 +759,8 @@
   // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
   function drawIntro() {
     var t = introT;
+    // After the title scene the cabinet shows the shop wall for four seconds.
+    if (t >= 285) { wall.drawAttract(); return; }
     ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, W, H);
     if (t < 70) {
@@ -792,7 +922,7 @@
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('HOLD SPACE or TAP to ollie // tap again mid-air to kickflip', W / 2, H - 42);
-    ctx.fillText('air: LEFT RIGHT UP DOWN tricks // DOWN on ground = manual', W / 2, H - 29);
+    ctx.fillText('arrows = tricks // land clean to bank the line // hold DOWN to manual it on', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -800,7 +930,7 @@
     } else {
       ctx.fillStyle = '#9aa';
       ctx.font = '10px monospace';
-      ctx.fillText('BEST: ' + best, W / 2, H - 10);
+      ctx.fillText('BEST: ' + Math.max(best, wall.best()), W / 2, H - 10);
     }
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
@@ -1042,11 +1172,71 @@
       }
     }
 
+    if (sky.weather === 'snow') {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (var fi = 0; fi < 46; fi++) {
+        var fx5 = ((fi * 73 + frame * (0.4 + (fi % 3) * 0.3) + Math.sin(frame * 0.02 + fi) * 8) % (W + 20) + W + 20) % (W + 20) - 10;
+        var fy5 = ((fi * 41 + frame * (0.9 + (fi % 4) * 0.35)) % (GROUND_Y + 30));
+        ctx.fillRect(fx5, fy5, fi % 5 === 0 ? 2 : 1, fi % 5 === 0 ? 2 : 1);
+      }
+    } else if (sky.weather === 'rain') {
+      ctx.fillStyle = 'rgba(170,190,255,0.35)';
+      for (var ri = 0; ri < 40; ri++) {
+        var rx5 = ((ri * 97 - frame * 1.2 - scrollX * 0.5) % (W + 40) + W + 40) % (W + 40) - 20;
+        var ry5 = ((ri * 53 + frame * 7) % (GROUND_Y + 20));
+        ctx.fillRect(rx5, ry5, 1, 7);
+      }
+      // wet street: a little sky in the asphalt
+      ctx.fillStyle = 'rgba(120,120,200,0.10)';
+      ctx.fillRect(-8, GROUND_Y, W + 16, 18);
+    }
+
+    // Street lamps ride between the buildings and the street; at night they
+    // throw a cone on the pavement the skater rolls through.
+    if (sky.scene === 'city') {
+      for (var li = 0; li < 3; li++) {
+        var lpx = ((li * 230 + 90 - scrollX * 0.6) % (W + 120) + W + 120) % (W + 120) - 60;
+        ctx.fillStyle = '#2a2a34';
+        ctx.fillRect(lpx, GROUND_Y - 92, 3, 92);
+        ctx.fillRect(lpx - 1, GROUND_Y - 94, 12, 3);
+        ctx.fillRect(lpx + 9, GROUND_Y - 92, 3, 6);
+        ctx.fillStyle = sky.lights ? '#fff2b0' : '#8a8a96';
+        ctx.fillRect(lpx + 8, GROUND_Y - 86, 5, 3);
+        if (sky.lights) {
+          var cone = ctx.createRadialGradient(lpx + 10, GROUND_Y - 84, 2, lpx + 10, GROUND_Y - 84, 110);
+          cone.addColorStop(0, 'rgba(255,240,180,0.22)');
+          cone.addColorStop(1, 'rgba(255,240,180,0)');
+          ctx.fillStyle = cone;
+          ctx.beginPath();
+          ctx.moveTo(lpx + 10, GROUND_Y - 84);
+          ctx.lineTo(lpx - 50, GROUND_Y + 16);
+          ctx.lineTo(lpx + 70, GROUND_Y + 16);
+          ctx.fill();
+        }
+      }
+    }
+
     // Ground
     ctx.fillStyle = sky.ground;
     ctx.fillRect(-8, GROUND_Y, W + 16, H - GROUND_Y + 8);
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.fillRect(-8, GROUND_Y, W + 16, 2);
+    // Pavement detail at street speed: cracks, a manhole, a storm drain
+    for (var gi = 0; gi < 3; gi++) {
+      var gx = ((gi * 310 + 140 - scrollX) % (W + 80) + W + 80) % (W + 80) - 40;
+      if (gi === 1) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath(); ctx.ellipse(gx, GROUND_Y + 7, 12, 3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath(); ctx.ellipse(gx, GROUND_Y + 6, 10, 2, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (gi === 2) {
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        for (var dg = 0; dg < 4; dg++) ctx.fillRect(gx + dg * 5, GROUND_Y + 3, 3, 8);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(gx, GROUND_Y + 4, 14, 1); ctx.fillRect(gx + 13, GROUND_Y + 5, 9, 1); ctx.fillRect(gx + 21, GROUND_Y + 3, 6, 1);
+      }
+    }
     ctx.fillStyle = sky.dash;
     for (var i = 0; i < 20; i++) {
       var dx = (i * 40 - (scrollX % 40) + 800) % 800 - 400 + W;
@@ -1097,12 +1287,22 @@
     }
 
     drawPlayer();
+    if (looseBoard) {
+      ctx.save();
+      ctx.translate(looseBoard.x, looseBoard.y);
+      ctx.rotate(looseBoard.rot);
+      ctx.fillStyle = '#241a14'; ctx.fillRect(-12, -2, 24, 2);
+      ctx.fillStyle = '#a05a24'; ctx.fillRect(-12, 0, 24, 2);
+      ctx.fillStyle = YELLOW; ctx.fillRect(-10, 2, 4, 3); ctx.fillRect(6, 2, 4, 3);
+      ctx.restore();
+    }
 
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
-      ctx.globalAlpha = p.life / 30;
+      ctx.globalAlpha = Math.min(1, p.life / 30);
       ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
+      if (p.dust) { ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.globalAlpha = 1;
 
@@ -1141,10 +1341,10 @@
     ctx.textAlign = 'left';
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, score), 8, 26);
+    ctx.fillText('BEST: ' + Math.max(best, wall.best(), score), 8, 26);
     ctx.fillStyle = LIME;
     ctx.textAlign = 'center';
-    ctx.fillText('LEVEL ' + level, W / 2, 14);
+    ctx.fillText('LEVEL ' + level + (hitsThisLevel === 0 ? ' // NO BAIL' : ''), W / 2, 14);
     if (shieldT > 0) {
       ctx.fillStyle = YELLOW;
       ctx.fillText('SHIELD', W / 2, 26);
@@ -1160,12 +1360,39 @@
       ctx.globalAlpha = 1;
       ctx.font = 'bold 10px monospace';
     }
-    if (combo > 1 && comboTimer > 0) {
-      ctx.fillStyle = YELLOW;
+    // The line, live: what it is worth right now and what is in it.
+    if (linePts > 0 && mode === 'play') {
       ctx.textAlign = 'right';
-      ctx.fillText('COMBO x' + combo, W - 8, 14);
-      ctx.fillStyle = 'rgba(255,215,0,0.5)';
-      ctx.fillRect(W - 8 - 40, 18, 40 * (comboTimer / 150), 3);
+      ctx.fillStyle = lineFlashT > 0 ? '#fff' : YELLOW;
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText('LINE ' + linePts + ' x' + combo + ' = ' + (linePts * combo), W - 8, 14);
+      ctx.font = 'bold 8px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      var tail = lineTricks.slice(-3).join(' + ');
+      if (lineTricks.length > 3) tail = '.. ' + tail;
+      ctx.fillText(tail, W - 8, 25);
+      ctx.font = 'bold 10px monospace';
+    } else if (lineFlashT > 0) {
+      ctx.textAlign = 'right';
+      ctx.fillStyle = LIME;
+      ctx.fillText('BANKED', W - 8, 14);
+    }
+    if (wasManual && mode === 'play') {
+      // Balance meter: keep the marker in the middle. UP leans forward.
+      var mx0 = W / 2 - 40, my0 = 34;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(mx0 - 2, my0 - 2, 84, 9);
+      ctx.fillStyle = Math.abs(manualBal) > 0.7 ? '#ff5050' : 'rgba(255,255,255,0.25)';
+      ctx.fillRect(mx0, my0, 80, 5);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(mx0 + 39, my0 - 1, 2, 7);
+      ctx.fillStyle = Math.abs(manualBal) > 0.7 ? '#ff5050' : YELLOW;
+      ctx.fillRect(mx0 + 38 + Math.max(-1, Math.min(1, manualBal)) * 38, my0 - 2, 4, 9);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = 'bold 7px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('BALANCE', W / 2, my0 + 15);
+      ctx.font = 'bold 10px monospace';
     }
 
     if (mode === 'enter') drawInitials();
@@ -1190,14 +1417,42 @@
     var squash = player.squash || 0;
     var lean = player.grinding ? 0 : Math.max(-0.25, Math.min(0.25, player.vy * 0.02));
 
+    // Shadow on the street, shrinking with height
+    var height = Math.max(0, GROUND_Y - (py + player.h));
+    var shAlpha = Math.max(0, 0.38 - height / 260);
+    if (shAlpha > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,' + shAlpha.toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.ellipse(px + player.w / 2, GROUND_Y + 2, Math.max(4, 12 - height / 12), 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.save();
     ctx.translate(px + player.w / 2, py + player.h / 2 + squash / 2);
+    if (player.bailT > 0) {
+      // Thrown off: the skater tumbles, the deck is already gone
+      ctx.rotate(-(1 - player.bailT / 36) * Math.PI * 1.6);
+      ctx.translate(-(player.w / 2), -(player.h / 2));
+      var SK2 = '#e8b48c';
+      ctx.fillStyle = '#3a4a66'; ctx.fillRect(3, 8, 4, 9); ctx.fillRect(13, 6, 4, 10);
+      ctx.fillStyle = '#181820'; ctx.fillRect(1, 16, 6, 3); ctx.fillRect(14, 15, 6, 3);
+      ctx.fillStyle = '#1c1826'; ctx.fillRect(6, -2, 8, 10);
+      ctx.fillStyle = SK2; ctx.fillRect(-2, -6, 4, 3); ctx.fillRect(0, -3, 3, 5); ctx.fillRect(17, -7, 4, 3); ctx.fillRect(16, -4, 3, 5);
+      ctx.fillRect(7, -9, 7, 6);
+      ctx.fillStyle = PINK; ctx.fillRect(6, -11, 9, 3);
+      ctx.fillStyle = '#fff'; ctx.fillRect(12, -8, 2, 2);
+      ctx.restore();
+      return;
+    }
     if (player.backT > 0) ctx.rotate(-(1 - player.backT / 36) * Math.PI * 2);
     else ctx.rotate(lean);
     ctx.translate(-(player.w / 2), -(player.h / 2));
 
     var air = !player.onGround && !player.grinding;
     var grabbing = upHeld && air;
+    var pushing = player.pushT > 0 && !air && !player.grinding && !wasManual;
+    var pushLeg = pushing ? (player.pushT > 8 ? 2 : 1) : 0; // 2 = leg down and back, 1 = coming back up
+    var popping = player.popT > 0 && air;
     var SKIN = '#e8b48c', TEE = '#1c1826', JEANS = '#3a4a66', SHOE = '#181820';
 
     // The deck — kickflips spin one way, heelflips the other,
@@ -1230,14 +1485,19 @@
     ctx.fillRect(6, 3, 4, 3);
     ctx.restore();
 
-    // Shoes planted on the grip
-    var tuck = air ? 2 : 0;
+    // Shoes planted on the grip. Pushing: the back foot swings off the tail
+    // to the street. Popping: legs stretch for the ollie, then tuck in the air.
+    var tuck = popping ? -1 : air ? 3 : 0;
     ctx.fillStyle = SHOE;
-    ctx.fillRect(2, 12 - tuck + squash / 2, 6, 3);
+    if (pushLeg === 2) { ctx.fillRect(-4, 16 + squash / 2, 6, 3); }
+    else if (pushLeg === 1) { ctx.fillRect(-1, 14 + squash / 2, 6, 3); }
+    else ctx.fillRect(2, 12 - tuck + squash / 2, 6, 3);
     ctx.fillRect(12, 12 - tuck + squash / 2, 6, 3);
     // Jeans: knees bend riding, pull up in the air
     ctx.fillStyle = JEANS;
-    ctx.fillRect(4, 7 - tuck + squash, 3, 6);
+    if (pushLeg === 2) { ctx.fillRect(1, 8 + squash, 3, 5); ctx.fillRect(-2, 12 + squash, 4, 4); }
+    else if (pushLeg === 1) { ctx.fillRect(3, 8 + squash, 3, 5); ctx.fillRect(0, 11 + squash, 4, 4); }
+    else ctx.fillRect(4, 7 - tuck + squash, 3, 6);
     ctx.fillRect(13, 7 - tuck + squash, 3, 6);
     ctx.fillRect(5, 5 - tuck + squash, 10, 3);
     // Tee, leaning with the ride
@@ -1273,12 +1533,58 @@
   }
 
   function drawObstacle(ob, ox) {
+    if (ob.type === 'dog') {
+      // A loose dog, low and fast, coming the other way
+      var run = Math.floor(frame / 5) % 2;
+      ctx.fillStyle = '#a0743c';
+      ctx.fillRect(ox + 4, ob.y + 3, 12, 6);
+      ctx.fillRect(ox + 13, ob.y, 6, 6);
+      ctx.fillRect(ox, ob.y + 1, 5, 3);
+      ctx.fillStyle = '#7a5428';
+      ctx.fillRect(ox + 5, ob.y + 9, 3, run ? 3 : 2);
+      ctx.fillRect(ox + 12, ob.y + 9, 3, run ? 2 : 3);
+      ctx.fillRect(ox + 15, ob.y - 2, 2, 3);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(ox + 17, ob.y + 2, 1, 1);
+      ctx.fillStyle = '#e8283c';
+      ctx.fillRect(ox + 12, ob.y + 6, 5, 1);
+      return;
+    }
+    if (ob.type === 'cyclist') {
+      // A bike commuter in a helmet, head down, not stopping
+      var spin = Math.floor(frame / 4) % 2;
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(ox + 1, ob.y + 22, 7, 7);
+      ctx.fillRect(ox + 11, ob.y + 22, 7, 7);
+      ctx.fillStyle = '#2a2a30';
+      ctx.fillRect(ox + 3, ob.y + 24, 3, 3);
+      ctx.fillRect(ox + 13, ob.y + 24, 3, 3);
+      if (spin) { ctx.fillRect(ox + 2, ob.y + 25, 5, 1); ctx.fillRect(ox + 12, ob.y + 25, 5, 1); }
+      ctx.fillStyle = '#e8283c';
+      ctx.fillRect(ox + 4, ob.y + 17, 11, 2);
+      ctx.fillRect(ox + 8, ob.y + 13, 2, 5);
+      ctx.fillStyle = '#3a4a66';
+      ctx.fillRect(ox + 6, ob.y + 12, 5, 6);
+      ctx.fillStyle = '#2fbf71';
+      ctx.fillRect(ox + 7, ob.y + 5, 6, 8);
+      ctx.fillStyle = '#e8b48c';
+      ctx.fillRect(ox + 12, ob.y + 9, 4, 2);
+      ctx.fillRect(ox + 9, ob.y + 1, 5, 4);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(ox + 8, ob.y - 1, 7, 3);
+      return;
+    }
     if (ob.type === 'pigeon') {
-      var flap = Math.sin(frame * 0.35) > 0;
+      var flapPh = Math.floor(frame / 4) % 3;
+      var flap = flapPh === 0;
       ctx.fillStyle = '#a8b0c0';
       ctx.fillRect(ox + 3, ob.y + 2, 9, 6);
+      ctx.fillStyle = '#5a8a5a';
+      ctx.fillRect(ox + 10, ob.y + 3, 3, 2);
       ctx.fillStyle = '#8890a0';
-      ctx.fillRect(ox + (flap ? 2 : 4), ob.y + (flap ? -2 : 4), 7, 3);
+      if (flapPh === 0) ctx.fillRect(ox + 2, ob.y - 3, 7, 3);
+      else if (flapPh === 1) ctx.fillRect(ox + 3, ob.y + 1, 7, 2);
+      else ctx.fillRect(ox + 4, ob.y + 5, 7, 3);
       ctx.fillStyle = '#a8b0c0';
       ctx.fillRect(ox + 11, ob.y, 4, 4);
       ctx.fillStyle = '#FF8A00';
@@ -1313,28 +1619,52 @@
       ctx.fillRect(ox + 1, ob.y, 15, 4);
       return;
     }
+    // Everything on the street casts a little shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(ox + ob.w / 2, GROUND_Y + 2, ob.w / 2 + 2, 2.5, 0, 0, Math.PI * 2); ctx.fill();
     if (ob.type === 'hydrant') {
       ctx.fillStyle = '#FF3333';
       ctx.fillRect(ox + 2, ob.y + 4, 8, 14);
       ctx.fillRect(ox, ob.y + 6, 12, 4);
       ctx.fillRect(ox + 3, ob.y, 6, 5);
+      ctx.fillStyle = '#b01010';
+      ctx.fillRect(ox + 7, ob.y + 4, 3, 14);
+      ctx.fillRect(ox + 9, ob.y + 6, 3, 4);
       ctx.fillStyle = '#CC0000';
       ctx.fillRect(ox + 4, ob.y, 4, 2);
+      ctx.fillStyle = '#ff9a9a';
+      ctx.fillRect(ox + 3, ob.y + 5, 1, 10);
+      ctx.fillStyle = '#c8c8d0';
+      ctx.fillRect(ox + 1, ob.y + 10, 2, 2); ctx.fillRect(ox + 9, ob.y + 10, 2, 2);
+      ctx.fillRect(ox, ob.y + 12, 1, 3); ctx.fillRect(ox + 11, ob.y + 12, 1, 3);
     } else if (ob.type === 'trashcan') {
       ctx.fillStyle = '#777';
       ctx.fillRect(ox + 1, ob.y + 3, 14, 19);
+      ctx.fillStyle = '#5a5a5a';
+      ctx.fillRect(ox + 10, ob.y + 3, 5, 19);
       ctx.fillStyle = '#999';
       ctx.fillRect(ox, ob.y, 16, 4);
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(ox + 2, ob.y - 1, 12, 2);
       ctx.fillStyle = '#666';
       ctx.fillRect(ox + 1, ob.y + 10, 14, 1);
       ctx.fillRect(ox + 1, ob.y + 16, 14, 1);
+      ctx.fillStyle = '#8a8a8a';
+      ctx.fillRect(ox + 3, ob.y + 5, 1, 15);
+      // a coffee cup and a flyer poking out
+      ctx.fillStyle = '#f0e8d8'; ctx.fillRect(ox + 4, ob.y - 5, 4, 5);
+      ctx.fillStyle = PINK; ctx.fillRect(ox + 10, ob.y - 4, 3, 5);
     } else if (ob.type === 'cone') {
-      ctx.fillStyle = YELLOW;
+      ctx.fillStyle = '#ff8a00';
       ctx.fillRect(ox + 1, ob.y + 10, 10, 4);
       ctx.fillRect(ox + 3, ob.y + 5, 6, 5);
       ctx.fillRect(ox + 4, ob.y, 4, 5);
+      ctx.fillStyle = '#c05a00';
+      ctx.fillRect(ox + 7, ob.y + 5, 2, 5); ctx.fillRect(ox + 7, ob.y + 1, 1, 4);
       ctx.fillStyle = '#fff';
       ctx.fillRect(ox + 2, ob.y + 7, 8, 2);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(ox, ob.y + 13, 12, 1);
     }
   }
 
@@ -1407,7 +1737,7 @@
     try {
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; musicTick(); if (shake > 0) shake *= 0.85; if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else { frame++; musicTick(); if (shake > 0) shake *= 0.85; if (mode === 'intro' && ++introT > 525) introT = 70; }
       acc -= 16.67;
     }
     draw();

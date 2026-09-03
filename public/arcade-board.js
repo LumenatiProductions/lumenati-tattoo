@@ -11,6 +11,7 @@
   var ENDPOINT = '/api/arcade/scores';
   var WALL_SIZE = 10, TODAY_SIZE = 5;
   var LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var LABELS = { skate: 'Ink or Die', snake: 'Ink Snake', bricks: 'Flash Breaker', shooter: 'Sterile!', pong: 'Needle Pong', frogger: 'Walk-In', steady: 'Steady Hand', shoprush: 'Shop Rush', flashmatch: 'Flash Match' };
   var BLOCKED = {};
   'ASS FUK FUC FCK FUQ CUM CUN DIK DIC COK COC TIT SEX FAG KKK NIG NGR NAZ JIZ WTF STD HIV PIS POO PEE XXX HOR SLT RAP KYS DIE'
     .split(' ').forEach(function (w) { BLOCKED[w] = 1; });
@@ -291,7 +292,7 @@
       ctx.fillText('HIGH SCORES', W / 2, 44);
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       ctx.font = '9px monospace';
-      ctx.fillText((o.label || game).toUpperCase() + ' // THE SHOP WALL', W / 2, 62);
+      ctx.fillText((o.label || LABELS[game] || game).toUpperCase() + ' // THE SHOP WALL', W / 2, 62);
       var LX = 30, LW = 170, RX = 226, RW = 150, TOP = 100, ROW = 17;
       ctx.textAlign = 'left';
       ctx.font = 'bold 10px monospace';
@@ -480,7 +481,7 @@
       ctx.fillText(o.again || 'SPACE or TAP to play again', W / 2, 292);
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.font = '9px monospace';
-      ctx.fillText('the whole wall: lumenatitattoo.com/arcade', W / 2, 308);
+      ctx.fillText('THE WALL: lumenatitattoo.com/arcade/' + game + '/wall', W / 2, 308);
       crt();
       ctx.restore();
     }

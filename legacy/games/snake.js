@@ -90,11 +90,14 @@
     { bg: '#160a0c', chk: 'rgba(255,99,71,0.03)',  accent: '#FF6347' },
   ];
 
-  var mode = 'intro'; // intro | ready | play | over
+  var mode = 'intro'; // intro | ready | play | over | enter
   var introT = 0;
   var score, lives, frame, snake, dir, turns, food, bonus, bonusT, eaten, stepEvery, respawnT, flashT;
-  var blots, level, bannerT;
+  var blots, level, bannerT, bannerText;
   var eatStreak, lastEat, popups, frenzyT;
+  var gold, goldT, stencil, stencilT, mop, particles, shake, lastTail, grew;
+  var bestStreak, maxLen, levelEaten, feastWindow;
+  var FEAST_WINDOW = 110;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-snake') || '0', 10) || 0; } catch(e) {}
@@ -106,15 +109,17 @@
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = 3; frame = 0; eaten = 0; stepEvery = 9;
     bonus = null; bonusT = 0; respawnT = 0; flashT = 0; mode = 'intro'; introT = 0;
-    blots = []; level = 1; bannerT = 0;
+    blots = []; level = 1; bannerT = 0; bannerText = '';
     eatStreak = 0; lastEat = -999; popups = []; frenzyT = 0;
+    gold = null; goldT = 0; stencil = null; stencilT = 0; mop = null; particles = []; shake = 0; lastTail = null; grew = false;
+    bestStreak = 0; maxLen = 4; levelEaten = 0;
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     resetSnake();
     placeFood();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Swipe to steer // machine +50' : 'Arrows to steer // machine +50';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Swipe to steer // feast fast for x5' : 'Arrows to steer // feast fast for x5';
     window.skateRunning = true;
     startLoop();
   }
@@ -123,6 +128,10 @@
     snake = [{x:9,y:8},{x:8,y:8},{x:7,y:8},{x:6,y:8}];
     dir = {x:1,y:0};
     turns = [];
+    lastTail = null;
+    // Nothing deadly waits on the spawn lane.
+    if (blots) blots = blots.filter(function (b) { return !(b.y >= 6 && b.y <= 10 && b.x >= 4 && b.x <= 15); });
+    if (mop && mop.y >= 6 && mop.y <= 10) mop = null;
   }
 
   function cellFree(x, y) {
@@ -130,13 +139,16 @@
     for (var i = 0; i < blots.length; i++) if (blots[i].x === x && blots[i].y === y) return false;
     if (food && food.x === x && food.y === y) return false;
     if (bonus && bonus.x === x && bonus.y === y) return false;
+    if (gold && gold.x === x && gold.y === y) return false;
+    if (stencil && stencil.x === x && stencil.y === y) return false;
+    if (mop && mop.y === y) return false;
     return true;
   }
 
   // Dried ink blots: level hazards that stain the board
   function addBlots(n) {
     var head = snake[0];
-    for (var k = 0; k < n && blots.length < 10; k++) {
+    for (var k = 0; k < n && blots.length < 14; k++) {
       var tries = 0, x, y;
       do {
         x = Math.floor(Math.random() * COLS);
@@ -154,9 +166,37 @@
     return {x:x, y:y};
   }
 
+  function nearBlot(x, y) {
+    for (var i = 0; i < blots.length; i++) if (Math.abs(blots[i].x - x) <= 1 && Math.abs(blots[i].y - y) <= 1) return true;
+    return false;
+  }
+
   function placeFood() {
     food = randFree();
     food.live = eaten > 0 && eaten % 4 === 3;
+    food.born = frame;
+    // A drop parked beside a blot pays double: the risky ones wear a red ring.
+    food.risky = !food.live && nearBlot(food.x, food.y);
+  }
+
+  // The mop: from level 4 a bucket-and-mop works one row, end to end. Its lane
+  // is painted so nobody walks into it blind.
+  function spawnMop() {
+    var head = snake[0];
+    var y, tries = 0;
+    do { y = 1 + Math.floor(Math.random() * (ROWS - 2)); tries++; } while (Math.abs(y - head.y) < 3 && tries < 50);
+    mop = { x: 0, y: y, dx: 1, fx: 0, tick: 0, born: frame };
+    if (food && food.y === y) placeFood();
+  }
+  function mopStep() {
+    if (!mop) return;
+    mop.tick++;
+    if (mop.tick % 2 !== 0) return; // half the snake's pace
+    mop.x += mop.dx;
+    if (mop.x >= COLS - 1) { mop.x = COLS - 1; mop.dx = -1; }
+    if (mop.x <= 0) { mop.x = 0; mop.dx = 1; }
+    // it wipes any blot it runs over: the mop is a hazard AND a janitor
+    for (var i = blots.length - 1; i >= 0; i--) if (blots[i].x === mop.x && blots[i].y === mop.y) { blots.splice(i, 1); burst(mop.x * CELL + 10, mop.y * CELL + 10, '#8fb3c9', 6); }
   }
 
   // The live one scurries: one hop away from the head every few beats
@@ -171,6 +211,9 @@
       for (var j = 0; j < snake.length; j++) if (snake[j].x === nx && snake[j].y === ny) blocked = true;
       for (var j = 0; j < blots.length; j++) if (blots[j].x === nx && blots[j].y === ny) blocked = true;
       if (bonus && bonus.x === nx && bonus.y === ny) blocked = true;
+      if (gold && gold.x === nx && gold.y === ny) blocked = true;
+      if (stencil && stencil.x === nx && stencil.y === ny) blocked = true;
+      if (mop && mop.y === ny) blocked = true;
       if (blocked) continue;
       var d = Math.abs(nx - snake[0].x) + Math.abs(ny - snake[0].y);
       if (d > bd) { bd = d; bx = nx; by = ny; }
@@ -187,10 +230,29 @@
     if (turns.length < 3) turns.push({x:nx, y:ny});
   }
 
+  // ── Juice: ink particles and a camera shake ──
+  function burst(x, y, color, n, speed) {
+    for (var i = 0; i < n && particles.length < 160; i++) {
+      var a = Math.random() * Math.PI * 2, sp = (speed || 2) * (0.4 + Math.random());
+      particles.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 24 + Math.random() * 20, color: color, r: 1.5 + Math.random() * 2 });
+    }
+  }
+  function popup(x, y, text, color, life) {
+    popups.push({ x: x, y: y, text: text, color: color, life: life || 40, born: frame });
+  }
+  function addScore(pts, x, y, label, color) {
+    score += pts;
+    document.getElementById('jd-br-score').textContent = score;
+    popup(x, y, (label ? label + ' ' : '') + '+' + pts, color || '#fff');
+  }
+
   function die() {
     lives--;
     document.getElementById('jd-br-lives').textContent = lives;
-    flashT = 12;
+    flashT = 12; shake = 14;
+    // the serpent comes apart in ink
+    for (var i = 0; i < snake.length; i++) burst(snake[i].x * CELL + 10, snake[i].y * CELL + 10, i === 0 ? '#fff' : LIME, i === 0 ? 10 : 2, 3);
+    eatStreak = 0; frenzyT = 0;
     if (lives <= 0) {
       enterBoard(score);
       saveBest();
@@ -202,6 +264,9 @@
     }
   }
 
+  // Points per drop grow with the serpent: a long snake is a risky snake.
+  function baseDrop() { return 10 + Math.floor(snake.length / 5) * 2; }
+
   function step() {
     if (turns.length) dir = turns.shift();
     var head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
@@ -212,42 +277,77 @@
     for (var i = 0; i < blots.length; i++) {
       if (blots[i].x === head.x && blots[i].y === head.y) { die(); return; }
     }
+    if (mop && mop.x === head.x && mop.y === head.y) { die(); return; }
     snake.unshift(head);
+    grew = false;
+    var hx = head.x * CELL + 10, hy = head.y * CELL + 4;
     if (food && head.x === food.x && head.y === food.y) {
-      eatStreak = frame - lastEat < 110 ? Math.min(5, eatStreak + 1) : 1;
+      grew = true;
+      eatStreak = frame - lastEat < FEAST_WINDOW ? Math.min(5, eatStreak + 1) : 1;
+      if (eatStreak > bestStreak) bestStreak = eatStreak;
       lastEat = frame;
-      var wasLive = food.live;
-      var pts = (wasLive ? 30 : 10 * eatStreak) * (frenzyT > 0 ? 2 : 1);
-      score += pts; eaten++;
+      var wasLive = food.live, risky = food.risky, quick = frame - food.born < 150;
+      var pts = (wasLive ? 30 : baseDrop() * eatStreak) * (frenzyT > 0 ? 2 : 1) * (risky ? 2 : 1);
+      score += pts; eaten++; levelEaten++;
       document.getElementById('jd-br-score').textContent = score;
-      popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: (wasLive ? 'CAUGHT +' : '+') + pts + (!wasLive && eatStreak > 1 ? ' x' + eatStreak : ''), color: wasLive ? PINK : eatStreak > 1 ? YELLOW : '#fff', life: 40 });
+      var tag = wasLive ? 'CAUGHT' : risky ? 'RISKY x2' : '';
+      popup(hx, hy, (tag ? tag + ' ' : '') + '+' + pts + (!wasLive && eatStreak > 1 ? ' x' + eatStreak : ''), wasLive ? PINK : risky ? '#ff5040' : eatStreak > 1 ? YELLOW : '#fff');
+      burst(hx, hy + 6, wasLive ? PINK : '#ff5fb0', 8 + eatStreak * 2);
+      if (quick && !wasLive) { addScore(20, hx, hy - 14, 'QUICK', CYAN); }
       if (wasLive) sayCallout('snake-c3');
       if (eatStreak === 5 && frenzyT <= 0) {
-        frenzyT = 600;
-        popups.push({ x: head.x * CELL + 10, y: head.y * CELL - 14, text: 'FRENZY! 2X', color: '#FF6347', life: 60 });
+        frenzyT = 600; shake = 6;
+        popup(hx, hy - 28, 'FRENZY! 2X', '#FF6347', 60);
         sayCallout('snake-c2');
         sfxBonus();
       }
       sfxEat();
-      stepEvery = Math.max(5, 9 - Math.floor(eaten / 4));
-      var nl = 1 + Math.floor(eaten / 6);
+      if (snake.length > maxLen) maxLen = snake.length;
+      if (snake.length % 10 === 0) { addScore(100, hx, hy - 14, 'LONG ' + snake.length, LIME); sfxBonus(); }
+      stepEvery = Math.max(4, 9 - Math.floor(eaten / 6));
+      var nl = 1 + Math.floor(eaten / 7);
       if (nl > level) {
-        level = nl;
-        bannerT = 80;
-        addBlots(2);
-      say('level-up');
+        level = nl; levelEaten = 0;
+        bannerT = 90;
+        var clear = level * 100 + (eatStreak >= 3 ? 50 : 0);
+        bannerText = 'LEVEL ' + level + ' // FRESH INK +' + clear;
+        score += clear;
+        document.getElementById('jd-br-score').textContent = score;
+        addBlots(level >= 4 ? 3 : 2);
+        if (level >= 4 && !mop) spawnMop();
+        for (var c = 0; c < 26; c++) burst(Math.random() * W, -4, BOARDS[(level - 1) % BOARDS.length].accent, 1, 1.5);
+        sayCallout('snake-c1');
         sfxBonus();
       }
       if (eaten % 5 === 0 && !bonus) { bonus = randFree(); bonusT = 300; }
+      if (level >= 2 && !gold && Math.random() < 0.22) { gold = randFree(); goldT = 200; }
+      if (level >= 3 && !stencil && snake.length >= 14 && Math.random() < 0.3) { stencil = randFree(); stencilT = 420; }
       placeFood();
     } else if (bonus && head.x === bonus.x && head.y === bonus.y) {
-      score += 50;
-      document.getElementById('jd-br-score').textContent = score;
-      popups.push({ x: head.x * CELL + 10, y: head.y * CELL, text: 'MACHINE +50', color: PURPLE, life: 45 });
+      var mp = 50 * (frenzyT > 0 ? 2 : 1);
+      addScore(mp, hx, hy, 'MACHINE', PURPLE);
+      burst(hx, hy + 6, PURPLE, 12);
       sfxBonus();
       bonus = null; bonusT = 0;
-    } else {
       snake.pop();
+    } else if (gold && head.x === gold.x && head.y === gold.y) {
+      var gp = 150 * (frenzyT > 0 ? 2 : 1);
+      addScore(gp, hx, hy, 'GOLD INK', YELLOW);
+      burst(hx, hy + 6, YELLOW, 18, 3);
+      shake = 5;
+      sfxBonus();
+      gold = null; goldT = 0;
+      snake.pop();
+    } else if (stencil && head.x === stencil.x && head.y === stencil.y) {
+      // a stencil sheet: trade four segments of length for breathing room
+      var cut = Math.min(4, snake.length - 4);
+      for (var s = 0; s < cut; s++) { var tl = snake.pop(); burst(tl.x * CELL + 10, tl.y * CELL + 10, CYAN, 3); }
+      popup(hx, hy, 'STENCIL -' + cut, CYAN, 45);
+      sfxEat();
+      stencil = null; stencilT = 0;
+      snake.pop();
+    } else {
+      lastTail = snake.pop();
     }
   }
 
@@ -258,20 +358,28 @@
     if (flashT > 0) flashT--;
     if (bannerT > 0) bannerT--;
     if (frenzyT > 0) frenzyT--;
+    if (shake > 0) shake--;
     if (frame % (stepEvery * 3) === 0 && respawnT === 0) fleeStep();
     for (var i = popups.length - 1; i >= 0; i--) {
       popups[i].y -= 0.5; popups[i].life--;
       if (popups[i].life <= 0) popups.splice(i, 1);
     }
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.vx *= 0.96; p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
     if (respawnT > 0) { respawnT--; return; }
     if (bonus) { bonusT--; if (bonusT <= 0) bonus = null; }
-    if (frame % stepEvery === 0) step();
+    if (gold) { goldT--; if (goldT <= 0) gold = null; }
+    if (stencil) { stencilT--; if (stencilT <= 0) stencil = null; }
+    if (frame % stepEvery === 0) { step(); mopStep(); }
   }
 
   // ── Input ──
   function start() {
-    if (mode === 'intro') { mode = 'play'; return; }
-    if (mode === 'over') { init(); mode = 'play'; return; }
+    if (mode === 'intro') { mode = 'play'; wall.markStart(); return; }
+    if (mode === 'over') { if (wall.inBeat()) return; init(); mode = 'play'; wall.markStart(); return; }
     if (mode === 'ready') mode = 'play';
   }
   var KEYS = {
@@ -308,6 +416,7 @@
   }, { passive: false });
   canvas.addEventListener('click', function() { start(); });
 
+
   // ── The shop wall: the shared leaderboard (public/arcade-board.js) ──
   // Every cabinet, room and the kiosk post to the same wall; this game only
   // hands over the final score and draws what the module gives back.
@@ -318,15 +427,17 @@
     getMode: function () { return mode; }, setMode: function (m) { mode = m; },
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
+    label: 'Ink Snake',
+    levelLabel: function (l) { return 'LEVEL ' + l + ' // ' + eaten + ' DROPS // LONGEST ' + maxLen; },
   });
-  function enterBoard(v) { wall.enter(v, { level: level }); }
+  function enterBoard(v) { wall.enter(v, { level: level, meta: { combo: bestStreak, len: maxLen, eaten: eaten } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
-
-  // ── Attract-mode intro: CRT power-on, studio card, then the title scene ──
+  // ── Attract-mode intro: CRT power-on, studio card, title scene, then the wall ──
   function drawIntro() {
     var t = introT;
+    if (t >= 285) { wall.drawAttract(); return; }
     ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, W, H);
     if (t < 70) {
@@ -362,6 +473,7 @@
       }
     }
     ctx.fillStyle = '#0b1210'; ctx.fillRect(0, 0, W, H);
+    drawFloorGlow(BOARDS[0], 0.5);
     slam('INK SNAKE', 104, 32, LIME);
     // the drop runs for its life until the snap
     var catchT = 122;
@@ -369,40 +481,23 @@
     var dxp = Math.min(320, 240 + t2 * 0.9);
     var caught = t2 >= catchT;
     var segs = caught ? 14 : 10;
+    var pts = [];
     for (var i = 0; i < segs; i++) {
       var seg = hx - i * 17;
-      if (seg < -20) continue;
-      var syy = 208 + Math.sin(seg * 0.03) * 24;
-      var rr = i === 0 ? 10 : 9 - (i / segs) * 3;
-      ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - (i / segs) * 0.55).toFixed(2) + ')';
-      ctx.beginPath(); ctx.arc(seg, syy, rr, 0, Math.PI * 2); ctx.fill();
-      if (i > 0 && i % 2 === 0) {
-        ctx.fillStyle = 'rgba(0,0,0,0.22)';
-        ctx.beginPath(); ctx.arc(seg, syy, rr * 0.45, 0, Math.PI * 2); ctx.fill();
-      }
+      pts.push({ x: seg, y: 208 + Math.sin(seg * 0.03) * 24 });
     }
-    var hyy = 208 + Math.sin(hx * 0.03) * 24;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(hx + 2, hyy - 6, 3, 3);
+    drawSerpent(pts, { x: 1, y: 0 }, 10, false, null);
     if (!caught) {
       // fleeing drop with panic wobble + the tongue reaching for it
       var dyp = 208 + Math.sin(dxp * 0.03) * 24 + Math.sin(t2 * 0.6) * 3;
-      ctx.fillStyle = PINK;
-      ctx.beginPath(); ctx.arc(dxp, dyp + 2, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(dxp, dyp - 8); ctx.lineTo(dxp + 5, dyp); ctx.lineTo(dxp - 5, dyp); ctx.fill();
-      if (t2 % 40 < 14) {
-        ctx.fillStyle = '#e8283c';
-        ctx.fillRect(hx + 10, hyy - 1, 8, 2);
-        ctx.fillRect(hx + 18, hyy - 3, 2, 2);
-        ctx.fillRect(hx + 18, hyy + 1, 2, 2);
-      }
+      drawDrop(dxp, dyp, true, false);
     } else if (t2 < catchT + 14) {
       ctx.fillStyle = 'rgba(255,255,255,' + ((catchT + 14 - t2) * 0.04).toFixed(2) + ')';
       ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('SNAP! +50', Math.min(320, hx), hyy - 24);
+      ctx.fillText('SNAP! +30', Math.min(320, hx), pts[0].y - 24);
     }
     if (t2 > 140) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('DRINK EVERY DROP // FEAST FOR STREAKS', W / 2, 146); }
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -410,8 +505,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or SWIPE to steer // catch the live ones +30', W / 2, H - 42);
-    ctx.fillText('feast fast: x5 streak ignites FRENZY // avoid the X blots', W / 2, H - 29);
+    ctx.fillText('ARROWS or SWIPE to steer // a longer snake is worth more per drop', W / 2, H - 42);
+    ctx.fillText('feast fast for x5 and FRENZY // red-ringed drops pay double // avoid the X blots', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -419,23 +514,153 @@
     } else {
       ctx.fillStyle = '#9aa';
       ctx.font = '10px monospace';
-      ctx.fillText('BEST: ' + best, W / 2, H - 10);
+      var top = wall.top();
+      ctx.fillText(top ? 'WALL: ' + top.n + ' ' + top.s + ' // YOUR BEST: ' + best : 'BEST: ' + best, W / 2, H - 10);
     }
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
   }
 
+  // ── Drawing helpers ──
+  function drawFloorGlow(board, strength) {
+    // the neon sign over the door throws this level's color across the tiles
+    var g = ctx.createRadialGradient(W / 2, -40, 10, W / 2, -40, 300);
+    g.addColorStop(0, board.accent);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 0.10 * strength;
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawDrop(fx, fy, live, risky) {
+    // puddle shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(fx, fy + 9, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+    var pulse = 7 + Math.sin(frame * 0.12) * 2;
+    ctx.strokeStyle = risky ? 'rgba(255,80,64,' + (0.7 - Math.sin(frame * 0.2) * 0.25).toFixed(2) + ')' : 'rgba(255,20,147,' + (0.4 - Math.sin(frame * 0.12) * 0.2).toFixed(2) + ')';
+    ctx.lineWidth = risky ? 2 : 1;
+    ctx.beginPath(); ctx.arc(fx, fy + 1, pulse + 3, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.fillStyle = PINK;
+    ctx.beginPath(); ctx.arc(fx, fy + 2, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(fx, fy - 8); ctx.lineTo(fx + 5, fy); ctx.lineTo(fx - 5, fy); ctx.fill();
+    ctx.fillStyle = '#b8005f';
+    ctx.beginPath(); ctx.arc(fx + 1, fy + 4, 4, 0, Math.PI); ctx.fill();
+    if (live) {
+      ctx.strokeStyle = PINK;
+      ctx.beginPath();
+      ctx.moveTo(fx - 5, fy + 5); ctx.lineTo(fx - 8, fy + 8 + Math.sin(frame * 0.6) * 2);
+      ctx.moveTo(fx + 5, fy + 5); ctx.lineTo(fx + 8, fy + 8 - Math.sin(frame * 0.6) * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(fx - 3, fy - 1, 2, 2);
+      ctx.fillRect(fx + 1, fy - 1, 2, 2);
+    } else {
+      ctx.fillStyle = '#ffd6e8';
+      ctx.beginPath(); ctx.arc(fx - 2, fy, 1.7, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // The serpent, drawn as a chain of shaded scales through the given points.
+  function drawSerpent(pts, d, headR, blink, lookAt) {
+    if (blink) return;
+    var n = pts.length;
+    // shadow under the whole body
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    for (var i = n - 1; i >= 0; i--) {
+      var rr = i === 0 ? headR : Math.max(2.5, headR - 1 - (i / Math.max(1, n - 1)) * (headR - 3));
+      ctx.beginPath(); ctx.arc(pts[i].x + 1.5, pts[i].y + 3, rr, 0, Math.PI * 2); ctx.fill();
+    }
+    for (var i = n - 1; i >= 0; i--) {
+      var t = i / Math.max(1, n - 1);
+      var r = i === 0 ? headR : Math.max(2.5, headR - 1 - t * (headR - 3));
+      var p = pts[i];
+      var shade = 1 - t * 0.5;
+      ctx.fillStyle = i === 0 ? LIME : 'rgb(' + Math.round(127 * shade) + ',' + Math.round(255 * shade) + ',0)';
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+      if (i > 0) {
+        // scale highlight up top, dark belly stripe below
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.arc(p.x - r * 0.3, p.y - r * 0.35, r * 0.42, 0, Math.PI * 2); ctx.fill();
+        if (i % 2 === 0) {
+          ctx.fillStyle = 'rgba(0,40,0,0.35)';
+          ctx.beginPath(); ctx.arc(p.x, p.y + r * 0.25, r * 0.45, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+    // Head: brow ridge, eyes set perpendicular to travel, pupils that track the drop
+    var h = pts[0], hx = h.x, hy = h.y;
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath(); ctx.arc(hx - d.x * 2 - d.y * 2, hy - d.y * 2 - d.x * 2, headR * 0.5, 0, Math.PI * 2); ctx.fill();
+    var lx = 0, ly = 0;
+    if (lookAt) { var ddx = lookAt.x - hx, ddy = lookAt.y - hy, dl = Math.max(1, Math.sqrt(ddx * ddx + ddy * ddy)); lx = ddx / dl; ly = ddy / dl; }
+    for (var s = -1; s <= 1; s += 2) {
+      var ex = hx + d.x * 3 + d.y * 4 * s, ey = hy + d.y * 3 + d.x * 4 * s;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(ex, ey, 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#14121a';
+      ctx.beginPath(); ctx.arc(ex + lx * 1.1 + d.x * 0.6, ey + ly * 1.1 + d.y * 0.6, 1.2, 0, Math.PI * 2); ctx.fill();
+    }
+    if (frame % 50 < 12) {
+      ctx.strokeStyle = '#e8283c';
+      ctx.lineWidth = 1.5;
+      var tx = hx + d.x * headR, ty = hy + d.y * headR, fl = 5 + (frame % 50) * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty); ctx.lineTo(tx + d.x * fl, ty + d.y * fl);
+      ctx.lineTo(tx + d.x * (fl + 3) + d.y * 2, ty + d.y * (fl + 3) + d.x * 2);
+      ctx.moveTo(tx + d.x * fl, ty + d.y * fl);
+      ctx.lineTo(tx + d.x * (fl + 3) - d.y * 2, ty + d.y * (fl + 3) - d.x * 2);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+
+  // Where the serpent is between grid steps: the head slides into its new cell
+  // and the tail slides out of the old one, so movement reads smooth at any pace.
+  function serpentPoints() {
+    var p = respawnT > 0 ? 1 : ((frame % stepEvery) + 1) / stepEvery;
+    var pts = [];
+    var c = function (s) { return { x: s.x * CELL + 10, y: s.y * CELL + 10 }; };
+    var head = c(snake[0]);
+    if (snake.length > 1) {
+      var neck = c(snake[1]);
+      // no lerp across a respawn jump
+      if (Math.abs(head.x - neck.x) + Math.abs(head.y - neck.y) <= CELL + 1) head = { x: neck.x + (head.x - neck.x) * p, y: neck.y + (head.y - neck.y) * p };
+    }
+    pts.push(head);
+    for (var i = 1; i < snake.length; i++) pts.push(c(snake[i]));
+    if (lastTail && !grew && snake.length > 1) {
+      var lt = c(lastTail), tl = pts[pts.length - 1];
+      if (Math.abs(lt.x - tl.x) + Math.abs(lt.y - tl.y) <= CELL + 1) pts[pts.length - 1] = { x: lt.x + (tl.x - lt.x) * p, y: lt.y + (tl.y - lt.y) * p };
+    }
+    return pts;
+  }
+
   function draw() {
     if (mode === 'intro') { drawIntro(); return; }
     var board = BOARDS[(level - 1) % BOARDS.length];
+    ctx.save();
+    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     ctx.fillStyle = board.bg;
-    ctx.fillRect(0, 0, W, H);
-    // Parlor floor tiles in this level's ink
+    ctx.fillRect(-10, -10, W + 20, H + 20);
+    // Parlor floor tiles in this level's ink, grout lines, the sign's glow
     ctx.fillStyle = board.chk;
     for (var y = 0; y < ROWS; y++) {
       for (var x = (y % 2); x < COLS; x += 2) ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
     }
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    for (var gx = 0; gx <= COLS; gx++) { ctx.moveTo(gx * CELL + 0.5, 0); ctx.lineTo(gx * CELL + 0.5, H); }
+    for (var gy = 0; gy <= ROWS; gy++) { ctx.moveTo(0, gy * CELL + 0.5); ctx.lineTo(W, gy * CELL + 0.5); }
+    ctx.stroke();
+    drawFloorGlow(board, 1 + Math.sin(frame * 0.05) * 0.3);
+    // a slow light sweep, like a sign flickering across a wet floor
+    var sweep = ((frame * 0.7) % (W + 200)) - 100;
+    var sg = ctx.createLinearGradient(sweep - 60, 0, sweep + 60, 0);
+    sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,0.025)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(0, 0, W, 4); ctx.fillRect(0, H - 4, W, 4);
     ctx.fillRect(0, 0, 4, H); ctx.fillRect(W - 4, 0, 4, H);
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
@@ -444,47 +669,93 @@
     ctx.fillText('LUMENATI TATTOO', W - 8, H - 8);
 
     if (frenzyT > 0) {
-      ctx.fillStyle = 'rgba(255,99,71,' + (0.03 + Math.abs(Math.sin(frame * 0.1)) * 0.04).toFixed(3) + ')';
+      ctx.fillStyle = 'rgba(255,99,71,' + (0.04 + Math.abs(Math.sin(frame * 0.1)) * 0.05).toFixed(3) + ')';
       ctx.fillRect(0, 0, W, H);
+      // hot edges
+      var eg = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, H * 0.8);
+      eg.addColorStop(0, 'rgba(255,99,71,0)'); eg.addColorStop(1, 'rgba(255,99,71,' + (0.18 + Math.sin(frame * 0.2) * 0.06).toFixed(2) + ')');
+      ctx.fillStyle = eg; ctx.fillRect(0, 0, W, H);
     }
 
-    // Food: a fat ink drop — the live ones jitter and sprout legs
+    // The mop lane: painted wet so the hazard reads before it arrives
+    if (mop) {
+      var lane = mop.y * CELL;
+      ctx.fillStyle = 'rgba(143,179,201,0.07)';
+      ctx.fillRect(0, lane, W, CELL);
+      ctx.strokeStyle = 'rgba(143,179,201,0.25)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(0, lane + 0.5); ctx.lineTo(W, lane + 0.5); ctx.moveTo(0, lane + CELL - 0.5); ctx.lineTo(W, lane + CELL - 0.5); ctx.stroke();
+      ctx.setLineDash([]);
+      var mp = mop.tick % 2 === 0 ? 1 : 0.5;
+      var mx = (mop.x + mop.dx * 0.5 * mp) * CELL + 10, my = lane + 10;
+      // bucket, handle, mop head
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.ellipse(mx, my + 8, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5b6f7c';
+      ctx.fillRect(mx - 7, my - 2, 14, 10);
+      ctx.fillStyle = '#8fb3c9';
+      ctx.fillRect(mx - 7, my - 4, 14, 3);
+      ctx.strokeStyle = '#c9a36a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(mx + mop.dx * 6, my - 2); ctx.lineTo(mx + mop.dx * 12, my - 16); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#e8e2d0';
+      for (var s = -3; s <= 3; s += 2) ctx.fillRect(mx + mop.dx * 8 + s, my - 1 + Math.abs(s), 2, 6 + Math.sin(frame * 0.4 + s) * 2);
+      ctx.fillStyle = 'rgba(143,179,201,0.4)';
+      ctx.beginPath(); ctx.ellipse(mx + mop.dx * 9, my + 6, 6, 2, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Food: a fat ink drop; the live ones jitter and sprout legs
+    var lookAt = null;
     if (food) {
       var fx = food.x * CELL + 10, fy = food.y * CELL + 10;
       if (food.live) { fx += Math.sin(frame * 0.5) * 1.5; fy += Math.cos(frame * 0.7) * 1; }
-      var pulse = 7 + Math.sin(frame * 0.12) * 2;
-      ctx.strokeStyle = 'rgba(255,20,147,' + (0.4 - Math.sin(frame * 0.12) * 0.2).toFixed(2) + ')';
-      ctx.beginPath(); ctx.arc(fx, fy + 1, pulse + 3, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = PINK;
-      ctx.beginPath(); ctx.arc(fx, fy + 2, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(fx, fy - 8); ctx.lineTo(fx + 5, fy); ctx.lineTo(fx - 5, fy); ctx.fill();
-      if (food.live) {
-        ctx.strokeStyle = PINK;
-        ctx.beginPath();
-        ctx.moveTo(fx - 5, fy + 5); ctx.lineTo(fx - 8, fy + 8 + Math.sin(frame * 0.6) * 2);
-        ctx.moveTo(fx + 5, fy + 5); ctx.lineTo(fx + 8, fy + 8 - Math.sin(frame * 0.6) * 2);
-        ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(fx - 3, fy - 1, 2, 2);
-        ctx.fillRect(fx + 1, fy - 1, 2, 2);
-      } else {
-        ctx.fillStyle = '#ffb0cf';
-        ctx.beginPath(); ctx.arc(fx - 2, fy, 1.7, 0, Math.PI * 2); ctx.fill();
-      }
+      drawDrop(fx, fy, food.live, food.risky);
+      lookAt = { x: fx, y: fy };
     }
 
-    // Bonus: a tattoo machine, blinking as it expires
+    // Gold ink: rare, bright, gone fast
+    if (gold && (goldT > 60 || Math.floor(frame / 4) % 2 === 0)) {
+      var gx2 = gold.x * CELL + 10, gy2 = gold.y * CELL + 10;
+      var gr = 6 + Math.sin(frame * 0.25) * 1.5;
+      var gg = ctx.createRadialGradient(gx2, gy2, 1, gx2, gy2, 16);
+      gg.addColorStop(0, 'rgba(255,215,0,0.45)'); gg.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = gg; ctx.fillRect(gx2 - 16, gy2 - 16, 32, 32);
+      ctx.fillStyle = YELLOW;
+      ctx.beginPath(); ctx.arc(gx2, gy2 + 2, gr, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(gx2, gy2 - 8); ctx.lineTo(gx2 + 5, gy2); ctx.lineTo(gx2 - 5, gy2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      var sa = frame * 0.2;
+      ctx.fillRect(gx2 + Math.cos(sa) * 9 - 1, gy2 + Math.sin(sa) * 9 - 1, 2, 2);
+      ctx.fillRect(gx2 - Math.cos(sa) * 9 - 1, gy2 - Math.sin(sa) * 9 - 1, 2, 2);
+      ctx.beginPath(); ctx.arc(gx2 - 2, gy2, 1.7, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Stencil sheet: a slip of paper that trims the serpent
+    if (stencil && (stencilT > 90 || Math.floor(frame / 5) % 2 === 0)) {
+      var sx0 = stencil.x * CELL + 3, sy0 = stencil.y * CELL + 3;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(sx0 + 2, sy0 + 2, 14, 14);
+      ctx.fillStyle = '#e9f6ff'; ctx.fillRect(sx0, sy0, 14, 14);
+      ctx.strokeStyle = CYAN;
+      ctx.beginPath(); ctx.arc(sx0 + 7, sy0 + 7, 4, 0, Math.PI * 2); ctx.moveTo(sx0 + 3, sy0 + 11); ctx.lineTo(sx0 + 11, sy0 + 3); ctx.stroke();
+      ctx.fillStyle = '#8bd7e6'; ctx.fillRect(sx0 + 10, sy0, 4, 4);
+    }
+
+    // Bonus: a tattoo machine with a running needle, blinking as it expires
     if (bonus && (bonusT > 90 || Math.floor(frame / 5) % 2 === 0)) {
       var bx = bonus.x * CELL + 5, by = bonus.y * CELL + 1;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(bx + 1, by + 4, 10, 14);
       ctx.fillStyle = PURPLE;
       ctx.fillRect(bx, by + 2, 10, 10);
+      ctx.fillStyle = '#c4a4ff'; ctx.fillRect(bx + 1, by + 3, 3, 2);
       ctx.fillStyle = '#8B5CF6';
       ctx.fillRect(bx + 2, by + 12, 6, 4);
       ctx.fillStyle = '#ccc';
-      ctx.fillRect(bx + 4, by + 16, 2, 3);
+      ctx.fillRect(bx + 4, by + 16 + (frame % 4 < 2 ? 1 : 0), 2, 3);
       ctx.fillStyle = PINK;
       ctx.fillRect(bx + 1, by, 3, 3);
       ctx.fillRect(bx + 6, by, 3, 3);
+      ctx.strokeStyle = 'rgba(155,89,182,' + (0.3 + Math.sin(frame * 0.3) * 0.2).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(bx + 5, by + 9, 12, 0, Math.PI * 2); ctx.stroke();
     }
 
     // Dried ink blots: marked hazards with a loud spawn warning
@@ -493,7 +764,6 @@
       var bx = bl.x * CELL + 10, by = bl.y * CELL + 10;
       var age = frame - (bl.born || 0);
       if (age < 70) {
-        // newborn blot: expanding warning ring so it never sneaks in
         var wr = 12 - (age / 70) * 3;
         ctx.strokeStyle = Math.floor(frame / 5) % 2 === 0 ? '#ff5040' : 'rgba(255,80,64,0.4)';
         ctx.lineWidth = 2;
@@ -504,6 +774,8 @@
       ctx.beginPath(); ctx.arc(bx, by, 7, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(bx + Math.cos(bl.r) * 6, by + Math.sin(bl.r) * 6, 3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(bx - Math.cos(bl.r) * 5, by - Math.sin(bl.r) * 7, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath(); ctx.arc(bx - 2, by - 2, 2.5, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = 'rgba(255,80,64,0.85)';
       ctx.beginPath(); ctx.arc(bx, by, 8, 0, Math.PI * 2); ctx.stroke();
       ctx.strokeStyle = '#ff5040';
@@ -513,37 +785,18 @@
       ctx.stroke();
     }
 
-    // Snake: a rounded, scaled ink serpent
+    // The serpent
     var blink = respawnT > 0 && Math.floor(frame / 4) % 2 === 0;
-    if (!blink) {
-      for (var i = snake.length - 1; i >= 0; i--) {
-        var seg = snake[i];
-        var t = i / Math.max(1, snake.length - 1);
-        var sx2 = seg.x * CELL + 10, sy2 = seg.y * CELL + 10;
-        var r2 = i === 0 ? 9 : 8 - t * 2.5;
-        ctx.fillStyle = i === 0 ? LIME : 'rgba(127,255,0,' + (1 - t * 0.55).toFixed(2) + ')';
-        ctx.beginPath(); ctx.arc(sx2, sy2, r2, 0, Math.PI * 2); ctx.fill();
-        if (i > 0 && i % 2 === 0) {
-          ctx.fillStyle = 'rgba(0,0,0,0.22)';
-          ctx.beginPath(); ctx.arc(sx2, sy2, r2 * 0.45, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-      // Head: eyes set perpendicular to travel + a flicking tongue
-      var h = snake[0];
-      var hx = h.x * CELL + 10, hy = h.y * CELL + 10;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(hx + dir.x * 3 + dir.y * 4 - 1, hy + dir.y * 3 + dir.x * 4 - 1, 3, 3);
-      ctx.fillRect(hx + dir.x * 3 - dir.y * 4 - 1, hy + dir.y * 3 - dir.x * 4 - 1, 3, 3);
-      ctx.fillStyle = '#14121a';
-      ctx.fillRect(hx + dir.x * 4 + dir.y * 4, hy + dir.y * 4 + dir.x * 4, 2, 2);
-      ctx.fillRect(hx + dir.x * 4 - dir.y * 4, hy + dir.y * 4 - dir.x * 4, 2, 2);
-      if (frame % 50 < 12) {
-        ctx.fillStyle = '#e8283c';
-        ctx.fillRect(hx + dir.x * 9 - 1, hy + dir.y * 9 - 1, 2 + Math.abs(dir.x) * 4, 2 + Math.abs(dir.y) * 4);
-        ctx.fillRect(hx + dir.x * 13 + dir.y * 2 - 1, hy + dir.y * 13 + dir.x * 2 - 1, 2, 2);
-        ctx.fillRect(hx + dir.x * 13 - dir.y * 2 - 1, hy + dir.y * 13 - dir.x * 2 - 1, 2, 2);
-      }
+    drawSerpent(serpentPoints(), dir, 9, blink, lookAt);
+
+    // Ink particles
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.globalAlpha = Math.min(1, p.life / 14);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
+    ctx.globalAlpha = 1;
 
     // Hit flash
     if (flashT > 0) {
@@ -551,18 +804,24 @@
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Score popups
-    ctx.font = 'bold 11px monospace';
+    // Score popups: pop in big, drift up, fade
     ctx.textAlign = 'center';
     for (var i = 0; i < popups.length; i++) {
       var pu = popups[i];
+      var age2 = frame - (pu.born || 0);
+      var sz = age2 < 6 ? 11 + (6 - age2) * 1.2 : 11;
+      ctx.font = 'bold ' + Math.round(sz) + 'px monospace';
       ctx.globalAlpha = Math.min(1, pu.life / 18);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillText(pu.text, pu.x + 1, pu.y + 1);
       ctx.fillStyle = pu.color;
       ctx.fillText(pu.text, pu.x, pu.y);
     }
     ctx.globalAlpha = 1;
 
     // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, 0, W, 32);
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'left';
@@ -572,27 +831,39 @@
     ctx.fillStyle = board.accent;
     ctx.textAlign = 'right';
     ctx.fillText('LEVEL ' + level, W - 8, 14);
-    if (frenzyT > 0 && mode === 'play') {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText('LEN ' + snake.length + ' // ' + baseDrop() + '/DROP', W - 8, 26);
+    // Feast meter: the streak and how long it has left, front and center
+    var left = mode === 'play' ? Math.max(0, FEAST_WINDOW - (frame - lastEat)) : 0;
+    if (eatStreak > 0 && left > 0) {
+      var mw = 120, mx0 = W / 2 - mw / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(mx0 - 2, 6, mw + 4, 20);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(mx0, 20, mw, 4);
+      ctx.fillStyle = frenzyT > 0 ? '#FF6347' : eatStreak >= 5 ? YELLOW : eatStreak >= 3 ? '#ffb347' : '#fff';
+      ctx.fillRect(mx0, 20, mw * (left / FEAST_WINDOW), 4);
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillText(frenzyT > 0 ? 'FRENZY 2X // ' + Math.ceil(frenzyT / 60) + 's' : eatStreak >= 5 ? 'FEAST x5 // MAX' : 'FEAST x' + eatStreak, W / 2, 16);
+    } else if (frenzyT > 0 && mode === 'play') {
+      ctx.textAlign = 'center';
       ctx.fillStyle = '#FF6347';
-      ctx.fillText('FRENZY 2X ' + Math.ceil(frenzyT / 60), W - 8, 26);
-    } else if (eatStreak > 1 && frame - lastEat < 110 && mode === 'play') {
-      ctx.fillStyle = YELLOW;
-      ctx.fillText('FEAST x' + eatStreak, W - 8, 26);
+      ctx.fillText('FRENZY 2X // ' + Math.ceil(frenzyT / 60) + 's', W / 2, 16);
     }
     if (bannerT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, H / 2 - 52, W, 40);
       ctx.fillStyle = board.accent;
-      ctx.font = 'bold 24px monospace';
+      ctx.font = 'bold 20px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('LEVEL ' + level + ' — FRESH INK', W / 2, H / 2 - 30);
+      ctx.fillText(bannerText, W / 2, H / 2 - 26);
       ctx.globalAlpha = 1;
       ctx.font = 'bold 10px monospace';
     }
+    ctx.restore();
 
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
-
-
   }
 
   // Fixed-step loop on requestAnimationFrame
@@ -611,7 +882,12 @@
     try {
     while (acc >= 16.67) {
       if (mode === 'play') update();
-      else { frame++; musicTick(); if (mode === 'intro' && ++introT > 285) introT = 70; }
+      else {
+        frame++; musicTick();
+        // attract cycle: power-on, title scene, then the wall, then the title again
+        if (mode === 'intro' && ++introT > 525) introT = 70;
+        if (shake > 0) shake--;
+      }
       acc -= 16.67;
     }
     draw();

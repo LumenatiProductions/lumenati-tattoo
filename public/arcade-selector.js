@@ -53,7 +53,6 @@
   function fmtScore(id, s) {
     var n = String(s).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     if (id === "shoprush") return "$" + n;
-    if (id === "pong") return s + "/5 BEAT";
     return n;
   }
   function loadWall() {
