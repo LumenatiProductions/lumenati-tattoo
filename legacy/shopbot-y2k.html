@@ -6,7 +6,9 @@
      window event 'lmn-shopbot-open'. -->
 <style>
   #clippy-bubble.lmn-sb-chat { max-width: 320px; width: 320px; padding: 8px 8px 8px; }
-  #clippy-container.clippy-quiet #clippy-bubble { opacity: 0; transform: scale(0.8); pointer-events: none; }
+  /* The bundle's own visible rule loads after this block, so the tuck must outrank it. */
+  #clippy-container.clippy-visible.clippy-quiet #clippy-bubble { opacity: 0 !important; transform: scale(0.8) !important; pointer-events: none !important; transition-delay: 0s !important; }
+  #clippy-container.clippy-gone { display: none !important; }
   #clippy-container.clippy-quiet #clippy-character { scale: 0.72; transform-origin: bottom left; }
   #clippy-character { cursor: pointer; }
   .lmn-sb-head { display: flex; justify-content: space-between; align-items: center; font: bold 11px Tahoma, Arial, sans-serif; color: #000; padding: 0 2px 6px; }
@@ -101,7 +103,7 @@
   function chatMode() {
     bubble.classList.add('lmn-sb-chat');
     bubble.innerHTML =
-      '<div class="lmn-sb-head"><span><span class="lmn-sb-dot"></span>clippy // the front desk</span><span class="lmn-sb-x" id="lmn-sb-close" title="Close">&#10005;</span></div>' +
+      '<div class="lmn-sb-head"><span><span class="lmn-sb-dot"></span>clippy // the front desk</span><span><span class="lmn-sb-x" id="lmn-sb-tuck" title="Tuck Clippy in the corner">_</span><span class="lmn-sb-x" id="lmn-sb-close" title="Go away for now">&#10005;</span></span></div>' +
       '<div class="lmn-sb-log" id="lmn-sb-log" aria-live="polite"></div>' +
       '<div class="lmn-sb-typing" id="lmn-sb-typing"></div>' +
       '<form class="lmn-sb-compose" id="lmn-sb-form" autocomplete="off">' +
@@ -115,7 +117,8 @@
     form = document.getElementById('lmn-sb-form');
     input = document.getElementById('lmn-sb-input');
     send = document.getElementById('lmn-sb-send');
-    document.getElementById('lmn-sb-close').addEventListener('click', close);
+    document.getElementById('lmn-sb-tuck').addEventListener('click', close);
+    document.getElementById('lmn-sb-close').addEventListener('click', gone);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var text = input.value.trim();
@@ -130,6 +133,8 @@
 
   function open() {
     if (!mount()) return;
+    container.classList.remove('clippy-gone');
+    try { sessionStorage.removeItem('clippy-gone'); } catch (e) {}
     if (!log) chatMode();
     greet();
     render();
@@ -139,9 +144,14 @@
     container.classList.add('clippy-visible');
     setTimeout(function () { try { input.focus(); } catch (e) {} }, 50);
   }
-  // Close keeps Clippy in the corner, bubble tucked away: one click brings the chat back.
+  // Tuck keeps Clippy in the corner, bubble away: one click brings the chat back.
   function close() {
     if (container) container.classList.add('clippy-quiet');
+  }
+  // Gone hides him for the rest of this visit (the session), like the old Go away.
+  function gone() {
+    if (container) container.classList.add('clippy-gone');
+    try { sessionStorage.setItem('clippy-gone', '1'); } catch (e) {}
   }
 
   window.addEventListener('lmn-shopbot-open', open);

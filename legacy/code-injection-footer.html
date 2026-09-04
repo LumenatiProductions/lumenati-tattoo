@@ -419,7 +419,7 @@
 // Clippy is the front desk (legacy/shopbot-y2k.html turns his bubble into the
 // chat). He shows up after a few seconds with the offer; Go away tucks the
 // bubble but leaves him in the corner, one click away, for the session.
-(function(){var c=document.getElementById('clippy-container'),d=document.getElementById('clippy-btn-dismiss');var quiet=!!sessionStorage.getItem('clippy-dismissed');setTimeout(function(){if(quiet)c.classList.add('clippy-quiet');c.classList.add('clippy-visible');},quiet?2000:8000);d.addEventListener('click',function(){c.classList.add('clippy-quiet');sessionStorage.setItem('clippy-dismissed','1');});var b=document.getElementById('clippy-btn-book');if(b)b.addEventListener('click',function(){window.dispatchEvent(new Event('lmn-shopbot-open'));});})();
+(function(){var c=document.getElementById('clippy-container'),d=document.getElementById('clippy-btn-dismiss');if(sessionStorage.getItem('clippy-gone')){c.classList.add('clippy-gone');}var quiet=!!sessionStorage.getItem('clippy-dismissed');setTimeout(function(){if(quiet)c.classList.add('clippy-quiet');c.classList.add('clippy-visible');},quiet?2000:8000);d.addEventListener('click',function(){c.classList.add('clippy-gone');sessionStorage.setItem('clippy-gone','1');});var b=document.getElementById('clippy-btn-book');if(b)b.addEventListener('click',function(){window.dispatchEvent(new Event('lmn-shopbot-open'));});})();
 </script>
 
 <!-- Lumenati OnLine sign-on lives in legacy/aol-signon.html (rendered by the site layout and by /coming-soon). -->
