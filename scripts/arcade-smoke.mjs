@@ -120,8 +120,11 @@ function runGame(id, src, opts = {}) {
   const maxFrames = opts.maxFrames ?? 30000;
   for (let i = 0; i < maxFrames; i++) {
     if (i % 40 === 20) { h.key("Space"); h.key("Space", true); }
-    if (i % 90 === 30) { h.key("ArrowLeft"); h.key("ArrowLeft", true); }
-    if (i % 90 === 60) { h.key("ArrowRight"); h.key("ArrowRight", true); }
+    // LEFT is held for half a second and RIGHT for a quarter: in the skate game a held arrow in
+    // the air is a spin, and a spin landed sideways is the other honest way to lose a board.
+    if (i % 90 === 30) h.key("ArrowLeft");
+    if (i % 90 === 60) { h.key("ArrowLeft", true); h.key("ArrowRight"); }
+    if (i % 90 === 75) h.key("ArrowRight", true);
     if (i % 130 === 70) { h.key("ArrowUp"); h.key("ArrowUp", true); }
     // DOWN is held for a stretch, not tapped: a held manual can tip, which is how a blind skater loses boards now.
     if (i % 170 === 40) h.key("ArrowDown");

@@ -96,7 +96,7 @@
   };
   var FLIP_GOALS = ['360 FLIP', 'LASER FLIP', 'HARDFLIP', 'INWARD HEELFLIP', 'IMPOSSIBLE', 'DOUBLE KICKFLIP', 'VARIAL KICKFLIP'];
   var flipAnim = null, tapQ = [], lastFlipPts = 0, lastFlipLabel = '', airPeakH = 0, landedFlip = '';
-  var grindBal = 0, lastBailReason = '', boost = 0, nextBeatX = 0, lastBeat = 'rail', grindCount = 0, rampAirs = 0, slowT = 0, slowTick = 0, hintT = 0, airName = '', airNameT = 0;
+  var grindBal = 0, lastBailReason = '', boost = 0, nextBeatX = 0, lastBeat = 'rail', grindCount = 0, rampAirs = 0, slowT = 0, slowTick = 0, hintT = 0, airName = '', airNameT = 0, bookOpen = false;
   // Park goals: each town sets a few, the town's end tallies them into a bonus.
   var goals = [], goalCardT = 0, tallyT = 0, tallyLines = [], townScoreStart = 0, letters = [], nextLetterX = 0, lettersGot = 0, goalsDoneTotal = 0;
   var special = 0, specialUsed = 0, grabsLanded = 0, townGrabs = 0, townGrindFeet = 0;
@@ -212,7 +212,7 @@
     leftHeld = false; rightHeld = false; grabName = ''; railUsed = {}; slideT = 0; manualKind = 'manual';
     continueUsed = false; lastLevel = 1; lastScore = 0; pumpT = 0; lipT = 0;
     flipAnim = null; tapQ = []; lastFlipPts = 0; lastFlipLabel = ''; airPeakH = 0; landedFlip = '';
-    airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; lastBailReason = ''; boost = 0; nextBeatX = 700; lastBeat = 'rail'; grindCount = 0; rampAirs = 0; slowT = 0; slowTick = 0; hintT = 1800; airName = ''; airNameT = 0;
+    airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; lastBailReason = ''; boost = 0; nextBeatX = 700; lastBeat = 'rail'; grindCount = 0; rampAirs = 0; slowT = 0; slowTick = 0; hintT = 0; bookOpen = false; airName = ''; airNameT = 0;
     goals = []; goalCardT = 0; tallyT = 0; tallyLines = []; townScoreStart = 0; letters = []; nextLetterX = 1200; lettersGot = 0; goalsDoneTotal = 0;
     special = 0; specialUsed = 0; grabsLanded = 0; townGrabs = 0;
     setGoals(1);
@@ -704,6 +704,8 @@
     spawnSparks(player.x + 4, player.y + player.h + 2, 6);
   }
   document.addEventListener('keydown', function(e) {
+    if (e.code === 'KeyH' && mode === 'play' && window.skateRunning) { e.preventDefault(); toggleBook(); return; }
+    if (bookOpen) return;
     if (!window.skateRunning) return;
     if (mode === 'over' && (e.code === 'ArrowDown' || e.code === 'KeyS') && !wall.inBeat()) { e.preventDefault(); newRun(); return; }
     if (e.code === 'Space' || e.key === ' ') {
@@ -747,8 +749,17 @@
   function sendArrow(type, code) {
     try { document.dispatchEvent(new KeyboardEvent(type, { code: code, key: code, bubbles: true })); } catch (err) {}
   }
+  var BOOK_BTN = { x: W - 74, y: H - 20, w: 68, h: 15 };
+  function bookHit(clientX, clientY) {
+    var r = canvas.getBoundingClientRect();
+    var x = (clientX - r.left) * (W / r.width), y = (clientY - r.top) * (H / r.height);
+    return x >= BOOK_BTN.x && x <= BOOK_BTN.x + BOOK_BTN.w && y >= BOOK_BTN.y && y <= BOOK_BTN.y + BOOK_BTN.h;
+  }
+  function toggleBook() { if (mode === 'play') bookOpen = !bookOpen; }
+  canvas.addEventListener('click', function(e) { if (mode === 'play' && (bookOpen || bookHit(e.clientX, e.clientY))) toggleBook(); });
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
+    if (mode === 'play' && (bookOpen || bookHit(e.touches[0].clientX, e.touches[0].clientY))) { toggleBook(); swDone = true; swCode = null; return; }
     swX = e.touches[0].clientX; swY = e.touches[0].clientY; swDone = false;
     press();
   }, { passive: false });
@@ -777,6 +788,7 @@
   }
 
   function update() {
+    if (bookOpen) return;
     frame++;
     musicTick();
     // dist counts town distance at a quarter of the road: 4000 of it is one
@@ -814,7 +826,7 @@
       lastLevel = level; lastScore = score;
       document.getElementById('jd-br-score').textContent = score;
     }
-    if (goalCardT > 0) goalCardT--;
+    if (goalCardT > 0 && !bookOpen) goalCardT--;
     if (tallyT > 0) tallyT--;
     if (specialFlashT > 0) specialFlashT--;
     // The meter drains while you coast with nothing going.
@@ -2380,15 +2392,44 @@
       ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(-8, -8, W + 16, H + 16);
       ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = 'bold 8px monospace'; ctx.fillText('PICK A TRICK', W / 2, H / 2 + 16);
     }
-    if (hintT > 0 && mode === 'play') {
-      hintT--;
-      ctx.globalAlpha = Math.min(1, hintT / 40) * 0.9;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(12, H - 55, W - 24, 41);
-      ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace';
-      ctx.fillText('SPACE ollie, hold for big  //  hold UP at a lip to send it', W / 2, H - 42);
-      ctx.fillText('in the air: tap L/R flip, hold L/R spin, hold UP or DOWN grab', W / 2, H - 31);
-      ctx.fillText('on a rail: L/R change the grind  //  DOWN on landing: manual', W / 2, H - 20);
-      ctx.globalAlpha = 1;
+    // CONTROLS: a small button in the corner opens the trick book and holds the run.
+    if (mode === 'play') {
+      ctx.fillStyle = bookOpen ? YELLOW : 'rgba(0,0,0,0.55)';
+      ctx.fillRect(BOOK_BTN.x, BOOK_BTN.y, BOOK_BTN.w, BOOK_BTN.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(BOOK_BTN.x + 0.5, BOOK_BTN.y + 0.5, BOOK_BTN.w - 1, BOOK_BTN.h - 1);
+      ctx.fillStyle = bookOpen ? '#000' : '#fff'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('? CONTROLS', BOOK_BTN.x + BOOK_BTN.w / 2, BOOK_BTN.y + 11);
+    }
+    if (bookOpen && mode === 'play') {
+      ctx.fillStyle = 'rgba(0,0,0,0.86)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = YELLOW; ctx.font = 'bold 16px monospace';
+      ctx.fillText('TRICK BOOK', W / 2, 34);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '9px monospace';
+      ctx.fillText('the run is on hold', W / 2, 48);
+      var book = [
+        ['SPACE', 'ollie, hold it for big air'],
+        ['hold UP at a lip', 'the board sends itself'],
+        ['in the air: tap RIGHT / LEFT', 'kickflip / heelflip'],
+        ['RIGHT RIGHT  //  LEFT LEFT', '360 flip  //  laser flip'],
+        ['RIGHT LEFT  //  LEFT RIGHT', 'varial kickflip  //  varial heelflip'],
+        ['DOWN RIGHT  //  DOWN LEFT', 'hardflip  //  inward heelflip'],
+        ['UP RIGHT  //  UP LEFT', 'impossible  //  nollie heelflip'],
+        ['UP UP  //  DOWN DOWN', 'double kickflip  //  pop shove-it'],
+        ['hold LEFT or RIGHT', 'spin, 180 to 1080'],
+        ['hold UP / DOWN / both', 'melon / indy / method'],
+        ['on a rail: LEFT / RIGHT', 'change the grind'],
+        ['DOWN on landing', 'manual, UP leans it'],
+      ];
+      ctx.font = 'bold 9px monospace';
+      for (var bi = 0; bi < book.length; bi++) {
+        var by = 68 + bi * 17;
+        ctx.textAlign = 'right'; ctx.fillStyle = CYAN; ctx.fillText(book[bi][0], W / 2 - 8, by);
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.fillText(book[bi][1], W / 2 + 8, by);
+      }
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '9px monospace';
+      ctx.fillText('H, the button, or a tap closes this', W / 2, H - 14);
     }
     // the line, right side
     ctx.textAlign = 'right';
@@ -2422,7 +2463,7 @@
       }
     }
     // goal card at the town's start, the tally at its end
-    if (goalCardT > 0 && mode === 'play') {
+    if (goalCardT > 0 && mode === 'play' && !bookOpen) {
       var ga = Math.min(1, goalCardT / 30, (200 - goalCardT) / 20 + 0.2);
       ctx.globalAlpha = ga * 0.92;
       ctx.fillStyle = '#0a0812'; ctx.fillRect(70, 90, 260, 30 + goals.length * 16);
