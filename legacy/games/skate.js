@@ -78,7 +78,8 @@
   var continueUsed = false, lastLevel = 1, lastScore = 0, pumpT = 0, lipT = 0;
   var MAX_LIVES = 5;
   var airFrames = 0, longestAir = 0, floaty = false;
-  var peakHit = false;
+  var camMoved = 0, spaceDown = false;
+  var peakHit = false, lastCliffX = -9999, backAngle = 0, backTurns = 0, backHoldT = 0;
   // The flip book: a tap is a press under 8 frames; two taps within 14 read as one trick.
   var FLIPS = {
     'R':  { name: 'KICKFLIP',        pts: 15, roll: 1,  yaw: 0,    dur: 24 },
@@ -211,6 +212,7 @@
     spinAngle = 0; spinDir = 0; spinStep = 0; leftHold = -1; rightHold = -1; upHold = -1; downHold = -1;
     leftHeld = false; rightHeld = false; grabName = ''; railUsed = {}; slideT = 0; manualKind = 'manual';
     continueUsed = false; lastLevel = 1; lastScore = 0; pumpT = 0; lipT = 0;
+    cliffs = []; lastCliffX = -9999; backAngle = 0; backTurns = 0; backHoldT = 0;
     flipAnim = null; tapQ = []; lastFlipPts = 0; lastFlipLabel = ''; airPeakH = 0; landedFlip = '';
     airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; lastBailReason = ''; boost = 0; nextBeatX = 700; lastBeat = 'rail'; grindCount = 0; rampAirs = 0; slowT = 0; slowTick = 0; hintT = 0; bookOpen = false; airName = ''; airNameT = 0;
     goals = []; goalCardT = 0; tallyT = 0; tallyLines = []; townScoreStart = 0; letters = []; nextLetterX = 1200; lettersGot = 0; goalsDoneTotal = 0;
@@ -243,17 +245,31 @@
   // All the air comes from placed ramps: kickers, launch ramps and half-pipe
   // lips, bigger and more frequent town by town, each with a flat landing
   // zone kept clear of anything solid. World y: bigger is lower.
+  // Long smooth undulations (wavelengths 650 and 1100px, up to 70px of rise)
+  // on a constant gentle descent (45px per 1000px), the way Ski Safari's slope
+  // reads: no short bumps, ever. The descent never resets in the world; the
+  // camera follows it slowly.
   var ROLL = [
-    { a: 3, f: 0.0016 }, { a: 4, f: 0.0015 }, { a: 3, f: 0.0017 }, { a: 6, f: 0.0015 }, { a: 6, f: 0.0014 },
-    { a: 5, f: 0.0015 }, { a: 7, f: 0.0013 }, { a: 8, f: 0.0013 }, { a: 8, f: 0.0012 }, { a: 6, f: 0.0014 }, { a: 2, f: 0.0018 },
+    { a: 30, b: 14 }, { a: 42, b: 20 }, { a: 45, b: 22 }, { a: 44, b: 20 }, { a: 48, b: 24 },
+    { a: 40, b: 18 }, { a: 44, b: 22 }, { a: 46, b: 24 }, { a: 48, b: 22 }, { a: 42, b: 20 }, { a: 34, b: 16 },
   ];
   var TOWN_PX = 24000; // one town, in road pixels (4000 of dist): two to three minutes at a glide
+  var DESCENT = 0.045;
+  var cliffs = []; // { x, h }: permanent steps down, never culled (they shape everything after them)
   function hillY(x) {
     if (x < 300) return 0;
     var lv = 1 + Math.floor(x / TOWN_PX);
     var r = ROLL[(lv - 1) % ROLL.length];
-    var ease = Math.min(1, (x - 300) / 600);
-    return ease * (Math.sin(x * r.f) * r.a + Math.sin(x * r.f * 2.6 + 1.7) * r.a * 0.35);
+    var ease = Math.min(1, (x - 300) / 900);
+    var wave = Math.sin(x * (Math.PI * 2 / 1100)) * r.a + Math.sin(x * (Math.PI * 2 / 650) + 1.7) * r.b;
+    var y = ease * wave + (x - 300) * DESCENT;
+    for (var i = 0; i < cliffs.length; i++) {
+      var c = cliffs[i];
+      if (x < c.x) continue;
+      // the drop, then a landing slope (0.18) for 260px that matches the arc, then level
+      y += c.h + 0.18 * Math.min(260, x - c.x);
+    }
+    return y;
   }
   // Ramp faces. A kicker is a straight wedge, a launch ramp curves up harder
   // toward the lip, a half-pipe lip goes near vertical. Past the lip the
@@ -304,7 +320,7 @@
       f = { type: 'stairs', x: x, w: 150 + tier * 8, h: 22 + Math.min(20, tier * 3) };
       features.push(f);
       var railTop = terrainY(x - 4) - 30;
-      rails.push({ x: x - 8, top: railTop, w: f.w * 0.5, scored: false, id: ++railSeq, seg: 0, segs: 1, kind: 'handrail', bodyH: 0, waxed: false });
+      rails.push({ x: x - 8, top: railTop, slope: 0.06, w: f.w * 0.5, scored: false, id: ++railSeq, seg: 0, segs: 1, kind: 'handrail', bodyH: 0, waxed: false });
       return f;
     }
     // Big from the first town: a kicker is 40px of lip, a launch ramp 60 to 120, a half-pipe lip 70 to 130.
@@ -399,8 +415,10 @@
       var spec = FURNITURE[kind];
       var w = spec.w[0] + Math.random() * (spec.w[1] - spec.w[0]);
       if (long && kind !== 'hydrant') w += 120 + Math.random() * 120;
-      var top = Math.min(terrainY(x), terrainY(x + w)) - spec.h;
-      rails.push({ x: x, top: top, w: w, scored: false, id: id, seg: i, segs: segs, kind: kind, bodyH: spec.h, waxed: Math.random() < 0.6 });
+      // Angled along the road it sits on: a downhill rail is a fast grind.
+      var top = terrainY(x) - spec.h;
+      var slope = (terrainY(x + w) - terrainY(x)) / w;
+      rails.push({ x: x, top: top, slope: slope, w: w, scored: false, id: id, seg: i, segs: segs, kind: kind, bodyH: spec.h, waxed: Math.random() < 0.6 });
       x += w + 34 + Math.random() * 40;
     }
     return x;
@@ -599,11 +617,11 @@
       if (!continueUsed && lastLevel >= 2) { continueRun(); return; }
       init(); mode = 'play'; return;
     }
-    holdingJump = true;
+    holdingJump = true; spaceDown = true;
     jumpBuffer = 7;
   }
   function release() {
-    holdingJump = false;
+    holdingJump = false; spaceDown = false; backHoldT = 0;
     if (mode === 'play' && !player.onGround && !player.grinding && player.vy < -3.5) player.vy = -3.5;
   }
 
@@ -841,7 +859,8 @@
     player.x += ((76 - (speed - 2.4) * 4) - player.x) * 0.04;
     var wx = scrollX + player.x + player.w / 2;
     groundSlope = slopeAt(wx);
-    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.12) speed += groundSlope * 0.04;
+    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.3) speed += groundSlope * 0.05;
+    if (player.grinding && player.grindRail) speed += (player.grindRail.slope || 0) * 0.04;
     speed += (target - speed) * (player.onGround ? 0.012 : 0.004);
     speed = Math.max(cruise * 0.6, Math.min(7.5, speed));
     if (bannerT > 0) bannerT--;
@@ -877,7 +896,7 @@
     // Off the end of a handrail with the gap still under you: hold UP and you hop it.
     if (upHeld && player.grinding && player.grindRail && player.grindRail.kind === 'handrail' && frame - upHold >= 4) {
       var railEnd = player.grindRail.x + player.grindRail.w;
-      if (wx > railEnd - 12 && wx < railEnd + 2) { holdingJump = true; tryJump(); player.vy = Math.min(player.vy, -11); floaty = true; peakHit = false; rampAirs++; }
+      if (wx > railEnd - 12 && wx < railEnd + 2) { holdingJump = true; tryJump(); holdingJump = spaceDown; player.vy = Math.min(player.vy, -11); floaty = true; peakHit = false; rampAirs++; }
     }
     if (upHeld && player.onGround && !player.grinding && frame - upHold >= 4) {
       var edge = false, edgeIsGap = false;
@@ -887,7 +906,7 @@
         else if (wx > ef.x + ef.w - 10 && wx < ef.x + ef.w + 1) edge = true;
       }
       if (edge) {
-        holdingJump = true; tryJump();
+        holdingJump = true; tryJump(); holdingJump = spaceDown;
         // A gap edge gets a real send: high, floaty, clear of the whole stair set.
         if (!player.onGround && edgeIsGap) { player.vy = Math.min(player.vy, -11.5); floaty = true; peakHit = false; rampAirs++; }
       }
@@ -909,7 +928,15 @@
         var stairsAhead = null;
         for (var sfj = 0; sfj < features.length; sfj++) { var sfx = features[sfj]; if (sfx.type === 'stairs' && wx > sfx.x + 4 && wx < sfx.x + sfx.w * 0.8) stairsAhead = sfx; }
         if (stairsAhead && player.onGround && player.invincible === 0) { if (bail('MISSED THE GAP')) return; }
-        if (drop > followMax) {
+        // Leaving a crest at speed: the slope change throws you, floaty.
+        if (prevSlope < -0.1 && groundSlope > 0.04 && speed > 3.4 && drop <= followMax) {
+          player.onGround = false;
+          player.vy = Math.max(-8, prevSlope * speed * 1.6);
+          floaty = true; peakHit = false; airTop = player.y; airCount++; rampAirs++;
+        } else
+        var onSteps = false;
+        for (var sfk = 0; sfk < features.length; sfk++) { var sfy = features[sfk]; if (sfy.type === 'stairs' && wx > sfy.x - 2 && wx < sfy.x + sfy.w) onSteps = true; }
+        if (drop > followMax && !onSteps) {
           player.onGround = false;
           // Off a lip you carry the ramp's angle at your speed, and a pump
           // on the face adds more. Capped so the sky stays in reach.
@@ -940,6 +967,50 @@
         if (airFrames > longestAir) longestAir = airFrames;
       }
     }
+
+    // Skim a lip already airborne (a low hop onto the face) and the ramp still
+    // throws you: crossing the lip within 14px of it counts as leaving it.
+    if (!player.onGround && !player.grinding && !floaty) {
+      for (var lf = 0; lf < features.length; lf++) {
+        var lff = features[lf];
+        if (lff.type === 'stairs') continue;
+        var lipX = lff.x + lff.w;
+        if (wx >= lipX && wx - speed < lipX) {
+          var lipY = terrainY(lipX - 0.5);
+          if (player.y + player.h > lipY - 14 && player.y + player.h < lipY + 6) {
+            var lipSlope = slopeAt(lipX - 6);
+            var throwV = -(7 + Math.abs(lipSlope) * speed * 1.3) - (holdingJump ? 2 : 0);
+            player.vy = Math.max(-16, Math.min(player.vy, throwV));
+            floaty = true; peakHit = false; airTop = Math.min(airTop, player.y); rampAirs++;
+            lipT = 30; spawnDust(player.x + player.w / 2, player.y + player.h, 4); sfxJump();
+          }
+        }
+      }
+    }
+
+    // Hold SPACE in the air and you lay back into a slow backflip, one turn
+    // every 0.9s. Let go within 45 degrees of level and it rights itself; let
+    // go anywhere else and you are committed. A full turn pays 100.
+    if (airborne() && holdingJump && airFrames > 10) {
+      backHoldT++;
+      if (backHoldT > 10) {
+        backAngle -= Math.PI * 2 / 54;
+        var turnsNow = Math.floor(-backAngle / (Math.PI * 2));
+        if (turnsNow > backTurns) {
+          backTurns = turnsNow;
+          var bname = (flipAnim ? flipAnim.name + ' ' : '') + (grabName ? grabName + ' ' : '') + (turnsNow >= 2 ? 'DOUBLE BACKFLIP' : 'BACKFLIP');
+          airTrick(100, bname);
+          spawnParticles(player.x + player.w / 2, player.y + player.h / 2, CYAN, 8);
+          if (turnsNow >= 2) sayLingo();
+        }
+      }
+    } else if (airborne() && backAngle !== 0) {
+      var bo = ((-backAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      var bOff = Math.min(bo, Math.PI * 2 - bo);
+      if (bOff < Math.PI / 4) backAngle += (bo < Math.PI ? 1 : -1) * Math.min(bOff, 0.12); // rights itself
+      backHoldT = 0;
+    }
+    if (player.onGround || player.grinding || !holdingJump) backHoldT = 0;
 
     // Spins: hold LEFT or RIGHT in the air. Every half turn goes on the line.
     if (airborne() && ((leftHeld && frame - leftHold >= 8) || (rightHeld && frame - rightHold >= 8))) {
@@ -973,9 +1044,17 @@
       spawnDust(player.x + player.w / 2, gy, air > 90 ? 10 : 5);
       player.squash = air > 90 ? 9 : 6;
       var landSlope = slopeAt(wx);
+      var bo2 = ((-backAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      var backOff = Math.min(bo2, Math.PI * 2 - bo2);
+      if (backOff > Math.PI / 2 && player.invincible === 0) {
+        backAngle = 0; backTurns = 0; flipAnim = null; tapQ = []; lastFlipLabel = ''; airPeakH = 0;
+        player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
+        if (bail('LANDED ON YOUR HEAD')) return;
+        return;
+      }
       var off360 = Math.abs(spinAngle) % (Math.PI * 2);
       var offFlat = Math.min(off360, Math.PI * 2 - off360); // how far from wheels-down, 0 to 180 degrees
-      var midSpin = spinAngle !== 0 && offFlat > Math.PI / 4;
+      var midSpin = (spinAngle !== 0 && offFlat > Math.PI / 4) || backOff > Math.PI / 4;
       var spinning = !!flipAnim || midSpin;
       if (landedFlip && !spinning) goalProgress('flip', landedFlip);
       tapQ = []; lastFlipLabel = ''; lastFlipPts = 0; airPeakH = 0; flipAnim = null;
@@ -983,7 +1062,7 @@
       // A flip thrown in the last third of the air lands on its edge: a bail.
       // (Half the rotation or more still to go is the line; less is just sketchy.)
       landedFlip = (flipAnim && flipAnim.t <= flipAnim.dur / 2) ? flipAnim.name : (player.flipT === 0 && lastFlipLabel ? lastFlipLabel.replace('LATE ', '') : '');
-      if (flipAnim && flipAnim.t > flipAnim.dur / 2) {
+      if (flipAnim && flipAnim.t > flipAnim.dur / 2 && player.invincible === 0) {
         player.flipT = 0; player.heelT = 0; flipAnim = null; tapQ = []; lastFlipLabel = ''; airPeakH = 0;
         player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
         flipped = false; usedHeel = false;
@@ -991,7 +1070,7 @@
         return;
       }
       // Past 90 degrees you are on the ground, not the board. Anything closer is clean or sketchy.
-      if (spinAngle !== 0 && offFlat > Math.PI / 2) {
+      if (spinAngle !== 0 && offFlat > Math.PI / 2 && player.invincible === 0) {
         spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
         player.onGround = true; flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
         if (bail('LANDED SIDEWAYS')) return;
@@ -1000,14 +1079,14 @@
       // The steps of a stair set are not a landing zone.
       var stairsHere = null;
       for (var sfi = 0; sfi < features.length; sfi++) { var sf = features[sfi]; if (sf.type === 'stairs' && wx > sf.x && wx < sf.x + sf.w * 0.8) stairsHere = sf; }
-      if (stairsHere && !player.grinding) {
+      if (stairsHere && !player.grinding && player.invincible === 0) {
         player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
         flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
         if (bail('MISSED THE GAP')) return;
         return;
       }
       if (air > 120 && !sketchy) { trick(30, player.x + player.w / 2, player.y - 26, 'BIG AIR'); sayMoment('skate-bigair'); }
-      if (landSlope > 0.18 && !sketchy && linePts > 0) { linePts += 15; addPopup(player.x + player.w / 2, player.y - 20, 'LANDED DOWNHILL +15', CYAN); }
+      if (landSlope > 0.12 && !sketchy) { boost = Math.min(2.5, boost + 0.35); if (linePts > 0) { linePts += 15; addPopup(player.x + player.w / 2, player.y - 20, 'LANDED DOWNHILL +15', CYAN); } }
       if (air > 60) shake = Math.max(shake, Math.min(8, air / 30));
       if (linePts > 0) {
         // A landing never banks on its own: the line stays open for a beat so
@@ -1022,7 +1101,7 @@
       player.grinding = false;
       player.grindRail = null;
       player.backT = 0;
-      spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
+      spinAngle = 0; spinDir = 0; spinStep = 0; grabName = ''; backAngle = 0; backTurns = 0;
       flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
       grindTilt = 0; usedNose = false; usedFive = false; railUsed = {}; slideT = 0;
     }
@@ -1087,14 +1166,14 @@
         var rail = rails[i];
         var rx = rail.x - scrollX;
         if (player.x + player.w > rx && player.x < rx + rail.w) {
-          var railTop = rail.top;
+          var railTop = rail.top + (rail.slope || 0) * (scrollX + player.x + player.w / 2 - rail.x);
           if (player.y + player.h >= railTop - 4 && player.y + player.h <= railTop + 10) {
             player.y = railTop - player.h;
             player.vy = 0;
             player.grinding = true;
             player.grindRail = rail;
             flipped = false; usedNose = false; usedFive = false; grindTilt = 0; railUsed = {}; slideT = 0;
-            spinAngle = 0; spinDir = 0; spinStep = 0; flipAnim = null; tapQ = []; lastFlipLabel = ''; airPeakH = 0;
+            spinAngle = 0; spinDir = 0; spinStep = 0; flipAnim = null; tapQ = []; lastFlipLabel = ''; airPeakH = 0; backAngle = 0; backTurns = 0;
             if (!rail.scored) {
               rail.scored = true;
               // Coming off another rail within a second: a transfer, worth more than the landing.
@@ -1115,6 +1194,10 @@
       }
     }
 
+    if (player.grinding && player.grindRail) {
+      // ride the rail's angle
+      player.y = player.grindRail.top + (player.grindRail.slope || 0) * (scrollX + player.x + player.w / 2 - player.grindRail.x) - player.h;
+    }
     if (player.grinding) {
       // Balance: the board wants to slip off the rail; hold LEFT or RIGHT to
       // lean it back. Forgiving early, sharper in the later towns.
@@ -1151,7 +1234,8 @@
         var bd = rails[bi];
         if (!bd.bodyH || bd.bonked) continue;
         var bxs = bd.x - scrollX;
-        if (player.x + player.w - 6 > bxs && player.x + 6 < bxs + bd.w && player.y + player.h > bd.top + 6) {
+        var bdTop = bd.top + (bd.slope || 0) * (scrollX + player.x + player.w / 2 - bd.x);
+        if (player.x + player.w - 6 > bxs && player.x + 6 < bxs + bd.w && player.y + player.h > bdTop + 6) {
           bd.bonked = true;
           speed = Math.max(2.2, speed * 0.6);
           shake = 4;
@@ -1195,7 +1279,7 @@
       ob.y = ogy - ob.h - (ob.type === 'pigeon' ? 42 + Math.sin(frame * 0.12 + i) * 5 : 0);
       ob.gy = ogy;
       var ox = ob.x - scrollX;
-      if (ox < -80) { obstacles.splice(i, 1); continue; }
+      if (ox + ob.w < -80) { obstacles.splice(i, 1); continue; }
       if (ob.type !== 'spill') {
         if (ob.minGap === undefined) ob.minGap = 99;
         if (!player.onGround && player.x + player.w > ox && player.x < ox + ob.w) {
@@ -1243,7 +1327,7 @@
       var lt = letters[li3];
       lt.y = terrainY(lt.x + 8) - lt.lift;
       var lx2 = lt.x - scrollX;
-      if (lx2 < -40) { letters.splice(li3, 1); continue; }
+      if (lx2 + lt.w < -40) { letters.splice(li3, 1); continue; }
       if (player.x + player.w > lx2 && player.x < lx2 + lt.w && player.y + player.h > lt.y && player.y < lt.y + lt.h) {
         lettersGot++;
         if (lettersGot === 5) sayMoment('skate-letters', true);
@@ -1259,7 +1343,7 @@
     for (var i = collectibles.length - 1; i >= 0; i--) {
       var col = collectibles[i];
       var cx = col.x - scrollX;
-      if (cx < -50) { collectibles.splice(i, 1); continue; }
+      if (cx + col.w < -50) { collectibles.splice(i, 1); continue; }
       if (col.collected) continue;
       col.y = terrainY(col.x + col.w / 2) - col.lift;
       if (player.x + player.w > cx && player.x < cx + col.w &&
@@ -1289,7 +1373,7 @@
     }
 
     for (var i = rails.length - 1; i >= 0; i--) {
-      if (rails[i].x - scrollX < -140) rails.splice(i, 1);
+      if (rails[i] !== player.grindRail && rails[i].x + rails[i].w - scrollX < -140) rails.splice(i, 1);
     }
     for (var i = collectibles.length - 1; i >= 0; i--) {
       if (collectibles[i].collected && collectibles[i].x - scrollX < -50) collectibles.splice(i, 1);
@@ -1303,7 +1387,14 @@
     var ahead = W + Math.max(700, speed * 60 * 3.2);
     while (nextBeatX < scrollX + ahead) {
       var beat = lastBeat === 'ramp' ? (Math.random() < 0.8 ? 'rail' : 'ramp') : (Math.random() < 0.8 ? 'ramp' : 'rail');
-      if (beat === 'ramp') {
+      if (beat === 'ramp' && level >= 2 && Math.random() < 0.22 && nextBeatX > lastCliffX + 1400) {
+        // A cliff drop: 80 to 150px of pure air off the edge, a downslope to land on.
+        var ch = 80 + Math.random() * 70 + Math.min(20, level * 3);
+        cliffs.push({ x: nextBeatX, h: ch });
+        lastCliffX = nextBeatX;
+        collectibles.push({ x: nextBeatX + 160 + Math.random() * 120, lift: 90 + Math.random() * 60, y: 0, w: 14, h: 14, collected: false, kind: 'skull' });
+        nextBeatX += 560 + Math.random() * 200;
+      } else if (beat === 'ramp') {
         var f = spawnFeature(nextBeatX);
         // flash in the flight path
         var fk = Math.random();
@@ -1337,9 +1428,19 @@
     // Camera: the ground under the skater stays in the same screen zone
     // Camera: the road never moves. Only genuine big air (the skater above the
     // top third of the screen) lifts the view, and it eases back down.
-    var camTarget = 0;
-    if (!player.onGround && !player.grinding && player.y < 100) camTarget = player.y - 100;
-    camY += (camTarget - camY) * (camTarget < camY ? 0.2 : 0.08);
+    // Rest position: the ground under the skater at GROUND_Y. A 40px deadzone
+    // around it, 0.04 easing, and no more than half a pixel a frame, so small
+    // terrain never moves the view and a descent drifts it slowly. Big air
+    // (the skater above the top third) lifts it faster.
+    var restTarget = terrainY(wx) - GROUND_Y;
+    var camErr = restTarget - camY;
+    var camStep = 0;
+    if (Math.abs(camErr) > 50) camStep = (camErr - (camErr > 0 ? 50 : -50)) * 0.04;
+    camStep = Math.max(-0.35, Math.min(0.35, camStep));
+    var airLift = 0;
+    if (!player.onGround && !player.grinding && player.y - camY < 100) airLift = (player.y - camY - 100) * 0.2;
+    camY += camStep + airLift;
+    camMoved = Math.abs(camStep + airLift);
 
     // Particles + popups (world y)
     for (var i = particles.length - 1; i >= 0; i--) {
@@ -2118,6 +2219,16 @@
         ctx.fillRect(gx, ggy + 4, 14, 1); ctx.fillRect(gx + 13, ggy + 5, 9, 1); ctx.fillRect(gx + 21, ggy + 3, 6, 1);
       }
     }
+    // Cliff drops: the edge, a dark face, a warning stripe
+    for (var ci = 0; ci < cliffs.length; ci++) {
+      var cf = cliffs[ci];
+      var csx = cf.x - scrollX;
+      if (csx < -40 || csx > W + 40) continue;
+      var topY = terrainY(cf.x - 1) - camY, lowY = terrainY(cf.x + 1) - camY;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(csx, topY, 4, lowY - topY);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(csx - 6, topY - 3, 8, 3);
+      ctx.fillStyle = YELLOW; for (var cst = 0; cst < 4; cst++) ctx.fillRect(csx - 40 + cst * 10, topY - 1, 5, 2);
+    }
     // Stair sets: concrete steps down, the low run, the bank back up
     for (var sti = 0; sti < features.length; sti++) {
       var sf2 = features[sti];
@@ -2180,63 +2291,68 @@
       ctx.beginPath(); ctx.moveTo(ax0, ay0); ctx.lineTo(ax0 + 12, ay0 - 8); ctx.lineTo(ax0 + 8, ay0 - 8); ctx.lineTo(ax0 + 8, ay0 - 2); ctx.lineTo(ax0 + 4, ay0 - 2); ctx.lineTo(ax0 + 4, ay0 - 8); ctx.lineTo(ax0, ay0 - 8); ctx.fill();
     }
 
-    // Street furniture: every piece has a body and a grind edge on top
+    // Street furniture: every piece has a body and a grind edge on top, and
+    // the whole thing lies along the slope it sits on.
     for (var i = 0; i < rails.length; i++) {
       var rail = rails[i];
       var rx = rail.x - scrollX;
       if (rx > W + 10 || rx + rail.w < -10) continue;
-      var rty = rail.top - camY;
+      var slp = rail.slope || 0;
+      var rty = rail.top - camY, rty2 = rty + slp * rail.w;
       var g1 = terrainY(rail.x + 3) - camY, g2 = terrainY(rail.x + rail.w - 4) - camY;
-      var gmid = Math.max(g1, g2);
       var kind = rail.kind || 'rail';
-      // long shadow from the one light
+      var ang = Math.atan(slp), len = rail.w / Math.cos(ang);
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath(); ctx.ellipse(rx + rail.w / 2 + 6, gmid + 3, rail.w / 2 + 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(rx + 6, g1 + 3); ctx.lineTo(rx + rail.w + 8, g2 + 3); ctx.lineTo(rx + rail.w + 2, g2 + 6); ctx.lineTo(rx, g1 + 6); ctx.fill();
       if (kind === 'rail' || kind === 'handrail') {
         ctx.fillStyle = '#888';
         ctx.fillRect(rx + 2, rty, 3, Math.max(2, g1 - rty));
-        ctx.fillRect(rx + rail.w - 5, rty, 3, Math.max(2, g2 - rty));
-        if (rail.w > 150) ctx.fillRect(rx + rail.w / 2 - 1, rty, 3, Math.max(2, gmid - rty));
-        ctx.fillStyle = '#666';
-        ctx.fillRect(rx, g1 - 2, 9, 2);
-        ctx.fillRect(rx + rail.w - 7, g2 - 2, 9, 2);
-      } else if (kind === 'bench') {
-        ctx.fillStyle = '#5a4020'; ctx.fillRect(rx + 4, rty + 3, 3, gmid - rty - 3); ctx.fillRect(rx + rail.w - 7, rty + 3, 3, gmid - rty - 3);
-        ctx.fillStyle = '#8a6438'; ctx.fillRect(rx, rty + 2, rail.w, 4); ctx.fillRect(rx, rty + 8, rail.w, 3);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (var sl2 = rx + 8; sl2 < rx + rail.w - 6; sl2 += 14) ctx.fillRect(sl2, rty + 2, 1, 9);
-      } else if (kind === 'planter') {
-        ctx.fillStyle = '#6a6a72'; ctx.fillRect(rx, rty + 2, rail.w, gmid - rty - 2);
-        ctx.fillStyle = '#7c7c84'; ctx.fillRect(rx, rty + 2, rail.w, 3);
-        ctx.fillStyle = '#2f7a3a'; for (var pl4 = rx + 6; pl4 < rx + rail.w - 6; pl4 += 10) { ctx.beginPath(); ctx.arc(pl4, rty - 1, 5, 0, Math.PI * 2); ctx.fill(); }
-        ctx.fillStyle = '#4aa050'; for (var pl5 = rx + 9; pl5 < rx + rail.w - 6; pl5 += 10) ctx.fillRect(pl5, rty - 4, 2, 2);
-      } else if (kind === 'ledge') {
-        ctx.fillStyle = '#9a9aa2'; ctx.fillRect(rx, rty + 2, rail.w, gmid - rty - 2);
-        ctx.fillStyle = '#b4b4bc'; ctx.fillRect(rx, rty + 2, rail.w, 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.18)'; for (var lj = rx + 30; lj < rx + rail.w; lj += 60) ctx.fillRect(lj, rty + 4, 1, gmid - rty - 4);
-        if (rail.waxed) { ctx.fillStyle = 'rgba(40,30,20,0.35)'; ctx.fillRect(rx + rail.w * 0.2, rty + 1, rail.w * 0.55, 3); }
-      } else if (kind === 'hydrant') {
-        ctx.fillStyle = '#FF3333'; ctx.fillRect(rx + 2, rty + 4, 10, gmid - rty - 4); ctx.fillRect(rx, rty + 8, 14, 4);
-        ctx.fillStyle = '#b01010'; ctx.fillRect(rx + 9, rty + 4, 3, gmid - rty - 4);
-        ctx.fillStyle = '#c8c8d0'; ctx.fillRect(rx + 1, rty + 12, 2, 2); ctx.fillRect(rx + 11, rty + 12, 2, 2);
-      } else if (kind === 'dumpster') {
-        ctx.fillStyle = '#3a6a3a'; ctx.fillRect(rx, rty + 3, rail.w, gmid - rty - 3);
-        ctx.fillStyle = '#2c522c'; ctx.fillRect(rx, rty + 3, rail.w, 5); ctx.fillRect(rx + 2, rty + 14, rail.w - 4, 2);
-        ctx.fillStyle = '#222'; ctx.fillRect(rx + 4, gmid - 4, 6, 4); ctx.fillRect(rx + rail.w - 10, gmid - 4, 6, 4);
-        ctx.fillStyle = '#f0e8d8'; ctx.fillRect(rx + 8, rty + 6, 4, 6); ctx.fillStyle = PINK; ctx.fillRect(rx + rail.w - 14, rty + 6, 3, 8);
-      } else if (kind === 'carhood') {
-        // A parked car, seen from the side: you grind the roofline
-        ctx.fillStyle = '#b02040'; ctx.fillRect(rx + 4, rty + 8, rail.w - 8, gmid - rty - 14);
-        ctx.fillRect(rx + rail.w * 0.22, rty + 2, rail.w * 0.5, 8);
-        ctx.fillStyle = '#7ab8e8'; ctx.fillRect(rx + rail.w * 0.26, rty + 3, rail.w * 0.18, 6); ctx.fillRect(rx + rail.w * 0.5, rty + 3, rail.w * 0.18, 6);
-        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(rx + rail.w * 0.24, gmid - 4, 6, 0, Math.PI * 2); ctx.arc(rx + rail.w * 0.76, gmid - 4, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#999'; ctx.beginPath(); ctx.arc(rx + rail.w * 0.24, gmid - 4, 2.5, 0, Math.PI * 2); ctx.arc(rx + rail.w * 0.76, gmid - 4, 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff5c0'; ctx.fillRect(rx + rail.w - 8, rty + 12, 4, 3);
+        ctx.fillRect(rx + rail.w - 5, rty2, 3, Math.max(2, g2 - rty2));
+        if (rail.w > 150) { var gm = terrainY(rail.x + rail.w / 2) - camY, rtm = rty + slp * rail.w / 2; ctx.fillRect(rx + rail.w / 2 - 1, rtm, 3, Math.max(2, gm - rtm)); }
+        ctx.fillStyle = '#666'; ctx.fillRect(rx, g1 - 2, 9, 2); ctx.fillRect(rx + rail.w - 7, g2 - 2, 9, 2);
+      } else {
+        // the body: a quad from the grind edge down to the ground at both ends
+        var bodyCol = kind === 'bench' ? '#8a6438' : kind === 'planter' ? '#6a6a72' : kind === 'ledge' ? '#9a9aa2' : kind === 'hydrant' ? '#FF3333' : kind === 'dumpster' ? '#3a6a3a' : '#b02040';
+        ctx.fillStyle = bodyCol;
+        ctx.beginPath(); ctx.moveTo(rx, rty + 2); ctx.lineTo(rx + rail.w, rty2 + 2); ctx.lineTo(rx + rail.w, g2); ctx.lineTo(rx, g1); ctx.fill();
+        ctx.save();
+        ctx.translate(rx, rty);
+        ctx.rotate(ang);
+        if (kind === 'bench') {
+          ctx.fillStyle = '#5a4020'; ctx.fillRect(4, 3, 3, rail.bodyH - 3); ctx.fillRect(len - 7, 3, 3, rail.bodyH - 3);
+          ctx.fillStyle = '#a87a48'; ctx.fillRect(0, 2, len, 4); ctx.fillStyle = '#8a6438'; ctx.fillRect(0, 8, len, 3);
+          ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (var sl2 = 8; sl2 < len - 6; sl2 += 14) ctx.fillRect(sl2, 2, 1, 9);
+        } else if (kind === 'planter') {
+          ctx.fillStyle = '#7c7c84'; ctx.fillRect(0, 2, len, 3);
+          ctx.fillStyle = '#2f7a3a'; for (var pl4 = 6; pl4 < len - 6; pl4 += 10) { ctx.beginPath(); ctx.arc(pl4, -1, 5, 0, Math.PI * 2); ctx.fill(); }
+          ctx.fillStyle = '#4aa050'; for (var pl5 = 9; pl5 < len - 6; pl5 += 10) ctx.fillRect(pl5, -4, 2, 2);
+        } else if (kind === 'ledge') {
+          ctx.fillStyle = '#b4b4bc'; ctx.fillRect(0, 2, len, 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.18)'; for (var lj = 30; lj < len; lj += 60) ctx.fillRect(lj, 4, 1, rail.bodyH - 4);
+          if (rail.waxed) { ctx.fillStyle = 'rgba(40,30,20,0.35)'; ctx.fillRect(len * 0.2, 1, len * 0.55, 3); }
+        } else if (kind === 'hydrant') {
+          ctx.fillStyle = '#b01010'; ctx.fillRect(9, 4, 3, rail.bodyH - 4); ctx.fillStyle = '#FF3333'; ctx.fillRect(0, 8, 14, 4);
+          ctx.fillStyle = '#c8c8d0'; ctx.fillRect(1, 12, 2, 2); ctx.fillRect(11, 12, 2, 2);
+        } else if (kind === 'dumpster') {
+          ctx.fillStyle = '#2c522c'; ctx.fillRect(0, 3, len, 5); ctx.fillRect(2, 14, len - 4, 2);
+          ctx.fillStyle = '#f0e8d8'; ctx.fillRect(8, 6, 4, 6); ctx.fillStyle = PINK; ctx.fillRect(len - 14, 6, 3, 8);
+        } else if (kind === 'carhood') {
+          ctx.fillStyle = '#c83050'; ctx.fillRect(len * 0.22, 2, len * 0.5, 8);
+          ctx.fillStyle = '#7ab8e8'; ctx.fillRect(len * 0.26, 3, len * 0.18, 6); ctx.fillRect(len * 0.5, 3, len * 0.18, 6);
+          ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(len * 0.24, rail.bodyH - 4, 6, 0, Math.PI * 2); ctx.arc(len * 0.76, rail.bodyH - 4, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#999'; ctx.beginPath(); ctx.arc(len * 0.24, rail.bodyH - 4, 2.5, 0, Math.PI * 2); ctx.arc(len * 0.76, rail.bodyH - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
       }
-      // the grind edge
+      // the grind edge, along the slope
+      ctx.save();
+      ctx.translate(rx, rty);
+      ctx.rotate(ang);
       ctx.fillStyle = rail.scored ? CYAN : (kind === 'rail' || kind === 'handrail' ? '#ccc' : 'rgba(255,255,255,0.75)');
-      ctx.fillRect(rx, rty, rail.w, kind === 'rail' || kind === 'handrail' ? 3 : 2);
+      ctx.fillRect(0, 0, len, kind === 'rail' || kind === 'handrail' ? 3 : 2);
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillRect(rx, rty, rail.w, 1);
+      ctx.fillRect(0, 0, len, 1);
+      ctx.restore();
     }
 
     for (var i = 0; i < obstacles.length; i++) {
@@ -2566,9 +2682,9 @@
       return;
     }
     var air = !player.onGround && !player.grinding;
-    if (player.backT > 0) ctx.rotate(-(1 - player.backT / 36) * Math.PI * 2);
-    else if (air) ctx.rotate(lean + spinAngle);
+    if (air) ctx.rotate(lean + spinAngle + backAngle);
     else if (player.onGround) ctx.rotate(Math.atan(groundSlope) * 0.85);
+    else if (player.grinding && player.grindRail) ctx.rotate(Math.atan(player.grindRail.slope || 0));
     ctx.translate(-(player.w / 2), -(player.h / 2));
 
     var grab = air ? grabName : '';
