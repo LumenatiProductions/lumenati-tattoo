@@ -416,7 +416,10 @@
   @media (max-width:640px) { #clippy-container { left:12px; } #clippy-character { transform-origin:bottom left; scale:0.75; } #clippy-bubble { max-width:180px; padding:10px 12px; } #clippy-bubble-text { font-size:12px; } #clippy-buttons { flex-direction:column; gap:6px; } #clippy-btn-book,#clippy-btn-dismiss { text-align:center; } }
 </style>
 <script>
-(function(){if(sessionStorage.getItem('clippy-dismissed'))return;var c=document.getElementById('clippy-container'),d=document.getElementById('clippy-btn-dismiss');setTimeout(function(){c.classList.add('clippy-visible');},30000);d.addEventListener('click',function(){c.classList.remove('clippy-visible');c.classList.add('clippy-hiding');sessionStorage.setItem('clippy-dismissed','1');setTimeout(function(){c.style.display='none';},500);});var b=document.getElementById('clippy-btn-book');if(b)b.addEventListener('click',function(){window.dispatchEvent(new Event('lmn-shopbot-open'));});window.addEventListener('lmn-shopbot-open',function(){c.classList.remove('clippy-visible');});})();
+// Clippy is the front desk (legacy/shopbot-y2k.html turns his bubble into the
+// chat). He shows up after a few seconds with the offer; Go away tucks the
+// bubble but leaves him in the corner, one click away, for the session.
+(function(){var c=document.getElementById('clippy-container'),d=document.getElementById('clippy-btn-dismiss');var quiet=!!sessionStorage.getItem('clippy-dismissed');setTimeout(function(){if(quiet)c.classList.add('clippy-quiet');c.classList.add('clippy-visible');},quiet?2000:8000);d.addEventListener('click',function(){c.classList.add('clippy-quiet');sessionStorage.setItem('clippy-dismissed','1');});var b=document.getElementById('clippy-btn-book');if(b)b.addEventListener('click',function(){window.dispatchEvent(new Event('lmn-shopbot-open'));});})();
 </script>
 
 <!-- Lumenati OnLine sign-on lives in legacy/aol-signon.html (rendered by the site layout and by /coming-soon). -->

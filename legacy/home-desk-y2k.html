@@ -1,0 +1,110 @@
+<!-- ── The home desktop: every window lives on the teal and moves ──
+     Buddy Info (the footer's own), Buddy List, the poll and the guestbook
+     get lifted out of their stacked blocks and placed on the footer's
+     .desktop as windows. The site-wide drag engine (code-injection footer,
+     window.lmnDrag) makes their title bars handles; where you leave them is
+     remembered in this browser (lmn-desk:home). Phones keep the stacked
+     flow: they scroll, they don't drag. -->
+<style>
+  .desktop.lmn-home-desk { display: block; min-height: 760px; }
+  .desktop.lmn-home-desk > .lmn-desk-win { position: absolute; margin: 0; }
+  .lmn-desk-reset { position: fixed; left: 12px; bottom: 44px; z-index: 2147483000; background: rgba(0,0,0,0.55); color: #fff; border: 1px solid rgba(255,255,255,0.35); border-radius: 6px; padding: 6px 10px; font: 11px Tahoma, Arial, sans-serif; cursor: pointer; }
+</style>
+<script>
+(function () {
+  if (window.__lmnHomeDesk) return;
+  window.__lmnHomeDesk = true;
+  var STORE = 'lmn-desk:home';
+  var smallTouch = ('ontouchstart' in window) && window.innerWidth < 768;
+  if (smallTouch || window.innerWidth < 900) return; // stacked flow on small screens
+
+  // The designed desk flows the windows left to right from beside the icon
+  // column and wraps by width, so no two ever sit on each other. A saved
+  // arrangement (percent from the left, px from the top) wins over it.
+  var WINDOWS = [
+    { key: 'info', find: '.desktop .aim-window',           handle: '.aim-titlebar', wrap: null,             w: 420 },
+    { key: 'list', find: '#bl-window',                     handle: '.bl-titlebar',  wrap: '.bl-wrap',       w: 300 },
+    { key: 'poll', find: '#lmn-poll .lmn-poll-box',        handle: '.lmn-poll-bar', wrap: '#lmn-poll',      w: 400 },
+    { key: 'book', find: '#lmn-guestbook .lmn-gb-win',     handle: '.lmn-gb-bar',   wrap: '#lmn-guestbook', w: 760 }
+  ];
+  var ICON_COL = 130, GAP = 24, TOP = 28;
+
+  function readLayout() { try { var v = localStorage.getItem(STORE); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function writeLayout(l) { try { if (l && Object.keys(l).length) localStorage.setItem(STORE, JSON.stringify(l)); else localStorage.removeItem(STORE); } catch (e) {} }
+
+  function init() {
+    var desk = document.querySelector('.desktop');
+    if (!desk || !window.lmnDrag) return false;
+    desk.classList.add('lmn-home-desk');
+    var layout = readLayout() || {};
+    var placed = [];
+    var dw = desk.clientWidth;
+    var x = ICON_COL, y = TOP, rowBottom = TOP;
+    WINDOWS.forEach(function (spec) {
+      var el = document.querySelector(spec.find);
+      if (!el) return;
+      var wrap = spec.wrap ? document.querySelector(spec.wrap) : null;
+      if (el.parentElement !== desk) desk.appendChild(el);
+      if (wrap) wrap.style.display = 'none';
+      el.classList.add('lmn-desk-win');
+      el.dataset.lmnKey = spec.key;
+      var width = Math.min(spec.w, dw - ICON_COL - 16);
+      el.style.width = width + 'px';
+      el.style.maxWidth = 'none';
+      el.style.position = 'absolute';
+      var p = layout[spec.key];
+      if (p) {
+        el.style.left = Math.max(8, Math.min(dw - width - 8, p.l / 100 * dw)) + 'px';
+        el.style.top = p.t + 'px';
+      } else {
+        if (x + width > dw - 16 && x > ICON_COL) { x = ICON_COL; y = rowBottom + GAP; }
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        var h = el.offsetHeight;
+        rowBottom = Math.max(rowBottom, y + h);
+        x += width + GAP;
+      }
+      var handle = el.querySelector(spec.handle) || el;
+      window.lmnDrag.attach(el, { handle: handle, container: desk });
+      handle.addEventListener('pointerup', function () { setTimeout(function () { remember(desk); }, 0); });
+      placed.push(el);
+    });
+    fitDesk(desk, placed);
+    // Reset: back to the designed desk.
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'lmn-desk-reset'; btn.textContent = '↺ reset desk';
+    btn.style.display = Object.keys(layout).length ? '' : 'none';
+    btn.addEventListener('click', function () { writeLayout(null); location.reload(); });
+    document.body.appendChild(btn);
+    desk.__lmnResetBtn = btn;
+    return true;
+  }
+  function fitDesk(desk, els) {
+    var bottom = 0;
+    els.forEach(function (el) { bottom = Math.max(bottom, el.offsetTop + el.offsetHeight); });
+    // The icon column counts too: it must clear the taskbar.
+    var icons = desk.querySelector('.desktop-icons');
+    if (icons) bottom = Math.max(bottom, icons.offsetTop + icons.offsetHeight);
+    desk.style.minHeight = Math.max(760, bottom + 60) + 'px';
+  }
+  function remember(desk) {
+    var crect = desk.getBoundingClientRect();
+    var layout = {};
+    [].slice.call(desk.querySelectorAll('[data-lmn-key]')).forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      layout[el.dataset.lmnKey] = { l: Math.round(((r.left - crect.left) / crect.width) * 10000) / 100, t: Math.round(r.top - crect.top) };
+    });
+    writeLayout(layout);
+    if (desk.__lmnResetBtn) desk.__lmnResetBtn.style.display = '';
+    fitDesk(desk, [].slice.call(desk.querySelectorAll('[data-lmn-key]')));
+  }
+
+  // The drag engine arrives with the footer bundle, which the layout renders
+  // after this page's blocks: wait for it.
+  var tries = 0;
+  (function wait() {
+    if (init()) return;
+    if (++tries < 120) setTimeout(wait, 50);
+  })();
+})();
+</script>

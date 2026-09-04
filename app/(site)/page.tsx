@@ -20,6 +20,7 @@ export default async function HomePage() {
   const buddies = readLegacyBlock("buddylist-y2k.html"); // the crew's AIM buddy list, real status
   const poll = readLegacyBlock("poll-y2k.html"); // one live poll, chunky bars
   const guestbook = readLegacyBlock("guestbook-y2k.html"); // sign it, shows once the shop approves
+  const homeDesk = readLegacyBlock("home-desk-y2k.html"); // lifts those windows onto the desktop, draggable
 
   try {
     const [roster, rooms] = await Promise.all([fetchArtists(), fetchAllRooms()]);
@@ -32,11 +33,12 @@ export default async function HomePage() {
     <main>
       <LegacyBlock html={hero} />
       <LegacyBlock html={artists} />
-      <LegacyBlock html={buddies} />
       <LegacyBlock html={koolAid} />
+      <LegacyBlock html={buddies} />
       <LegacyBlock html={poll} />
       <LegacyBlock html={guestbook} />
       <LegacyBlock html={footer} />
+      <LegacyBlock html={homeDesk} />
       <LegacyBlock html={games} />
     </main>
   );
