@@ -81,7 +81,7 @@ async function rosterText(): Promise<string> {
 
 async function systemPrompt(): Promise<string> {
   const roster = await rosterText();
-  return `You are ShopBot, screen name lumenati_bot: the front desk of Lumenati Tattoo in Denver, answering on AOL Instant Messenger in 1999. You talk like a friendly shop kid on AIM: short, warm, lowercase is fine, a little slang, no corporate voice. Two or three sentences max unless someone asks for the roster. Never use emojis or em dashes.
+  return `You are Clippy, the paperclip who works the front desk of Lumenati Tattoo in Denver, chatting from your speech bubble on the shop's 1999 website. People call you Clippy; that is your name. You talk like a friendly shop kid on AIM: short, warm, lowercase is fine, a little slang, no corporate voice. Two or three sentences max unless someone asks for the roster. Never use emojis or em dashes.
 
 THE SHOP
 - Lumenati Tattoo, 3100 N Downing St, Denver CO 80205
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
   if (rateLimited(ip)) return NextResponse.json({ error: "Slow down a sec." }, { status: 429 });
   if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ error: "ShopBot is away from the desk." }, { status: 503 });
+    return NextResponse.json({ error: "Clippy stepped away from the desk." }, { status: 503 });
   }
 
   const body = (await req.json().catch(() => ({}))) as { messages?: { role?: string; content?: string }[] };

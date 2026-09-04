@@ -1,8 +1,8 @@
-<!-- ── SHOPBOT — Clippy is the front desk, answered by Claude ── -->
+<!-- ── CLIPPY — the front desk, answered by Claude ── -->
 <!-- No window of its own: the chat lives in Clippy's speech bubble (the
      Clippy markup and the drag engine come with the code-injection footer,
      rendered after this block, so the script waits for them). Opens on
-     Clippy's "Ask ShopBot" button, on a click on Clippy himself, or on the
+     Clippy's "Ask Clippy" button, on a click on Clippy himself, or on the
      window event 'lmn-shopbot-open'. -->
 <style>
   #clippy-bubble.lmn-sb-chat { max-width: 320px; width: 320px; padding: 8px 8px 8px; }
@@ -24,7 +24,7 @@
   .lmn-sb-line a { color: #0000ff; text-decoration: underline; }
   .lmn-sb-line a:hover { color: #ff0000; }
   .lmn-sb-typing { font-family: Tahoma, Arial, sans-serif; font-size: 10px; color: #808080; padding: 2px 2px 0; height: 14px; text-align: left; }
-  .lmn-sb-typing.on::after { content: 'lumenati_bot is typing...'; }
+  .lmn-sb-typing.on::after { content: 'clippy is typing...'; }
   .lmn-sb-compose { display: flex; gap: 4px; padding-top: 4px; }
   .lmn-sb-input {
     flex: 1; min-width: 0; padding: 6px 8px; font-family: Tahoma, Arial, sans-serif; font-size: 14px; color: #000;
@@ -81,7 +81,7 @@
   }
   function greet() {
     if (history.length) return;
-    var hello = "hey, front desk here. ask me who's tattooing, how booking works, or what's on the flash wall.";
+    var hello = "clippy here, front desk. ask me who's tattooing, how booking works, or what's on the flash wall.";
     history.push({ role: 'assistant', content: hello, at: Date.now() });
     save();
   }
@@ -187,7 +187,7 @@
     }).then(function (r) {
       if (!r.ok) {
         return r.json().catch(function () { return {}; }).then(function (j) {
-          var msg = r.status === 503 ? 'ShopBot is away from the desk. email hi@lumenatitattoo.com and a human will get back to you.'
+          var msg = r.status === 503 ? 'clippy stepped away from the desk. email hi@lumenatitattoo.com and a human will get back to you.'
             : r.status === 429 ? 'slow down a sec, the desk is slammed.' : (j.error || 'hmm, that did not go through. try again?');
           line('assistant', msg);
           finish(msg);
