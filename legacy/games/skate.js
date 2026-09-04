@@ -2326,10 +2326,11 @@
     if (hintT > 0 && mode === 'play') {
       hintT--;
       ctx.globalAlpha = Math.min(1, hintT / 40) * 0.9;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(40, H - 44, W - 80, 30);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(12, H - 55, W - 24, 41);
       ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace';
-      ctx.fillText('SPACE: ollie (hold for big)   //   in the air: tap LEFT/RIGHT flip, hold LEFT/RIGHT spin, hold UP or DOWN grab', W / 2, H - 31);
-      ctx.fillText('hold UP at a lip to send it   //   on a rail: LEFT/RIGHT change the grind   //   DOWN on landing: manual', W / 2, H - 20);
+      ctx.fillText('SPACE ollie, hold for big  //  hold UP at a lip to send it', W / 2, H - 42);
+      ctx.fillText('in the air: tap L/R flip, hold L/R spin, hold UP or DOWN grab', W / 2, H - 31);
+      ctx.fillText('on a rail: L/R change the grind  //  DOWN on landing: manual', W / 2, H - 20);
       ctx.globalAlpha = 1;
     }
     // the line, right side
