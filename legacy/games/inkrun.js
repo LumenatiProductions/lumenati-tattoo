@@ -131,6 +131,7 @@
   var chain, chainT, drops, bestChain, nearOnes, lastJump, lastSlide, comboT;
   var magnetT, shieldOn, coffeeT, slowT, stumbleT, invuln, bannerT, bannerText, bannerColor;
   var spawnZ, stats, lastZoneCleared, floorOff, stars;
+  var introduced, lastPatternWasHazard, slideEndAt, cardT, cardText, cardSub;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-inkrun') || '0', 10) || 0; } catch(e) {}
@@ -160,14 +161,15 @@
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
-    score = 0; lives = 3; frame = 0; dist = 0; speed = 0.3; zone = 1; mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0;
+    score = 0; lives = 3; frame = 0; dist = 0; speed = 0.18; zone = 1; mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     player = { lane: 0, x: 0, h: 0, vy: 0, jumping: false, slideT: 0, lean: 0, runT: 0 };
     obstacles = []; pickups = []; props = []; birds = []; popups = []; parts = []; shake = 0; flashT = 0;
     chain = 0; chainT = 0; drops = 0; bestChain = 0; nearOnes = 0; lastJump = -999; lastSlide = -999; comboT = 0;
     magnetT = 0; shieldOn = false; coffeeT = 0; slowT = 0; stumbleT = 0; invuln = 0; bannerT = 0; bannerText = ''; bannerColor = LIME;
-    spawnZ = 14; stats = { zone: 1, flash: 0, near: 0 }; lastZoneCleared = 0; floorOff = 0;
+    spawnZ = 16; stats = { zone: 1, flash: 0, near: 0 }; lastZoneCleared = 0; floorOff = 0;
+    introduced = { low: false, high: false, block: false }; lastPatternWasHazard = false; slideEndAt = -999; cardT = 0; cardText = ''; cardSub = '';
     stars = [];
     for (var i = 0; i < 40; i++) stars.push({ x: (i * 97) % W, y: (i * 53) % (HOR - 10), s: 1 + (i % 2) });
     seedProps();
@@ -189,12 +191,24 @@
     return zd.props[Math.floor(Math.random() * zd.props.length)];
   }
 
-  // ── Spawning: patterns that always leave a way through ──
+  // ── Spawning: one thing to do at a time, and always a way through ──
+  // The first zone is a warm-up: jumps only for 300m, then slides, then
+  // blockers, each with a card the first time it shows up. Hazard patterns
+  // and drop-only breathers alternate in the first two zones, so two
+  // different moves never come back to back. Spacing scales with speed so
+  // there is always at least 1.5 seconds to react.
+  function teach(cls) {
+    if (introduced[cls]) return;
+    introduced[cls] = true;
+    if (cls === 'low') { cardText = 'CARTS: JUMP'; cardSub = 'yellow arrow = press UP'; }
+    else if (cls === 'high') { cardText = 'BARS: SLIDE'; cardSub = 'cyan arrow = press DOWN'; }
+    else { cardText = 'CHAIRS: CHANGE LANE'; cardSub = 'red X = move LEFT or RIGHT'; }
+    cardT = 200;
+    sfxZone();
+  }
   function spawnPattern() {
     var zd = zoneDef(zone);
     var z = Z_FAR;
-    var hard = Math.min(1, (dist / ZONE_LEN) * 0.18);
-    var r = Math.random();
     var lanes = [-1, 0, 1];
     function shuffled() { var a = lanes.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
     function ob(kind, type, lane, zz, wide) { obstacles.push({ kind: kind, type: type, lane: lane, z: zz, wide: !!wide, passed: false, near: false, id: Math.random() }); }
@@ -208,47 +222,49 @@
         pickups.push({ kind: 'drop', lane: lane, z: zz + i * 1.3, h: h, got: false });
       }
     }
-    if (r < 0.22) {
-      // one low thing to jump, drops arcing over it in the same lane
+    // what the run has unlocked so far
+    var allowed = ['low'];
+    if (dist >= 300) allowed.push('high');
+    if (dist >= 600) allowed.push('block');
+    var easy = zone <= 2;
+    var breather = easy && lastPatternWasHazard;
+    var rest = breather || Math.random() < 0.18;
+    var gapUnits = Math.max(12, speed * 90) + Math.random() * 4; // 1.5s at the current speed, at least
+    if (rest) {
+      // drops only: a line, sometimes with a lane change and a treat
+      var s2 = shuffled();
+      dropLine(s2[0], z, 5, false);
+      if (Math.random() < 0.5) dropLine(s2[1], z + 8, 4, false);
+      if (Math.random() < 0.35) { var kinds = ['flash', 'flash', 'magnet', 'shield', 'coffee']; pickups.push({ kind: kinds[Math.floor(Math.random() * kinds.length)], lane: s2[2], z: z + 4, h: 0, got: false }); }
+      lastPatternWasHazard = false;
+      spawnZ = gapUnits * 0.6;
+      return;
+    }
+    var cls = allowed[Math.floor(Math.random() * allowed.length)];
+    teach(cls);
+    lastPatternWasHazard = true;
+    if (cls === 'low') {
       var l1 = lanes[Math.floor(Math.random() * 3)];
-      ob(lowKind(), 'low', l1, z);
-      if (Math.random() < 0.7) dropLine(l1, z - 3, 5, true);
-    } else if (r < 0.40) {
-      // a bar across everything: slide
+      if (zd.spill && zone >= 2 && Math.random() < 0.3) {
+        obstacles.push({ kind: 'spill', type: 'spill', lane: l1, z: z, passed: false, id: Math.random() });
+      } else ob(lowKind(), 'low', l1, z);
+      if (Math.random() < 0.75) dropLine(l1, z - 3, 5, true);
+      // later zones: a second jump in another lane at the same depth
+      if (zone >= 3 && Math.random() < 0.5) { var l1b = shuffled().filter(function(l) { return l !== l1; })[0]; ob(lowKind(), 'low', l1b, z); }
+    } else if (cls === 'high') {
       ob(highKind(), 'high', 0, z, true);
       var l2 = lanes[Math.floor(Math.random() * 3)];
       if (Math.random() < 0.6) dropLine(l2, z + 2, 4, false);
-    } else if (r < 0.62) {
-      // two blockers, one lane open
-      var s = shuffled();
-      ob(blockKind(), 'block', s[0], z);
-      ob(Math.random() < 0.5 ? blockKind() : lowKind(), Math.random() < 0.5 ? 'block' : 'low', s[1], z + (Math.random() < 0.5 ? 0 : 2));
-      if (Math.random() < 0.7) dropLine(s[2], z - 1, 5, false);
-    } else if (r < 0.74) {
-      // a run of drops with a lane change in it
-      var s2 = shuffled();
-      dropLine(s2[0], z, 4, false);
-      dropLine(s2[1], z + 6, 4, false);
-      if (hard > 0.3) ob(lowKind(), 'low', s2[2], z + 3);
-    } else if (r < 0.86) {
-      // jump then slide: the combo setup
-      var l3 = lanes[Math.floor(Math.random() * 3)];
-      ob(lowKind(), 'low', l3, z);
-      ob(highKind(), 'high', 0, z + 5 + (1 - hard) * 3, true);
-    } else if (zd.spill && r < 0.93) {
-      var s3 = shuffled();
-      obstacles.push({ kind: 'spill', type: 'spill', lane: s3[0], z: z, passed: false, id: Math.random() });
-      obstacles.push({ kind: 'spill', type: 'spill', lane: s3[1], z: z + 1.5, passed: false, id: Math.random() });
-      dropLine(s3[2], z - 1, 4, false);
     } else {
-      // a single blocker and a treat somewhere else
-      var s4 = shuffled();
-      ob(blockKind(), 'block', s4[0], z);
-      var kinds = ['flash', 'flash', 'magnet', 'shield', 'coffee'];
-      pickups.push({ kind: kinds[Math.floor(Math.random() * kinds.length)], lane: s4[1], z: z + 1, h: 0, got: false });
+      var s3 = shuffled();
+      ob(blockKind(), 'block', s3[0], z);
+      // from zone 3 a second blocker, always leaving a lane open
+      if (zone >= 3 && Math.random() < 0.6) ob(blockKind(), 'block', s3[1], z);
+      if (Math.random() < 0.7) dropLine(s3[2], z - 1, 5, false);
     }
-    // Later zones squeeze the gaps
-    spawnZ = Math.max(5.5, 11 - zone * 0.9 - hard * 2) + Math.random() * 2;
+    // the combo setup (jump, then a bar) waits for zone 3
+    if (!easy && cls === 'low' && Math.random() < 0.3 && introduced.high) ob(highKind(), 'high', 0, z + Math.max(8, speed * 60), true);
+    spawnZ = gapUnits;
   }
 
   // ── Player actions ──
@@ -295,7 +311,10 @@
     chain = 0; chainT = 0;
     sfxHit();
     shake = 14; flashT = 8;
-    stumbleT = 40;
+    stumbleT = 120; // two seconds at half speed
+    // nothing lands on you in the first second after a hit
+    for (var ci = obstacles.length - 1; ci >= 0; ci--) { if (obstacles[ci] !== ob && obstacles[ci].z > -1 && obstacles[ci].z < speed * 60 + 2) obstacles.splice(ci, 1); }
+    spawnZ = Math.max(spawnZ, speed * 60 + 4);
     burst(xAt(player.x, 0), FLOOR_Y - 20, 18, '#e74c3c', 3, 0.1);
     for (var i = 0; i < 4; i++) parts.push({ x: xAt(player.x, 0), y: FLOOR_Y - 26, vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 2, life: 60, color: '#fff', s: 4, g: 0.06, paper: true });
     if (lives <= 0) {
@@ -321,14 +340,15 @@
     if (slowT > 0) slowT--;
     if (stumbleT > 0) stumbleT--;
     if (comboT > 0) comboT--;
+    if (cardT > 0) cardT--;
     if (chainT > 0) { chainT--; if (chainT === 0 && chain > 0) { chain = 0; } }
 
     // Speed: ramps with distance, coffee doubles down, spills and stumbles drag
-    var base = 0.3 + Math.min(0.34, dist / 9000);
+    var base = 0.18 + Math.min(0.34, dist / 14000);
     var sp = base;
     if (coffeeT > 0) sp *= 1.5;
     if (slowT > 0) sp *= 0.72;
-    if (stumbleT > 0) sp *= 0.55;
+    if (stumbleT > 0) sp *= 0.5;
     speed += (sp - speed) * 0.08;
     dist += speed;
     floorOff = (floorOff + speed) % 4;
@@ -353,7 +373,7 @@
     }
 
     // Player physics
-    player.x += (player.lane - player.x) * 0.22;
+    player.x += (player.lane - player.x) * 0.45; // the sprite catches up fast; the lane itself is instant
     player.lean *= 0.85;
     player.runT += speed * 2.2;
     if (player.jumping) {
@@ -361,7 +381,7 @@
       player.vy -= 0.0095;
       if (player.h <= 0) { player.h = 0; player.jumping = false; player.vy = 0; burst(xAt(player.x, 0), FLOOR_Y, 4, 'rgba(200,200,220,0.5)', 1.0, 0.02); }
     }
-    if (player.slideT > 0) player.slideT--;
+    if (player.slideT > 0) { player.slideT--; if (player.slideT === 0) slideEndAt = frame; }
 
     // Spawn
     spawnZ -= speed;
@@ -384,17 +404,19 @@
       var ob = obstacles[i];
       ob.z -= speed;
       if (ob.z < -3) { obstacles.splice(i, 1); continue; }
-      var laneHit = ob.wide || Math.abs(ob.lane - px) < 0.55;
-      var inReach = ob.z < 0.7 && ob.z > -0.5;
+      var laneHit = ob.wide || ob.lane === player.lane;
+      var inReach = ob.z < 0.45 && ob.z > -0.3;
       if (inReach && laneHit && !ob.passed) {
         var dodged = false;
-        if (ob.type === 'low') dodged = player.h > 0.45;
-        else if (ob.type === 'high') dodged = player.slideT > 0;
-        else if (ob.type === 'spill') { dodged = player.h > 0.3; if (!dodged) { slowT = 50; ob.passed = true; addPopup(xAt(ob.lane, 0), FLOOR_Y - 40, 'INK SPILL', PURPLE); chain = 0; chainT = 0; continue; } }
+        // generous: any part of a jump clears a low thing, a slide that just
+        // ended or just started still clears a bar
+        if (ob.type === 'low') dodged = player.jumping || player.h > 0.2;
+        else if (ob.type === 'high') dodged = player.slideT > 0 || frame - slideEndAt < 10;
+        else if (ob.type === 'spill') { dodged = player.jumping || player.h > 0.2; if (!dodged) { slowT = 50; ob.passed = true; addPopup(xAt(ob.lane, 0), FLOOR_Y - 40, 'INK SPILL', PURPLE); chain = 0; chainT = 0; continue; } }
         if (!dodged) { ob.passed = true; hit(ob); }
       }
       // Near miss: a blocker slides past in the lane beside you
-      if (!ob.near && ob.type === 'block' && !ob.wide && ob.z < 0.3 && ob.z > -0.5 && Math.abs(ob.lane - px) >= 0.55 && Math.abs(ob.lane - px) < 1.4 && invuln === 0) {
+      if (!ob.near && ob.type === 'block' && !ob.wide && ob.z < 0.3 && ob.z > -0.5 && ob.lane !== player.lane && Math.abs(ob.lane - player.lane) < 1.5 && invuln === 0) {
         ob.near = true;
         nearOnes++; stats.near++;
         award(15 * mult(), xAt(ob.lane, 0), FLOOR_Y - 50, 'CLOSE!', ORANGE);
@@ -417,7 +439,7 @@
       if (magnetT > 0 && pk.kind === 'drop' && pk.z < 6 && pk.z > -0.5) { pk.lane += (px - pk.lane) * 0.25; pk.h += (Math.min(player.h, pk.h) - pk.h) * 0.3; }
       if (pk.z < -1.5) { pickups.splice(k, 1); continue; }
       if (pk.got) continue;
-      if (pk.z < 0.7 && pk.z > -0.6 && Math.abs(pk.lane - px) < 0.6 && Math.abs(pk.h - player.h) < 0.75) {
+      if (pk.z < 0.8 && pk.z > -0.7 && Math.abs(pk.lane - player.lane) < 0.6 && Math.abs(pk.h - player.h) < 0.85) {
         pk.got = true;
         var sx = xAt(pk.lane, 0), sy = FLOOR_Y - 20 - pk.h * 70;
         if (pk.kind === 'drop') {
@@ -656,11 +678,13 @@
     }
     var layers = layersFor(zd);
     if (layers) {
+      ctx.globalAlpha = 0.55;
       for (var l = 0; l < layers.length; l++) {
         var off = (dist * layers[l].speed * 10) % LAYER_W;
         ctx.drawImage(layers[l].c, -off, 0, LAYER_W, HOR + 8);
         ctx.drawImage(layers[l].c, LAYER_W - off, 0, LAYER_W, HOR + 8);
       }
+      ctx.globalAlpha = 1;
     } else {
       // no offscreen canvas here: paint the mid layer live
       layerPainters(zd)[1].paint(ctx, W);
@@ -680,7 +704,7 @@
       for (var s = 0; s < 3; s++) {
         var sx = 60 + s * 140 + Math.sin(frame * 0.01 + s) * 8;
         var sg = ctx.createLinearGradient(sx, 0, sx + 30, HOR + 60);
-        sg.addColorStop(0, 'rgba(255,120,200,0.16)'); sg.addColorStop(1, 'rgba(255,120,200,0)');
+        sg.addColorStop(0, 'rgba(255,120,200,0.07)'); sg.addColorStop(1, 'rgba(255,120,200,0)');
         ctx.fillStyle = sg; ctx.beginPath(); ctx.moveTo(sx - 10, 0); ctx.lineTo(sx + 26, 0); ctx.lineTo(sx + 90, HOR + 70); ctx.lineTo(sx - 40, HOR + 70); ctx.closePath(); ctx.fill();
       }
       ctx.restore();
@@ -700,7 +724,7 @@
       var y1 = yAt(zz), y2 = yAt(zz - 2);
       if (y2 < y1) continue;
       var tone = Math.floor((z + 100) / 2) % 2 === 0;
-      var f = Math.max(0, Math.min(0.85, (1 - scaleAt(zz)) * 1.05 - 0.1));
+      var f = Math.max(0, Math.min(0.9, (1 - scaleAt(zz)) * 1.15 - 0.05));
       FOG_COL = zd.fog;
       ctx.fillStyle = mix(tone ? zd.floor[1] : zd.floor[0], f);
       ctx.beginPath();
@@ -714,16 +738,11 @@
       wg.addColorStop(0, zd.name === 'THE ALLEY' ? 'rgba(255,220,150,0.16)' : 'rgba(0,255,255,0.12)'); wg.addColorStop(0.5, 'rgba(255,255,255,0.03)'); wg.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(xAt(-1.5, Z_FAR), HOR); ctx.lineTo(xAt(1.5, Z_FAR), HOR); ctx.lineTo(xAt(1.5, -1), H); ctx.lineTo(xAt(-1.5, -1), H); ctx.closePath(); ctx.fill();
     }
-    // specular strip from the overhead lights, rolling with distance
+    // a quiet overhead sheen near the player, nothing busy up the track
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    var sp = ((dist * 0.6) % 24) / 24;
-    for (var i = 0; i < 3; i++) {
-      var zs = 6 + i * 18 + sp * 18;
-      var ys = yAt(zs), ss = scaleAt(zs);
-      var sgg = ctx.createRadialGradient(W / 2, ys, 0, W / 2, ys, LANE_W * 1.6 * ss + 10);
-      sgg.addColorStop(0, 'rgba(255,255,255,' + (0.09 * ss + 0.02) + ')'); sgg.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = sgg; ctx.fillRect(0, ys - 12, W, 24);
-    }
+    var sgg = ctx.createRadialGradient(W / 2, FLOOR_Y - 20, 0, W / 2, FLOOR_Y - 20, LANE_W * 1.8);
+    sgg.addColorStop(0, 'rgba(255,255,255,0.05)'); sgg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sgg; ctx.fillRect(0, HOR, W, H - HOR);
     ctx.restore();
     // lane edges with a faint glow in the zone color
     ctx.save(); ctx.strokeStyle = zd.line; ctx.lineWidth = 1.2; glow(zd.line, 4);
@@ -754,8 +773,8 @@
     var x = xAt(p.side * 1.95, p.z), y = yAt(p.z);
     var u = 60 * s;
     var k = p.kind;
-    ctx.globalAlpha = Math.min(1, s * 3);
-    softShadow(x, y, u * 0.6, u * 0.16, 0.35);
+    ctx.globalAlpha = Math.min(0.7, s * 2.2);
+    softShadow(x, y, u * 0.6, u * 0.16, 0.3);
     if (k === 'chair') { box3d(x - u * 0.3, y, u * 0.6, u * 0.5, s, '#3a3a48'); px(x - u * 0.3, y - u * 0.95, u * 0.14, u * 0.5, '#2a2a36'); fillR(x - u * 0.28, y - u * 0.62, u * 0.56, u * 0.14, u * 0.05, PINK); }
     else if (k === 'station') { box3d(x - u * 0.35, y, u * 0.7, u * 0.7, s, '#2e2e3c'); px(x - u * 0.3, y - u * 0.65, u * 0.6, u * 0.28, '#0a0a10'); ctx.save(); glow(CYAN, 6 * s); px(x - u * 0.2, y - u * 0.6, u * 0.4, u * 0.14, CYAN); ctx.restore(); }
     else if (k === 'neon') { px(x - u * 0.05, y - u * 1.4, u * 0.1, u * 1.4, '#222'); px(x - u * 0.42, y - u * 1.52, u * 0.84, u * 0.38, '#0a0a10'); var on = (frame % 47 < 41); ctx.save(); if (on) glow(PINK, 10 * s); px(x - u * 0.34, y - u * 1.44, u * 0.68, u * 0.22, on ? PINK : '#601040'); ctx.restore(); if (on) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; var ng = ctx.createRadialGradient(x, y - u * 1.3, 0, x, y - u * 1.3, u * 1.2); ng.addColorStop(0, 'rgba(255,20,147,0.22)'); ng.addColorStop(1, 'rgba(255,20,147,0)'); ctx.fillStyle = ng; ctx.fillRect(x - u * 1.2, y - u * 2.5, u * 2.4, u * 2.6); ctx.restore(); } }
@@ -772,46 +791,135 @@
     FOG = 0;
   }
 
+  // ── Hazards: three classes, three languages ──
+  // JUMP (low): wide, floor-colored, a bright yellow top edge, a yellow up
+  // arrow floating over it. SLIDE (high): a bar on posts across the lanes,
+  // cyan glow, a cyan down arrow. BLOCK: tall, solid, red-lit, a red X.
+  // The icon and a lane stripe show up the moment a thing spawns.
+  var CLS = { low: { col: YELLOW, dark: '#8a7000' }, spill: { col: YELLOW, dark: '#8a7000' }, high: { col: CYAN, dark: '#007a80' }, block: { col: '#ff3b3b', dark: '#8a0a0a' } };
+  function laneStripe(ob) {
+    if (ob.z < 0) return;
+    var c = CLS[ob.type] || CLS.low;
+    var zFar = ob.z, zNear = Math.max(0, ob.z - 9);
+    var l0 = ob.wide ? -1.45 : ob.lane - 0.42, l1 = ob.wide ? 1.45 : ob.lane + 0.42;
+    var a = 0.16 + 0.22 * scaleAt(ob.z);
+    var g = ctx.createLinearGradient(0, yAt(zFar), 0, yAt(zNear));
+    g.addColorStop(0, c.col.replace(')', '') === c.col ? hexA(c.col, a) : c.col); g.addColorStop(1, hexA(c.col, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(xAt(l0, zFar), yAt(zFar)); ctx.lineTo(xAt(l1, zFar), yAt(zFar)); ctx.lineTo(xAt(l1, zNear), yAt(zNear)); ctx.lineTo(xAt(l0, zNear), yAt(zNear)); ctx.closePath(); ctx.fill();
+  }
+  function hexA(c, a) { var r = hexToRgb(c); return 'rgba(' + r[0] + ',' + r[1] + ',' + r[2] + ',' + a + ')'; }
+  function outline(x, y, w, h, r) { ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; rrect(x, y, w, h, r); ctx.stroke(); }
+  function drawIcon(type, x, y, s) {
+    var c = CLS[type] || CLS.low;
+    var sz = 7 + 20 * Math.min(1, s * 1.4);
+    var bob = Math.sin(frame * 0.15) * 2;
+    y += bob;
+    ctx.save(); glow(c.col, 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(x, y, sz * 0.72, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = c.col;
+    if (type === 'low' || type === 'spill') { ctx.beginPath(); ctx.moveTo(x, y - sz * 0.5); ctx.lineTo(x + sz * 0.42, y + sz * 0.1); ctx.lineTo(x + sz * 0.16, y + sz * 0.1); ctx.lineTo(x + sz * 0.16, y + sz * 0.5); ctx.lineTo(x - sz * 0.16, y + sz * 0.5); ctx.lineTo(x - sz * 0.16, y + sz * 0.1); ctx.lineTo(x - sz * 0.42, y + sz * 0.1); ctx.closePath(); ctx.fill(); }
+    else if (type === 'high') { ctx.beginPath(); ctx.moveTo(x, y + sz * 0.5); ctx.lineTo(x + sz * 0.42, y - sz * 0.1); ctx.lineTo(x + sz * 0.16, y - sz * 0.1); ctx.lineTo(x + sz * 0.16, y - sz * 0.5); ctx.lineTo(x - sz * 0.16, y - sz * 0.5); ctx.lineTo(x - sz * 0.16, y - sz * 0.1); ctx.lineTo(x - sz * 0.42, y - sz * 0.1); ctx.closePath(); ctx.fill(); }
+    else { ctx.strokeStyle = c.col; ctx.lineWidth = Math.max(2, sz * 0.2); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - sz * 0.38, y - sz * 0.38); ctx.lineTo(x + sz * 0.38, y + sz * 0.38); ctx.moveTo(x + sz * 0.38, y - sz * 0.38); ctx.lineTo(x - sz * 0.38, y + sz * 0.38); ctx.stroke(); }
+    ctx.restore();
+  }
   function drawObstacle(ob, zd) {
     var s = scaleAt(ob.z);
-    if (s < 0.08) return;
+    if (s < 0.06) return;
     setFog(ob.z, zd);
-    var y = yAt(ob.z), u = 60 * s;
+    FOG *= 0.6; // hazards stay readable further out than scenery
+    var y = yAt(ob.z), u = 80 * s;
     var x = xAt(ob.lane, ob.z);
-    ctx.globalAlpha = Math.min(1, s * 4);
-    if (ob.type !== 'spill') softShadow(x, y, ob.wide ? LANE_W * 1.5 * s + 20 : u * 0.55, u * 0.14, 0.5);
-    var k = ob.kind;
+    var c = CLS[ob.type] || CLS.low;
+    ctx.globalAlpha = Math.min(1, s * 5);
+    if (ob.type !== 'spill') softShadow(x, y, ob.wide ? LANE_W * 1.5 * s + 20 : u * 0.6, u * 0.14, 0.55);
+    var k = ob.kind, iconY;
     if (ob.type === 'high') {
-      var x0 = xAt(-1.5, ob.z), x1 = xAt(1.5, ob.z), top = y - u * 1.05;
-      if (k === 'sign') { fillR(x0, top - u * 0.32, x1 - x0, u * 0.32, u * 0.04, '#0a0a10'); var onS = frame % 30 < 24; ctx.save(); if (onS) glow('#ff3030', 10 * s); fillR(x0 + u * 0.1, top - u * 0.27, x1 - x0 - u * 0.2, u * 0.22, u * 0.03, onS ? '#ff3030' : '#601010'); ctx.restore(); ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.max(6, u * 0.18) + 'px monospace'; ctx.textAlign = 'center'; ctx.fillText('OPEN', (x0 + x1) / 2, top - u * 0.1); }
-      else if (k === 'escapebar' || k === 'wire') { px(x0, top - u * 0.08, x1 - x0, u * 0.1, '#6a6a72'); px(x0, top - u * 0.03, x1 - x0, u * 0.03, '#b0b0b8'); }
-      else if (k === 'tentbar') { px(x0, top - u * 0.1, x1 - x0, u * 0.12, '#e8e8e8'); for (var f = 0; f < 6; f++) px(x0 + f * (x1 - x0) / 6, top + u * 0.02, (x1 - x0) / 12, u * 0.14, f % 2 ? PINK : YELLOW); }
-      else if (k === 'tunnel') { box3d(x0 - u * 0.2, top, x1 - x0 + u * 0.4, u * 0.6, s * 0.5, '#2a2a34'); px(x0 - u * 0.2, top - u * 0.6, u * 0.2, u * 1.7, '#242430'); px(x1, top - u * 0.6, u * 0.2, u * 1.7, '#242430'); ctx.save(); glow(YELLOW, 8 * s); px(x0, top - u * 0.02, x1 - x0, u * 0.04, YELLOW); ctx.restore(); if (ob.z < 12) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; var tg = ctx.createLinearGradient(0, top, 0, y); tg.addColorStop(0, 'rgba(255,215,0,0.22)'); tg.addColorStop(1, 'rgba(255,215,0,0)'); ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x1, top); ctx.lineTo(x1 + u * 0.6, y); ctx.lineTo(x0 - u * 0.6, y); ctx.closePath(); ctx.fill(); ctx.restore(); } }
-      else { px(x0, top - u * 0.1, x1 - x0, u * 0.12, '#888'); }
-      px(x0 - u * 0.1, top - u * 0.1, u * 0.1, u * 1.15, '#505058'); px(x1, top - u * 0.1, u * 0.1, u * 1.15, '#505058');
-    } else if (ob.type === 'low') {
-      if (k === 'cart') { box3d(x - u * 0.4, y - u * 0.08, u * 0.8, u * 0.42, s, '#b0b0bc'); px(x - u * 0.36, y - u * 0.46, u * 0.72, u * 0.05, '#e8e8f0'); px(x - u * 0.3, y - u * 0.08, u * 0.12, u * 0.08, '#222'); px(x + u * 0.18, y - u * 0.08, u * 0.12, u * 0.08, '#222'); fillR(x - u * 0.2, y - u * 0.62, u * 0.16, u * 0.12, u * 0.03, PINK); fillR(x + u * 0.04, y - u * 0.62, u * 0.16, u * 0.12, u * 0.03, CYAN); }
-      else if (k === 'rack') { px(x - u * 0.4, y - u * 0.55, u * 0.06, u * 0.55, '#666'); px(x + u * 0.34, y - u * 0.55, u * 0.06, u * 0.55, '#666'); px(x - u * 0.4, y - u * 0.55, u * 0.8, u * 0.06, '#666'); for (var r = 0; r < 4; r++) { px(x - u * 0.34 + r * u * 0.18, y - u * 0.48, u * 0.14, u * 0.34, r % 2 ? '#fff' : '#f4e8d0'); px(x - u * 0.31 + r * u * 0.18, y - u * 0.4, u * 0.08, u * 0.12, r % 2 ? PINK : CYAN); } }
-      else if (k === 'dog') { fillR(x - u * 0.4, y - u * 0.3, u * 0.7, u * 0.28, u * 0.1, '#7a5230'); fillR(x + u * 0.18, y - u * 0.44, u * 0.26, u * 0.26, u * 0.08, '#8a6040'); px(x + u * 0.34, y - u * 0.36, u * 0.05, u * 0.05, '#000'); px(x + u * 0.2, y - u * 0.5, u * 0.08, u * 0.1, '#5a3a20'); px(x - u * 0.44, y - u * 0.2, u * 0.1, u * 0.06, '#7a5230'); if (frame % 60 < 30) { ctx.fillStyle = '#fff'; ctx.font = Math.max(6, u * 0.16) + 'px monospace'; ctx.textAlign = 'left'; ctx.fillText('z', x + u * 0.4, y - u * 0.5); } }
-      else if (k === 'table') { box3d(x - u * 0.42, y - u * 0.32, u * 0.84, u * 0.08, s, '#8b5a2b'); px(x - u * 0.36, y - u * 0.32, u * 0.06, u * 0.32, '#5b3a1b'); px(x + u * 0.3, y - u * 0.32, u * 0.06, u * 0.32, '#5b3a1b'); px(x - u * 0.3, y - u * 0.5, u * 0.25, u * 0.1, '#fff'); px(x + u * 0.05, y - u * 0.5, u * 0.25, u * 0.1, '#fff'); }
-      else if (k === 'bench') { box3d(x - u * 0.45, y - u * 0.26, u * 0.9, u * 0.08, s, '#4a6a3a'); box3d(x - u * 0.45, y - u * 0.44, u * 0.9, u * 0.06, s, '#4a6a3a'); px(x - u * 0.4, y - u * 0.26, u * 0.06, u * 0.26, '#333'); px(x + u * 0.34, y - u * 0.26, u * 0.06, u * 0.26, '#333'); }
-      else if (k === 'rail') { box3d(x - u * 0.5, y - u * 0.3, u * 1.0, u * 0.1, s, '#9aa0aa'); px(x - u * 0.4, y - u * 0.3, u * 0.06, u * 0.3, '#667'); px(x + u * 0.34, y - u * 0.3, u * 0.06, u * 0.3, '#667'); }
-      else if (k === 'rock') { ctx.fillStyle = mix('#4a4e5a', FOG); ctx.beginPath(); ctx.moveTo(x - u * 0.4, y); ctx.lineTo(x - u * 0.25, y - u * 0.4); ctx.lineTo(x + u * 0.1, y - u * 0.5); ctx.lineTo(x + u * 0.4, y - u * 0.2); ctx.lineTo(x + u * 0.35, y); ctx.closePath(); ctx.fill(); ctx.fillStyle = mix('#6a6e7a', FOG); ctx.beginPath(); ctx.moveTo(x - u * 0.25, y - u * 0.4); ctx.lineTo(x + u * 0.1, y - u * 0.5); ctx.lineTo(x + u * 0.05, y - u * 0.3); ctx.closePath(); ctx.fill(); }
-      else { box3d(x - u * 0.4, y, u * 0.8, u * 0.45, s, '#888'); }
-    } else if (ob.type === 'block') {
-      if (k === 'chairblock') { box3d(x - u * 0.35, y, u * 0.7, u * 0.6, s, '#2a2a38'); px(x - u * 0.3, y - u * 1.2, u * 0.16, u * 0.7, '#22222c'); fillR(x - u * 0.34, y - u * 0.68, u * 0.68, u * 0.16, u * 0.05, PINK); fillR(x - u * 0.33, y - u * 1.3, u * 0.66, u * 0.16, u * 0.05, PINK); }
-      else if (k === 'client') { var shirt = ob.id > 0.5 ? '#2c3e50' : '#6a1b9a'; fillR(x - u * 0.2, y - u * 0.72, u * 0.4, u * 0.72, u * 0.06, shirt); px(x - u * 0.2, y - u * 0.72, u * 0.4, u * 0.08, shade(shirt, 0.2)); fillR(x - u * 0.14, y - u * 1.0, u * 0.28, u * 0.32, u * 0.08, '#e8b894'); fillR(x - u * 0.17, y - u * 1.1, u * 0.34, u * 0.16, u * 0.05, ob.id > 0.5 ? '#222' : PINK); px(x - u * 0.28, y - u * 0.66, u * 0.08, u * 0.42, '#e8b894'); px(x + u * 0.2, y - u * 0.66, u * 0.08, u * 0.42, '#e8b894'); if (ob.id > 0.5) px(x - u * 0.26, y - u * 0.6, u * 0.06, u * 0.26, PURPLE); }
-      else if (k === 'dumpster') { box3d(x - u * 0.5, y, u * 1.0, u * 0.8, s, '#2f4f2f'); px(x - u * 0.52, y - u * 0.92, u * 1.04, u * 0.16, '#3f6f3f'); px(x - u * 0.4, y - u * 0.5, u * 0.3, u * 0.14, '#fff'); px(x - u * 0.45, y - u * 0.06, u * 0.14, u * 0.06, '#111'); px(x + u * 0.31, y - u * 0.06, u * 0.14, u * 0.06, '#111'); }
-      else if (k === 'tram') { box3d(x - u * 0.52, y, u * 1.04, u * 1.1, s, '#c0c8d0'); px(x - u * 0.48, y - u * 1.0, u * 0.96, u * 0.4, '#101a34'); ctx.save(); glow('#ffe9a0', 6 * s); px(x - u * 0.44, y - u * 0.94, u * 0.88, u * 0.26, '#ffe9a0'); ctx.restore(); px(x - u * 0.52, y - u * 0.55, u * 1.04, u * 0.1, PINK); ctx.save(); glow(YELLOW, 8 * s); px(x - u * 0.4, y - u * 0.3, u * 0.2, u * 0.16, YELLOW); px(x + u * 0.2, y - u * 0.3, u * 0.2, u * 0.16, YELLOW); ctx.restore(); }
-      else if (k === 'boulder') { ctx.fillStyle = mix('#4e525e', FOG); ctx.beginPath(); ctx.moveTo(x - u * 0.5, y); ctx.lineTo(x - u * 0.4, y - u * 0.6); ctx.lineTo(x - u * 0.05, y - u * 0.95); ctx.lineTo(x + u * 0.35, y - u * 0.75); ctx.lineTo(x + u * 0.5, y - u * 0.2); ctx.lineTo(x + u * 0.42, y); ctx.closePath(); ctx.fill(); ctx.fillStyle = mix('#767a88', FOG); ctx.beginPath(); ctx.moveTo(x - u * 0.4, y - u * 0.6); ctx.lineTo(x - u * 0.05, y - u * 0.95); ctx.lineTo(x + u * 0.05, y - u * 0.6); ctx.closePath(); ctx.fill(); ctx.fillStyle = mix('#33363f', FOG); ctx.beginPath(); ctx.moveTo(x + u * 0.35, y - u * 0.75); ctx.lineTo(x + u * 0.5, y - u * 0.2); ctx.lineTo(x + u * 0.42, y); ctx.lineTo(x + u * 0.1, y); ctx.closePath(); ctx.fill(); }
-      else { box3d(x - u * 0.4, y, u * 0.8, u * 0.9, s, '#666'); }
-    } else if (ob.type === 'spill') {
-      var pg = ctx.createRadialGradient(x, y, 0, x, y, u * 0.5);
-      pg.addColorStop(0, 'rgba(176,38,255,0.85)'); pg.addColorStop(1, 'rgba(176,38,255,0.2)');
-      ctx.fillStyle = pg;
-      ctx.beginPath(); ctx.ellipse(x, y - u * 0.02, u * 0.5, u * 0.17, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.beginPath(); ctx.ellipse(x - u * 0.15, y - u * 0.07, u * 0.14, u * 0.04, 0, 0, Math.PI * 2); ctx.fill();
+      var x0 = xAt(-1.5, ob.z), x1 = xAt(1.5, ob.z), top = y - u * 0.95, barH = u * 0.16;
+      // posts
+      px(x0 - u * 0.12, top - barH, u * 0.12, u * 0.95 + barH, '#3a3a44'); px(x1, top - barH, u * 0.12, u * 0.95 + barH, '#3a3a44');
+      outline(x0 - u * 0.12, top - barH, u * 0.12, u * 0.95 + barH, 1); outline(x1, top - barH, u * 0.12, u * 0.95 + barH, 1);
+      // the bar itself: cyan, glowing
+      ctx.save(); glow(CYAN, 12 * Math.min(1, s * 2));
+      fillR(x0 - u * 0.12, top - barH, x1 - x0 + u * 0.24, barH, barH * 0.3, k === 'tentbar' ? '#e8fbff' : CYAN);
+      ctx.restore();
+      outline(x0 - u * 0.12, top - barH, x1 - x0 + u * 0.24, barH, barH * 0.3);
+      if (k === 'sign') { ctx.fillStyle = '#062a2e'; ctx.font = 'bold ' + Math.max(6, barH * 0.8) + 'px monospace'; ctx.textAlign = 'center'; ctx.fillText('OPEN', (x0 + x1) / 2, top - barH * 0.2); }
+      else if (k === 'tentbar') { for (var f = 0; f < 8; f++) px(x0 + f * (x1 - x0) / 8, top - barH * 0.9, (x1 - x0) / 16, barH * 0.8, f % 2 ? CYAN : '#bff'); }
+      else if (k === 'tunnel') { px(x0 - u * 0.12, top - barH - u * 0.3, x1 - x0 + u * 0.24, u * 0.3, '#2a2a34'); outline(x0 - u * 0.12, top - barH - u * 0.3, x1 - x0 + u * 0.24, u * 0.3, 1); }
+      px(x0, top - barH * 0.35, x1 - x0, 1.5, '#fff');
+      iconY = top - barH - u * 0.32;
+      drawIcon('high', (x0 + x1) / 2, iconY, s);
+    } else if (ob.type === 'low' || ob.type === 'spill') {
+      var bw = u * 0.96, bh = ob.type === 'spill' ? u * 0.08 : (k === 'dog' ? u * 0.34 : u * 0.42);
+      var bx = x - bw / 2, by = y - bh;
+      if (ob.type === 'spill') {
+        var pg = ctx.createRadialGradient(x, y, 0, x, y, bw * 0.5);
+        pg.addColorStop(0, 'rgba(176,38,255,0.9)'); pg.addColorStop(1, 'rgba(176,38,255,0.35)');
+        ctx.fillStyle = pg; ctx.beginPath(); ctx.ellipse(x, y - 1, bw * 0.5, u * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = YELLOW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 1, bw * 0.5, u * 0.16, 0, Math.PI, Math.PI * 2); ctx.stroke();
+      } else {
+        // the body: floor-colored, lit top edge in yellow
+        var body = k === 'dog' ? '#7a5230' : k === 'rock' ? '#4e525e' : k === 'rail' ? '#8a909a' : '#3a3550';
+        fillR(bx, by, bw, bh, u * 0.05, body);
+        ctx.fillStyle = mix(shade(body, -0.35), FOG); ctx.fillRect(bx, by + bh * 0.6, bw, bh * 0.4);
+        ctx.save(); glow(YELLOW, 8 * Math.min(1, s * 2)); px(bx, by, bw, Math.max(2, u * 0.06), YELLOW); ctx.restore();
+        outline(bx, by, bw, bh, u * 0.05);
+        // the thing it actually is
+        if (k === 'cart') {
+          px(bx + bw * 0.06, by + bh * 0.2, bw * 0.88, bh * 0.35, '#c8c8d2'); px(bx + bw * 0.1, by + bh * 0.25, bw * 0.3, bh * 0.2, PINK); px(bx + bw * 0.6, by + bh * 0.25, bw * 0.3, bh * 0.2, CYAN);
+          ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(bx + bw * 0.22, y, u * 0.09, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(bx + bw * 0.78, y, u * 0.09, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#888'; ctx.beginPath(); ctx.arc(bx + bw * 0.22, y, u * 0.04, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(bx + bw * 0.78, y, u * 0.04, 0, Math.PI * 2); ctx.fill();
+          px(bx + bw * 0.9, by - bh * 0.4, u * 0.05, bh * 0.45, '#ccc');
+        } else if (k === 'rack') {
+          for (var r = 0; r < 4; r++) { px(bx + bw * (0.1 + r * 0.21), by + bh * 0.15, bw * 0.16, bh * 0.7, r % 2 ? '#fff' : '#f4e8d0'); px(bx + bw * (0.13 + r * 0.21), by + bh * 0.3, bw * 0.1, bh * 0.3, r % 2 ? PINK : CYAN); }
+        } else if (k === 'dog') {
+          fillR(bx + bw * 0.62, by - bh * 0.35, bw * 0.3, bh * 0.6, u * 0.06, '#8a6040'); px(bx + bw * 0.86, by - bh * 0.15, u * 0.05, u * 0.05, '#000'); px(bx + bw * 0.66, by - bh * 0.5, bw * 0.1, bh * 0.3, '#5a3a20');
+          px(bx - bw * 0.06, by + bh * 0.3, bw * 0.12, bh * 0.15, '#7a5230');
+          if (frame % 60 < 30) { ctx.fillStyle = '#fff'; ctx.font = Math.max(7, u * 0.18) + 'px monospace'; ctx.textAlign = 'left'; ctx.fillText('z', bx + bw * 0.95, by - bh * 0.5); }
+        } else if (k === 'table') {
+          px(bx + bw * 0.1, by + bh * 0.25, bw * 0.3, bh * 0.35, '#fff'); px(bx + bw * 0.55, by + bh * 0.25, bw * 0.3, bh * 0.35, '#fff'); px(bx + bw * 0.15, by + bh * 0.32, bw * 0.2, bh * 0.2, PINK); px(bx + bw * 0.6, by + bh * 0.32, bw * 0.2, bh * 0.2, CYAN);
+        } else if (k === 'bench') {
+          for (var bb = 0; bb < 3; bb++) px(bx + bw * 0.05, by + bh * (0.2 + bb * 0.25), bw * 0.9, bh * 0.12, '#5a7a4a');
+        } else if (k === 'rail') {
+          px(bx + bw * 0.1, by + bh * 0.25, bw * 0.06, bh * 0.75, '#555'); px(bx + bw * 0.84, by + bh * 0.25, bw * 0.06, bh * 0.75, '#555'); px(bx, by + bh * 0.3, bw, bh * 0.14, '#c0c8d0');
+        } else if (k === 'rock') {
+          ctx.fillStyle = mix('#767a88', FOG); ctx.beginPath(); ctx.moveTo(bx + bw * 0.2, by + bh * 0.1); ctx.lineTo(bx + bw * 0.5, by + bh * 0.05); ctx.lineTo(bx + bw * 0.4, by + bh * 0.5); ctx.closePath(); ctx.fill();
+        }
+      }
+      iconY = y - bh - u * 0.42;
+      drawIcon(ob.type, x, iconY, s);
+    } else {
+      // BLOCK: tall and solid, red rim light, a red X over the top
+      var tw = u * 0.78, th = k === 'tram' ? u * 1.25 : u * 1.1;
+      var tx = x - tw / 2, ty = y - th;
+      var base = k === 'chairblock' ? '#2a2a38' : k === 'client' ? (ob.id > 0.5 ? '#2c3e50' : '#6a1b9a') : k === 'dumpster' ? '#2f4f2f' : k === 'tram' ? '#c0c8d0' : '#4e525e';
+      // red light pool on the floor
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; var rg = ctx.createRadialGradient(x, y, 0, x, y, u * 0.9); rg.addColorStop(0, 'rgba(255,40,40,0.35)'); rg.addColorStop(1, 'rgba(255,40,40,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.ellipse(x, y, u * 0.9, u * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      if (k === 'chairblock') {
+        fillR(tx, ty + th * 0.55, tw, th * 0.45, u * 0.05, base); fillR(tx + tw * 0.12, ty, tw * 0.22, th * 0.6, u * 0.04, '#22222c');
+        fillR(tx - tw * 0.05, ty + th * 0.5, tw * 1.1, th * 0.16, u * 0.05, PINK); fillR(tx + tw * 0.08, ty - th * 0.04, tw * 0.6, th * 0.16, u * 0.05, PINK);
+        outline(tx, ty + th * 0.55, tw, th * 0.45, u * 0.05); outline(tx + tw * 0.12, ty, tw * 0.22, th * 0.6, u * 0.04); outline(tx - tw * 0.05, ty + th * 0.5, tw * 1.1, th * 0.16, u * 0.05); outline(tx + tw * 0.08, ty - th * 0.04, tw * 0.6, th * 0.16, u * 0.05);
+      } else if (k === 'client') {
+        fillR(tx + tw * 0.15, ty + th * 0.3, tw * 0.7, th * 0.7, u * 0.06, base); fillR(tx + tw * 0.28, ty + th * 0.04, tw * 0.44, th * 0.3, u * 0.08, '#e8b894'); fillR(tx + tw * 0.24, ty - th * 0.04, tw * 0.52, th * 0.14, u * 0.05, ob.id > 0.5 ? '#222' : PINK);
+        px(tx + tw * 0.02, ty + th * 0.36, tw * 0.13, th * 0.42, '#e8b894'); px(tx + tw * 0.85, ty + th * 0.36, tw * 0.13, th * 0.42, '#e8b894');
+        outline(tx + tw * 0.15, ty + th * 0.3, tw * 0.7, th * 0.7, u * 0.06); outline(tx + tw * 0.28, ty + th * 0.04, tw * 0.44, th * 0.3, u * 0.08);
+      } else if (k === 'tram') {
+        fillR(tx - tw * 0.1, ty, tw * 1.2, th, u * 0.05, base); px(tx - tw * 0.05, ty + th * 0.12, tw * 1.1, th * 0.34, '#101a34'); ctx.save(); glow('#ffe9a0', 6); px(tx, ty + th * 0.17, tw, th * 0.22, '#ffe9a0'); ctx.restore(); px(tx - tw * 0.1, ty + th * 0.55, tw * 1.2, th * 0.08, PINK);
+        outline(tx - tw * 0.1, ty, tw * 1.2, th, u * 0.05);
+      } else if (k === 'boulder') {
+        ctx.fillStyle = mix(base, FOG); ctx.beginPath(); ctx.moveTo(tx, y); ctx.lineTo(tx + tw * 0.1, ty + th * 0.4); ctx.lineTo(tx + tw * 0.45, ty); ctx.lineTo(tx + tw * 0.85, ty + th * 0.25); ctx.lineTo(tx + tw, y - th * 0.15); ctx.lineTo(tx + tw * 0.9, y); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = mix('#767a88', FOG); ctx.beginPath(); ctx.moveTo(tx + tw * 0.1, ty + th * 0.4); ctx.lineTo(tx + tw * 0.45, ty); ctx.lineTo(tx + tw * 0.5, ty + th * 0.4); ctx.closePath(); ctx.fill();
+      } else {
+        fillR(tx, ty, tw, th, u * 0.05, base); px(tx - tw * 0.03, ty - th * 0.06, tw * 1.06, th * 0.14, shade(base, 0.25)); px(tx + tw * 0.15, ty + th * 0.4, tw * 0.35, th * 0.15, '#fff');
+        outline(tx, ty, tw, th, u * 0.05);
+      }
+      // red rim light
+      ctx.save(); glow('#ff3b3b', 10 * Math.min(1, s * 2)); px(tx + tw * (k === 'tram' ? 1.05 : 0.95), ty, Math.max(2, u * 0.05), th, '#ff3b3b'); ctx.restore();
+      iconY = ty - u * 0.34;
+      drawIcon('block', x, iconY, s);
     }
     ctx.globalAlpha = 1;
     FOG = 0;
@@ -903,6 +1011,7 @@
     var by = sliding ? -26 : -bodyH - 16 + (sliding ? 0 : Math.abs(run) * 1.2);
     var tg = ctx.createLinearGradient(-11, by, 11, by);
     tg.addColorStop(0, '#0c0c12'); tg.addColorStop(0.55, '#1a1a22'); tg.addColorStop(1, '#0a0a0e');
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 3; rrect(-12, by, 24, bodyH, 4); ctx.stroke();
     ctx.fillStyle = tg; rrect(-12, by, 24, bodyH, 4); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.beginPath(); ctx.moveTo(-8, by + 6); ctx.quadraticCurveTo(-2 + run * 2, by + bodyH * 0.5, -6, by + bodyH - 3); ctx.lineTo(-4, by + bodyH - 3); ctx.quadraticCurveTo(0 + run * 2, by + bodyH * 0.5, -6, by + 6); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#26262f'; ctx.fillRect(-12, by, 24, 3);
@@ -932,6 +1041,9 @@
     ctx.fillStyle = '#2a1a12'; rrect(-8, hy - 2, 16, 8, 3); ctx.fill();
     var cg = ctx.createLinearGradient(-9, hy - 6, 9, hy);
     cg.addColorStop(0, '#ff5fb0'); cg.addColorStop(0.5, PINK); cg.addColorStop(1, '#a00c5e');
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 3; rrect(-9, hy - 6, 18, 18, 4); ctx.stroke();
+    ctx.fillStyle = skin; rrect(-7, hy, 14, 12, 4); ctx.fill();
+    ctx.fillStyle = '#2a1a12'; rrect(-8, hy - 2, 16, 8, 3); ctx.fill();
     ctx.fillStyle = cg; rrect(-9, hy - 6, 18, 6, 3); ctx.fill();
     ctx.fillStyle = '#8a0a50'; ctx.fillRect(-9, hy - 1, 18, 2);
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-6, hy - 5, 8, 1);
@@ -1019,6 +1131,7 @@
     if (coffeeT > 0) { ctx.translate(W / 2, H / 2); ctx.scale(1.03, 0.985); ctx.translate(-W / 2, -H / 2); }
     drawBackdrop(zd);
     drawFloor(zd);
+    for (var st = 0; st < obstacles.length; st++) laneStripe(obstacles[st]);
     var all = [];
     for (var i = 0; i < props.length; i++) all.push({ z: props[i].z, t: 'p', o: props[i] });
     for (var j = 0; j < obstacles.length; j++) all.push({ z: obstacles[j].z, t: 'o', o: obstacles[j] });
@@ -1081,6 +1194,18 @@
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 
     drawHud(zd);
+    // the teaching card: the first time each hazard class shows up
+    if (cardT > 0 && mode === 'play') {
+      var ck = 1 - cardT / 200, ca = ck < 0.1 ? ck / 0.1 : ck > 0.85 ? (1 - ck) / 0.15 : 1;
+      var ccol = cardText.indexOf('JUMP') >= 0 ? YELLOW : cardText.indexOf('SLIDE') >= 0 ? CYAN : '#ff3b3b';
+      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, ca));
+      ctx.fillStyle = 'rgba(0,0,0,0.78)'; rrect(W / 2 - 150, 60, 300, 58, 6); ctx.fill();
+      ctx.strokeStyle = ccol; ctx.lineWidth = 2; rrect(W / 2 - 150, 60, 300, 58, 6); ctx.stroke();
+      drawIcon(cardText.indexOf('JUMP') >= 0 ? 'low' : cardText.indexOf('SLIDE') >= 0 ? 'high' : 'block', W / 2 - 118, 89, 1);
+      glow(ccol, 10); ctx.fillStyle = '#fff'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.fillText(cardText, W / 2 + 14, 86); noGlow();
+      ctx.fillStyle = ccol; ctx.font = 'bold 9px monospace'; ctx.fillText(cardSub, W / 2 + 14, 104);
+      ctx.restore();
+    }
     for (var r = 0; r < popups.length; r++) {
       var pp = popups[r];
       ctx.globalAlpha = Math.min(1, pp.life / 18);
@@ -1158,7 +1283,7 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.fillText('LEFT/RIGHT lanes // UP or SPACE jumps // DOWN slides // swipe on phones', W / 2, H - 42);
-    ctx.fillText('chain the ink for x8, slide the bars, jump the carts, grab the flash', W / 2, H - 29);
+    ctx.fillText('yellow arrow = JUMP // cyan arrow = SLIDE // red X = CHANGE LANE', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.save(); glow(YELLOW, 8);
       ctx.fillStyle = YELLOW;
