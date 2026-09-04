@@ -14,6 +14,7 @@ export const GAME_CATALOG = [
   { id: "steady", label: "Steady Hand", exe: "steadyhand.exe", hint: "Up/Down or drag // dead center pays triple", statB: "Trust", cap: 500000, fmt: "plain", blurb: "Trace the stencil clean. Flinches happen. Trust runs out when you wander." },
   { id: "shoprush", label: "Shop Rush", exe: "shoprush.exe", hint: "Arrows or tap to run // seat fast, keep the streak", statA: "Cash", statB: "Rep", cap: 500000, fmt: "dollars", blurb: "Run the front desk on a Saturday. Seat walk-ins fast, collect cash, ride the rep multiplier to x5." },
   { id: "flashmatch", label: "Flash Match", exe: "flashmatch.exe", hint: "Tap a card, or arrows + SPACE // find the pairs", cap: 500000, fmt: "plain", blurb: "Memory with the artist's own flash. The clock shrinks every session." },
+  { id: "inkrun", label: "Ink Run", exe: "inkrun.exe", hint: "Left/Right lanes, UP jumps, DOWN slides // swipe on phones", cap: 5000000, fmt: "plain", blurb: "Run the shop floor at full sprint. Three lanes, jump the carts, slide the stencils, grab the ink." },
 ] as const;
 
 export type GameId = (typeof GAME_CATALOG)[number]["id"];

@@ -14,7 +14,7 @@ const PINK = "#FF1493";
 const LIME = "#7FFF00";
 const CYAN = "#00FFFF";
 const YELLOW = "#FFD700";
-const TRIM = [PINK, CYAN, LIME, YELLOW, "#B026FF", "#FF6347", CYAN, PINK, LIME];
+const TRIM = [PINK, CYAN, LIME, YELLOW, "#B026FF", "#FF6347", CYAN, PINK, LIME, YELLOW];
 
 export default async function ArcadeFloorPage() {
   const admin = createAdminClient();
@@ -48,7 +48,8 @@ export default async function ArcadeFloorPage() {
         .fl-sign p{margin:12px 0 0;font-size:8px;color:rgba(255,255,255,0.55);line-height:2;}
         .fl-sign p b{color:${YELLOW};font-weight:normal;}
         .fl-row{position:relative;z-index:2;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:34px 22px;padding:0 20px;}
-        @media (min-width:700px){.fl-row{grid-template-columns:repeat(3,1fr);}}
+        @media (min-width:640px){.fl-row{grid-template-columns:repeat(2,1fr);}}
+        @media (min-width:1180px){.fl-row{grid-template-columns:repeat(5,1fr);gap:26px 16px;}}
         .cab{display:flex;flex-direction:column;position:relative;filter:drop-shadow(0 18px 24px rgba(0,0,0,0.7));}
         .cab-marquee{margin:0 6px;padding:12px 8px 10px;text-align:center;font-size:clamp(8px,1.2vw,10px);color:#fff;border:3px solid #1c1c24;border-bottom:0;border-radius:6px 6px 0 0;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(0,0,0,0.2)),var(--trim);text-shadow:0 0 8px rgba(0,0,0,0.8),0 0 14px rgba(255,255,255,0.5);letter-spacing:1px;box-shadow:0 0 22px var(--trim),inset 0 0 18px rgba(0,0,0,0.35);}
         .cab-body{background:linear-gradient(180deg,#1b1b24,#0e0e14);border:3px solid #1c1c24;border-left-color:var(--trim);border-right-color:var(--trim);padding:12px 14px 14px;}

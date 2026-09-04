@@ -74,7 +74,7 @@
   var stars = [];
   for (var i = 0; i < 36; i++) stars.push({ x: (i * 61) % W, y: (i * 37) % H, s: (i % 3) + 1 });
 
-  var ROW_Y0 = 92, ROW_H = 20, LIST_X = 18, LIST_W = 196;
+  var ROW_Y0 = 90, ROW_H = 19, LIST_X = 18, LIST_W = 196;
   var PV_X = 226, PV_Y = 84, PV_W = 156, PV_H = 125;
 
   function draw() {

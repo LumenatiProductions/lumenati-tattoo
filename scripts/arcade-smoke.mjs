@@ -12,7 +12,7 @@ const BOARD_SRC = readFileSync(path.join(ROOT, "public", "arcade-board.js"), "ut
 
 function gameSources() {
   const out = {};
-  for (const id of ["snake", "bricks", "shooter", "pong", "frogger", "steady", "shoprush", "flashmatch", "skate"]) {
+  for (const id of ["snake", "bricks", "shooter", "pong", "frogger", "steady", "shoprush", "flashmatch", "skate", "inkrun"]) {
     out[id] = readFileSync(path.join(ROOT, "legacy", "games", `${id}.js`), "utf8");
   }
   return out;
