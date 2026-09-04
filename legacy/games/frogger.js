@@ -94,7 +94,11 @@
   var CAR_COLORS = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
   function cx(col) { return X0 + col * CELL + CELL / 2; }
   function colAt(x) { return Math.max(0, Math.min(COLS - 1, Math.round((x - X0 - CELL / 2) / CELL))); }
-  function isRiver(row) { return row === 1 || row === 2; }
+  // Which of rows 1 and 2 are ink this night: none on night 1, the lower
+  // row on night 2, both from night 3.
+  var riverSet = {};
+  function isRiver(row) { return !!riverSet[row]; }
+  function hasRiver() { return !!(riverSet[1] || riverSet[2]); }
 
   // The walk-ins. Each fill hands the next one the sidewalk: a kid (quick,
   // skinny), a biker (long stride: UP clears two rows), a bride (slow, wide
@@ -125,7 +129,7 @@
   var player, lanes, river, chairs, invuln, hopT;
   var patience, patienceMax, amb, bannerT, bannerText, bannerColor, bestRow;
   var streak, popups, parts, shake, pickup, pickupCd, slicks, stats, dieFlash;
-  var charIdx, cheerT, bonus, rideT, crowd;
+  var charIdx, cheerT, bonus, rideT, crowd, inkCard;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-frogger') || '0', 10) || 0; } catch(e) {}
@@ -200,17 +204,28 @@
   // or you are in the ink.
   function makeRiver() {
     river = [];
-    var fast = 1.0 + (wave - 1) * 0.12, slow = 0.75 + (wave - 1) * 0.1;
-    var stools = [], carts = [];
-    var nStools = Math.max(3, 5 - Math.floor(wave / 3));
-    var sp1 = (W + 60) / nStools;
-    for (var i = 0; i < nStools; i++) stools.push({ x: i * sp1 + Math.random() * 20, w: 44, kind: 'stool' });
-    var nCarts = wave >= 4 ? 2 : 3;
-    var sp2 = (W + 100) / (nCarts + 1);
-    for (var j = 0; j < nCarts; j++) carts.push({ x: j * sp2 + Math.random() * 20, w: 62, kind: 'cart' });
-    carts.push({ x: nCarts * sp2 + 10, w: wave >= 5 ? 88 : 112, kind: 'rug' });
-    river.push({ row: 1, dir: 1, speed: fast, items: stools });
+    riverSet = {};
+    if (wave < 2) return;
+    riverSet[2] = true;
+    if (wave >= 3) riverSet[1] = true;
+    // About 60 percent of the old pace, and more floats, so there is always a
+    // next one to reach inside a second.
+    var slow = 0.45 + Math.min(4, wave - 2) * 0.06, fast = 0.6 + Math.min(4, wave - 2) * 0.07;
+    var carts = [];
+    var nCarts = wave === 2 ? 4 : 3;
+    var cw = wave === 2 ? 96 : 80, rw = wave === 2 ? 136 : 120;
+    var sp2 = (W + 120) / (nCarts + 1);
+    for (var j = 0; j < nCarts; j++) carts.push({ x: j * sp2 + Math.random() * 12, w: cw, kind: 'cart' });
+    carts.push({ x: nCarts * sp2, w: rw, kind: 'rug' });
     river.push({ row: 2, dir: -1, speed: slow, items: carts });
+    if (riverSet[1]) {
+      var stools = [];
+      var nStools = wave >= 6 ? 5 : 6;
+      var sw = wave >= 6 ? 48 : 56;
+      var sp1 = (W + 60) / nStools;
+      for (var i = 0; i < nStools; i++) stools.push({ x: i * sp1 + Math.random() * 10, w: sw, kind: 'stool' });
+      river.push({ row: 1, dir: 1, speed: fast, items: stools });
+    }
   }
 
   // Four chairs, each wanting one of the four walk-ins. A match pays double.
@@ -243,7 +258,7 @@
     document.getElementById('jd-br-lives').textContent = '3';
     amb = null; bannerT = 0; bannerText = ''; bannerColor = LIME;
     streak = 0; popups = []; parts = []; shake = 0; pickup = null; pickupCd = 240; slicks = []; dieFlash = 0;
-    charIdx = 0; cheerT = 0; bonus = null; rideT = 0;
+    charIdx = 0; cheerT = 0; bonus = null; rideT = 0; inkCard = 0;
     stats = { chairs: 0, bestStreak: 0, near: 0, tips: 0, matches: 0, rides: 0, nights: 1, bonusTips: 0 };
     makeLanes();
     makeCrowd();
@@ -328,8 +343,7 @@
     award(Math.round((100 + timeB) * m), ccx, cy + 14, 'CHAIR ' + fmtMult(), m > 1 ? YELLOW : '#fff');
     if (timeB >= 100) addPopup(ccx, cy + 30, 'QUICK +' + timeB, CYAN);
     if (matched) { stats.matches++; award(Math.round(100 * m), ccx, cy + 46, 'MATCH', PINK); burst(ccx, cy, 14, PINK, 3, 0.05); }
-    award(Math.round(40 * m), ccx, cy + 62, 'RIVER', PURPLE);
-    stats.rides++;
+    if (hasRiver()) { award(Math.round(40 * m), ccx, cy + 62, 'RIVER', PURPLE); stats.rides++; }
     streak++;
     if (streak > stats.bestStreak) stats.bestStreak = streak;
     burst(ccx, cy, 16, LIME, 2.6, 0.06);
@@ -351,6 +365,7 @@
   function nextNight() {
     wave++;
     stats.nights = wave;
+    if (wave === 2) inkCard = 120; // the ink shows up: two seconds of everything holding still
     banner(isRush(wave) ? 'RUSH HOUR' : nightOf(wave).name + ' ' + wave, isRush(wave) ? ORANGE : LIME, 110);
     say('frogger-c3', 300);
     makeLanes();
@@ -388,7 +403,7 @@
   }
 
   function hop(dx, dy) {
-    if (mode !== 'play') return;
+    if (mode !== 'play' || inkCard > 0) return;
     var ch = who();
     if (hopT > 0 && !(player.row >= 3 && dy === 0)) return; // finish the hop first (except quick side-steps on land)
     var rows = dy < 0 ? ch.stride : 1;
@@ -435,6 +450,7 @@
   function update() {
     frame++;
     musicTick();
+    if (inkCard > 0) { inkCard--; return; }
     if (calloutCd > 0) calloutCd--;
     if (invuln > 0) invuln--;
     if (hopT > 0) hopT--;
@@ -495,7 +511,7 @@
       if (bonus.t <= 0) { endBonus(); return; }
     } else {
       // The client is only patient for so long
-      if (invuln === 0) patience -= who().patient;
+      if (invuln === 0) patience -= who().patient * (isRiver(player.row) ? 0.4 : 1);
       if (patience <= 0) {
         banner('COLD FEET!', '#ff4444', 70);
         die('cold');
@@ -935,99 +951,141 @@
     }
   }
 
-  // The ink river: rows 1 and 2 are the parlor floor under an inch of ink,
-  // lit by the shop's neon. What floats is what you stand on.
-  function drawRiver() {
-    var top = ROW_Y[1], h = CELL * 2;
-    ctx.fillStyle = '#12081c';
-    ctx.fillRect(0, top, W, h);
-    // slow ripples of purple ink
-    for (var y = 0; y < h; y += 8) {
-      var ph = frame * 0.03 + y * 0.2;
-      ctx.fillStyle = 'rgba(176,38,255,' + (0.05 + 0.04 * Math.sin(ph)) + ')';
-      ctx.fillRect(0, top + y + Math.sin(ph) * 1.5, W, 3);
+  // Rows 1 and 2: the parlor floor. On night 1 it is dry tile you can walk.
+  // From night 2 the lower row floods with ink, from night 3 both do. Ink is
+  // a dark purple liquid with a moving sheen and a hard bank on each edge;
+  // what floats on it is big, bright and solid. Never touch the ink.
+  function drawParlorFloor(row) {
+    var y = ROW_Y[row];
+    ctx.fillStyle = '#2c2436';
+    ctx.fillRect(0, y, W, CELL);
+    for (var tx = X0 - 16; tx < W; tx += 16) for (var ty = 0; ty < CELL; ty += 16) {
+      ctx.fillStyle = ((tx + ty) / 16) % 2 === 0 ? '#332a3e' : '#2a2233';
+      ctx.fillRect(tx, y + ty, 16, 16);
     }
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(0, y, W, 1);
+  }
+  function drawInkRow(row) {
+    var y = ROW_Y[row];
+    var g = ctx.createLinearGradient(0, y, 0, y + CELL);
+    g.addColorStop(0, '#1c0a30');
+    g.addColorStop(1, '#100620');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y, W, CELL);
+    // the sheen: bright bands that slide, so it reads as liquid
+    for (var b = 0; b < 4; b++) {
+      var bx = ((b * 131 + frame * (b % 2 ? 0.9 : 1.3)) % (W + 160)) - 80;
+      var sg = ctx.createLinearGradient(bx, 0, bx + 80, 0);
+      sg.addColorStop(0, 'rgba(176,38,255,0)');
+      sg.addColorStop(0.5, 'rgba(200,120,255,0.16)');
+      sg.addColorStop(1, 'rgba(176,38,255,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(bx, y + 3, 80, CELL - 6);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    for (var i = 0; i < 5; i++) {
+      var sx = ((i * 97 + frame * 0.7) % (W + 40)) - 20;
+      ctx.fillRect(sx, y + 6 + (i * 7) % 20 + Math.sin(frame * 0.05 + i) * 2, 12, 1);
+    }
+    // hard banks top and bottom
+    ctx.fillStyle = '#6a3aa0';
+    ctx.fillRect(0, y, W, 2);
+    ctx.fillStyle = '#0a0414';
+    ctx.fillRect(0, y + CELL - 2, W, 2);
+  }
+  function drawRiver() {
+    for (var r = 2; r >= 1; r--) {
+      if (isRiver(r)) drawInkRow(r); else drawParlorFloor(r);
+    }
+    if (!hasRiver()) return;
     // neon spill from the shop above
-    var g = ctx.createLinearGradient(0, top, 0, top + 24);
-    g.addColorStop(0, 'rgba(255,20,147,0.18)');
+    var top = ROW_Y[1];
+    var g = ctx.createLinearGradient(0, top, 0, top + 20);
+    g.addColorStop(0, 'rgba(255,20,147,0.14)');
     g.addColorStop(1, 'rgba(255,20,147,0)');
     ctx.fillStyle = g;
-    ctx.fillRect(0, top, W, 24);
-    // wall lamps at the ends
-    for (var l = 0; l < 2; l++) {
-      var lx = l === 0 ? 6 : W - 6;
-      var lg = ctx.createRadialGradient(lx, top + 20, 2, lx, top + 20, 46);
-      lg.addColorStop(0, 'rgba(255,220,150,0.16)');
-      lg.addColorStop(1, 'rgba(255,220,150,0)');
-      ctx.fillStyle = lg;
-      ctx.fillRect(lx - 46, top - 26, 92, 92);
-      ctx.fillStyle = '#ffe1aa';
-      ctx.fillRect(lx - 2, top + 16, 4, 4);
-    }
-    // ink shine drifting
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    for (var i = 0; i < 6; i++) {
-      var sx = ((i * 83 + frame * (i % 2 ? 0.6 : -0.4)) % (W + 40) + W + 40) % (W + 40) - 20;
-      ctx.fillRect(sx, top + 10 + (i * 11) % (h - 14), 14, 1);
-    }
+    ctx.fillRect(0, top, W, 20);
     // the floats
-    for (var r = 0; r < river.length; r++) {
-      var rl = river[r];
-      var ry = ROW_Y[rl.row];
-      for (var k = 0; k < rl.items.length; k++) {
-        var it = rl.items[k];
-        drawFloat(it, ry, rl.dir);
-      }
+    for (var k = 0; k < river.length; k++) {
+      var rl = river[k];
+      for (var n = 0; n < rl.items.length; n++) drawFloat(rl.items[n], ROW_Y[rl.row], rl.dir);
     }
-    // the near bank: a lip of clean floor so the river reads as a drop
-    ctx.fillStyle = '#26262e';
-    ctx.fillRect(0, top + h - 2, W, 2);
+    drawLandingHint();
+    // a label on the bank so the rule is on screen
+    ctx.font = 'bold 6px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText('INK: RIDE THE FLOATS', X0, ROW_Y[2] + CELL - 5);
+  }
+  // Where your next UP hop lands: a lime outline on the float under you, or a
+  // red flash on bare ink.
+  function drawLandingHint() {
+    if (mode !== 'play' || inkCard > 0) return;
+    var nr = player.row - 1;
+    if (!isRiver(nr) || hopT > 0) return;
+    var on = platformAt(player.x, nr);
+    var y = ROW_Y[nr];
+    if (on) {
+      ctx.strokeStyle = 'rgba(127,255,0,' + (0.55 + 0.35 * Math.sin(frame * 0.25)) + ')';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(on.item.x - 2, y + 4, on.item.w + 4, CELL - 8);
+    } else if (Math.floor(frame / 6) % 2 === 0) {
+      ctx.fillStyle = 'rgba(255,40,40,0.35)';
+      ctx.fillRect(player.x - CELL / 2, y + 2, CELL, CELL - 4);
+      ctx.strokeStyle = '#ff4444';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(player.x - CELL / 2 + 1, y + 3, CELL - 2, CELL - 6);
+    }
   }
   function drawFloat(it, y, dir) {
     var x = it.x, w = it.w;
-    // ink wake
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    ctx.fillRect(dir > 0 ? x - 10 : x + w, y + 20, 10, 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(x + 2, y + 24, w - 4, 4);
+    // soft shadow on the ink
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.ellipse(x + w / 2, y + CELL - 4, w / 2 + 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+    // wake
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(dir > 0 ? x - 12 : x + w, y + 18, 12, 2);
     if (it.kind === 'stool') {
-      // rolling stool: chrome base, round pink seat
-      ctx.fillStyle = '#8a8f96';
-      ctx.fillRect(x + 4, y + 20, w - 8, 3);
-      ctx.fillStyle = '#c9cfd6';
-      ctx.fillRect(x + w / 2 - 2, y + 12, 4, 10);
-      ctx.fillStyle = PINK;
-      ctx.beginPath(); ctx.ellipse(x + w / 2, y + 11, w / 2 - 2, 6, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.beginPath(); ctx.ellipse(x + w / 2 - 4, y + 9, w / 4, 2, 0, 0, Math.PI * 2); ctx.fill();
-      for (var c = 0; c < 3; c++) { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(x + 8 + c * ((w - 16) / 2), y + 23, 2, 0, Math.PI * 2); ctx.fill(); }
+      // rolling stool: a round lime pad, bright rim on top
+      ctx.fillStyle = '#3f8a00';
+      ctx.beginPath(); ctx.ellipse(x + w / 2, y + 18, w / 2, 11, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = LIME;
+      ctx.beginPath(); ctx.ellipse(x + w / 2, y + 14, w / 2, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.ellipse(x + w / 2 - 6, y + 10, w / 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2a5a00';
+      ctx.beginPath(); ctx.ellipse(x + w / 2, y + 14, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
     } else if (it.kind === 'cart') {
-      // mop cart: yellow bucket cart, mop standing up, wringer
+      // mop cart: a long yellow plank with a bright top edge, mop up
+      ctx.fillStyle = '#a07800';
+      ctx.fillRect(x, y + 12, w, 14);
       ctx.fillStyle = '#f1c40f';
-      ctx.fillRect(x + 2, y + 10, w - 4, 12);
+      ctx.fillRect(x, y + 9, w, 12);
+      ctx.fillStyle = '#fff2a8';
+      ctx.fillRect(x, y + 9, w, 3);
       ctx.fillStyle = '#c9a000';
-      ctx.fillRect(x + 2, y + 10, w - 4, 2);
-      ctx.fillRect(x + 2, y + 18, w - 4, 1);
+      for (var d = x + 10; d < x + w - 6; d += 16) ctx.fillRect(d, y + 15, 8, 2);
       ctx.fillStyle = '#ddd';
-      ctx.fillRect(x + w - 12, y - 2, 1, 14);
+      ctx.fillRect(x + w - 12, y - 1, 2, 12);
       ctx.fillStyle = '#c9c9c9';
-      ctx.fillRect(x + w - 16, y - 4, 9, 3);
-      ctx.fillStyle = '#9aa3ad';
-      ctx.fillRect(x + 6, y + 6, 14, 5);
+      ctx.fillRect(x + w - 17, y - 4, 12, 4);
       ctx.fillStyle = '#111';
-      ctx.fillRect(x + 4, y + 22, 5, 3); ctx.fillRect(x + w - 9, y + 22, 5, 3);
-      ctx.font = 'bold 5px monospace'; ctx.fillStyle = '#111'; ctx.textAlign = 'center';
-      ctx.fillText('WET', x + w / 2, y + 17);
+      ctx.fillRect(x + 4, y + 25, 6, 3); ctx.fillRect(x + w - 10, y + 25, 6, 3);
     } else {
-      // the rug: long, patterned, curling at the ends
-      ctx.fillStyle = '#7a2a3a';
-      ctx.fillRect(x, y + 8, w, 16);
-      ctx.fillStyle = '#b04a5a';
-      ctx.fillRect(x + 3, y + 11, w - 6, 10);
-      ctx.fillStyle = '#e8b04a';
-      for (var d = x + 8; d < x + w - 8; d += 12) ctx.fillRect(d, y + 14, 5, 4);
-      ctx.fillStyle = '#5a1a2a';
-      ctx.fillRect(x, y + 8, 3, 16); ctx.fillRect(x + w - 3, y + 8, 3, 16);
+      // the rug: a wide pink runner with a bright edge and fringe
+      ctx.fillStyle = '#8a0c50';
+      ctx.fillRect(x, y + 10, w, 16);
+      ctx.fillStyle = PINK;
+      ctx.fillRect(x, y + 7, w, 15);
+      ctx.fillStyle = '#ff8ad0';
+      ctx.fillRect(x, y + 7, w, 3);
+      ctx.fillStyle = '#ffd6ee';
+      for (var f = x + 10; f < x + w - 8; f += 14) ctx.fillRect(f, y + 13, 6, 4);
+      ctx.fillStyle = '#ffb0e0';
+      for (var fr = x + 2; fr < x + w - 2; fr += 5) { ctx.fillRect(fr, y + 22, 2, 4); }
+      ctx.fillStyle = '#5a0a34';
+      ctx.fillRect(x, y + 7, 3, 15); ctx.fillRect(x + w - 3, y + 7, 3, 15);
     }
   }
 
@@ -1037,24 +1095,32 @@
     // asphalt grain
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     for (var gy = ROW_Y[4]; gy < H; gy += 4) ctx.fillRect(0, gy, W, 1);
-    // Stoop + start sidewalks with curbs
+    // Lanes banded light and dark so every row reads on its own
+    for (var li = 0; li < LANE_ROWS.length; li++) {
+      ctx.fillStyle = li % 2 === 0 ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.16)';
+      ctx.fillRect(0, ROW_Y[LANE_ROWS[li]], W, CELL);
+    }
+    // Stoop + start sidewalks: pale concrete with joints and a curb
     var walks = [ROW_Y[STOOP_ROW], ROW_Y[START_ROW]];
     for (var w = 0; w < 2; w++) {
       var wy = walks[w];
-      ctx.fillStyle = '#3c3c46';
+      ctx.fillStyle = '#5a5a66';
       ctx.fillRect(0, wy, W, CELL);
-      ctx.fillStyle = '#4a4a55';
-      for (var x = 0; x < W; x += 20) ctx.fillRect(x, wy, 1, CELL);
-      ctx.fillStyle = '#55555f';
-      ctx.fillRect(0, wy, W, 2);
-      ctx.fillStyle = '#26262e';
-      ctx.fillRect(0, wy + CELL - 2, W, 2);
+      ctx.fillStyle = '#4c4c58';
+      for (var x = 0; x < W; x += 24) ctx.fillRect(x, wy, 1, CELL);
+      ctx.fillRect(0, wy + CELL / 2, W, 1);
+      ctx.fillStyle = '#7a7a86';
+      ctx.fillRect(0, wy, W, 3);
+      ctx.fillStyle = '#2a2a32';
+      ctx.fillRect(0, wy + CELL - 3, W, 3);
+      ctx.fillStyle = 'rgba(255,215,0,0.35)';
+      ctx.fillRect(0, w === 0 ? wy + CELL - 4 : wy, W, 1);
     }
     // Crosswalk zebra at the start, worn
     ctx.fillStyle = 'rgba(255,255,255,0.10)';
     for (var zx = X0 + 4; zx < W; zx += 32) ctx.fillRect(zx, ROW_Y[8] + 2, 20, CELL - 4);
     // Lane dashes and a manhole
-    ctx.fillStyle = '#5a5a30';
+    ctx.fillStyle = '#8a8a48';
     for (var i = 0; i < LANE_ROWS.length; i++) {
       var y = ROW_Y[LANE_ROWS[i]];
       if (LANE_ROWS[i] !== 6 && LANE_ROWS[i] !== 8) {
@@ -1326,6 +1392,26 @@
       if (bannerText === 'TIP RUN') ctx.fillText('EMPTY STREET // TWELVE SECONDS // GRAB EVERY JAR', W / 2, H / 2 - 12);
       ctx.globalAlpha = 1;
       ctx.font = 'bold 10px monospace';
+    }
+
+    if (inkCard > 0 && mode === 'play') {
+      ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.6, inkCard / 30) + ')';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#12061f';
+      ctx.fillRect(40, 108, W - 80, 96);
+      ctx.strokeStyle = PURPLE; ctx.lineWidth = 3;
+      ctx.strokeRect(40, 108, W - 80, 96);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = PURPLE;
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('THE INK', W / 2, 140);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText('RIDE THE STOOLS AND CARTS,', W / 2, 164);
+      ctx.fillText('NEVER THE INK', W / 2, 180);
+      ctx.fillStyle = LIME;
+      ctx.font = '8px monospace';
+      ctx.fillText('green outline = safe hop   red flash = ink', W / 2, 196);
     }
 
     if (mode === 'enter') drawInitials();
