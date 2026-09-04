@@ -5,7 +5,7 @@
 // cap = the biggest score the wall will accept (a sanity ceiling, not a goal).
 // fmt = how a score reads on the wall: plain number or dollars.
 export const GAME_CATALOG = [
-  { id: "skate", label: "Ink or Die", exe: "ink_or_die.exe", hint: "SPACE ollie // tap arrows flip // hold L/R spin // hold UP/DOWN grab // DOWN lands manual", cap: 2000000, fmt: "plain", blurb: "Skate Denver to the mountains. Ollie the street, chain tricks for combos." },
+  { id: "skate", label: "Ink or Die", exe: "ink_or_die.exe", hint: "SPACE ollie // hold UP at a lip // tap L/R flip, hold to spin // hold UP/DOWN grab // DOWN: manual", cap: 2000000, fmt: "plain", blurb: "Skate Denver to the mountains. Ollie the street, chain tricks for combos." },
   { id: "snake", label: "Ink Snake", exe: "inksnake.exe", hint: "Arrows or swipe to steer // feast fast for x5", cap: 200000, fmt: "plain", blurb: "Eat ink, grow long, chain feasts. The parlor floor gets messier every level." },
   { id: "bricks", label: "Flash Breaker", exe: "flashbreak.exe", hint: "Arrows, mouse or drag // SPACE launches", cap: 1000000, fmt: "plain", blurb: "Break every sheet of flash on the wall. Keep the ball alive, keep the combo alive." },
   { id: "shooter", label: "Sterile!", exe: "sterile.exe", hint: "Arrows move, SPACE fires // chain hits for x5", cap: 1000000, fmt: "plain", blurb: "Germs are coming for the station. Autoclave everything before it lands." },

@@ -78,10 +78,11 @@
   var continueUsed = false, lastLevel = 1, lastScore = 0, pumpT = 0, lipT = 0;
   var MAX_LIVES = 5;
   var airFrames = 0, longestAir = 0, floaty = false;
-  var grindBal = 0, nextCarX = 0, lastBailReason = '';
+  var peakHit = false;
+  var grindBal = 0, lastBailReason = '', boost = 0, nextBeatX = 0, lastBeat = 'rail', grindCount = 0, rampAirs = 0, slowT = 0, slowTick = 0, hintT = 0, airName = '', airNameT = 0;
   // Park goals: each town sets a few, the town's end tallies them into a bonus.
   var goals = [], goalCardT = 0, tallyT = 0, tallyLines = [], townScoreStart = 0, letters = [], nextLetterX = 0, lettersGot = 0, goalsDoneTotal = 0;
-  var special = 0, specialUsed = 0, grabsLanded = 0, townGrabs = 0;
+  var special = 0, specialUsed = 0, grabsLanded = 0, townGrabs = 0, townGrindFeet = 0;
   var MAX_COMBO = 24, linkWindow = 0, grindDist = 0, grindPaid = 0, lastGrindEnd = -99, lastRailId = -1, railSeq = 0, transfers = 0, longestGrind = 0;
 
   var best = 0;
@@ -193,7 +194,7 @@
     spinAngle = 0; spinDir = 0; spinStep = 0; leftHold = -1; rightHold = -1; upHold = -1; downHold = -1;
     leftHeld = false; rightHeld = false; grabName = ''; railUsed = {}; slideT = 0; manualKind = 'manual';
     continueUsed = false; lastLevel = 1; lastScore = 0; pumpT = 0; lipT = 0;
-    airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; nextCarX = 1400; lastBailReason = '';
+    airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; lastBailReason = ''; boost = 0; nextBeatX = 700; lastBeat = 'rail'; grindCount = 0; rampAirs = 0; slowT = 0; slowTick = 0; hintT = 1800; airName = ''; airNameT = 0;
     goals = []; goalCardT = 0; tallyT = 0; tallyLines = []; townScoreStart = 0; letters = []; nextLetterX = 1200; lettersGot = 0; goalsDoneTotal = 0;
     special = 0; specialUsed = 0; grabsLanded = 0; townGrabs = 0;
     setGoals(1);
@@ -207,7 +208,7 @@
     for (var i = 0; i < 10; i++) buildings.push(makeBuilding(i * 80));
     spawnInitial();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'TAP ollie // swipe + hold: spins, grabs // swipe down + hold on landing: manual' : 'SPACE ollie // tap arrows flip // hold L/R spin // hold UP/DOWN grab // DOWN lands manual';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'TAP ollie // swipe + hold: spins, grabs // swipe down + hold on landing: manual' : 'SPACE ollie // hold UP at a lip // tap L/R flip, hold to spin // hold UP/DOWN grab // DOWN: manual';
     window.skateRunning = true;
     startLoop();
   }
@@ -228,7 +229,7 @@
     { a: 3, f: 0.0016 }, { a: 4, f: 0.0015 }, { a: 3, f: 0.0017 }, { a: 6, f: 0.0015 }, { a: 6, f: 0.0014 },
     { a: 5, f: 0.0015 }, { a: 7, f: 0.0013 }, { a: 8, f: 0.0013 }, { a: 8, f: 0.0012 }, { a: 6, f: 0.0014 }, { a: 2, f: 0.0018 },
   ];
-  var TOWN_PX = 16000; // one town, in road pixels (4000 of dist)
+  var TOWN_PX = 24000; // one town, in road pixels (4000 of dist): two to three minutes at a glide
   function hillY(x) {
     if (x < 300) return 0;
     var lv = 1 + Math.floor(x / TOWN_PX);
@@ -250,7 +251,7 @@
       else if (f.type === 'qp') off -= f.h * (1 - Math.cos(t * Math.PI / 2));
       else if (f.type === 'stairs') {
         // Steps down over the first part, a low run, then a bank back up to the road.
-        var stepPart = 0.45;
+        var stepPart = 0.55;
         if (t < stepPart) off += f.h * Math.floor(t / stepPart * 5) / 5;
         else if (t < 0.8) off += f.h;
         else off += f.h * (1 - (t - 0.8) / 0.2);
@@ -261,7 +262,7 @@
   function terrainY(x) { return GROUND_Y + hillY(x) + featureOffset(x); }
   function slopeAt(x) { return (terrainY(x + 6) - terrainY(x - 6)) / 12; }
   // The ramp itself plus its landing zone, where nothing solid may sit.
-  function landingZone(f) { return f.type === 'kicker' ? 360 : f.type === 'launch' ? 560 : f.type === 'stairs' ? 120 : 700; }
+  function landingZone(f) { return f.type === 'kicker' ? 420 : f.type === 'launch' ? 640 : f.type === 'stairs' ? 120 : 760; }
   function featureAt(x) {
     for (var i = 0; i < features.length; i++) if (x >= features[i].x - 40 && x < features[i].x + features[i].w + landingZone(features[i]) * 0.8) return features[i];
     return null;
@@ -280,7 +281,7 @@
     var f;
     // Stair sets with a handrail over them: from town 2, a quarter of the
     // features (more in the stepped towns). Clear the steps or grind the rail.
-    var stairOdds = lv >= 2 ? (town.sig === 'steps' ? 0.5 : 0.32) : 0.15;
+    var stairOdds = lv >= 2 ? (town.sig === 'steps' ? 0.46 : 0.38) : 0.34;
     if (Math.random() < stairOdds) {
       f = { type: 'stairs', x: x, w: 150 + tier * 8, h: 22 + Math.min(20, tier * 3) };
       features.push(f);
@@ -288,16 +289,18 @@
       rails.push({ x: x - 8, top: railTop, w: f.w * 0.5, scored: false, id: ++railSeq, seg: 0, segs: 1, kind: 'handrail', bodyH: 0, waxed: false });
       return f;
     }
-    if (lv <= 1 || r < 0.35) f = { type: 'kicker', x: x, w: 66 + tier * 4, h: 26 + tier * 6 };
-    else if (lv <= 2 || r < 0.72) f = { type: 'launch', x: x, w: 116 + tier * 6, h: 40 + tier * 7 };
-    else f = { type: 'qp', x: x, w: 72, h: 50 + tier * 7 };
+    // Big from the first town: a kicker is 40px of lip, a launch ramp 60 to 120, a half-pipe lip 70 to 130.
+    if (r < 0.3) f = { type: 'kicker', x: x, w: 80 + tier * 4, h: 40 + tier * 6 };
+    else if (lv <= 1 || r < 0.7) f = { type: 'launch', x: x, w: 150 + tier * 6, h: 60 + tier * 8 };
+    else f = { type: 'qp', x: x, w: 80, h: 70 + tier * 8 };
     if (town.scene === 'vegas') { f.h += 10; f.w += 8; }
     features.push(f);
     return f;
   }
 
   function spawnInitial() {
-    for (var i = 0; i < 5; i++) spawnAt(300 + i * 150 + Math.random() * 80);
+    nextBeatX = scrollX + 520;
+    lastBeat = 'ramp';
   }
 
   function spawnAt(sx) {
@@ -369,15 +372,15 @@
   function spawnRailLine(sx) {
     var town = LOCALES[(level - 1) % LOCALES.length];
     var pool = TOWN_FURNITURE[town.scene] || TOWN_FURNITURE.city;
-    var long = Math.random() < (town.sig === 'steps' ? 0.75 : town.sig === 'gap' ? 0.6 : 0.4);
-    var segs = long ? (town.sig === 'gap' ? 3 : 2) + Math.floor(Math.random() * 4) : 1;
+    var long = Math.random() < (town.sig === 'steps' || town.sig === 'gap' ? 0.85 : 0.65);
+    var segs = long ? 3 + Math.floor(Math.random() * 3) : 1 + Math.floor(Math.random() * 2);
     var x = sx, id = ++railSeq;
     var kind = pool[Math.floor(Math.random() * pool.length)];
     for (var i = 0; i < segs; i++) {
       if (i > 0 && Math.random() < 0.5) kind = pool[Math.floor(Math.random() * pool.length)];
       var spec = FURNITURE[kind];
       var w = spec.w[0] + Math.random() * (spec.w[1] - spec.w[0]);
-      if (long && kind !== 'hydrant') w += 40;
+      if (long && kind !== 'hydrant') w += 120 + Math.random() * 120;
       var top = Math.min(terrainY(x), terrainY(x + w)) - spec.h;
       rails.push({ x: x, top: top, w: w, scored: false, id: id, seg: i, segs: segs, kind: kind, bodyH: spec.h, waxed: Math.random() < 0.6 });
       x += w + 34 + Math.random() * 40;
@@ -442,6 +445,7 @@
   function bank(sketchy) {
     if (linePts <= 0) { resetLine(); return; }
     var total = Math.round(linePts * combo * (sketchy ? 0.5 : 1));
+    if (special >= 100) { total = Math.round(total * 1.5); useSpecial(); addPopup(player.x + player.w / 2, player.y - 40, 'SPECIAL x1.5', CYAN); }
     score += total;
     document.getElementById('jd-br-score').textContent = score;
     var px = player.x + player.w / 2, py = player.y - 18;
@@ -500,18 +504,18 @@
   function setGoals(lv) {
     var tier = Math.min(8, lv), town = LOCALES[(lv - 1) % LOCALES.length];
     var pool = [
-      { id: 'line', text: 'SICK LINE ' + (1500 * tier) + ' IN ONE', need: 1500 * tier, have: 0 },
-      { id: 'grind', text: 'GRIND ' + (town.sig === 'steps' ? 'THE STEPS ' : '') + (200 + tier * 40) + ' FEET', need: 200 + tier * 40, have: 0 },
+      { id: 'bigair', text: 'BIG AIR ' + (240 + tier * 20), need: 240 + tier * 20, have: 0 },
+      { id: 'grindtown', text: 'GRIND ' + (1200 + tier * 200) + ' FEET' + (town.sig === 'steps' ? ' OF STEPS' : ''), need: 1200 + tier * 200, have: 0 },
       { id: 'spin', text: (tier >= 3 ? '720' : '540') + ' OFF A RAMP', need: tier >= 3 ? 4 : 3, have: 0 },
       { id: 'letters', text: 'COLLECT S-K-A-T-E', need: 5, have: 0 },
-      { id: 'grabs', text: 'LAND ' + (2 + tier) + ' GRABS', need: 2 + tier, have: 0 },
-      { id: 'points', text: (4000 * tier) + ' POINTS THIS TOWN', need: 4000 * tier, have: 0 },
+      { id: 'line', text: 'SICK LINE ' + (1500 * tier), need: 1500 * tier, have: 0 },
     ];
     goals = [];
-    // Letters always, then two more picked from the rest
+    // Letters always, then two picked from the air-and-rail set
     goals.push(pool[3]);
-    var rest = [pool[0], pool[1], pool[2], pool[4], pool[5]];
+    var rest = [pool[0], pool[1], pool[2], pool[4]];
     for (var i = 0; i < 2; i++) goals.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
+    townGrindFeet = 0;
     for (var g = 0; g < goals.length; g++) goals[g].done = false;
     goalCardT = 200;
     townScoreStart = score;
@@ -588,7 +592,7 @@
     continueUsed = true;
     mode = 'play';
     level = lv; score = keepScore; lives = MAX_LIVES;
-    dist = (lv - 1) * 4000; scrollX = dist * 4; nextFeatureX = scrollX + 700;
+    dist = (lv - 1) * 4000; scrollX = (lv - 1) * TOWN_PX; nextBeatX = scrollX + 700;
     obstacles = []; collectibles = []; rails = []; features = [];
     spawnInitial();
     player.y = terrainY(scrollX + player.x + player.w / 2) - player.h;
@@ -604,10 +608,8 @@
   function heightAboveGround() { return terrainY(scrollX + player.x + player.w / 2) - (player.y + player.h); }
   function lateLabel(name) { return (!player.onGround && player.vy > 1 && heightAboveGround() < 28) ? 'LATE ' + name : name; }
   function airTrick(base, name) {
-    var lbl = lateLabel(name);
-    var pts = lbl !== name ? base * 2 : base;
-    if (spinAngle !== 0 && Math.abs(spinAngle) > 0.6) { lbl += ' SPIN'; pts += 10; }
-    trick(pts, player.x + player.w / 2, player.y - 8, lbl);
+    trick(base, player.x + player.w / 2, player.y - 8, name);
+    airName = name; airNameT = 50;
   }
 
   function tryJump() {
@@ -619,6 +621,8 @@
       if (sl < -0.15) player.vy += -(2 + Math.abs(sl) * speed * 0.6) - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
       player.vy = Math.max(-16, player.vy);
       floaty = sl < -0.3 || player.vy < -11;
+      peakHit = false;
+      if (floaty) rampAirs++;
       player.onGround = false;
       player.popT = 8;
       spawnDust(player.x + 4, player.y + player.h, 3);
@@ -628,29 +632,19 @@
       airTop = player.y; airCount++;
       sfxJump();
       if (player.grinding) { lastGrindEnd = frame; lastRailId = player.grindRail ? player.grindRail.id : -1; player.grinding = false; player.grindRail = null; }
-    } else if (!flipped && jumpBuffer > 0 && player.vy > -8) {
-      flipped = true;
-      jumpBuffer = 0;
-      player.flipT = 24;
-      player.vy = Math.min(player.vy, -5.5);
-      sfxFlip();
-      airTrick(15, 'KICKFLIP');
     }
   }
 
   function airborne() { return mode === 'play' && !player.onGround && !player.grinding; }
+  // On a rail LEFT and RIGHT change the grind and lean you that way.
   function railTrick(key) {
-    // Switching tricks mid-rail is the combo: each new one goes on the line.
-    var map = { left: usedNose ? 'CROOKED' : 'NOSEGRIND', right: usedFive ? 'SMITH' : '5-0', down: railUsed.down ? 'TAILSLIDE' : 'BOARDSLIDE', up: railUsed.up ? 'BLUNTSLIDE' : 'NOSESLIDE' };
-    if (key === 'up' && railUsed.down && special >= 100 && !railUsed.DARKSLIDE) { railUsed.DARKSLIDE = true; useSpecial(); grindTilt = 0; slideT = 999; trick(150, player.x + player.w / 2, player.y - 14, 'DARKSLIDE'); bannerT = 70; bannerText = 'SPECIAL: DARKSLIDE'; say('gnarly', 100); return; }
-    var name = map[key];
+    var name = key === 'left' ? (usedNose ? 'CROOKED' : 'NOSEGRIND') : (usedFive ? 'SMITH' : '5-0');
+    grindBal += key === 'left' ? -0.35 : 0.35;
     if (railUsed[name]) return;
     railUsed[name] = true;
     if (key === 'left') { usedNose = true; grindTilt = -1; }
-    if (key === 'right') { usedFive = true; grindTilt = 1; }
-    if (key === 'down') { railUsed.down = true; grindTilt = 0; slideT = 999; }
-    if (key === 'up') { railUsed.up = true; grindTilt = -0.5; }
-    trick(key === 'down' || key === 'up' ? 14 : 10, player.x + player.w / 2, player.y - 10, name);
+    else { usedFive = true; grindTilt = 1; }
+    trick(12, player.x + player.w / 2, player.y - 10, name);
     spawnSparks(player.x + 4, player.y + player.h + 2, 6);
   }
   document.addEventListener('keydown', function(e) {
@@ -665,41 +659,18 @@
       if (e.repeat) return;
       leftHeld = true; leftHold = frame;
       if (mode === 'play' && player.grinding) railTrick('left');
-      else if (mode === 'play' && player.onGround && !wasManual && speed > 4 && slideT === 0) {
-        // Powerslide: scrub speed, throw sparks, the line stays alive a beat longer.
-        slideT = 14; speed *= 0.72; comboTimer = Math.max(comboTimer, 90);
-        spawnSparks(player.x + 2, player.y + player.h, 10);
-        playSfx(240, 0.12, 'sawtooth', 0.09);
-        trick(8, player.x + player.w / 2, player.y - 8, 'POWERSLIDE');
-      }
     } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
       e.preventDefault();
       if (e.repeat) return;
       rightHeld = true; rightHold = frame;
       if (mode === 'play' && player.grinding) railTrick('right');
-      else if (mode === 'play' && player.onGround && !wasManual) { speed = Math.min(12, speed + 0.9); player.pushT = 16; }
     } else if (e.code === 'ArrowUp' || e.code === 'KeyW') {
       e.preventDefault();
-      if (!e.repeat) {
-        if (mode === 'play' && player.grinding) railTrick('up');
-        else if (airborne() && frame - lastUpTap < 18 && !usedBack) {
-          usedBack = true;
-          player.backT = 36;
-          player.vy = Math.min(player.vy, -7);
-          sfxFlip();
-          airTrick(40, 'BACKFLIP');
-          sayLingo();
-        }
-        lastUpTap = frame;
-        upHold = frame;
-      }
+      if (!e.repeat) upHold = frame;
       upHeld = true;
     } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
       e.preventDefault();
-      if (!e.repeat) {
-        downHold = frame;
-        if (mode === 'play' && player.grinding) railTrick('down');
-      }
+      if (!e.repeat) downHold = frame;
       downHeld = true;
     }
   });
@@ -709,17 +680,14 @@
     var held;
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
       held = frame - leftHold; leftHeld = false;
-      if (airborne() && held < 9 && !usedHeel) { usedHeel = true; player.heelT = 24; player.vy = Math.min(player.vy, -5); sfxFlip(); airTrick(15, 'HEELFLIP'); }
+      if (airborne() && held < 9 && !usedHeel) { usedHeel = true; player.heelT = 24; player.vy = Math.min(player.vy, -4); sfxFlip(); airTrick(20, 'HEELFLIP'); }
     }
     if (e.code === 'ArrowRight' || e.code === 'KeyD') {
       held = frame - rightHold; rightHeld = false;
-      if (airborne() && held < 9 && !usedShove) { usedShove = true; player.shoveT = 20; player.vy = Math.min(player.vy, -4.5); sfxFlip(); airTrick(20, 'SHOVE-IT'); }
+      if (airborne() && held < 9 && !flipped) { flipped = true; player.flipT = 24; player.vy = Math.min(player.vy, -4); sfxFlip(); airTrick(20, 'KICKFLIP'); }
     }
     if (e.code === 'ArrowUp' || e.code === 'KeyW') upHeld = false;
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-      held = frame - downHold; downHeld = false;
-      if (airborne() && held < 9 && !usedImp) { usedImp = true; player.impT = 26; player.vy = Math.min(player.vy, -5); sfxFlip(); airTrick(25, 'IMPOSSIBLE'); }
-    }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') downHeld = false;
   });
   canvas.addEventListener('mousedown', function(e) { e.preventDefault(); press(); });
   document.addEventListener('mouseup', function() { release(); });
@@ -752,12 +720,10 @@
   // The grab you are doing, from what is held: UP melon, DOWN indy, both
   // method. Add a spin and the names change (nosegrab, stalefish, tailgrab).
   function currentGrab() {
-    var u = upHeld && frame - upHold >= 8, d = downHeld && frame - downHold >= 8;
+    var u = upHeld && frame - upHold >= 6, d = downHeld && frame - downHold >= 6;
     if (!u && !d) return '';
-    var spinning = Math.abs(spinAngle) > 0.6;
-    if (u && d) return spinning ? 'TAILGRAB' : 'METHOD';
-    if (u) return spinning ? 'NOSEGRAB' : 'MELON';
-    return spinning ? 'STALEFISH' : 'INDY';
+    if (u && d) return 'METHOD';
+    return u ? 'MELON' : 'INDY';
   }
 
   function update() {
@@ -765,7 +731,7 @@
     musicTick();
     // dist counts town distance at a quarter of the road: 4000 of it is one
     // town, 16000px, a minute or more at these speeds.
-    dist += speed * 0.25;
+    dist += speed * (4000 / TOWN_PX);
     scrollX += speed;
     var nl = 1 + Math.floor(dist / 4000);
     if (nl > level) {
@@ -804,15 +770,18 @@
     // The meter drains while you coast with nothing going.
     if (player.onGround && !player.grinding && linePts === 0 && special > 0 && special < 100) special = Math.max(0, special - 0.05);
     // Speed: the town sets a cruise, hills push and pull, pushes and slides nudge it.
-    // Cruise starts at a roll and climbs a little per town: 3.0 downtown,
-    // 7.5 the ceiling many towns later.
-    var cruise = Math.min(7.5, 3.0 + dist / 6000);
-    player.x += ((76 - (speed - 3) * 4) - player.x) * 0.04;
+    // A long calm glide. Cruise starts at 2.4 and creeps up a tenth a town.
+    // Real speed comes from what you do: a big clean landing and a long grind
+    // each add a push that fades slowly back to cruise. Never a jump.
+    var cruise = Math.min(6.5, 2.4 + dist / 40000);
+    var target = cruise + boost;
+    if (boost > 0) boost = Math.max(0, boost - 0.0025);
+    player.x += ((76 - (speed - 2.4) * 4) - player.x) * 0.04;
     var wx = scrollX + player.x + player.w / 2;
     groundSlope = slopeAt(wx);
-    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.12) speed += groundSlope * 0.06;
-    speed += (cruise - speed) * (player.onGround ? 0.018 : 0.006);
-    speed = Math.max(cruise * 0.55, Math.min(9, speed));
+    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.12) speed += groundSlope * 0.04;
+    speed += (target - speed) * (player.onGround ? 0.012 : 0.004);
+    speed = Math.max(cruise * 0.6, Math.min(7.5, speed));
     if (bannerT > 0) bannerT--;
     if (shieldT > 0) shieldT--;
     if (lipT > 0) lipT--;
@@ -839,6 +808,26 @@
     }
     if (coyote > 0) coyote--;
     if (jumpBuffer > 0) { jumpBuffer--; tryJump(); }
+    // Hold UP and the board pops itself at every lip and every gap edge: one
+    // finger sends it, SPACE on top of that sends it bigger.
+    // Off the end of a handrail with the gap still under you: hold UP and you hop it.
+    if (upHeld && player.grinding && player.grindRail && player.grindRail.kind === 'handrail' && frame - upHold >= 4) {
+      var railEnd = player.grindRail.x + player.grindRail.w;
+      if (wx > railEnd - 12 && wx < railEnd + 2) { holdingJump = true; tryJump(); player.vy = Math.min(player.vy, -11); floaty = true; peakHit = false; rampAirs++; }
+    }
+    if (upHeld && player.onGround && !player.grinding && frame - upHold >= 4) {
+      var edge = false, edgeIsGap = false;
+      for (var ei = 0; ei < features.length; ei++) {
+        var ef = features[ei];
+        if (ef.type === 'stairs') { if (wx > ef.x - 26 && wx < ef.x + 2) { edge = true; edgeIsGap = true; } }
+        else if (wx > ef.x + ef.w - 10 && wx < ef.x + ef.w + 1) edge = true;
+      }
+      if (edge) {
+        holdingJump = true; tryJump();
+        // A gap edge gets a real send: high, floaty, clear of the whole stair set.
+        if (!player.onGround && edgeIsGap) { player.vy = Math.min(player.vy, -11.5); floaty = true; peakHit = false; rampAirs++; }
+      }
+    }
     // Pumping: SPACE held while climbing a transition.
     if (player.onGround && holdingJump && groundSlope < -0.2) pumpT++; else if (player.onGround) pumpT = 0;
 
@@ -852,14 +841,20 @@
         var gyNow = terrainY(wx);
         var drop = gyNow - (player.y + player.h);
         var followMax = speed * 0.55 + 2;
+        // Roll into a stair set and you eat it: the rail beside it is the line.
+        var stairsAhead = null;
+        for (var sfj = 0; sfj < features.length; sfj++) { var sfx = features[sfj]; if (sfx.type === 'stairs' && wx > sfx.x + 4 && wx < sfx.x + sfx.w * 0.8) stairsAhead = sfx; }
+        if (stairsAhead && player.onGround && player.invincible === 0) { if (bail('MISSED THE GAP')) return; }
         if (drop > followMax) {
           player.onGround = false;
           // Off a lip you carry the ramp's angle at your speed, and a pump
           // on the face adds more. Capped so the sky stays in reach.
-          var launch = -(6 + Math.abs(prevSlope) * speed * 1.2) * (prevSlope < -0.25 ? 1 : 0.3) - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
+          var launch = -(7 + Math.abs(prevSlope) * speed * 1.3) * (prevSlope < -0.25 ? 1 : 0.3) - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
           player.vy = Math.max(-16, Math.min(0, launch));
           floaty = prevSlope < -0.3 || player.vy < -8;
+          peakHit = false;
           airTop = player.y; airCount++;
+          if (floaty) rampAirs++;
           if (prevSlope < -0.3) { lipT = 30; spawnDust(player.x + player.w / 2, player.y + player.h, 4); if (player.vy < -9) sfxJump(); }
         } else {
           player.y = gyNow - player.h;
@@ -869,8 +864,11 @@
         // Floaty: lighter gravity in the air, and a hang at the top of the arc
         // so there is time to spin and grab.
         // Ramp air floats (Ski Safari); a plain ollie stays snappy.
-        var g = floaty ? ((holdingJump && player.vy < 0) ? 0.26 : 0.36) : ((holdingJump && player.vy < 0) ? 0.32 : GRAVITY);
-        if (floaty && Math.abs(player.vy) < 1.4) g *= 0.5;
+        // Ramp air is slow and high (Ski Safari): light gravity, lighter still
+        // at the peak. A plain ollie stays snappy.
+        var g = floaty ? ((holdingJump && player.vy < 0) ? 0.22 : 0.28) : ((holdingJump && player.vy < 0) ? 0.32 : GRAVITY);
+        if (floaty && Math.abs(player.vy) < 2) g *= 0.4;
+        if (floaty && !peakHit && player.vy > -0.5 && terrainY(wx) - (player.y + player.h) > 120) { peakHit = true; slowT = 24; }
         player.vy += g;
         player.y += player.vy;
         if (player.y < airTop) airTop = player.y;
@@ -889,16 +887,13 @@
         spinStep = half;
         var names = ['', '180', '360', '540', '720', '900', '1080'];
         var pts = [0, 15, 35, 60, 100, 150, 220];
-        if (half >= 5 && special < 100) { spinStep = 4; spinAngle = spinDir * 4 * Math.PI; }
-        else {
-        if (half >= 5) { useSpecial(); bannerT = 70; bannerText = 'SPECIAL: ' + names[Math.min(half, names.length - 1)]; }
         if (floaty) goalProgress('spin', half);
         var nm = names[Math.min(half, names.length - 1)];
         var grabNow = currentGrab();
-        trick(pts[Math.min(half, pts.length - 1)] + (grabNow ? 12 : 0), player.x + player.w / 2, player.y - 12, grabNow ? grabNow + ' ' + nm : nm);
+        var flipNow = player.flipT > 0 ? 'KICKFLIP ' : player.heelT > 0 ? 'HEELFLIP ' : '';
+        airTrick(pts[Math.min(half, pts.length - 1)] + (grabNow ? 12 : 0) + (flipNow ? 10 : 0), flipNow + (grabNow ? grabNow + ' ' : '') + nm);
         if (half >= 2) spawnParticles(player.x + player.w / 2, player.y + player.h / 2, YELLOW, 6);
         if (half === 4) sayLingo();
-        }
       }
     }
 
@@ -914,12 +909,22 @@
       spawnDust(player.x + player.w / 2, gy, air > 90 ? 10 : 5);
       player.squash = air > 90 ? 9 : 6;
       var landSlope = slopeAt(wx);
-      var spinOff = Math.abs(spinAngle) % Math.PI;
-      var midSpin = spinAngle !== 0 && spinOff > 0.55 && spinOff < Math.PI - 0.55;
-      var spinning = player.flipT > 0 || player.heelT > 0 || player.shoveT > 0 || player.impT > 0 || player.backT > 0 || midSpin;
+      var off360 = Math.abs(spinAngle) % (Math.PI * 2);
+      var offFlat = Math.min(off360, Math.PI * 2 - off360); // how far from wheels-down, 0 to 180 degrees
+      var midSpin = spinAngle !== 0 && offFlat > Math.PI / 4;
+      var spinning = player.flipT > 0 || player.heelT > 0 || midSpin;
       var sketchy = spinning || landSlope < -0.18;
-      // Land sideways off a full rotation and you are on the ground, not the board.
-      if (spinStep >= 2 && spinOff > 1.0 && spinOff < Math.PI - 1.0) {
+      // A flip thrown in the last third of the air lands on its edge: a bail.
+      // (Half the rotation or more still to go is the line; less is just sketchy.)
+      if (player.flipT > 12 || player.heelT > 12) {
+        player.flipT = 0; player.heelT = 0;
+        player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
+        flipped = false; usedHeel = false;
+        if (bail('FLIPPED TOO LATE')) return;
+        return;
+      }
+      // Past 90 degrees you are on the ground, not the board. Anything closer is clean or sketchy.
+      if (spinAngle !== 0 && offFlat > Math.PI / 2) {
         spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
         player.onGround = true; flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
         if (bail('LANDED SIDEWAYS')) return;
@@ -927,7 +932,7 @@
       }
       // The steps of a stair set are not a landing zone.
       var stairsHere = null;
-      for (var sfi = 0; sfi < features.length; sfi++) { var sf = features[sfi]; if (sf.type === 'stairs' && wx > sf.x && wx < sf.x + sf.w * 0.45) stairsHere = sf; }
+      for (var sfi = 0; sfi < features.length; sfi++) { var sf = features[sfi]; if (sf.type === 'stairs' && wx > sf.x && wx < sf.x + sf.w * 0.8) stairsHere = sf; }
       if (stairsHere && !player.grinding) {
         player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
         flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
@@ -942,7 +947,6 @@
         // the next ramp, rail or manual can carry it. Roll flat and it pays.
         if (sketchy) { linePts = Math.ceil(linePts / 2); addPopup(player.x + player.w / 2, player.y - 18, 'SKETCHY: LINE HALVED', '#ff9a3c'); }
         else addPopup(player.x + player.w / 2, player.y - 18, 'CLEAN', CYAN);
-        if ((downHeld || upHeld) && manualBailT === 0) manualKind = downHeld ? 'manual' : 'nose';
         linkWindow = 42;
       } else if (landSlope < -0.18) {
         addPopup(player.x + player.w / 2, player.y - 18, 'UPHILL LANDING', '#ff9a3c');
@@ -960,7 +964,7 @@
 
     // The link window: rolling flat with a line open counts down to the bank.
     if (linkWindow > 0) {
-      var carrying = !player.onGround || player.grinding || ((downHeld || upHeld) && manualBailT === 0 && slideT === 0) || slideT > 0;
+      var carrying = !player.onGround || player.grinding || (downHeld && manualBailT === 0);
       if (carrying) linkWindow = 0;
       else if (--linkWindow === 0 && linePts > 0) bank(false);
     }
@@ -969,11 +973,10 @@
     var gname = airborne() ? currentGrab() : '';
     if (gname) {
       grabT++;
-      if (gname === 'METHOD' && special >= 100) { gname = 'CHRIST AIR'; }
       if (gname !== grabName) {
         grabName = gname;
-        if (gname === 'CHRIST AIR') { useSpecial(); trick(200, player.x + player.w / 2, player.y - 14, 'CHRIST AIR'); bannerT = 70; bannerText = 'SPECIAL: CHRIST AIR'; say('so-sick', 100); }
-        else trick(10, player.x + player.w / 2, player.y - 10, gname);
+        var spinTag = Math.abs(spinAngle) > 0.6 ? ' ' + ['', '180', '360', '540', '720', '900', '1080'][Math.min(6, Math.floor(Math.abs(spinAngle) / Math.PI))] : '';
+        airTrick(12, gname + spinTag);
       }
       if (grabT % 8 === 0) {
         linePts += 2;
@@ -989,14 +992,13 @@
 
     // Manual (DOWN) or nose manual (UP) on the ground: the board wants to tip;
     // the other arrow leans you back. Tip past the edge and the line goes.
-    var manual = (downHeld || upHeld) && player.onGround && !player.grinding && manualBailT === 0 && slideT === 0;
+    var manual = downHeld && player.onGround && !player.grinding && manualBailT === 0 && slideT === 0;
     if (manual) {
       manualT++;
-      if (manualT === 1) { manualKind = downHeld && !upHeld ? 'manual' : upHeld && !downHeld ? 'nose' : manualKind; manualBal = manualKind === 'nose' ? -0.1 : 0.1; trick(manualKind === 'nose' ? 8 : 5, player.x + player.w / 2, player.y - 10, manualKind === 'nose' ? 'NOSE MANUAL' : 'MANUAL'); }
-      var tip = 0.004 + level * 0.0008 + Math.abs(manualBal) * (0.022 + level * 0.002);
-      var slopeTip = groundSlope * 0.02;
-      if (manualKind === 'nose') manualBal -= tip - (downHeld ? 0.05 : 0) + slopeTip + (Math.random() - 0.5) * 0.03;
-      else manualBal += tip - (upHeld ? 0.05 : 0) + slopeTip + (Math.random() - 0.5) * 0.03;
+      if (manualT === 1) { manualKind = 'manual'; manualBal = 0.1; trick(5, player.x + player.w / 2, player.y - 10, 'MANUAL'); }
+      // The board tips back on its own; UP leans it forward. Tip over and it's a bail.
+      var tip = 0.005 + level * 0.001 + Math.abs(manualBal) * (0.024 + level * 0.002);
+      manualBal += tip - (upHeld ? 0.06 : 0) + groundSlope * 0.02 + (Math.random() - 0.5) * 0.03;
       if (manualT % 12 === 0) {
         linePts += 2;
         spawnParticles(player.x + 2, player.y + player.h, YELLOW, 1);
@@ -1038,7 +1040,7 @@
               spawnParticles(player.x + player.w / 2, railTop, CYAN, 8);
               spawnSparks(player.x + 4, railTop + 2, 8);
             }
-            grindDist = 0; grindPaid = 0; airFrames = 0; floaty = false; grindBal = (Math.random() - 0.5) * 0.2;
+            grindDist = 0; grindPaid = 0; airFrames = 0; floaty = false; grindBal = (Math.random() - 0.5) * 0.2; grindCount++;
             if (frame % 6 === 0) sfxGrind();
             break;
           }
@@ -1049,10 +1051,8 @@
     if (player.grinding) {
       // Balance: the board wants to slip off the rail; hold LEFT or RIGHT to
       // lean it back. Forgiving early, sharper in the later towns.
-      var drift = 0.004 + level * 0.0006;
-      grindBal += (grindBal >= 0 ? drift : -drift) + Math.abs(grindBal) * 0.012 + (Math.random() - 0.5) * 0.02;
-      if (leftHeld && frame - leftHold >= 8) grindBal -= 0.045;
-      if (rightHeld && frame - rightHold >= 8) grindBal += 0.045;
+      var drift = 0.002 + level * 0.0004;
+      grindBal += (grindBal >= 0 ? drift : -drift) + Math.abs(grindBal) * 0.008 + (Math.random() - 0.5) * 0.012;
       if (grindBal > 1 || grindBal < -1) {
         grindBal = 0;
         if (bail('SLIPPED THE GRIND')) return;
@@ -1067,12 +1067,14 @@
         var ft = Math.floor(grindDist / 200);
         linePts += 20;
         if (combo < MAX_COMBO) combo++;
+        boost = Math.min(2.5, boost + 0.25);
         addPopup(player.x + player.w / 2, player.y - 14, 'LONG GRIND ' + (ft * 200) + ' +20', CYAN);
         if (ft === 2) sayMoment('skate-grind');
         if (ft === 3) sayLingo();
       }
       if (grindDist > longestGrind) longestGrind = grindDist;
-      goalProgress('grind', Math.round(grindDist / 4));
+      townGrindFeet += speed / 4;
+      goalProgress('grindtown', Math.round(townGrindFeet));
     }
 
     // Roll into a bench or a planter on the ground: a bonk, not a bail. It
@@ -1111,9 +1113,9 @@
     // Hazards ride the terrain (world y). Cars hurt. Spills scrub. The rest steal the line.
     for (var i = obstacles.length - 1; i >= 0; i--) {
       var ob = obstacles[i];
-      if (ob.type === 'pigeon') { ob.x -= 1.1; }
-      else if (ob.type === 'dog') { ob.x -= 1.5; }
-      else if (ob.type === 'cyclist') { ob.x -= 2.3; }
+      if (ob.type === 'pigeon') { ob.x -= 0.5; }
+      else if (ob.type === 'dog') { ob.x -= 0.8; }
+      else if (ob.type === 'cyclist') { ob.x -= 1.1; }
       else if (ob.type === 'car') {
         if (!ob.out) {
           // Telegraphed: it flashes and honks at the curb while you close in.
@@ -1186,12 +1188,6 @@
       }
     }
 
-    // Cars: one every so often from town 1, never near a ramp's landing.
-    while (nextCarX < scrollX + W + 600) {
-      if (!featureAt(nextCarX)) obstacles.push(makeObstacle('car', nextCarX));
-      nextCarX += Math.max(560, 1500 - level * 120) + Math.random() * 500;
-    }
-
     // Collectibles (world y follows the terrain)
     for (var i = collectibles.length - 1; i >= 0; i--) {
       var col = collectibles[i];
@@ -1235,19 +1231,30 @@
       if (features[i].x + features[i].w + landingZone(features[i]) - scrollX < -200) features.splice(i, 1);
     }
 
-    // Features first (the terrain has to exist before things sit on it), then the rest ahead
-    while (nextFeatureX < scrollX + W + 700) {
-      var gapF = level <= 1 ? 800 + Math.random() * 600 : Math.max(420, 900 - level * 40) + Math.random() * 600;
-      var f = spawnFeature(nextFeatureX);
-      nextFeatureX += f.w + landingZone(f) + gapF;
-    }
-    var furthest = 0;
-    for (var i = 0; i < obstacles.length; i++) { if (obstacles[i].x > furthest) furthest = obstacles[i].x; }
-    for (var i = 0; i < collectibles.length; i++) { if (collectibles[i].x > furthest) furthest = collectibles[i].x; }
-    for (var i = 0; i < rails.length; i++) { if (rails[i].x + rails[i].w > furthest) furthest = rails[i].x + rails[i].w; }
-    while (furthest < scrollX + W + 400) {
-      furthest += Math.max(48, 120 - level * 7) + Math.random() * Math.max(40, 100 - level * 5);
-      spawnAt(furthest);
+    // The run is a rhythm: a ramp, its landing, a long rail, a breath, a ramp.
+    // Everything is placed at least three seconds of road ahead of you.
+    var ahead = W + Math.max(700, speed * 60 * 3.2);
+    while (nextBeatX < scrollX + ahead) {
+      var beat = lastBeat === 'ramp' ? (Math.random() < 0.8 ? 'rail' : 'ramp') : (Math.random() < 0.8 ? 'ramp' : 'rail');
+      if (beat === 'ramp') {
+        var f = spawnFeature(nextBeatX);
+        // flash in the flight path
+        var fk = Math.random();
+        collectibles.push({ x: f.x + f.w + 120 + Math.random() * 120, lift: 120 + Math.random() * 90, y: 0, w: 14, h: 14, collected: false, kind: fk < 0.1 ? 'eagle' : fk < 0.3 ? 'skull' : fk < 0.6 ? 'heart' : 'star' });
+        nextBeatX = f.x + f.w + landingZone(f) + 140 + Math.random() * 260;
+      } else {
+        var endX = spawnRailLine(nextBeatX);
+        nextBeatX = endX + 160 + Math.random() * 260;
+        // a rare, slow line stealer in the breath after a rail
+        if (Math.random() < 0.18) {
+          var types = ['pigeon'];
+          if (level >= 3) types.push('dog');
+          if (level >= 5) types.push('cyclist');
+          obstacles.push(makeObstacle(types[Math.floor(Math.random() * types.length)], nextBeatX - 60));
+        }
+        if (Math.random() < 0.5) collectibles.push({ x: nextBeatX - 100, lift: 40 + Math.random() * 30, y: 0, w: 14, h: 14, collected: false, kind: Math.random() < 0.05 && lives < MAX_LIVES ? 'deck' : Math.random() < 0.08 ? 'horseshoe' : 'bolt' });
+      }
+      lastBeat = beat;
     }
 
     var lastB = buildings[buildings.length - 1];
@@ -1307,7 +1314,7 @@
   function enterBoard(v) {
     wallOpts.again = (!continueUsed && level >= 2)
       ? 'SPACE: continue from ' + LOCALES[(level - 1) % LOCALES.length].name + ' (1 credit) // DOWN: new run'
-      : 'SPACE or TAP to ride again'; wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax, air: Math.round(maxAir), hang: longestAir, airs: airCount, grind: Math.round(longestGrind), transfers: transfers, goals: goalsDoneTotal, specials: specialUsed, cont: continueUsed ? 1 : 0 } }); }
+      : 'SPACE or TAP to ride again'; wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax, air: Math.round(maxAir), hang: longestAir, airs: airCount, grind: Math.round(longestGrind), transfers: transfers, goals: goalsDoneTotal, specials: specialUsed, rampAirs: rampAirs, grinds: grindCount, cont: continueUsed ? 1 : 0 } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -1479,16 +1486,13 @@
     ctx.textAlign = 'center';
     // The whole sheet cycles: the cabinet shows a few lines at a time.
     var sheet = [
-      ['HOLD SPACE or TAP to ollie // ramps and crests launch you, speed is air', 'tap again mid-air: KICKFLIP // tap LEFT: heelflip // tap RIGHT: shove-it // tap DOWN: impossible'],
-      ['HOLD LEFT or RIGHT in the air: spin 180, 360, 540, 720', 'HOLD UP: melon // HOLD DOWN: indy // both: method // spin while grabbing for more'],
-      ['on a rail: LEFT nosegrind, RIGHT 5-0, DOWN boardslide, UP noseslide // hop the gaps, long rails pay by the foot', 'the line rides ramp to air to rail to manual // roll flat for a beat and it banks // LEFT on flat: powerslide'],
-      ['downhill landings pay, uphill landings are sketchy // hearts put a board back', 'five boards, one continue per run, eleven stops from Denver to the Vegas strip']
+      ['SPACE ollies, hold it for big // hold UP at a lip and the board sends itself', 'in the air: tap LEFT or RIGHT to flip, hold to spin, hold UP or DOWN to grab // rails: LEFT and RIGHT change the grind'],
     ];
-    var pageI = Math.floor(t / 120) % sheet.length;
+    var pageI = 0;
     ctx.fillText(sheet[pageI][0], W / 2, H - 58);
     ctx.fillText(sheet[pageI][1], W / 2, H - 44);
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    for (var pgi = 0; pgi < sheet.length; pgi++) ctx.fillRect(W / 2 - sheet.length * 5 + pgi * 10, H - 32, 6, 2);
+
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -2051,7 +2055,7 @@
       if (sf2.type !== 'stairs') continue;
       var ssx = sf2.x - scrollX;
       if (ssx > W + 20 || ssx + sf2.w < -20) continue;
-      var stepW = sf2.w * 0.45 / 5, roadTop = GROUND_Y + hillY(sf2.x) - camY;
+      var stepW = sf2.w * 0.55 / 5, roadTop = GROUND_Y + hillY(sf2.x) - camY;
       for (var st2 = 0; st2 < 5; st2++) {
         var sy2 = roadTop + sf2.h * st2 / 5;
         ctx.fillStyle = '#8e8e96'; ctx.fillRect(ssx + st2 * stepW, sy2, stepW + 1, sf2.h - sf2.h * st2 / 5 + 2);
@@ -2059,7 +2063,11 @@
         ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(ssx + st2 * stepW, sy2 + 2, 1.5, sf2.h - sf2.h * st2 / 5);
       }
       ctx.fillStyle = 'rgba(255,60,60,' + (0.25 + 0.2 * Math.sin(frame * 0.2)).toFixed(2) + ')';
-      ctx.fillRect(ssx, roadTop + sf2.h + 2, sf2.w * 0.45, 2);
+      ctx.fillRect(ssx, roadTop + sf2.h + 2, sf2.w * 0.8, 2);
+      // the sign: GAP, on a post before the steps
+      ctx.fillStyle = '#3a3a44'; ctx.fillRect(ssx - 30, roadTop - 44, 3, 44);
+      ctx.fillStyle = YELLOW; ctx.fillRect(ssx - 44, roadTop - 58, 32, 16);
+      ctx.fillStyle = '#000'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.fillText('GAP', ssx - 28, roadTop - 46);
     }
     // Ramps are built things on the road: plywood kickers, steel launch ramps
     // with a hazard stripe, concrete lips with coping. You should never miss one.
@@ -2303,6 +2311,27 @@
       ctx.fillText(bannerText, W / 2, H / 2 - 40);
       ctx.globalAlpha = 1;
     }
+    if (airNameT > 0 && mode === 'play') {
+      airNameT--;
+      ctx.globalAlpha = Math.min(1, airNameT / 12);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000'; ctx.font = 'bold 20px monospace'; ctx.fillText(airName, W / 2 + 1, H / 2 - 2);
+      ctx.fillStyle = '#fff'; ctx.fillText(airName, W / 2, H / 2 - 3);
+      ctx.globalAlpha = 1;
+    }
+    if (slowT > 0 && mode === 'play') {
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(-8, -8, W + 16, H + 16);
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = 'bold 8px monospace'; ctx.fillText('PICK A TRICK', W / 2, H / 2 + 16);
+    }
+    if (hintT > 0 && mode === 'play') {
+      hintT--;
+      ctx.globalAlpha = Math.min(1, hintT / 40) * 0.9;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(40, H - 44, W - 80, 30);
+      ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace';
+      ctx.fillText('SPACE: ollie (hold for big)   //   in the air: tap LEFT/RIGHT flip, hold LEFT/RIGHT spin, hold UP or DOWN grab', W / 2, H - 31);
+      ctx.fillText('hold UP at a lip to send it   //   on a rail: LEFT/RIGHT change the grind   //   DOWN on landing: manual', W / 2, H - 20);
+      ctx.globalAlpha = 1;
+    }
     // the line, right side
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(W - 126, 4, 122, 44);
@@ -2324,7 +2353,7 @@
     ctx.fillStyle = special >= 100 ? (Math.floor(frame / 6) % 2 === 0 ? '#fff' : CYAN) : CYAN;
     ctx.fillRect(W - 120, 38, 110 * (special / 100), 5);
     ctx.font = 'bold 6px monospace'; ctx.fillStyle = special >= 100 ? '#fff' : 'rgba(255,255,255,0.55)';
-    ctx.fillText(special >= 100 ? 'SPECIAL READY: UP+DOWN, 900, UP AFTER A BOARDSLIDE' : 'SPECIAL', W - 10, 36);
+    ctx.fillText(special >= 100 ? 'SPECIAL READY: NEXT LINE PAYS x1.5' : 'SPECIAL', W - 10, 36);
     // trick stack: the last tricks of the line, newest at the bottom, fading up
     if (mode === 'play' && lineTricks.length) {
       ctx.font = 'bold 8px monospace';
@@ -2761,7 +2790,12 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play') {
+        // The peak of a big air runs at half speed for a beat so you can read
+        // the height and pick the trick.
+        if (slowT > 0 && (slowTick++ & 1)) slowT--;
+        else update();
+      }
       else { frame++; musicTick(); if (shake > 0) shake *= 0.85; if (mode === 'intro' && ++introT > 525) introT = 70; }
       acc -= 16.67;
     }

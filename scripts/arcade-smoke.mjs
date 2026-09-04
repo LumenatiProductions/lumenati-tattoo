@@ -123,7 +123,9 @@ function runGame(id, src, opts = {}) {
     if (i % 90 === 30) { h.key("ArrowLeft"); h.key("ArrowLeft", true); }
     if (i % 90 === 60) { h.key("ArrowRight"); h.key("ArrowRight", true); }
     if (i % 130 === 70) { h.key("ArrowUp"); h.key("ArrowUp", true); }
-    if (i % 170 === 90) { h.key("ArrowDown"); h.key("ArrowDown", true); }
+    // DOWN is held for a stretch, not tapped: a held manual can tip, which is how a blind skater loses boards now.
+    if (i % 170 === 40) h.key("ArrowDown");
+    if (i % 170 === 160) h.key("ArrowDown", true);
     step(1);
     if (h.spans["jd-br-lives"].textContent === "0" && id !== "pong") { died = true; scoreAtDeath = h.spans["jd-br-score"].textContent; break; }
     // Pong: the run ends when the CPU takes a match (five, or two clear past deuce).
