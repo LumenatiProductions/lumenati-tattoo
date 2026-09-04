@@ -126,7 +126,8 @@ function runGame(id, src, opts = {}) {
     if (i % 170 === 90) { h.key("ArrowDown"); h.key("ArrowDown", true); }
     step(1);
     if (h.spans["jd-br-lives"].textContent === "0" && id !== "pong") { died = true; scoreAtDeath = h.spans["jd-br-score"].textContent; break; }
-    if (id === "pong" && h.spans["jd-br-lives"].textContent === "5") { died = true; scoreAtDeath = "0"; break; }
+    // Pong: the run ends when the CPU takes a match (five, or two clear past deuce).
+    if (id === "pong") { const l = Number(h.spans["jd-br-lives"].textContent), s = Number(h.spans["jd-br-score"].textContent); if (l >= 5 && l - s >= 2) { died = true; scoreAtDeath = "0"; break; } }
   }
   if (!died) throw new Error(`never reached game over in ${maxFrames} frames`);
   step(130); // the GAME OVER card holds input for ~95 frames
@@ -141,7 +142,8 @@ function runGame(id, src, opts = {}) {
   // 4. HARD assertions: the game must actually be running again
   const livesNow = h.spans["jd-br-lives"].textContent;
   if (id === "pong") {
-    if (livesNow === "5") throw new Error("restart failed: CPU score still 5 after restart input");
+    const ln = Number(livesNow), sn = Number(h.spans["jd-br-score"].textContent);
+    if (ln >= 5 && ln - sn >= 2) throw new Error("restart failed: CPU still holds the match after restart input");
   } else if (livesNow === "0") {
     throw new Error("restart failed: lives still 0 after board + restart input");
   }

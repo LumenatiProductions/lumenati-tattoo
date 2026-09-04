@@ -81,14 +81,32 @@
   }
 
 
-  var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF', ORANGE = '#ff8c1a';
-  var CELL = 40, COLS = 10;
-  // Rows top to bottom: 0 shop, 1-3 traffic, 4 median, 5-6 traffic, 7 start
-  var ROW_Y = [0, 40, 80, 120, 160, 200, 240, 280];
-  var DOOR_COLS = [2, 5, 8];
-  var LANE_ROWS = [1, 2, 3, 5, 6];
-  var LANE_DIRS = { 1: 1, 2: -1, 3: 1, 5: -1, 6: 1 };
+  var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', CYAN = '#00FFFF', ORANGE = '#ff8c1a', PURPLE = '#b026ff';
+  // The board: ten rows of 32px, twelve columns with an 8px margin each side.
+  // Rows top to bottom: 0 shop (the chairs), 1-2 the ink river (ride the
+  // stools, carts and rugs), 3 the stoop, 4-8 traffic, 9 the start sidewalk.
+  var CELL = 32, COLS = 12, X0 = 8;
+  var ROW_Y = [0, 32, 64, 96, 128, 160, 192, 224, 256, 288];
+  var SHOP_ROW = 0, RIVER_ROWS = [1, 2], STOOP_ROW = 3, START_ROW = 9;
+  var CHAIR_COLS = [1, 4, 7, 10];
+  var LANE_ROWS = [4, 5, 6, 7, 8];
+  var LANE_DIRS = { 4: 1, 5: -1, 6: 1, 7: -1, 8: 1 };
   var CAR_COLORS = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
+  function cx(col) { return X0 + col * CELL + CELL / 2; }
+  function colAt(x) { return Math.max(0, Math.min(COLS - 1, Math.round((x - X0 - CELL / 2) / CELL))); }
+  function isRiver(row) { return row === 1 || row === 2; }
+
+  // The walk-ins. Each fill hands the next one the sidewalk: a kid (quick,
+  // skinny), a biker (long stride: UP clears two rows), a bride (slow, wide
+  // dress), a grandma (slow, but patient). Chairs say who they want; a match
+  // pays double.
+  var CHAR_ORDER = ['kid', 'biker', 'bride', 'grandma'];
+  var CHARS = {
+    kid:     { name: 'KID',     hop: 4, w: 10, stride: 1, patient: 1,   skin: '#f0c8a0', top: '#2d6cdf', hair: '#5a3418', hairH: 4, h: 0.82 },
+    biker:   { name: 'BIKER',   hop: 6, w: 14, stride: 2, patient: 1,   skin: '#e8b892', top: '#111',    hair: '#111',    hairH: 3, h: 1.05 },
+    bride:   { name: 'BRIDE',   hop: 8, w: 18, stride: 1, patient: 1,   skin: '#f6d2b8', top: '#f4f4f4', hair: '#3a2a1a', hairH: 5, h: 1 },
+    grandma: { name: 'GRANDMA', hop: 9, w: 14, stride: 1, patient: 0.6, skin: '#ecc7a8', top: '#8e6bb5', hair: '#d9d9d9', hairH: 5, h: 0.9 }
+  };
 
   // Every night has its own weather and light. Rush hour lands every third
   // night: faster lanes, one more car in each, and the streets are wet.
@@ -104,15 +122,17 @@
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
   var score, lives, wave, frame;
-  var player, lanes, doors, invuln, hopT;
+  var player, lanes, river, chairs, invuln, hopT;
   var patience, patienceMax, amb, bannerT, bannerText, bannerColor, bestRow;
   var streak, popups, parts, shake, pickup, pickupCd, slicks, stats, dieFlash;
+  var charIdx, cheerT, bonus, rideT, crowd;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-frogger') || '0', 10) || 0; } catch(e) {}
   function saveBest() {
     if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-frogger', String(best)); } catch(e) {} }
   }
+  function who() { return CHARS[player.char]; }
 
   // The streak multiplier: chairs filled in a row without getting flattened.
   // x1, x1.5, x2 ... up to x4. Dying resets it.
@@ -138,15 +158,15 @@
     // supply carts (small, quick) and delivery scooters (smaller, quicker),
     // squeeze in extra traffic, and rush hour pushes everything harder.
     var defs = [
-      { row: 1, dir: 1,  speed: 1.5, n: 2, w: 64, kind: 'car' },
-      { row: 2, dir: -1, speed: 2.2, n: 3, w: 52, kind: 'car' },
-      { row: 3, dir: 1,  speed: 1.1, n: 2, w: 88, kind: 'bus' }, // the slow bus
-      { row: 5, dir: -1, speed: 1.8, n: 3, w: 52, kind: 'car' },
-      { row: 6, dir: 1,  speed: 2.6, n: 2, w: 56, kind: 'car' }
+      { row: 4, dir: 1,  speed: 1.5, n: 2, w: 64, kind: 'car' },
+      { row: 5, dir: -1, speed: 2.2, n: 3, w: 52, kind: 'car' },
+      { row: 6, dir: 1,  speed: 1.1, n: 2, w: 88, kind: 'bus' }, // the slow bus
+      { row: 7, dir: -1, speed: 1.8, n: 3, w: 52, kind: 'car' },
+      { row: 8, dir: 1,  speed: 2.6, n: 2, w: 56, kind: 'car' }
     ];
-    if (wave >= 3) defs[3] = { row: 5, dir: -1, speed: 2.4, n: 4, w: 34, kind: 'cart' };
-    if (wave >= 4) defs[0] = { row: 1, dir: 1, speed: 3.1, n: 3, w: 30, kind: 'scooter' };
-    if (wave >= 6) defs[4] = { row: 6, dir: 1, speed: 3.0, n: 3, w: 30, kind: 'scooter' };
+    if (wave >= 3) defs[3] = { row: 7, dir: -1, speed: 2.4, n: 4, w: 34, kind: 'cart' };
+    if (wave >= 4) defs[0] = { row: 4, dir: 1, speed: 3.1, n: 3, w: 30, kind: 'scooter' };
+    if (wave >= 6) defs[4] = { row: 8, dir: 1, speed: 3.0, n: 3, w: 30, kind: 'scooter' };
     lanes = [];
     for (var i = 0; i < defs.length; i++) {
       var d = defs[i];
@@ -162,22 +182,56 @@
       }
       lanes.push({ row: d.row, dir: d.dir, speed: d.speed * (isRush(wave) ? 1.25 : 1), w: d.w, kind: d.kind, cars: cars });
     }
-    // Wet floor on the median from night 3: land on it and you keep sliding.
+    // Wet floor on the stoop from night 3: land on it and you keep sliding.
     slicks = [];
     if (wave >= 3) {
       var ns = wave >= 6 ? 2 : 1;
       while (slicks.length < ns) {
         var c = 1 + Math.floor(Math.random() * (COLS - 2));
-        if (slicks.indexOf(c) === -1 && DOOR_COLS.indexOf(c) === -1) slicks.push(c);
+        if (slicks.indexOf(c) === -1 && CHAIR_COLS.indexOf(c) === -1) slicks.push(c);
       }
     }
+    makeRiver();
+    makeChairs();
+  }
+
+  // The ink river: two rows of the parlor floor flooded with ink. Stools roll
+  // one way, mop carts and the long rug slide the other. Stand on something
+  // or you are in the ink.
+  function makeRiver() {
+    river = [];
+    var fast = 1.0 + (wave - 1) * 0.12, slow = 0.75 + (wave - 1) * 0.1;
+    var stools = [], carts = [];
+    var nStools = Math.max(3, 5 - Math.floor(wave / 3));
+    var sp1 = (W + 60) / nStools;
+    for (var i = 0; i < nStools; i++) stools.push({ x: i * sp1 + Math.random() * 20, w: 44, kind: 'stool' });
+    var nCarts = wave >= 4 ? 2 : 3;
+    var sp2 = (W + 100) / (nCarts + 1);
+    for (var j = 0; j < nCarts; j++) carts.push({ x: j * sp2 + Math.random() * 20, w: 62, kind: 'cart' });
+    carts.push({ x: nCarts * sp2 + 10, w: wave >= 5 ? 88 : 112, kind: 'rug' });
+    river.push({ row: 1, dir: 1, speed: fast, items: stools });
+    river.push({ row: 2, dir: -1, speed: slow, items: carts });
+  }
+
+  // Four chairs, each wanting one of the four walk-ins. A match pays double.
+  function makeChairs() {
+    var wants = CHAR_ORDER.slice();
+    for (var i = wants.length - 1; i > 0; i--) { var k = Math.floor(Math.random() * (i + 1)); var t = wants[i]; wants[i] = wants[k]; wants[k] = t; }
+    chairs = [];
+    for (var c = 0; c < CHAIR_COLS.length; c++) chairs.push({ col: CHAIR_COLS[c], want: wants[c], filled: false, glow: 0 });
+  }
+
+  function makeCrowd() {
+    crowd = [];
+    for (var i = 0; i < 7; i++) crowd.push({ x: X0 + 14 + i * 56 + Math.random() * 12, top: CAR_COLORS[(i * 3) % CAR_COLORS.length], skin: i % 3 === 0 ? '#e8b892' : i % 3 === 1 ? '#f0c8a0' : '#c98a5a', ph: Math.random() * 6 });
   }
 
   function resetPlayer() {
-    var startCol = 4;
-    player = { col: startCol, row: 7, fx: startCol * CELL + CELL / 2, fy: ROW_Y[7] + CELL / 2, fromX: 0, fromY: 0, face: 0 };
+    var startCol = 5;
+    player = { x: cx(startCol), row: START_ROW, fx: cx(startCol), fy: ROW_Y[START_ROW] + CELL / 2, fromX: 0, fromY: 0, face: 0, char: CHAR_ORDER[charIdx % CHAR_ORDER.length], slip: null };
     hopT = 0;
-    bestRow = 7;
+    bestRow = START_ROW;
+    rideT = 0;
     patienceMax = Math.max(480, 720 - (wave - 1) * 60);
     patience = patienceMax;
   }
@@ -187,14 +241,15 @@
     score = 0; lives = 3; wave = 1; frame = 0; invuln = 0; mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
-    doors = [false, false, false];
     amb = null; bannerT = 0; bannerText = ''; bannerColor = LIME;
     streak = 0; popups = []; parts = []; shake = 0; pickup = null; pickupCd = 240; slicks = []; dieFlash = 0;
-    stats = { chairs: 0, bestStreak: 0, near: 0, tips: 0 };
+    charIdx = 0; cheerT = 0; bonus = null; rideT = 0;
+    stats = { chairs: 0, bestStreak: 0, near: 0, tips: 0, matches: 0, rides: 0, nights: 1, bonusTips: 0 };
     makeLanes();
+    makeCrowd();
     resetPlayer();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Tap where to hop // fill all 3 chairs' : 'Arrows or tap to hop // fill all 3 chairs';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Tap where to hop // ride the ink, fill the chairs' : 'Arrows or tap to hop // ride the ink, fill the chairs';
     window.skateRunning = true;
     startLoop();
   }
@@ -207,7 +262,8 @@
     sfxHit();
     shake = 14; dieFlash = 10;
     var px = player.fx, py = player.fy;
-    burst(px, py, 18, reason === 'cold' ? '#8ab' : '#e74c3c', 3, 0.1);
+    burst(px, py, 18, reason === 'cold' ? '#8ab' : reason === 'ink' ? PURPLE : '#e74c3c', 3, 0.1);
+    if (reason === 'ink') { addPopup(px, py - 20, 'IN THE INK', PURPLE); playSfx(90, 0.3, 'sawtooth', 0.12); }
     // The flash printout goes flying
     for (var i = 0; i < 5; i++) parts.push({ x: px, y: py - 4, vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 2, life: 60, color: '#fff', s: 4, g: 0.06, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.5, paper: true });
     streak = 0;
@@ -224,70 +280,153 @@
   function landOn(col, row) {
     // Pickups: the floor of a busy street has its perks
     if (pickup && pickup.col === col && pickup.row === row) {
-      var x = col * CELL + CELL / 2, y = ROW_Y[row] + 10;
-      if (pickup.kind === 'tip') { award(50 * mult(), x, y, 'TIP JAR', YELLOW); stats.tips++; burst(x, y, 10, YELLOW, 2, 0.05); }
+      var x = cx(col), y = ROW_Y[row] + 8;
+      if (pickup.kind === 'tip') { award(Math.round(50 * mult()), x, y, 'TIP JAR', YELLOW); stats.tips++; burst(x, y, 10, YELLOW, 2, 0.05); }
       else if (pickup.kind === 'coffee') { patience = Math.min(patienceMax, patience + 240); award(25, x, y, 'COFFEE', CYAN); burst(x, y, 8, '#c9a27a', 1.6, 0.04); }
-      else { award(75 * mult(), x, y, 'FLASH SHEET', PINK); burst(x, y, 10, PINK, 2, 0.05); }
+      else { award(Math.round(75 * mult()), x, y, 'FLASH SHEET', PINK); burst(x, y, 10, PINK, 2, 0.05); }
       pickup = null; pickupCd = 300 + Math.random() * 240;
       sfxDoor();
     }
+    // Bonus round jars
+    if (bonus) {
+      for (var j = bonus.jars.length - 1; j >= 0; j--) {
+        var jar = bonus.jars[j];
+        if (jar.col === col && jar.row === row) {
+          bonus.jars.splice(j, 1);
+          bonus.got++; stats.bonusTips++;
+          award(Math.round(40 * mult()), cx(col), ROW_Y[row] + 8, 'TIP', YELLOW);
+          burst(cx(col), ROW_Y[row] + 16, 10, YELLOW, 2, 0.05);
+          playSfx(1100, 0.06, 'square', 0.1); setTimeout(function () { playSfx(1500, 0.08, 'square', 0.1); }, 60);
+          spawnJar();
+        }
+      }
+    }
+  }
+
+  // Which river platform is under a point, if any
+  function platformAt(x, row) {
+    for (var i = 0; i < river.length; i++) {
+      var rl = river[i];
+      if (rl.row !== row) continue;
+      for (var j = 0; j < rl.items.length; j++) {
+        var it = rl.items[j];
+        if (x >= it.x - 3 && x <= it.x + it.w + 3) return { lane: rl, item: it };
+      }
+    }
+    return null;
+  }
+
+  function fillChair(chair) {
+    chair.filled = true; chair.glow = 60;
+    stats.chairs++;
+    var matched = chair.want === player.char;
+    sayCallout(matched ? 'frogger-c1' : (patience < patienceMax * 0.25 ? 'frogger-c2' : 'frogger-c1'));
+    var ccx = cx(chair.col), cy = 40;
+    // Chair pay: the seat plus a time bonus for hustle, times the streak.
+    var timeB = Math.round((patience / patienceMax) * 150 / 10) * 10;
+    var m = mult();
+    award(Math.round((100 + timeB) * m), ccx, cy + 14, 'CHAIR ' + fmtMult(), m > 1 ? YELLOW : '#fff');
+    if (timeB >= 100) addPopup(ccx, cy + 30, 'QUICK +' + timeB, CYAN);
+    if (matched) { stats.matches++; award(Math.round(100 * m), ccx, cy + 46, 'MATCH', PINK); burst(ccx, cy, 14, PINK, 3, 0.05); }
+    award(Math.round(40 * m), ccx, cy + 62, 'RIVER', PURPLE);
+    stats.rides++;
+    streak++;
+    if (streak > stats.bestStreak) stats.bestStreak = streak;
+    burst(ccx, cy, 16, LIME, 2.6, 0.06);
+    shake = Math.max(shake, 4);
+    cheerT = 50;
+    sfxDoor();
+    charIdx++;
+    var allFilled = true;
+    for (var c = 0; c < chairs.length; c++) if (!chairs[c].filled) allFilled = false;
+    if (allFilled) {
+      var nb = Math.round((250 + 100 * (wave - 1)) * mult());
+      award(nb, W / 2, H / 2 + 10, 'NIGHT CLEAR', LIME);
+      if (isRush(wave)) startBonus();
+      else nextNight();
+    }
+    resetPlayer();
+  }
+
+  function nextNight() {
+    wave++;
+    stats.nights = wave;
+    banner(isRush(wave) ? 'RUSH HOUR' : nightOf(wave).name + ' ' + wave, isRush(wave) ? ORANGE : LIME, 110);
+    say('frogger-c3', 300);
+    makeLanes();
+    amb = null; pickup = null;
+    sfxWave();
+  }
+
+  // Bonus round: after every third night the street empties for twelve
+  // seconds and it rains tip jars. No traffic, no clock, just the dash.
+  function startBonus() {
+    bonus = { t: 12 * 60, jars: [], got: 0 };
+    lanes = [];
+    amb = null; pickup = null; slicks = [];
+    for (var i = 0; i < 5; i++) spawnJar();
+    banner('TIP RUN', YELLOW, 120);
+    say('frogger-c3', 200);
+    sfxWave();
+  }
+  function spawnJar() {
+    for (var tries = 0; tries < 30; tries++) {
+      var col = Math.floor(Math.random() * COLS), row = 3 + Math.floor(Math.random() * 6);
+      var clash = false;
+      for (var j = 0; j < bonus.jars.length; j++) if (bonus.jars[j].col === col && bonus.jars[j].row === row) clash = true;
+      if (row === player.row && col === colAt(player.x)) clash = true;
+      if (!clash) { bonus.jars.push({ col: col, row: row, born: frame }); return; }
+    }
+  }
+  function endBonus() {
+    var got = bonus.got;
+    bonus = null;
+    var b = Math.round(got * 25 * mult());
+    if (b > 0) award(b, W / 2, H / 2 + 10, got + ' JARS', YELLOW);
+    resetPlayer();
+    nextNight();
   }
 
   function hop(dx, dy) {
     if (mode !== 'play') return;
-    var nc = player.col + dx, nr = player.row + dy;
-    if (nc < 0 || nc >= COLS || nr > 7) return;
+    var ch = who();
+    if (hopT > 0 && !(player.row >= 3 && dy === 0)) return; // finish the hop first (except quick side-steps on land)
+    var rows = dy < 0 ? ch.stride : 1;
+    var nr = player.row + dy * rows;
+    if (dy < 0 && ch.stride === 2 && nr < 1) nr = player.row - 1; // a stride never lands in the shop wall
+    if (dy < 0 && bonus && nr < STOOP_ROW) return; // the bonus stays on the street
+    if (nr > START_ROW) return;
+    var nx = player.x + dx * CELL;
+    if (nx < X0 + 4 || nx > X0 + COLS * CELL - 4) return;
     if (nr < 1 && dy < 0) {
-      // Stepping into the shop only works through an open door
-      var d = DOOR_COLS.indexOf(player.col);
-      if (dx === 0 && d !== -1 && !doors[d]) {
-        doors[d] = true;
-        stats.chairs++;
-        sayCallout(patience < patienceMax * 0.25 ? 'frogger-c2' : 'frogger-c1');
-        var cx = player.col * CELL + CELL / 2, cy = 46;
-        // Chair pay: the seat plus a time bonus for hustle, times the streak.
-        var timeB = Math.round((patience / patienceMax) * 150 / 10) * 10;
-        var m = mult();
-        award(Math.round((100 + timeB) * m), cx, cy + 14, 'CHAIR ' + fmtMult(), m > 1 ? YELLOW : '#fff');
-        if (timeB >= 100) addPopup(cx, cy + 30, 'QUICK +' + timeB, CYAN);
-        streak++;
-        if (streak > stats.bestStreak) stats.bestStreak = streak;
-        burst(cx, cy, 16, LIME, 2.6, 0.06);
-        shake = Math.max(shake, 4);
-        sfxDoor();
-        if (doors[0] && doors[1] && doors[2]) {
-          var nb = Math.round((250 + 100 * (wave - 1)) * mult());
-          award(nb, W / 2, H / 2 + 10, 'NIGHT CLEAR', LIME);
-          doors = [false, false, false];
-          wave++;
-          banner(isRush(wave) ? 'RUSH HOUR' : nightOf(wave).name + ' ' + wave, isRush(wave) ? ORANGE : LIME, 110);
-          say('frogger-c3', 300);
-          makeLanes();
-          amb = null; pickup = null;
-          sfxWave();
-        }
-        resetPlayer();
+      // Stepping into the shop only works through an open chair's window
+      var col = colAt(player.x);
+      for (var c = 0; c < chairs.length; c++) {
+        if (chairs[c].col === col && !chairs[c].filled && dx === 0) { fillChair(chairs[c]); return; }
       }
       return;
     }
     if (nr < 1) return;
+    // On land, snap to the column grid. On the river, x stays free.
+    if (!isRiver(nr)) nx = cx(colAt(nx));
     player.fromX = player.fx; player.fromY = player.fy;
-    player.col = nc;
+    player.x = nx;
     player.row = nr;
     if (dx !== 0) player.face = dx;
     if (nr < bestRow) {
       bestRow = nr;
-      award(Math.round(10 * mult()), player.col * CELL + CELL / 2, ROW_Y[nr] + 4, '', 'rgba(255,255,255,0.7)');
+      award(Math.round(10 * mult()), player.x, ROW_Y[nr] + 4, '', 'rgba(255,255,255,0.7)');
     }
-    hopT = 6;
+    hopT = ch.hop;
+    if (isRiver(nr)) rideT = 0;
     sfxHop();
-    landOn(nc, nr);
-    // Wet floor: the hop keeps going one more cell in the same direction
-    if (nr === 4 && slicks.indexOf(nc) !== -1) {
-      var sc = nc + dx, sr = nr + dy;
+    landOn(colAt(nx), nr);
+    // Wet floor on the stoop: the hop keeps going one more cell in the same direction
+    if (nr === STOOP_ROW && slicks.indexOf(colAt(nx)) !== -1) {
+      var sc = colAt(nx) + dx, sr = nr + dy;
       if (sr >= 1 && sc >= 0 && sc < COLS) {
         player.slip = { dx: dx, dy: dy, t: 7 };
-        addPopup(player.col * CELL + CELL / 2, ROW_Y[4] + 6, 'WET FLOOR', CYAN);
+        addPopup(player.x, ROW_Y[STOOP_ROW] + 6, 'WET FLOOR', CYAN);
         playSfx(300, 0.12, 'sawtooth', 0.08);
       }
     }
@@ -302,15 +441,17 @@
     if (bannerT > 0) bannerT--;
     if (shake > 0) shake--;
     if (dieFlash > 0) dieFlash--;
+    if (cheerT > 0) cheerT--;
+    for (var c = 0; c < chairs.length; c++) if (chairs[c].glow > 0) chairs[c].glow--;
 
     // A slip finishes the hop in the same direction
     if (player.slip) {
       if (--player.slip.t <= 0) {
         var s = player.slip; player.slip = null;
-        var nc = player.col + s.dx, nr = player.row + s.dy;
+        var nc = colAt(player.x) + s.dx, nr = player.row + s.dy;
         if (nr >= 1 && nc >= 0 && nc < COLS) {
           player.fromX = player.fx; player.fromY = player.fy;
-          player.col = nc; player.row = nr; hopT = 6;
+          player.x = isRiver(nr) ? cx(nc) : cx(nc); player.row = nr; hopT = 6;
           if (nr < bestRow) bestRow = nr;
           landOn(nc, nr);
         }
@@ -327,26 +468,55 @@
       if (p.life <= 0) parts.splice(i, 1);
     }
 
-    // The client is only patient for so long
-    if (invuln === 0) patience--;
-    if (patience <= 0) {
-      banner('COLD FEET!', '#ff4444', 70);
-      die('cold');
-      return;
+    // The river moves, and so does anyone standing on it
+    for (var r = 0; r < river.length; r++) {
+      var rl = river[r];
+      for (var k = 0; k < rl.items.length; k++) {
+        var it = rl.items[k];
+        it.x += rl.dir * rl.speed;
+        if (rl.dir > 0 && it.x > W + 20) it.x = -it.w - 20;
+        if (rl.dir < 0 && it.x < -it.w - 20) it.x = W + 20;
+      }
+    }
+    if (isRiver(player.row) && invuln === 0 && !player.slip) {
+      var on = platformAt(player.x, player.row);
+      if (on) {
+        player.x += on.lane.dir * on.lane.speed;
+        if (hopT === 0) player.fx = player.x;
+        rideT++;
+        if (rideT === 90) { award(Math.round(20 * mult()), player.x, ROW_Y[player.row] - 4, 'RIDE', PURPLE); }
+        if (player.x < X0 - 6 || player.x > X0 + COLS * CELL + 6) { die('ink'); return; }
+      } else if (hopT === 0) { die('ink'); return; }
+    }
+
+    // Bonus round clock
+    if (bonus) {
+      bonus.t--;
+      if (bonus.t <= 0) { endBonus(); return; }
+    } else {
+      // The client is only patient for so long
+      if (invuln === 0) patience -= who().patient;
+      if (patience <= 0) {
+        banner('COLD FEET!', '#ff4444', 70);
+        die('cold');
+        return;
+      }
     }
 
     // Something worth grabbing shows up on the street now and then
-    if (!pickup) {
-      if (--pickupCd <= 0) {
-        var rows = [1, 2, 3, 4, 5, 6];
-        var kinds = ['tip', 'tip', 'flash', 'coffee'];
-        if (patience < patienceMax * 0.5) kinds.push('coffee', 'coffee');
-        pickup = { col: Math.floor(Math.random() * COLS), row: rows[Math.floor(Math.random() * rows.length)], kind: kinds[Math.floor(Math.random() * kinds.length)], life: 480 };
-      }
-    } else if (--pickup.life <= 0) { pickup = null; pickupCd = 240 + Math.random() * 240; }
+    if (!bonus) {
+      if (!pickup) {
+        if (--pickupCd <= 0) {
+          var rows = [3, 4, 5, 6, 7, 8];
+          var kinds = ['tip', 'tip', 'flash', 'coffee'];
+          if (patience < patienceMax * 0.5) kinds.push('coffee', 'coffee');
+          pickup = { col: Math.floor(Math.random() * COLS), row: rows[Math.floor(Math.random() * rows.length)], kind: kinds[Math.floor(Math.random() * kinds.length)], life: 480 };
+        }
+      } else if (--pickup.life <= 0) { pickup = null; pickupCd = 240 + Math.random() * 240; }
+    }
 
     // Ambulance: night 2+, a warning flash then a streak down one lane
-    if (wave >= 2 && !amb && frame % 540 === 200) {
+    if (!bonus && wave >= 2 && !amb && frame % 540 === 200) {
       var row = LANE_ROWS[Math.floor(Math.random() * LANE_ROWS.length)];
       var dir = LANE_DIRS[row];
       amb = { row: row, dir: dir, x: dir > 0 ? -90 : W + 90, warnT: 55 };
@@ -359,8 +529,8 @@
         amb.x += amb.dir * 6.5;
         if (amb.x < -120 || amb.x > W + 120) amb = null;
         if (amb && invuln === 0 && amb.row === player.row) {
-          var apx = player.col * CELL + 13;
-          if (apx + 14 > amb.x && apx < amb.x + 70) {
+          var apx = player.x - who().w / 2;
+          if (apx + who().w > amb.x && apx < amb.x + 70) {
             die('amb');
             return;
           }
@@ -377,10 +547,10 @@
         if (ln.dir > 0 && car.x > W + 40) { car.x = -ln.w - 40; car.nm = false; }
         if (ln.dir < 0 && car.x < -ln.w - 40) { car.x = W + 40; car.nm = false; }
       }
-      // Collision on the player's row: hitbox matches the drawn sprite, a
+      // Collision on the player's row: hitbox is the walk-in's width, a
       // touch forgiving, so near-misses feel like near-misses (and pay)
       if (invuln === 0 && ln.row === player.row) {
-        var px = player.col * CELL + 13, pw = 14;
+        var pw = who().w, px = player.x - pw / 2;
         for (var j = 0; j < ln.cars.length; j++) {
           var car = ln.cars[j];
           if (px + pw > car.x && px < car.x + ln.w) {
@@ -426,28 +596,21 @@
     }
   });
   // Touch: tap where you want to go, relative to the client
+  function tapHop(tx, ty) {
+    var dx = tx - player.x, dy = ty - (ROW_Y[player.row] + CELL / 2);
+    if (Math.abs(dx) > Math.abs(dy)) hop(dx > 0 ? 1 : -1, 0);
+    else hop(0, dy > 0 ? 1 : -1);
+  }
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
     if (mode !== 'play') { start(); return; }
     var r = canvas.getBoundingClientRect();
-    var tx = (e.touches[0].clientX - r.left) * (W / r.width);
-    var ty = (e.touches[0].clientY - r.top) * (H / r.height);
-    var px = player.col * CELL + CELL / 2;
-    var py = ROW_Y[player.row] + CELL / 2;
-    var dx = tx - px, dy = ty - py;
-    if (Math.abs(dx) > Math.abs(dy)) hop(dx > 0 ? 1 : -1, 0);
-    else hop(0, dy > 0 ? 1 : -1);
+    tapHop((e.touches[0].clientX - r.left) * (W / r.width), (e.touches[0].clientY - r.top) * (H / r.height));
   }, { passive: false });
   canvas.addEventListener('click', function(e) {
     if (mode !== 'play') { start(); return; }
     var r = canvas.getBoundingClientRect();
-    var tx = (e.clientX - r.left) * (W / r.width);
-    var ty = (e.clientY - r.top) * (H / r.height);
-    var px = player.col * CELL + CELL / 2;
-    var py = ROW_Y[player.row] + CELL / 2;
-    var dx = tx - px, dy = ty - py;
-    if (Math.abs(dx) > Math.abs(dy)) hop(dx > 0 ? 1 : -1, 0);
-    else hop(0, dy > 0 ? 1 : -1);
+    tapHop((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height));
   });
 
   // ── Vehicles ──
@@ -555,16 +718,17 @@
 
   function drawPickup() {
     if (!pickup) return;
-    var x = pickup.col * CELL + CELL / 2, y = ROW_Y[pickup.row] + CELL / 2 + Math.sin(frame * 0.15) * 2;
-    var fade = pickup.life < 90 && Math.floor(frame / 5) % 2 === 0;
-    if (fade) return;
-    var glow = ctx.createRadialGradient(x, y, 2, x, y, 18);
-    var gc = pickup.kind === 'tip' ? '255,215,0' : pickup.kind === 'coffee' ? '0,255,255' : '255,20,147';
+    drawJarLike(cx(pickup.col), ROW_Y[pickup.row] + CELL / 2 + Math.sin(frame * 0.15) * 2, pickup.kind, pickup.life < 90 && Math.floor(frame / 5) % 2 === 0);
+  }
+  function drawJarLike(x, y, kind, hidden) {
+    if (hidden) return;
+    var glow = ctx.createRadialGradient(x, y, 2, x, y, 16);
+    var gc = kind === 'tip' ? '255,215,0' : kind === 'coffee' ? '0,255,255' : '255,20,147';
     glow.addColorStop(0, 'rgba(' + gc + ',0.35)');
     glow.addColorStop(1, 'rgba(' + gc + ',0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(x - 18, y - 18, 36, 36);
-    if (pickup.kind === 'tip') {
+    ctx.fillRect(x - 16, y - 16, 32, 32);
+    if (kind === 'tip') {
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.fillRect(x - 6, y - 6, 12, 13);
       ctx.fillStyle = '#c8ffe0';
@@ -576,7 +740,7 @@
       ctx.font = 'bold 8px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('$', x, y - 7);
-    } else if (pickup.kind === 'coffee') {
+    } else if (kind === 'coffee') {
       ctx.fillStyle = '#f4f4f4';
       ctx.fillRect(x - 5, y - 4, 10, 11);
       ctx.fillStyle = '#5a3a22';
@@ -598,45 +762,78 @@
       ctx.fillRect(x - 1, y + 4, 2, 2);
     }
   }
+  function drawJars() {
+    if (!bonus) return;
+    for (var i = 0; i < bonus.jars.length; i++) {
+      var jr = bonus.jars[i];
+      drawJarLike(cx(jr.col), ROW_Y[jr.row] + CELL / 2 + Math.sin((frame + jr.born) * 0.2) * 2, 'tip', false);
+    }
+  }
 
+  // The walk-in: four bodies, one set of legs. Hops interpolate with an arc.
   function drawWalkIn() {
     var blink = invuln > 0 && Math.floor(frame / 4) % 2 === 0;
     if (blink || mode === 'over') return;
-    // Position interpolates between cells over the hop, with an arc
-    var tx = player.col * CELL + CELL / 2, ty = ROW_Y[player.row] + CELL / 2;
-    var k = hopT > 0 ? 1 - hopT / 6 : 1;
+    var ch = who();
+    var tx = player.x, ty = ROW_Y[player.row] + CELL / 2;
+    var k = hopT > 0 ? 1 - hopT / ch.hop : 1;
     var ease = 1 - (1 - k) * (1 - k);
     player.fx = hopT > 0 ? player.fromX + (tx - player.fromX) * ease : tx;
     player.fy = hopT > 0 ? player.fromY + (ty - player.fromY) * ease : ty;
-    var arc = hopT > 0 ? Math.sin(k * Math.PI) * 7 : 0;
+    var arc = hopT > 0 ? Math.sin(k * Math.PI) * (ch.stride === 2 && player.fromY - ty > CELL ? 12 : 7) : 0;
     var sx = hopT > 0 ? 1 - Math.sin(k * Math.PI) * 0.18 : 1;
     var sy = hopT > 0 ? 1 + Math.sin(k * Math.PI) * 0.22 : 1;
     var px = player.fx, py = player.fy - arc;
     // Shadow stays on the floor and shrinks with the hop
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
-    ctx.ellipse(player.fx, player.fy + 13, 8 * (1 - arc / 20), 2.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(player.fx, player.fy + 11, (ch.w / 2 + 2) * (1 - arc / 20), 2.5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.save();
-    ctx.translate(px, py + 12);
-    ctx.scale(sx, sy);
-    ctx.translate(-px, -(py + 12));
+    ctx.translate(px, py + 10);
+    ctx.scale(sx, sy * ch.h);
+    ctx.translate(-px, -(py + 10));
     var legA = hopT > 0 ? Math.sin(k * Math.PI * 2) * 3 : 0;
     var idle = hopT === 0 ? Math.sin(frame * 0.12) * 0.6 : 0;
+    var hw = ch.w / 2;
     // legs
-    ctx.fillStyle = '#f0c8a0';
-    ctx.fillRect(px - 5, py + 6 + legA, 3, 6);
-    ctx.fillRect(px + 2, py + 6 - legA, 3, 6);
-    ctx.fillStyle = '#111';
-    ctx.fillRect(px - 6, py + 11 + legA, 4, 2);
-    ctx.fillRect(px + 2, py + 11 - legA, 4, 2);
-    // body: black tee, a little jacket edge
-    ctx.fillStyle = '#222';
-    ctx.fillRect(px - 6, py - 6 + idle, 12, 12);
-    ctx.fillStyle = '#333';
-    ctx.fillRect(px - 6, py - 6 + idle, 3, 12);
+    ctx.fillStyle = ch.skin;
+    ctx.fillRect(px - 4, py + 5 + legA, 3, 5);
+    ctx.fillRect(px + 1, py + 5 - legA, 3, 5);
+    ctx.fillStyle = ch === CHARS.biker ? '#3a2a1a' : '#111';
+    ctx.fillRect(px - 5, py + 9 + legA, 4, 2);
+    ctx.fillRect(px + 1, py + 9 - legA, 4, 2);
+    if (player.char === 'bride') {
+      // the dress, wide and white, swaying with the hop
+      ctx.fillStyle = '#f7f7f7';
+      ctx.beginPath(); ctx.moveTo(px - 4, py - 4 + idle); ctx.lineTo(px + 4, py - 4 + idle); ctx.lineTo(px + hw, py + 9); ctx.lineTo(px - hw, py + 9); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fillRect(px - hw + 2, py + 6, ch.w - 4, 1);
+    } else if (player.char === 'grandma') {
+      // cardigan and a handbag
+      ctx.fillStyle = ch.top;
+      ctx.fillRect(px - 6, py - 5 + idle, 12, 11);
+      ctx.fillStyle = '#c9b7dd';
+      ctx.fillRect(px - 1, py - 5 + idle, 2, 11);
+      ctx.fillStyle = '#6b3a1e';
+      ctx.fillRect(px + 6, py + idle, 4, 4);
+    } else if (player.char === 'biker') {
+      // leather vest, bare arms, chain
+      ctx.fillStyle = '#e8b892';
+      ctx.fillRect(px - 8, py - 5 + idle, 16, 8);
+      ctx.fillStyle = ch.top;
+      ctx.fillRect(px - 6, py - 6 + idle, 12, 12);
+      ctx.fillStyle = '#c0c0c0';
+      ctx.fillRect(px - 3, py - 3 + idle, 6, 1);
+    } else {
+      // kid: striped tee
+      ctx.fillStyle = ch.top;
+      ctx.fillRect(px - 5, py - 4 + idle, 10, 10);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(px - 5, py - 1 + idle, 10, 2);
+    }
     // arm and the flash printout
-    ctx.fillStyle = '#f0c8a0';
+    ctx.fillStyle = ch.skin;
     ctx.fillRect(px + 4, py - 3 + idle, 3, 5);
     ctx.fillStyle = '#fff';
     ctx.fillRect(px + 2, py - 4 + idle, 7, 9);
@@ -644,17 +841,20 @@
     ctx.fillRect(px + 4, py - 1 + idle, 3, 1);
     ctx.fillRect(px + 3, py + 1 + idle, 5, 1);
     // head, hair, face
-    ctx.fillStyle = '#f0c8a0';
-    ctx.fillRect(px - 5, py - 14 + idle, 10, 8);
-    ctx.fillStyle = PINK;
-    ctx.fillRect(px - 6, py - 17 + idle, 12, 5);
-    ctx.fillRect(px - 6, py - 12 + idle, 2, 4);
+    ctx.fillStyle = ch.skin;
+    ctx.fillRect(px - 5, py - 13 + idle, 10, 8);
+    ctx.fillStyle = ch.hair;
+    ctx.fillRect(px - 6, py - 13 - ch.hairH + 3 + idle, 12, ch.hairH);
+    if (player.char === 'kid') { ctx.fillStyle = '#e8283c'; ctx.fillRect(px - 6, py - 15 + idle, 12, 3); ctx.fillRect(px + 3, py - 14 + idle, 6, 2); }
+    if (player.char === 'bride') { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(px - 8, py - 12 + idle, 3, 14); ctx.fillRect(px + 5, py - 12 + idle, 3, 14); }
+    if (player.char === 'biker') { ctx.fillStyle = '#111'; ctx.fillRect(px - 5, py - 11 + idle, 10, 2); ctx.fillStyle = '#3a2a1a'; ctx.fillRect(px - 3, py - 6 + idle, 6, 2); }
+    if (player.char === 'grandma') { ctx.fillStyle = '#333'; ctx.fillRect(px - 5, py - 11 + idle, 4, 2); ctx.fillRect(px + 1, py - 11 + idle, 4, 2); }
     ctx.fillStyle = '#222';
     var ex = player.face >= 0 ? px + 1 : px - 3;
-    ctx.fillRect(ex, py - 11 + idle, 2, 2);
-    if (player.face === 0) ctx.fillRect(px - 3, py - 11 + idle, 2, 2);
+    ctx.fillRect(ex, py - 10 + idle, 2, 2);
+    if (player.face === 0) ctx.fillRect(px - 3, py - 10 + idle, 2, 2);
     // a shiver when patience is low
-    if (patience < patienceMax * 0.3 && Math.floor(frame / 3) % 2 === 0) {
+    if (!bonus && patience < patienceMax * 0.3 && Math.floor(frame / 3) % 2 === 0) {
       ctx.fillStyle = CYAN;
       ctx.fillRect(px - 9, py - 10 + idle, 2, 2);
       ctx.fillRect(px + 8, py - 12 + idle, 2, 2);
@@ -664,83 +864,181 @@
 
   function drawShop() {
     ctx.fillStyle = '#2a1a2e';
-    ctx.fillRect(0, 0, W, 40);
+    ctx.fillRect(0, 0, W, 32);
     // brick texture
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    for (var by = 0; by < 40; by += 6) for (var bx = (by / 6) % 2 * 8; bx < W; bx += 16) ctx.fillRect(bx, by, 14, 5);
+    for (var by = 0; by < 32; by += 6) for (var bx = (by / 6) % 2 * 8; bx < W; bx += 16) ctx.fillRect(bx, by, 14, 5);
     ctx.fillStyle = '#3a2440';
-    ctx.fillRect(0, 34, W, 6);
+    ctx.fillRect(0, 28, W, 4);
     // Neon sign with glow
     var on = Math.floor(frame / 30) % 2 === 0;
-    var ng = ctx.createRadialGradient(W / 2, 10, 4, W / 2, 10, 60);
+    var ng = ctx.createRadialGradient(W / 2, 8, 4, W / 2, 8, 60);
     ng.addColorStop(0, on ? 'rgba(255,20,147,0.35)' : 'rgba(255,20,147,0.15)');
     ng.addColorStop(1, 'rgba(255,20,147,0)');
     ctx.fillStyle = ng;
-    ctx.fillRect(W / 2 - 60, 0, 120, 40);
-    ctx.font = 'bold 12px monospace';
+    ctx.fillRect(W / 2 - 60, 0, 120, 32);
+    ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = on ? PINK : '#c8006e';
-    ctx.fillText('* TATTOO *', W / 2, 14);
-    // Three shop windows, each with a chair
-    for (var i = 0; i < 3; i++) {
-      var dx = DOOR_COLS[i] * CELL + 4;
-      var lit = doors[i];
+    ctx.fillText('* TATTOO *', W / 2, 12);
+    // Four shop windows, each with a chair and a sign saying who it wants
+    for (var i = 0; i < chairs.length; i++) {
+      var chair = chairs[i];
+      var dx = X0 + chair.col * CELL + 2;
+      var lit = chair.filled;
+      var ww = CELL - 4;
       ctx.fillStyle = lit ? '#3a2a14' : '#171720';
-      ctx.fillRect(dx, 16, CELL - 8, 24);
+      ctx.fillRect(dx, 12, ww, 20);
       if (lit) {
-        var wg = ctx.createLinearGradient(0, 16, 0, 40);
+        var wg = ctx.createLinearGradient(0, 12, 0, 32);
         wg.addColorStop(0, 'rgba(255,200,120,0.35)');
         wg.addColorStop(1, 'rgba(255,200,120,0.05)');
         ctx.fillStyle = wg;
-        ctx.fillRect(dx, 16, CELL - 8, 24);
-        // light spills onto the sidewalk below
-        var sg = ctx.createLinearGradient(0, 40, 0, 62);
-        sg.addColorStop(0, 'rgba(255,200,120,0.18)');
-        sg.addColorStop(1, 'rgba(255,200,120,0)');
-        ctx.fillStyle = sg;
-        ctx.fillRect(dx - 4, 40, CELL, 22);
+        ctx.fillRect(dx, 12, ww, 20);
+        if (chair.glow > 0) {
+          ctx.fillStyle = 'rgba(127,255,0,' + (chair.glow / 60) * 0.35 + ')';
+          ctx.fillRect(dx - 2, 10, ww + 4, 24);
+        }
       }
       // the chair
       ctx.fillStyle = lit ? '#6b2a2a' : '#2a2a34';
-      ctx.fillRect(dx + 6, 28, 20, 8);
-      ctx.fillRect(dx + 20, 20, 6, 10);
+      ctx.fillRect(dx + 5, 23, 16, 6);
+      ctx.fillRect(dx + 16, 16, 5, 8);
       ctx.fillStyle = lit ? '#8a3a3a' : '#33333f';
-      ctx.fillRect(dx + 6, 26, 20, 3);
+      ctx.fillRect(dx + 5, 21, 16, 3);
       if (lit) {
         // client laid back, artist bent over with the machine buzzing
         ctx.fillStyle = '#f0c8a0';
-        ctx.fillRect(dx + 8, 24, 10, 4);
-        ctx.fillRect(dx + 20, 22, 5, 5);
+        ctx.fillRect(dx + 7, 19, 8, 3);
+        ctx.fillRect(dx + 16, 18, 4, 4);
         ctx.fillStyle = PINK;
-        ctx.fillRect(dx + 20, 20, 6, 3);
+        ctx.fillRect(dx + 16, 16, 5, 2);
         ctx.fillStyle = '#111';
-        ctx.fillRect(dx + 2, 18, 7, 7);
-        ctx.fillRect(dx + 3, 24, 6, 6);
+        ctx.fillRect(dx + 1, 14, 6, 6);
+        ctx.fillRect(dx + 2, 19, 5, 5);
         ctx.fillStyle = '#f0c8a0';
-        ctx.fillRect(dx + 3, 19, 5, 4);
+        ctx.fillRect(dx + 2, 15, 4, 3);
         if (Math.floor(frame / 3) % 2 === 0) {
           ctx.fillStyle = CYAN;
-          ctx.fillRect(dx + 10 + (frame % 4), 22, 2, 2);
+          ctx.fillRect(dx + 9 + (frame % 4), 17, 2, 2);
         }
       } else {
-        ctx.fillStyle = 'rgba(255,20,147,' + (0.45 + 0.25 * Math.sin(frame * 0.1 + i)) + ')';
-        ctx.font = '8px monospace';
-        ctx.fillText('OPEN', dx + CELL / 2 - 4, 24);
-        ctx.font = 'bold 12px monospace';
+        // the want sign: who this chair is waiting for
+        var wantMe = player && chair.want === player.char && mode === 'play';
+        ctx.fillStyle = wantMe ? LIME : 'rgba(255,20,147,' + (0.5 + 0.25 * Math.sin(frame * 0.1 + i)) + ')';
+        ctx.font = 'bold 6px monospace';
+        ctx.fillText(CHARS[chair.want].name, dx + ww / 2, 19);
+        if (wantMe && Math.floor(frame / 10) % 2 === 0) { ctx.fillStyle = LIME; ctx.fillRect(dx + ww / 2 - 1, 8, 2, 2); }
       }
       ctx.fillStyle = lit ? LIME : PINK;
-      ctx.fillRect(dx, 16, CELL - 8, 2);
+      ctx.fillRect(dx, 12, ww, 2);
+    }
+  }
+
+  // The ink river: rows 1 and 2 are the parlor floor under an inch of ink,
+  // lit by the shop's neon. What floats is what you stand on.
+  function drawRiver() {
+    var top = ROW_Y[1], h = CELL * 2;
+    ctx.fillStyle = '#12081c';
+    ctx.fillRect(0, top, W, h);
+    // slow ripples of purple ink
+    for (var y = 0; y < h; y += 8) {
+      var ph = frame * 0.03 + y * 0.2;
+      ctx.fillStyle = 'rgba(176,38,255,' + (0.05 + 0.04 * Math.sin(ph)) + ')';
+      ctx.fillRect(0, top + y + Math.sin(ph) * 1.5, W, 3);
+    }
+    // neon spill from the shop above
+    var g = ctx.createLinearGradient(0, top, 0, top + 24);
+    g.addColorStop(0, 'rgba(255,20,147,0.18)');
+    g.addColorStop(1, 'rgba(255,20,147,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, top, W, 24);
+    // wall lamps at the ends
+    for (var l = 0; l < 2; l++) {
+      var lx = l === 0 ? 6 : W - 6;
+      var lg = ctx.createRadialGradient(lx, top + 20, 2, lx, top + 20, 46);
+      lg.addColorStop(0, 'rgba(255,220,150,0.16)');
+      lg.addColorStop(1, 'rgba(255,220,150,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(lx - 46, top - 26, 92, 92);
+      ctx.fillStyle = '#ffe1aa';
+      ctx.fillRect(lx - 2, top + 16, 4, 4);
+    }
+    // ink shine drifting
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    for (var i = 0; i < 6; i++) {
+      var sx = ((i * 83 + frame * (i % 2 ? 0.6 : -0.4)) % (W + 40) + W + 40) % (W + 40) - 20;
+      ctx.fillRect(sx, top + 10 + (i * 11) % (h - 14), 14, 1);
+    }
+    // the floats
+    for (var r = 0; r < river.length; r++) {
+      var rl = river[r];
+      var ry = ROW_Y[rl.row];
+      for (var k = 0; k < rl.items.length; k++) {
+        var it = rl.items[k];
+        drawFloat(it, ry, rl.dir);
+      }
+    }
+    // the near bank: a lip of clean floor so the river reads as a drop
+    ctx.fillStyle = '#26262e';
+    ctx.fillRect(0, top + h - 2, W, 2);
+  }
+  function drawFloat(it, y, dir) {
+    var x = it.x, w = it.w;
+    // ink wake
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(dir > 0 ? x - 10 : x + w, y + 20, 10, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(x + 2, y + 24, w - 4, 4);
+    if (it.kind === 'stool') {
+      // rolling stool: chrome base, round pink seat
+      ctx.fillStyle = '#8a8f96';
+      ctx.fillRect(x + 4, y + 20, w - 8, 3);
+      ctx.fillStyle = '#c9cfd6';
+      ctx.fillRect(x + w / 2 - 2, y + 12, 4, 10);
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.ellipse(x + w / 2, y + 11, w / 2 - 2, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath(); ctx.ellipse(x + w / 2 - 4, y + 9, w / 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+      for (var c = 0; c < 3; c++) { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(x + 8 + c * ((w - 16) / 2), y + 23, 2, 0, Math.PI * 2); ctx.fill(); }
+    } else if (it.kind === 'cart') {
+      // mop cart: yellow bucket cart, mop standing up, wringer
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(x + 2, y + 10, w - 4, 12);
+      ctx.fillStyle = '#c9a000';
+      ctx.fillRect(x + 2, y + 10, w - 4, 2);
+      ctx.fillRect(x + 2, y + 18, w - 4, 1);
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(x + w - 12, y - 2, 1, 14);
+      ctx.fillStyle = '#c9c9c9';
+      ctx.fillRect(x + w - 16, y - 4, 9, 3);
+      ctx.fillStyle = '#9aa3ad';
+      ctx.fillRect(x + 6, y + 6, 14, 5);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(x + 4, y + 22, 5, 3); ctx.fillRect(x + w - 9, y + 22, 5, 3);
+      ctx.font = 'bold 5px monospace'; ctx.fillStyle = '#111'; ctx.textAlign = 'center';
+      ctx.fillText('WET', x + w / 2, y + 17);
+    } else {
+      // the rug: long, patterned, curling at the ends
+      ctx.fillStyle = '#7a2a3a';
+      ctx.fillRect(x, y + 8, w, 16);
+      ctx.fillStyle = '#b04a5a';
+      ctx.fillRect(x + 3, y + 11, w - 6, 10);
+      ctx.fillStyle = '#e8b04a';
+      for (var d = x + 8; d < x + w - 8; d += 12) ctx.fillRect(d, y + 14, 5, 4);
+      ctx.fillStyle = '#5a1a2a';
+      ctx.fillRect(x, y + 8, 3, 16); ctx.fillRect(x + w - 3, y + 8, 3, 16);
     }
   }
 
   function drawStreet(night) {
     ctx.fillStyle = night.sky;
-    ctx.fillRect(0, 40, W, H - 40);
+    ctx.fillRect(0, ROW_Y[3], W, H - ROW_Y[3]);
     // asphalt grain
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
-    for (var gy = 40; gy < H; gy += 4) ctx.fillRect(0, gy, W, 1);
-    // Median + start sidewalks with curbs
-    var walks = [ROW_Y[4], ROW_Y[7]];
+    for (var gy = ROW_Y[4]; gy < H; gy += 4) ctx.fillRect(0, gy, W, 1);
+    // Stoop + start sidewalks with curbs
+    var walks = [ROW_Y[STOOP_ROW], ROW_Y[START_ROW]];
     for (var w = 0; w < 2; w++) {
       var wy = walks[w];
       ctx.fillStyle = '#3c3c46';
@@ -754,75 +1052,98 @@
     }
     // Crosswalk zebra at the start, worn
     ctx.fillStyle = 'rgba(255,255,255,0.10)';
-    for (var zx = 8; zx < W; zx += 40) ctx.fillRect(zx, ROW_Y[6] + 2, 24, CELL - 4);
+    for (var zx = X0 + 4; zx < W; zx += 32) ctx.fillRect(zx, ROW_Y[8] + 2, 20, CELL - 4);
     // Lane dashes and a manhole
     ctx.fillStyle = '#5a5a30';
     for (var i = 0; i < LANE_ROWS.length; i++) {
       var y = ROW_Y[LANE_ROWS[i]];
-      if (LANE_ROWS[i] !== 3 && LANE_ROWS[i] !== 6) {
-        for (var x2 = 0; x2 < W; x2 += 40) ctx.fillRect(x2 + 10, y + 38, 20, 3);
+      if (LANE_ROWS[i] !== 6 && LANE_ROWS[i] !== 8) {
+        for (var x2 = 0; x2 < W; x2 += 40) ctx.fillRect(x2 + 10, y + 30, 20, 2);
       }
     }
     ctx.fillStyle = '#2c2c34';
-    ctx.beginPath(); ctx.ellipse(310, ROW_Y[2] + 20, 11, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(310, ROW_Y[5] + 16, 11, 5, 0, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#44444e'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(310, ROW_Y[2] + 20, 11, 6, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(310, ROW_Y[5] + 16, 11, 5, 0, 0, Math.PI * 2); ctx.stroke();
     // Street lamps pour light onto the lanes
     for (var l = 0; l < 2; l++) {
       var lpx = 140 + l * 180;
       for (var rr2 = 0; rr2 < 2; rr2++) {
-        var lpy = rr2 === 0 ? ROW_Y[4] : ROW_Y[7];
-        var pool = ctx.createRadialGradient(lpx, lpy - 18, 4, lpx, lpy - 18, 60);
+        var lpy = rr2 === 0 ? ROW_Y[STOOP_ROW] : ROW_Y[START_ROW];
+        var pool = ctx.createRadialGradient(lpx, lpy - 14, 4, lpx, lpy - 14, 56);
         pool.addColorStop(0, night.lamp);
         pool.addColorStop(1, 'rgba(255,220,150,0)');
         ctx.fillStyle = pool;
-        ctx.fillRect(lpx - 60, lpy - 78, 120, 120);
+        ctx.fillRect(lpx - 56, lpy - 70, 112, 112);
         ctx.fillStyle = '#3a3a44';
-        ctx.fillRect(lpx - 1, lpy - 34, 3, 36);
+        ctx.fillRect(lpx - 1, lpy - 28, 3, 30);
         ctx.fillStyle = '#ffe1aa';
-        ctx.fillRect(lpx - 4, lpy - 38, 9, 5);
+        ctx.fillRect(lpx - 4, lpy - 32, 9, 5);
       }
     }
-    // Median street furniture: newspaper boxes and a hydrant
-    var boxes = [['#2d6cdf', 10], ['#e8283c', 32]];
+    // Stoop furniture: newspaper boxes and a hydrant
+    var boxes = [['#2d6cdf', 12], ['#e8283c', 34]];
     for (var b = 0; b < boxes.length; b++) {
       var bxx = boxes[b][1];
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath(); ctx.ellipse(bxx + 8, ROW_Y[4] + 33, 9, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(bxx + 8, ROW_Y[STOOP_ROW] + 27, 9, 2, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = boxes[b][0];
-      ctx.fillRect(bxx, ROW_Y[4] + 10, 16, 22);
+      ctx.fillRect(bxx, ROW_Y[STOOP_ROW] + 8, 16, 18);
       ctx.fillStyle = '#cfd6dd';
-      ctx.fillRect(bxx + 2, ROW_Y[4] + 13, 12, 8);
+      ctx.fillRect(bxx + 2, ROW_Y[STOOP_ROW] + 10, 12, 7);
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(bxx + 2, ROW_Y[4] + 24, 12, 2);
-      ctx.fillRect(bxx + 12, ROW_Y[4] + 22, 3, 1);
+      ctx.fillRect(bxx + 2, ROW_Y[STOOP_ROW] + 20, 12, 2);
     }
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(66, ROW_Y[4] + 33, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(70, ROW_Y[STOOP_ROW] + 27, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#e8283c';
-    ctx.fillRect(62, ROW_Y[4] + 18, 8, 14);
-    ctx.fillRect(59, ROW_Y[4] + 22, 14, 4);
-    ctx.fillRect(64, ROW_Y[4] + 14, 4, 5);
+    ctx.fillRect(66, ROW_Y[STOOP_ROW] + 14, 8, 12);
+    ctx.fillRect(63, ROW_Y[STOOP_ROW] + 17, 14, 4);
+    ctx.fillRect(68, ROW_Y[STOOP_ROW] + 10, 4, 5);
     // Wet floor: a mop bucket and a shining spill
     for (var s = 0; s < slicks.length; s++) {
-      var sx = slicks[s] * CELL, sy = ROW_Y[4];
+      var sx = X0 + slicks[s] * CELL, sy = ROW_Y[STOOP_ROW];
       ctx.fillStyle = 'rgba(120,200,255,0.22)';
-      ctx.beginPath(); ctx.ellipse(sx + 20, sy + 22, 17, 9, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(sx + 16, sy + 18, 14, 7, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + 0.2 * Math.sin(frame * 0.2 + s)) + ')';
-      ctx.fillRect(sx + 12, sy + 18, 8, 1);
-      ctx.fillRect(sx + 24, sy + 24, 5, 1);
+      ctx.fillRect(sx + 9, sy + 15, 8, 1);
+      ctx.fillRect(sx + 20, sy + 20, 5, 1);
       ctx.fillStyle = '#f1c40f';
-      ctx.fillRect(sx + 30, sy + 6, 8, 10);
+      ctx.fillRect(sx + 24, sy + 4, 7, 9);
       ctx.fillStyle = '#c9a000';
-      ctx.fillRect(sx + 30, sy + 6, 8, 2);
+      ctx.fillRect(sx + 24, sy + 4, 7, 2);
       ctx.fillStyle = '#ddd';
-      ctx.fillRect(sx + 34, sy - 2, 1, 9);
+      ctx.fillRect(sx + 27, sy - 3, 1, 8);
       ctx.fillStyle = '#c9c9c9';
-      ctx.fillRect(sx + 31, sy - 4, 7, 3);
+      ctx.fillRect(sx + 24, sy - 5, 7, 3);
       ctx.font = 'bold 5px monospace';
       ctx.fillStyle = '#111';
       ctx.textAlign = 'center';
-      ctx.fillText('WET', sx + 34, sy + 13);
+      ctx.fillText('WET', sx + 27, sy + 11);
+    }
+  }
+
+  // The crowd on the start sidewalk: they cheer when a chair fills.
+  function drawCrowd() {
+    var y = ROW_Y[START_ROW];
+    for (var i = 0; i < crowd.length; i++) {
+      var c = crowd[i];
+      if (Math.abs(c.x - player.fx) < 16 && player.row === START_ROW) continue; // step aside for the walk-in
+      var jump = cheerT > 0 ? Math.abs(Math.sin((cheerT + c.ph) * 0.35)) * 5 : 0;
+      var bob = Math.sin(frame * 0.05 + c.ph) * 0.6;
+      var px = c.x, py = y + 18 - jump + bob;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(px - 5, y + 27, 10, 2);
+      ctx.fillStyle = c.top;
+      ctx.fillRect(px - 4, py - 4, 8, 9);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(px - 4, py + 5, 3, 4); ctx.fillRect(px + 1, py + 5, 3, 4);
+      ctx.fillStyle = c.skin;
+      ctx.fillRect(px - 3, py - 11, 7, 7);
+      if (cheerT > 0) { ctx.fillRect(px - 7, py - 12 + jump / 2, 3, 6); ctx.fillRect(px + 5, py - 12 + jump / 2, 3, 6); }
+      else { ctx.fillRect(px - 6, py - 3, 2, 5); ctx.fillRect(px + 4, py - 3, 2, 5); }
+      ctx.fillStyle = i % 2 ? '#222' : '#5a3418';
+      ctx.fillRect(px - 4, py - 13, 8, 3);
     }
   }
 
@@ -838,8 +1159,8 @@
     ctx.stroke();
     // wet-road reflections under the lamps
     ctx.fillStyle = 'rgba(255,240,200,0.05)';
-    ctx.fillRect(120, ROW_Y[5], 40, 80);
-    ctx.fillRect(300, ROW_Y[5], 40, 80);
+    ctx.fillRect(120, ROW_Y[6], 40, 64);
+    ctx.fillRect(300, ROW_Y[6], 40, 64);
   }
 
   function draw() {
@@ -849,6 +1170,7 @@
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
     drawStreet(night);
+    drawRiver();
     drawShop();
 
     // Ambulance warning: the lane flashes before it streaks through
@@ -858,20 +1180,31 @@
       ctx.fillStyle = '#ff4444';
       ctx.font = 'bold 9px monospace';
       ctx.textAlign = amb.dir > 0 ? 'left' : 'right';
-      ctx.fillText('!!', amb.dir > 0 ? 4 : W - 4, ROW_Y[amb.row] + 24);
+      ctx.fillText('!!', amb.dir > 0 ? 4 : W - 4, ROW_Y[amb.row] + 20);
     }
 
     drawPickup();
+    drawJars();
+    drawCrowd();
 
-    // Traffic
+    // Traffic, squashed a touch to sit in the 32px lanes
     for (var i = 0; i < lanes.length; i++) {
       var ln = lanes[i];
-      for (var j = 0; j < ln.cars.length; j++) drawCar(ln.cars[j], ROW_Y[ln.row], ln.w, ln.dir, ln.kind);
+      for (var j = 0; j < ln.cars.length; j++) {
+        ctx.save();
+        ctx.translate(0, ROW_Y[ln.row]);
+        ctx.scale(1, 0.82);
+        drawCar(ln.cars[j], 0, ln.w, ln.dir, ln.kind);
+        ctx.restore();
+      }
     }
 
     // Ambulance
     if (amb && amb.warnT === 0) {
-      var ay = ROW_Y[amb.row];
+      ctx.save();
+      ctx.translate(0, ROW_Y[amb.row]);
+      ctx.scale(1, 0.82);
+      var ay = 0;
       beam(amb.dir > 0 ? amb.x + 70 : amb.x, ay + 12, amb.dir, 60, 8, 0.22);
       ctx.fillStyle = '#f4f4f4';
       ctx.fillRect(amb.x, ay + 6, 70, 24);
@@ -888,6 +1221,7 @@
       ctx.fillStyle = lg;
       ctx.fillRect(amb.x - 5, ay - 36, 80, 80);
       wheel(amb.x + 12, ay + 30, 5); wheel(amb.x + 58, ay + 30, 5);
+      ctx.restore();
     }
 
     drawWalkIn();
@@ -908,7 +1242,7 @@
 
     // Night tint and weather
     ctx.fillStyle = night.tint;
-    ctx.fillRect(0, 40, W, H - 40);
+    ctx.fillRect(0, 32, W, H - 32);
     if (night.rain || isRush(wave)) drawRain();
     if (dieFlash > 0) { ctx.fillStyle = 'rgba(255,60,60,' + (dieFlash / 10) * 0.25 + ')'; ctx.fillRect(0, 0, W, H); }
 
@@ -934,18 +1268,33 @@
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
     ctx.textAlign = 'right';
-    ctx.fillStyle = isRush(wave) ? ORANGE : YELLOW;
-    ctx.fillText((isRush(wave) ? 'RUSH ' : '') + 'NIGHT ' + wave, W - 8, 12);
+    if (bonus) {
+      ctx.fillStyle = YELLOW;
+      ctx.fillText('TIP RUN ' + Math.ceil(bonus.t / 60) + 's', W - 8, 12);
+    } else {
+      ctx.fillStyle = isRush(wave) ? ORANGE : YELLOW;
+      ctx.fillText((isRush(wave) ? 'RUSH ' : '') + 'NIGHT ' + wave, W - 8, 12);
+    }
+    // Who is walking in, and the chair that wants them
+    if (mode === 'play') {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = LIME;
+      ctx.font = 'bold 8px monospace';
+      var wantsMe = null;
+      for (var c2 = 0; c2 < chairs.length; c2++) if (!chairs[c2].filled && chairs[c2].want === player.char) wantsMe = chairs[c2];
+      ctx.fillText('NOW: ' + who().name + (wantsMe ? '  //  CHAIR ' + (CHAIR_COLS.indexOf(wantsMe.col) + 1) + ' WANTS YOU' : (bonus ? '' : '  //  ANY OPEN CHAIR')), 8, 42);
+    }
     if (streak > 0 && mode === 'play') {
+      ctx.textAlign = 'right';
       ctx.fillStyle = mult() >= 4 ? PINK : YELLOW;
       ctx.font = 'bold 10px monospace';
-      ctx.fillText('STREAK ' + fmtMult(), W - 8, 60);
+      ctx.fillText('STREAK ' + fmtMult(), W - 8, 44);
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.font = '7px monospace';
-      ctx.fillText(streak + ' CHAIR' + (streak === 1 ? '' : 'S') + ' IN A ROW', W - 8, 70);
+      ctx.fillText(streak + ' CHAIR' + (streak === 1 ? '' : 'S') + ' IN A ROW', W - 8, 53);
     }
     // Client patience: the walk-in walks if you dawdle
-    if (mode === 'play') {
+    if (mode === 'play' && !bonus) {
       var pr = Math.max(0, patience / patienceMax);
       ctx.fillStyle = 'rgba(255,255,255,0.25)';
       ctx.fillRect(W / 2 - 40, 5, 80, 5);
@@ -958,17 +1307,23 @@
         ctx.fillText('COLD FEET', W / 2, 24);
       }
     }
+    if (bonus && mode === 'play') {
+      var br = bonus.t / (12 * 60);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(W / 2 - 40, 5, 80, 5);
+      ctx.fillStyle = YELLOW;
+      ctx.fillRect(W / 2 - 40, 5, 80 * br, 5);
+    }
     if (bannerT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
       ctx.fillStyle = bannerColor;
       ctx.font = 'bold 24px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(bannerText, W / 2, H / 2 - 30);
-      if (bannerText === 'RUSH HOUR') {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText('FASTER LANES // MORE TRAFFIC // WET STREETS', W / 2, H / 2 - 12);
-      }
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 9px monospace';
+      if (bannerText === 'RUSH HOUR') ctx.fillText('FASTER LANES // MORE TRAFFIC // WET STREETS', W / 2, H / 2 - 12);
+      if (bannerText === 'TIP RUN') ctx.fillText('EMPTY STREET // TWELVE SECONDS // GRAB EVERY JAR', W / 2, H / 2 - 12);
       ctx.globalAlpha = 1;
       ctx.font = 'bold 10px monospace';
     }
@@ -983,13 +1338,14 @@
   var wall = window.ArcadeBoard.attach({
     game: 'frogger', label: 'Walk-In', canvas: canvas, ctx: ctx, W: W, H: H,
     title: 'GAME OVER', again: 'SPACE or TAP to cross again',
-    levelLabel: function (l) { return 'REACHED NIGHT ' + l; },
+    levelLabel: function (l) { return l + (l === 1 ? ' NIGHT' : ' NIGHTS') + ' // ' + stats.chairs + ' CHAIRS // ' + stats.matches + ' MATCHED // BEST ' + fmtBest(); },
     isActive: function () { return !!window.skateRunning; },
     getMode: function () { return mode; }, setMode: function (m) { mode = m; },
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
   });
-  function enterBoard(v) { wall.enter(v, { level: wave, meta: { chairs: stats.chairs, streak: stats.bestStreak, near: stats.near, tips: stats.tips } }); }
+  function fmtBest() { var m = Math.min(4, 1 + stats.bestStreak * 0.5); return 'x' + (m % 1 === 0 ? m : m.toFixed(1)); }
+  function enterBoard(v) { wall.enter(v, { level: wave, meta: { chairs: stats.chairs, streak: stats.bestStreak, near: stats.near, tips: stats.tips, matches: stats.matches, rides: stats.rides, bonusTips: stats.bonusTips } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -1084,8 +1440,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or TAP to hop // chairs in a row stack the multiplier', W / 2, H - 42);
-    ctx.fillText('grab tips and coffee, squeak past traffic for CLOSE bonuses', W / 2, H - 29);
+    ctx.fillText('ARROWS or TAP to hop // ride the ink on stools, carts and rugs', W / 2, H - 42);
+    ctx.fillText('chairs say who they want // a match pays double, a streak stacks', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';

@@ -92,7 +92,12 @@
   var player, bullets, ebullets, germs, gx, gy, gdir, ufo, particles, invuln, shootCd, touching, rings, muzzle, recoil;
   var drops, divers, boss, spreadT, rapidT, pierceT, doubleT, shieldHp, diverT, popups, minis, shields;
   var streak, bestStreak, shots, hits, waveFrames, waveShots, waveHits, waveDeaths, shake, flashT, kills, ufoT;
+  // Second pass: wave types, bosses, the beam and the UV flash
+  var waveType, swarm, rain, rainLeft, rainLanded, rainSpawnT, chainQ, beamHold, beamHeat, overheat, beamHitT;
+  var uvReady, uvFlashT, bossIntroT, waveFlipT, formationKills, bossesDown, wavesCleared, bossName;
   var keyL = false, keyR = false, keyFire = false;
+  var BOSS_NAMES = ['MOTHER GERM', 'MOLD KING', 'THE VIRUS'];
+  var UV_BOX = { x: 8, y: H - 34, w: 44, h: 14 };
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-shooter') || '0', 10) || 0; } catch(e) {}
@@ -157,34 +162,102 @@
     return false;
   }
 
-  function buildWave() {
+  // Wave types: 1 and 2 are the grid; then swarm, rain, boss, grid, fortress,
+  // swarm, rain, boss ... a boss every fifth wave, three bosses in rotation.
+  function typeFor(w) {
+    if (w % 5 === 0) return 'boss';
+    if (w <= 2) return 'grid';
+    var k = w % 5; // 1 grid, 2 fortress, 3 swarm, 4 rain
+    return k === 1 ? 'grid' : k === 2 ? 'fortress' : k === 3 ? 'swarm' : 'rain';
+  }
+
+  function buildGrid(fortress) {
     germs = [];
-    // Wave 2+: the top row grows armored super-germs that take two hits
     var armoredRows = wave >= 4 ? 2 : wave >= 2 ? 1 : 0;
     for (var r = 0; r < GROWS; r++) {
       for (var c = 0; c < GCOLS; c++) {
         var hp = r < armoredRows ? 2 : 1;
-        // From wave 5 some bacilli carry a payload: killed, they split into two minis
-        var splitter = wave >= 5 && r === 1 && Math.random() < Math.min(0.5, 0.2 + wave * 0.04);
-        // Carriers glow and always drop a vial
+        var splitter = !fortress && wave >= 5 && r === 1 && Math.random() < Math.min(0.5, 0.2 + wave * 0.04);
         var carrier = !splitter && Math.random() < 0.08;
-        germs.push({ c: c, r: r, alive: true, hp: hp, maxHp: hp, wob: Math.random() * 6.28, blink: Math.random() * 200, splitter: splitter, carrier: carrier });
+        var wallBlock = false;
+        if (fortress) {
+          // Rows 1 and 2 are the wall: armored, three hits, with two gaps to shoot through.
+          if (r > 0) {
+            var gapA = 2 + (wave % 3), gapB = 5 + (wave % 2);
+            if (c === gapA || c === gapB) continue;
+            hp = 3; wallBlock = true; carrier = false;
+          } else {
+            hp = 1; carrier = Math.random() < 0.15;
+          }
+        }
+        germs.push({ c: c, r: r, alive: true, hp: hp, maxHp: hp, wob: Math.random() * 6.28, blink: Math.random() * 200, splitter: splitter, carrier: carrier, wall: wallBlock });
       }
     }
     gx = 30; gy = 34; gdir = 1;
-    divers = []; minis = [];
-    waveFrames = 0; waveShots = 0; waveHits = 0; waveDeaths = 0;
-    ufoT = 0;
-    buildShields();
-    // Every fourth wave the MOTHER GERM descends
-    if (wave % 4 === 0) {
-      boss = { x: W / 2, y: 44, hp: 10 + wave * 2, maxHp: 10 + wave * 2, dir: 1, fireT: 0, phase: 0, tent: 0 };
-      for (var i = germs.length - 1; i >= 0; i--) if (germs[i].r === 0) germs[i].alive = false;
-      bannerText = 'MOTHER GERM'; bannerColor = PURPLE; bannerT = 100;
+  }
+
+  // Galaga style: two arcs of germs in formation that sway, and dive in pairs.
+  function buildSwarm() {
+    germs = []; swarm = [];
+    var n = 14 + Math.min(6, wave);
+    for (var i = 0; i < n; i++) {
+      var row = i < 8 ? 0 : 1;
+      var k = row === 0 ? i : i - 8;
+      var per = row === 0 ? 8 : n - 8;
+      var ang = Math.PI * (0.15 + 0.7 * (per > 1 ? k / (per - 1) : 0.5));
+      var sx = W / 2 + Math.cos(ang) * (row === 0 ? 150 : 100);
+      var sy = 40 + row * 34 + Math.sin(ang) * 26;
+      var r = row === 0 ? (i % 2 === 0 ? 0 : 2) : 1;
+      swarm.push({ sx: sx, sy: sy, x: sx, y: -20 - i * 6, r: r, alive: true, hp: 1, maxHp: 1, state: 'enter', t: i * 4, pair: -1, wob: Math.random() * 6.28, blink: Math.random() * 200, carrier: Math.random() < 0.08 });
+    }
+    gx = 0; gy = 0; gdir = 1;
+  }
+
+  function buildRain() {
+    germs = []; rain = [];
+    rainLeft = 18 + wave * 2; rainLanded = 0; rainSpawnT = 0;
+    gx = 0; gy = 0; gdir = 1;
+  }
+
+  function makeBoss(kind) {
+    var hp = 12 + wave * 2;
+    var b = { kind: kind, x: W / 2, y: -40, targetY: 48, hp: hp, maxHp: hp, dir: 1, fireT: 0, tent: 0, flashT: 0, vx: 0 };
+    if (kind === 1) { b.hp = hp + 6; b.maxHp = b.hp; b.split = false; }
+    if (kind === 2) { b.hp = hp + 4; b.maxHp = b.hp; b.spin = 0; }
+    return b;
+  }
+
+  function buildWave() {
+    waveType = typeFor(wave);
+    divers = []; minis = []; swarm = []; rain = []; chainQ = [];
+    waveFrames = 0; waveShots = 0; waveHits = 0; waveDeaths = 0; formationKills = 0;
+    ufoT = 0; uvReady = true; boss = null; bosses = [];
+    waveFlipT = 30;
+    if (waveType === 'boss') {
+      germs = [];
+      buildShields();
+      var kind = (Math.floor(wave / 5) - 1) % 3;
+      bossName = BOSS_NAMES[kind];
+      boss = makeBoss(kind);
+      bosses = [boss];
+      bossIntroT = 110;
+      bannerText = bossName; bannerColor = kind === 0 ? PURPLE : kind === 1 ? '#8fd14f' : '#ff2d7a'; bannerT = 110;
+      gx = 0; gy = 0; gdir = 1;
+    } else if (waveType === 'swarm') {
+      buildSwarm(); buildShields();
+      bannerText = 'WAVE ' + wave + ' // SWARM'; bannerColor = PINK; bannerT = 90;
+    } else if (waveType === 'rain') {
+      buildRain(); buildShields();
+      bannerText = 'WAVE ' + wave + ' // SPORE RAIN'; bannerColor = '#2ecc71'; bannerT = 90;
+    } else if (waveType === 'fortress') {
+      buildGrid(true); buildShields();
+      bannerText = 'WAVE ' + wave + ' // FORTRESS'; bannerColor = '#e8e4d8'; bannerT = 90;
     } else {
-      boss = null;
+      buildGrid(false); buildShields();
+      bannerText = 'WAVE ' + wave + ' // SCRUB IN'; bannerColor = CYAN; bannerT = 90;
     }
   }
+  var bosses = [];
 
   function addPopup(x, y, text, color) {
     popups.push({ x: x, y: y, text: text, color: color, life: 48 });
@@ -216,9 +289,11 @@
     drops = []; divers = []; minis = []; boss = null; spreadT = 0; rapidT = 0; pierceT = 0; doubleT = 0; shieldHp = 0; diverT = 0; popups = [];
     streak = 0; bestStreak = 0; shots = 0; hits = 0; shake = 0; flashT = 0; kills = 0;
     invuln = 0; shootCd = 0; touching = false;
+    swarm = []; rain = []; chainQ = []; beamHold = 0; beamHeat = 0; overheat = false; beamHitT = 0;
+    uvReady = true; uvFlashT = 0; bossIntroT = 0; waveFlipT = 0; formationKills = 0; bossesDown = 0; wavesCleared = 0; bossName = '';
     buildWave();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag to fly (autofire) // FIRE for bursts' : 'Arrows move, SPACE fires';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag to fly (autofire) // hold FIRE for the beam // tap UV' : 'Arrows move, SPACE fires (hold for the beam), DOWN is the UV flash';
     window.skateRunning = true;
     startLoop();
   }
@@ -246,18 +321,21 @@
     return n;
   }
 
+  // Vials stack: double gives two columns, spread adds the side shots to whatever is firing.
   function shoot() {
-    if (shootCd > 0 || bullets.length >= (spreadT > 0 || doubleT > 0 ? 10 : 4)) return;
+    if (beamHold >= 18) return; // the beam is on, needles hold
+    var cap = 4 + (spreadT > 0 ? 6 : 0) + (doubleT > 0 ? 4 : 0);
+    if (shootCd > 0 || bullets.length >= cap) return;
     var y0 = player.y - 14;
-    if (spreadT > 0) {
-      bullets.push({ x: player.x, y: y0, vx: -1.3, hits: 0 });
-      bullets.push({ x: player.x, y: y0, vx: 0, hits: 0 });
-      bullets.push({ x: player.x, y: y0, vx: 1.3, hits: 0 });
-    } else if (doubleT > 0) {
+    if (doubleT > 0) {
       bullets.push({ x: player.x - 5, y: y0, vx: 0, hits: 0 });
       bullets.push({ x: player.x + 5, y: y0, vx: 0, hits: 0 });
     } else {
       bullets.push({ x: player.x, y: y0, vx: 0, hits: 0 });
+    }
+    if (spreadT > 0) {
+      bullets.push({ x: player.x, y: y0, vx: -1.3, hits: 0 });
+      bullets.push({ x: player.x, y: y0, vx: 1.3, hits: 0 });
     }
     shots++; waveShots++;
     shootCd = rapidT > 0 ? 6 : 12;
@@ -269,9 +347,9 @@
     var x = germX(g), y = germY(g);
     g.alive = false;
     kills++;
-    var base = (GROWS - g.r) * 10 + (g.maxHp === 2 ? 20 : 0);
+    var base = (GROWS - g.r) * 10 + (g.maxHp === 2 ? 20 : 0) + (g.wall ? 25 : 0);
     var left = aliveCount();
-    var label = left === 0 ? 'LAST ONE' : (g.maxHp === 2 ? 'ARMORED' : '');
+    var label = left === 0 ? 'LAST ONE' : (g.wall ? 'WALL' : (g.maxHp === 2 ? 'ARMORED' : ''));
     if (left === 0) base += 100;
     addScore(base, x + GW / 2, y - 4, label, ROW_COLOR[g.r]);
     sfxPop(GROWS - g.r);
@@ -283,6 +361,88 @@
       addPopup(x + GW / 2, y + 12, 'IT SPLIT', '#2ecc71');
     }
     maybeWeapon(x + GW / 2, y + GH / 2, g.carrier);
+    // Hot streaks chain: the blast catches the neighbors a beat later.
+    if (mult() >= 3 && !g.wall) {
+      for (var n = 0; n < germs.length; n++) {
+        var ng = germs[n];
+        if (!ng.alive || ng.wall || ng === g) continue;
+        if (Math.abs(ng.c - g.c) + Math.abs(ng.r - g.r) === 1) chainQ.push({ g: ng, t: 8 + Math.random() * 6 });
+      }
+    }
+  }
+  function killSwarmGerm(sg, label) {
+    sg.alive = false;
+    kills++;
+    var base = sg.state === 'dive' ? 40 : 20;
+    addScore(base, sg.x, sg.y - 8, label || (sg.state === 'dive' ? 'DIVER' : ''), sg.state === 'dive' ? PINK : ROW_COLOR[sg.r]);
+    sfxPop(sg.state === 'dive' ? 2 : 1);
+    rings.push({ x: sg.x, y: sg.y, r: 4, life: 14, c: ROW_COLOR[sg.r] });
+    spawnParticles(sg.x, sg.y, ROW_COLOR[sg.r], 9);
+    maybeWeapon(sg.x, sg.y, sg.carrier);
+    // A diving pair both dropped before they get home: formation bonus.
+    if (sg.state === 'dive' && sg.pair >= 0) {
+      var mate = null;
+      for (var i = 0; i < swarm.length; i++) if (swarm[i] !== sg && swarm[i].pair === sg.pair) mate = swarm[i];
+      if (mate && !mate.alive) {
+        formationKills++;
+        addScore(150, sg.x, sg.y - 22, 'FORMATION', YELLOW);
+        shake = 5;
+      }
+    }
+    var left = 0;
+    for (var j = 0; j < swarm.length; j++) if (swarm[j].alive) left++;
+    if (left === 0) { addScore(100, sg.x, sg.y - 36, 'LAST ONE', YELLOW); shake = 8; flashT = 4; }
+  }
+  function killRainSpore(rs) {
+    rs.alive = false;
+    kills++;
+    addScore(rs.y < 120 ? 25 : 15, rs.x, rs.y - 8, rs.y < 120 ? 'HIGH' : '', '#2ecc71');
+    sfxPop(0);
+    rings.push({ x: rs.x, y: rs.y, r: 3, life: 12, c: '#2ecc71' });
+    spawnParticles(rs.x, rs.y, '#2ecc71', 6);
+    maybeWeapon(rs.x, rs.y, false);
+  }
+  function bossDown(b) {
+    var name = BOSS_NAMES[b.kind];
+    addScore(500 + wave * 25 + b.kind * 150, b.x, b.y, name, YELLOW);
+    rings.push({ x: b.x, y: b.y, r: 8, life: 22, c: YELLOW });
+    rings.push({ x: b.x, y: b.y, r: 2, life: 26, c: PINK });
+    rings.push({ x: b.x, y: b.y, r: 14, life: 30, c: PURPLE });
+    drops.push({ x: b.x - 14, y: b.y, kind: 'spread', spin: 0 });
+    drops.push({ x: b.x + 14, y: b.y, kind: 'shield', spin: 0 });
+    spawnParticles(b.x, b.y, YELLOW, 24, 2);
+    spawnParticles(b.x, b.y, PURPLE, 24, 1.5);
+    shake = 16; flashT = 8;
+    bossesDown++;
+    sayCallout('shooter-c3');
+  }
+  function hitBoss(b, dmg, bx, by) {
+    if (bossIntroT > 0) return;
+    b.hp -= dmg;
+    b.flashT = 6;
+    spawnParticles(bx, by, '#fff', 4);
+    sfxPop(1);
+    // The virus clones the needle back at you.
+    if (b.kind === 2 && dmg === 1 && Math.random() < 0.6) {
+      var dx = player.x - b.x, dy = player.y - b.y, len = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      ebullets.push({ x: b.x, y: b.y + 10, vx: dx / len * 3.2, vy: dy / len * 3.2, clone: true });
+    }
+    // The mold king splits in two at half health.
+    if (b.kind === 1 && !b.split && b.hp <= b.maxHp / 2 && b.hp > 0) {
+      b.split = true;
+      var half = Math.max(3, Math.ceil(b.hp / 2));
+      b.hp = half; b.maxHp = half; b.small = true; b.dir = -1; b.vx = -1.4;
+      var twin = { kind: 1, x: b.x + 10, y: b.y, targetY: b.targetY, hp: half, maxHp: half, dir: 1, fireT: 20, tent: 1, flashT: 0, vx: 1.4, split: true, small: true };
+      bosses.push(twin);
+      addPopup(b.x, b.y - 30, 'IT SPLIT', '#8fd14f');
+      shake = 8;
+      spawnParticles(b.x, b.y, '#8fd14f', 20, 1.5);
+    }
+    if (b.hp <= 0) {
+      bossDown(b);
+      for (var i = bosses.length - 1; i >= 0; i--) if (bosses[i] === b) bosses.splice(i, 1);
+      boss = bosses.length ? bosses[0] : null;
+    }
   }
 
   function loseLife(why) {
@@ -316,17 +476,21 @@
     var acc = waveShots ? Math.round(100 * waveHits / waveShots) : 0;
     var accBonus = acc >= 70 ? acc * 2 : 0;
     var spotless = waveDeaths === 0 ? 150 : 0;
-    score += flat + clock + accBonus + spotless;
+    var rainBonus = waveType === 'rain' && rainLanded === 0 ? 300 : 0;
+    var uvBonus = uvReady ? 50 : 0; // never needed the flash
+    score += flat + clock + accBonus + spotless + rainBonus + uvBonus;
     document.getElementById('jd-br-score').textContent = score;
     addPopup(W / 2, 120, 'WAVE CLEAR +' + flat, CYAN);
     if (clock) addPopup(W / 2, 138, 'FAST +' + clock, YELLOW);
     if (accBonus) addPopup(W / 2, 156, 'CLEAN HANDS ' + acc + '% +' + accBonus, LIME);
     if (spotless) addPopup(W / 2, 174, 'SPOTLESS +' + spotless, '#fff');
+    if (rainBonus) addPopup(W / 2, 192, 'DRY TRAY +' + rainBonus, '#2ecc71');
+    if (uvBonus) addPopup(W / 2, 210, 'UV UNUSED +' + uvBonus, '#c7a6ff');
+    wavesCleared++;
     wave++;
     sfxWave();
     buildWave();
     ebullets = [];
-    if (!boss) { bannerText = 'WAVE ' + wave + ' // SCRUB IN'; bannerColor = CYAN; bannerT = 90; }
     sayCallout('shooter-c1');
   }
 
@@ -344,13 +508,161 @@
     if (shake > 0) shake--;
     if (flashT > 0) flashT--;
     if (recoil > 0) recoil--;
+    if (uvFlashT > 0) uvFlashT--;
+    if (waveFlipT > 0) waveFlipT--;
+    if (bossIntroT > 0) bossIntroT--;
     for (var i = popups.length - 1; i >= 0; i--) {
       popups[i].y -= 0.5; popups[i].life--;
       if (popups[i].life <= 0) popups.splice(i, 1);
     }
 
-    // Divers: from wave 3, germs break formation and kamikaze on a curve
-    if (wave >= 3) {
+    // The autoclave beam: hold fire, the needle becomes a beam until it overheats.
+    var wantBeam = (keyFire || touching) && !overheat;
+    beamHold = wantBeam ? beamHold + 1 : 0;
+    var beamOn = beamHold >= 18;
+    if (beamOn) {
+      beamHeat = Math.min(150, beamHeat + 1.6);
+      if (beamHeat >= 150) { overheat = true; beamHold = 0; addPopup(player.x, player.y - 30, 'OVERHEAT', '#ff5050'); playSfx(160, 0.25, 'sawtooth', 0.1); }
+      if (beamHitT > 0) beamHitT--;
+      if (frame % 3 === 0) playSfx(180 + Math.sin(frame * 0.5) * 30, 0.05, 'sawtooth', 0.03);
+    } else {
+      beamHeat = Math.max(0, beamHeat - 0.9);
+      if (overheat && beamHeat <= 60) overheat = false;
+    }
+    if (beamOn && beamHitT === 0) {
+      var bxm = player.x, hitY = -1, target = null, tkind = '';
+      // The beam stops at the first thing above the machine: shields excluded, it burns through gauze.
+      for (var i = 0; i < germs.length; i++) {
+        var g = germs[i];
+        if (!g.alive) continue;
+        var x = germX(g), y = germY(g);
+        if (bxm > x && bxm < x + GW && y + GH < player.y && y + GH > hitY) { hitY = y + GH; target = g; tkind = 'germ'; }
+      }
+      for (var i = 0; i < swarm.length; i++) {
+        var sg = swarm[i];
+        if (!sg.alive) continue;
+        if (Math.abs(sg.x - bxm) < 11 && sg.y < player.y && sg.y > hitY) { hitY = sg.y; target = sg; tkind = 'swarm'; }
+      }
+      for (var i = 0; i < rain.length; i++) {
+        var rs = rain[i];
+        if (!rs.alive) continue;
+        if (Math.abs(rs.x - bxm) < 8 && rs.y < player.y && rs.y > hitY) { hitY = rs.y; target = rs; tkind = 'rain'; }
+      }
+      for (var i = 0; i < bosses.length; i++) {
+        var bb = bosses[i];
+        if (Math.abs(bb.x - bxm) < (bb.small ? 14 : 20) && bb.y < player.y && bb.y > hitY) { hitY = bb.y; target = bb; tkind = 'boss'; }
+      }
+      for (var i = divers.length - 1; i >= 0; i--) {
+        var dv = divers[i];
+        if (Math.abs(dv.x - bxm) < 11 && dv.y < player.y && dv.y > hitY) { hitY = dv.y; target = dv; tkind = 'diver'; }
+      }
+      if (target) {
+        beamHitT = 5;
+        landHit();
+        if (tkind === 'germ') { target.hp--; if (target.hp <= 0) killGerm(target, bxm, hitY); else { target.flashT = 6; spawnParticles(bxm, hitY, '#fff', 3); } }
+        else if (tkind === 'swarm') killSwarmGerm(target, 'BEAMED');
+        else if (tkind === 'rain') killRainSpore(target);
+        else if (tkind === 'boss') hitBoss(target, 1, bxm, hitY);
+        else if (tkind === 'diver') { for (var q = divers.length - 1; q >= 0; q--) if (divers[q] === target) divers.splice(q, 1); addScore(40, target.x, target.y - 8, 'DIVER', PINK); spawnParticles(target.x, target.y, PINK, 8); }
+        if (mode !== 'play') return;
+      }
+    }
+
+    // Chain blasts land a beat after the kill that lit them.
+    for (var i = chainQ.length - 1; i >= 0; i--) {
+      var cq = chainQ[i];
+      cq.t--;
+      if (cq.t > 0) continue;
+      chainQ.splice(i, 1);
+      if (!cq.g.alive) continue;
+      cq.g.hp--;
+      if (cq.g.hp <= 0) killGerm(cq.g, germX(cq.g) + GW / 2, germY(cq.g) + GH / 2);
+      else { cq.g.flashT = 8; spawnParticles(germX(cq.g) + GW / 2, germY(cq.g) + GH / 2, '#fff', 4); }
+    }
+
+    // Swarm: fly in, hold formation, sway, dive in pairs and come home.
+    if (waveType === 'swarm') {
+      var sway = Math.sin(frame * 0.02) * 26;
+      var diveEvery = Math.max(90, 220 - wave * 8);
+      if (frame % diveEvery === 0) {
+        var formed = [];
+        for (var i = 0; i < swarm.length; i++) if (swarm[i].alive && swarm[i].state === 'form') formed.push(swarm[i]);
+        if (formed.length >= 2) {
+          var a = formed[Math.floor(Math.random() * formed.length)], bmate = null;
+          var bestD = 9999;
+          for (var i = 0; i < formed.length; i++) { var f2 = formed[i]; if (f2 === a) continue; var dd = Math.abs(f2.sx - a.sx) + Math.abs(f2.sy - a.sy); if (dd < bestD) { bestD = dd; bmate = f2; } }
+          var pid = frame;
+          [a, bmate].forEach(function (sg, k) { sg.state = 'dive'; sg.t = 0; sg.pair = pid; sg.side = k === 0 ? -1 : 1; sg.dx = sg.x; sg.dy = sg.y; });
+        }
+      }
+      for (var i = 0; i < swarm.length; i++) {
+        var sg = swarm[i];
+        if (!sg.alive) continue;
+        if (sg.state === 'enter') {
+          sg.t++;
+          if (sg.t > 0) { sg.x += (sg.sx - sg.x) * 0.06; sg.y += (sg.sy - sg.y) * 0.06; }
+          if (Math.abs(sg.y - sg.sy) < 1.5) sg.state = 'form';
+        } else if (sg.state === 'form') {
+          sg.x = sg.sx + sway;
+          sg.y = sg.sy + Math.sin(frame * 0.05 + sg.wob) * 3;
+        } else if (sg.state === 'dive') {
+          sg.t++;
+          var T = 150;
+          var u = sg.t / T;
+          if (u >= 1) { sg.state = 'form'; sg.pair = -1; sg.x = sg.sx + sway; sg.y = sg.sy; continue; }
+          // Out and around: a loop toward the player, then back up to the slot.
+          var px = player.x, tx = px + sg.side * 60 * Math.sin(u * Math.PI);
+          var arc = Math.sin(u * Math.PI);
+          sg.x = sg.dx + (tx - sg.dx) * arc + Math.sin(sg.t * 0.2) * 10;
+          sg.y = u < 0.5 ? sg.dy + (player.y - 20 - sg.dy) * (u * 2) : (player.y - 20) + (sg.sy - (player.y - 20)) * ((u - 0.5) * 2);
+          if (u > 0.3 && u < 0.6 && sg.t % 28 === 0) ebullets.push({ x: sg.x, y: sg.y + 8, vy: 2.4 + wave * 0.12, vx: (player.x - sg.x) * 0.01 });
+          if (hitShield(sg.x, sg.y, 6)) { sg.alive = false; spawnParticles(sg.x, sg.y, PINK, 6); continue; }
+          if (invuln === 0 && Math.abs(sg.x - player.x) < 13 && Math.abs(sg.y - player.y) < 13) {
+            sg.alive = false;
+            loseLife('SWARM GOT YOU');
+            if (mode !== 'play') return;
+          }
+        }
+      }
+    }
+
+    // Rain: spores fall, sway, and take root on the tray if they land.
+    if (waveType === 'rain') {
+      rainSpawnT++;
+      var spawnEvery = Math.max(18, 40 - wave * 2);
+      if (rainLeft > 0 && rainSpawnT >= spawnEvery) {
+        rainSpawnT = 0; rainLeft--;
+        rain.push({ x: 20 + Math.random() * (W - 40), y: -8, vy: 0.9 + Math.random() * 0.6 + wave * 0.06, wob: Math.random() * 6.28, alive: true, sway: 0.6 + Math.random() * 0.8 });
+      }
+      for (var i = rain.length - 1; i >= 0; i--) {
+        var rs = rain[i];
+        if (!rs.alive) { rain.splice(i, 1); continue; }
+        rs.y += rs.vy;
+        rs.x += Math.sin(frame * 0.05 + rs.wob) * rs.sway;
+        if (hitShield(rs.x, rs.y, 4)) { rs.alive = false; rain.splice(i, 1); spawnParticles(rs.x, rs.y, '#2ecc71', 4); continue; }
+        if (invuln === 0 && Math.abs(rs.x - player.x) < 11 && Math.abs(rs.y - player.y) < 11) {
+          rs.alive = false; rain.splice(i, 1);
+          loseLife('SPORE ON YOU');
+          if (mode !== 'play') return;
+          continue;
+        }
+        if (rs.y >= player.y + 14) {
+          rs.alive = false; rain.splice(i, 1);
+          rainLanded++;
+          streak = Math.floor(streak / 2);
+          spawnParticles(rs.x, player.y + 14, '#2ecc71', 8);
+          addPopup(rs.x, player.y - 6, 'LANDED', '#2ecc71');
+          playSfx(120, 0.1, 'sawtooth', 0.08);
+          if (rainLanded % 4 === 0) {
+            loseLife('TRAY CONTAMINATED');
+            if (mode !== 'play') return;
+          }
+        }
+      }
+    }
+
+    // Divers: from wave 3, grid germs break formation and kamikaze on a curve
+    if (wave >= 3 && (waveType === 'grid' || waveType === 'fortress')) {
       diverT++;
       var needD = Math.max(120, 260 - wave * 12);
       if (diverT > needD) {
@@ -392,19 +704,46 @@
       }
     }
 
-    // The mother germ: tracks you, fires in fans, gets angry under half health
-    if (boss) {
-      var angry = boss.hp <= boss.maxHp / 2;
-      boss.tent += angry ? 0.16 : 0.08;
-      boss.x += boss.dir * (0.8 + wave * 0.06) * (angry ? 1.6 : 1);
-      if (boss.x < 40) boss.dir = 1;
-      if (boss.x > W - 40) boss.dir = -1;
-      boss.fireT++;
-      if (boss.fireT > Math.max(26, (angry ? 44 : 60) - wave * 2)) {
-        boss.fireT = 0;
-        var fan = angry ? 2 : 1;
-        for (var k = -fan; k <= fan; k++) {
-          ebullets.push({ x: boss.x + k * 8, y: boss.y + 14, vy: 2.6 + wave * 0.15, vx: k * 0.7, big: true });
+    // Bosses: descend under a name card, then each kind fights its own way.
+    for (var bi = 0; bi < bosses.length; bi++) {
+      var bb = bosses[bi];
+      if (bossIntroT > 0) { bb.y += (bb.targetY - bb.y) * 0.05; continue; }
+      bb.y += (bb.targetY - bb.y) * 0.08;
+      var angry = bb.hp <= bb.maxHp / 2;
+      bb.tent += angry ? 0.16 : 0.08;
+      if (bb.kind === 0) {
+        bb.x += bb.dir * (0.8 + wave * 0.06) * (angry ? 1.6 : 1);
+        if (bb.x < 40) bb.dir = 1;
+        if (bb.x > W - 40) bb.dir = -1;
+        bb.fireT++;
+        if (bb.fireT > Math.max(26, (angry ? 44 : 60) - wave * 2)) {
+          bb.fireT = 0;
+          var fan = angry ? 2 : 1;
+          for (var k = -fan; k <= fan; k++) ebullets.push({ x: bb.x + k * 8, y: bb.y + 14, vy: 2.6 + wave * 0.15, vx: k * 0.7, big: true });
+        }
+      } else if (bb.kind === 1) {
+        // Mold king: lumbers, drops spore clusters; the halves are quicker and cross paths.
+        var sp = bb.small ? 1.9 : 0.7;
+        bb.x += bb.dir * sp;
+        if (bb.x < 30) bb.dir = 1;
+        if (bb.x > W - 30) bb.dir = -1;
+        bb.targetY = 48 + Math.sin(bb.tent * 0.5) * (bb.small ? 22 : 8);
+        bb.fireT++;
+        if (bb.fireT > (bb.small ? 46 : 70)) {
+          bb.fireT = 0;
+          var nsp = bb.small ? 2 : 3;
+          for (var k = 0; k < nsp; k++) ebullets.push({ x: bb.x + (k - (nsp - 1) / 2) * 14, y: bb.y + 16, vy: 1.6 + wave * 0.08, vx: (Math.random() - 0.5) * 0.8, mold: true });
+        }
+      } else {
+        // The virus: darts across, spins spirals, and clones your needles back at you.
+        bb.spin += angry ? 0.11 : 0.07;
+        bb.x += (player.x - bb.x) * 0.02 + Math.sin(bb.tent * 1.7) * 2.2;
+        bb.x = Math.max(40, Math.min(W - 40, bb.x));
+        bb.fireT++;
+        if (bb.fireT > (angry ? 10 : 16)) {
+          bb.fireT = 0;
+          var a = bb.spin * 3;
+          ebullets.push({ x: bb.x, y: bb.y + 6, vx: Math.cos(a) * 2.2, vy: 1.6 + Math.abs(Math.sin(a)) * 1.6 + wave * 0.06, virus: true });
         }
       }
     }
@@ -441,18 +780,18 @@
       var y = germY(germs[i]);
       if (y > maxY) maxY = y;
     }
-    if (minX < 16 || maxX > W - 16 - GW) {
+    if (alive > 0 && (minX < 16 || maxX > W - 16 - GW)) {
       gdir *= -1;
       gy += 10;
       if (alive > 0) playSfx(90 + (24 - alive) * 3, 0.05, 'square', 0.05);
     }
     // They reached the tray: lose a life, push them back up
-    if (maxY + GH >= player.y - 6 && mode === 'play') {
+    if (alive > 0 && maxY + GH >= player.y - 6 && mode === 'play') {
       loseLife('THEY REACHED THE TRAY');
       if (mode === 'play') gy = 34;
     }
     // The grid chews through the gauze on its way down
-    if (shields.length && maxY + GH >= 236) {
+    if (alive > 0 && shields.length && maxY + GH >= 236) {
       for (var s = 0; s < shields.length; s++) {
         var bl = shields[s].blocks;
         for (var q = bl.length - 1; q >= 0; q--) if (bl[q].y < maxY + GH) bl.splice(q, 1);
@@ -481,7 +820,7 @@
 
     // Mold cloud: drifts across the top, worth a mystery bonus
     ufoT++;
-    if (!ufo && !boss && ufoT > 520 && Math.random() < 0.02) {
+    if (!ufo && !bosses.length && ufoT > 520 && Math.random() < 0.02) {
       var fromLeft = Math.random() < 0.5;
       ufo = { x: fromLeft ? -30 : W + 30, v: (fromLeft ? 1 : -1) * (1.5 + wave * 0.1), bonus: [100, 150, 200, 300][Math.floor(Math.random() * 4)] };
       ufoT = 0;
@@ -515,6 +854,26 @@
           break;
         }
       }
+      if (!hit) for (var j = 0; j < swarm.length; j++) {
+        var sg = swarm[j];
+        if (!sg.alive) continue;
+        if (Math.abs(b.x - sg.x) < 11 && Math.abs(b.y - sg.y) < 11) {
+          hit = true;
+          landHit();
+          killSwarmGerm(sg, '');
+          break;
+        }
+      }
+      if (!hit) for (var j = 0; j < rain.length; j++) {
+        var rs = rain[j];
+        if (!rs.alive) continue;
+        if (Math.abs(b.x - rs.x) < 8 && Math.abs(b.y - rs.y) < 9) {
+          hit = true;
+          landHit();
+          killRainSpore(rs);
+          break;
+        }
+      }
       if (!hit) for (var j = minis.length - 1; j >= 0; j--) {
         var mn = minis[j];
         if (Math.abs(b.x - mn.x) < 8 && Math.abs(b.y - mn.y) < 8) {
@@ -527,25 +886,14 @@
           break;
         }
       }
-      if (!hit && boss && Math.abs(b.x - boss.x) < 20 && Math.abs(b.y - boss.y) < 16) {
-        boss.hp--;
-        hit = true;
-        landHit();
-        boss.flashT = 6;
-        spawnParticles(b.x, b.y, '#fff', 4);
-        sfxPop(1);
-        if (boss.hp <= 0) {
-          addScore(500 + wave * 25, boss.x, boss.y, 'MOTHER GERM', YELLOW);
-          rings.push({ x: boss.x, y: boss.y, r: 8, life: 22, c: YELLOW });
-          rings.push({ x: boss.x, y: boss.y, r: 2, life: 26, c: PINK });
-          rings.push({ x: boss.x, y: boss.y, r: 14, life: 30, c: PURPLE });
-          drops.push({ x: boss.x - 14, y: boss.y, kind: 'spread', spin: 0 });
-          drops.push({ x: boss.x + 14, y: boss.y, kind: 'shield', spin: 0 });
-          spawnParticles(boss.x, boss.y, YELLOW, 24, 2);
-          spawnParticles(boss.x, boss.y, PURPLE, 24, 1.5);
-          shake = 16; flashT = 8;
-          boss = null;
-          sayCallout('shooter-c3');
+      if (!hit && bossIntroT === 0) for (var j = 0; j < bosses.length; j++) {
+        var bb2 = bosses[j];
+        var rad = bb2.small ? 14 : 20;
+        if (Math.abs(b.x - bb2.x) < rad && Math.abs(b.y - bb2.y) < rad - 4) {
+          hit = true;
+          landHit();
+          hitBoss(bb2, 1, b.x, b.y);
+          break;
         }
       }
       if (!hit) for (var j = 0; j < germs.length; j++) {
@@ -589,20 +937,23 @@
       var e = ebullets[i];
       e.y += e.vy;
       e.x += e.vx || 0;
-      if (e.y > H + 10) { ebullets.splice(i, 1); continue; }
+      if (e.y > H + 10 || e.x < -10 || e.x > W + 10) { ebullets.splice(i, 1); continue; }
       if (shields.length && e.y > 230 && hitShield(e.x, e.y, 2)) { ebullets.splice(i, 1); continue; }
       if (invuln === 0 &&
           e.x > player.x - player.w / 2 && e.x < player.x + player.w / 2 &&
           e.y > player.y - player.h / 2 && e.y < player.y + player.h / 2) {
         ebullets.splice(i, 1);
-        loseLife(e.big ? 'MOTHER OOZE' : 'OOZED');
+        loseLife(e.big ? 'MOTHER OOZE' : e.clone ? 'YOUR OWN NEEDLE' : e.mold ? 'MOLD SPORE' : e.virus ? 'VIRAL' : 'OOZED');
         if (mode !== 'play') return;
         break; // a hit wipes the ooze, so the list under this loop is gone
       }
     }
 
-    // Wave cleared
-    if (alive === 0 && !boss && minis.length === 0) endWave();
+    // Wave cleared, by type
+    var swarmLeft = 0;
+    for (var i = 0; i < swarm.length; i++) if (swarm[i].alive) swarmLeft++;
+    var rainDone = waveType !== 'rain' || (rainLeft === 0 && rain.length === 0);
+    if (alive === 0 && !bosses.length && minis.length === 0 && swarmLeft === 0 && divers.length === 0 && rainDone) endWave();
     if (bannerT > 0) bannerT--;
 
     for (var i = particles.length - 1; i >= 0; i--) {
@@ -634,7 +985,30 @@
       keyFire = true;
       shoot();
     }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); if (mode === 'play') uvFlash(); }
   });
+  // The UV flash: one per wave, wipes the tray. Bosses only flinch.
+  function uvFlash() {
+    if (!uvReady) return;
+    uvReady = false;
+    uvFlashT = 26; flashT = 10; shake = 10;
+    playSfx(2200, 0.3, 'square', 0.12); setTimeout(function () { playSfx(1100, 0.4, 'triangle', 0.1); }, 80);
+    var got = 0;
+    for (var i = 0; i < germs.length; i++) { var g = germs[i]; if (!g.alive || g.wall) continue; g.alive = false; got++; spawnParticles(germX(g) + GW / 2, germY(g) + GH / 2, '#c7a6ff', 5); }
+    for (var i = 0; i < swarm.length; i++) { if (!swarm[i].alive) continue; swarm[i].alive = false; got++; spawnParticles(swarm[i].x, swarm[i].y, '#c7a6ff', 5); }
+    for (var i = 0; i < rain.length; i++) { if (!rain[i].alive) continue; rain[i].alive = false; got++; spawnParticles(rain[i].x, rain[i].y, '#c7a6ff', 4); }
+    got += divers.length + minis.length; divers = []; minis = []; ebullets = []; chainQ = [];
+    kills += got;
+    for (var i = 0; i < bosses.length; i++) { bosses[i].hp = Math.max(1, bosses[i].hp - 5); bosses[i].flashT = 12; }
+    if (got) { score += got * 5; document.getElementById('jd-br-score').textContent = score; }
+    addPopup(W / 2, H / 2 - 20, 'UV FLASH' + (got ? ' +' + got * 5 : ''), '#c7a6ff');
+    sayCallout('shooter-c2');
+  }
+  function onUvBadge(clientX, clientY) {
+    var r = canvas.getBoundingClientRect();
+    var x = (clientX - r.left) * (W / r.width), y = (clientY - r.top) * (H / r.height);
+    return x >= UV_BOX.x && x <= UV_BOX.x + UV_BOX.w && y >= UV_BOX.y && y <= UV_BOX.y + UV_BOX.h;
+  }
   document.addEventListener('keyup', function(e) {
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') keyL = false;
     if (e.code === 'ArrowRight' || e.code === 'KeyD') keyR = false;
@@ -644,9 +1018,11 @@
     var r = canvas.getBoundingClientRect();
     return (clientX - r.left) * (W / r.width);
   }
-  canvas.addEventListener('click', function() { start(); });
+  canvas.addEventListener('click', function(e) { if (mode === 'play' && onUvBadge(e.clientX, e.clientY)) { uvFlash(); return; } start(); });
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
+    var t0 = e.targetTouches[0] || e.touches[0];
+    if (mode === 'play' && onUvBadge(t0.clientX, t0.clientY)) { uvFlash(); return; }
     start();
     touching = true;
     player.x = Math.max(14, Math.min(W - 14, canvasX((e.targetTouches[0] || e.touches[0]).clientX)));
@@ -739,7 +1115,9 @@
     drawSpecies(cx, cy, g.r, ROW_COLOR[g.r], frame + g.wob * 10, g.flashT, g.blink);
   }
 
+  function cleanLevel() { return Math.min(1, wavesCleared / 12); }
   function drawBackground() {
+    var cl = cleanLevel();
     ctx.fillStyle = '#060a14';
     ctx.fillRect(0, 0, W, H);
     // UV lamp at the top: a purple wash that breathes
@@ -762,10 +1140,15 @@
       ctx.fillStyle = 'rgba(46,204,113,' + (0.05 + (i % 3) * 0.02).toFixed(2) + ')';
       ctx.fillRect(spx, spy, 2, 2);
     }
-    // Tile floor: the station tray in perspective, grout lines converging
-    ctx.fillStyle = '#0c1220';
+    // Tile floor: the station tray in perspective, grout lines converging.
+    // It reads cleaner the more waves you have scrubbed.
+    ctx.fillStyle = 'rgb(' + Math.round(12 + cl * 18) + ',' + Math.round(18 + cl * 26) + ',' + Math.round(32 + cl * 30) + ')';
     ctx.fillRect(0, 258, W, H - 258);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    if (cl > 0.3) {
+      ctx.fillStyle = 'rgba(255,255,255,' + ((cl - 0.3) * 0.08).toFixed(3) + ')';
+      ctx.fillRect(0, 258, W, 3);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.06 + cl * 0.12).toFixed(2) + ')';
     ctx.lineWidth = 1;
     for (var k = 0; k <= 8; k++) {
       var xTop = k * 50, xBot = W / 2 + (k * 50 - W / 2) * 1.5;
@@ -859,34 +1242,64 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawBoss() {
-    if (!boss) return;
-    if (boss.flashT) boss.flashT--;
-    var angry = boss.hp <= boss.maxHp / 2;
-    var bwob = Math.sin(frame * 0.1) * 3;
-    var bx = boss.x, by = boss.y + bwob;
-    // Tentacles reach for you
-    ctx.strokeStyle = boss.flashT ? '#fff' : (angry ? '#c04dff' : PURPLE);
+  function drawSwarm() {
+    for (var i = 0; i < swarm.length; i++) {
+      var sg = swarm[i];
+      if (!sg.alive) continue;
+      if (sg.state === 'dive') {
+        ctx.fillStyle = 'rgba(255,20,147,0.2)';
+        ctx.fillRect(sg.x - 2, sg.y - 16, 4, 12);
+      }
+      if (sg.carrier) {
+        ctx.fillStyle = 'rgba(255,215,0,' + (0.15 + Math.sin(frame * 0.2) * 0.1).toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(sg.x, sg.y, 14, 0, Math.PI * 2); ctx.fill();
+      }
+      drawSpecies(sg.x, sg.y, sg.r, sg.state === 'dive' ? PINK : ROW_COLOR[sg.r], frame + sg.wob * 10, false, sg.blink);
+    }
+  }
+  function drawRain() {
+    for (var i = 0; i < rain.length; i++) {
+      var rs = rain[i];
+      if (!rs.alive) continue;
+      ctx.fillStyle = 'rgba(46,204,113,0.18)';
+      ctx.fillRect(rs.x - 1, rs.y - 14, 2, 12);
+      ctx.fillStyle = '#2ecc71';
+      for (var k = 0; k < 6; k++) {
+        var a = frame * 0.05 + rs.wob + k * Math.PI / 3;
+        ctx.fillRect(rs.x + Math.cos(a) * 6 - 1, rs.y + Math.sin(a) * 6 - 1, 2, 2);
+      }
+      ctx.beginPath(); ctx.arc(rs.x, rs.y, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(rs.x - 3, rs.y - 2, 2, 2); ctx.fillRect(rs.x + 1, rs.y - 2, 2, 2);
+    }
+    if (waveType === 'rain' && mode === 'play') {
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 7px monospace';
+      ctx.fillStyle = rainLanded ? '#ff5050' : '#2ecc71';
+      ctx.fillText('LANDED ' + rainLanded + ' // ' + (rainLeft + rain.length) + ' TO GO', 8, 36);
+    }
+  }
+
+  function drawMother(bb, angry) {
+    var bx = bb.x, by = bb.y + Math.sin(frame * 0.1) * 3;
+    ctx.strokeStyle = bb.flashT ? '#fff' : (angry ? '#c04dff' : PURPLE);
     ctx.lineWidth = 3;
     for (var k = 0; k < 5; k++) {
       var a = Math.PI * 0.2 + k * Math.PI * 0.15;
-      var ex = bx + Math.cos(a) * 30 + Math.sin(boss.tent + k) * 6;
-      var ey = by + Math.sin(a) * 28 + Math.cos(boss.tent * 1.3 + k) * 4;
+      var ex = bx + Math.cos(a) * 30 + Math.sin(bb.tent + k) * 6;
+      var ey = by + Math.sin(a) * 28 + Math.cos(bb.tent * 1.3 + k) * 4;
       ctx.beginPath(); ctx.moveTo(bx, by + 8); ctx.quadraticCurveTo(bx + Math.cos(a) * 14, by + 24, ex, ey); ctx.stroke();
       ctx.fillStyle = PINK;
       ctx.fillRect(ex - 1.5, ey - 1.5, 3, 3);
     }
-    // Body: three lobes with a membrane sheen
-    ctx.fillStyle = boss.flashT ? '#fff' : (angry ? '#b45cff' : PURPLE);
+    ctx.fillStyle = bb.flashT ? '#fff' : (angry ? '#b45cff' : PURPLE);
     ctx.beginPath(); ctx.arc(bx, by, 18 + (angry ? Math.sin(frame * 0.4) * 1.5 : 0), 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(bx - 13, by + 6, 10, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(bx + 13, by + 6, 10, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.beginPath(); ctx.arc(bx - 6, by - 8, 6, 0, Math.PI * 2); ctx.fill();
-    // Nucleus pulses
     ctx.fillStyle = angry ? '#ff2d7a' : '#5b2a8a';
     ctx.beginPath(); ctx.arc(bx, by + 4, 5 + Math.sin(frame * 0.2) * 1.2, 0, Math.PI * 2); ctx.fill();
-    // Eyes track the player
     var look = Math.max(-2, Math.min(2, (player.x - bx) / 60));
     ctx.fillStyle = '#fff';
     ctx.fillRect(bx - 9, by - 7, 6, 6);
@@ -894,17 +1307,119 @@
     ctx.fillStyle = angry ? '#f00' : '#000';
     ctx.fillRect(bx - 7 + look, by - 5, 3, 3);
     ctx.fillRect(bx + 5 + look, by - 5, 3, 3);
+  }
+  function drawMoldKing(bb, angry) {
+    var sc = bb.small ? 0.65 : 1;
+    var bx = bb.x, by = bb.y + Math.sin(frame * 0.07) * 2;
+    var base = bb.flashT ? '#fff' : (angry ? '#b5ff5c' : '#8fd14f');
+    // A crown of fuzzy mold caps over a dark heap
+    ctx.fillStyle = bb.flashT ? '#fff' : '#3f5a1e';
+    ctx.beginPath(); ctx.ellipse(bx, by + 6 * sc, 24 * sc, 14 * sc, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = base;
+    for (var k = 0; k < 5; k++) {
+      var cx2 = bx + (k - 2) * 9 * sc, cy2 = by - 4 * sc + Math.sin(frame * 0.1 + k) * 2 * sc;
+      ctx.beginPath(); ctx.arc(cx2, cy2, (6 + (k % 2) * 3) * sc, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    for (var k = 0; k < 7; k++) ctx.fillRect(bx + (k - 3) * 6 * sc - 1, by + 2 * sc + (k % 2) * 4, 2, 2);
+    // Crown
+    ctx.fillStyle = YELLOW;
+    for (var k = 0; k < 3; k++) { ctx.fillRect(bx + (k - 1) * 8 * sc - 2, by - 16 * sc - (k === 1 ? 4 : 0), 4, 6); }
+    ctx.fillRect(bx - 12 * sc, by - 11 * sc, 24 * sc, 3);
+    var look = Math.max(-2, Math.min(2, (player.x - bx) / 60));
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(bx - 8 * sc, by - 2, 5, 5); ctx.fillRect(bx + 3 * sc, by - 2, 5, 5);
+    ctx.fillStyle = angry ? '#f00' : '#000';
+    ctx.fillRect(bx - 7 * sc + look, by, 3, 3); ctx.fillRect(bx + 4 * sc + look, by, 3, 3);
+  }
+  function drawVirus(bb, angry) {
+    var bx = bb.x, by = bb.y;
+    var col = bb.flashT ? '#fff' : (angry ? '#ff2d7a' : '#ff5c9c');
+    // Spiky shell that spins, with a hard core
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    for (var k = 0; k < 12; k++) {
+      var a = bb.spin + k * Math.PI / 6;
+      var r1 = 14, r2 = 22 + Math.sin(frame * 0.3 + k) * 2;
+      ctx.beginPath(); ctx.moveTo(bx + Math.cos(a) * r1, by + Math.sin(a) * r1); ctx.lineTo(bx + Math.cos(a) * r2, by + Math.sin(a) * r2); ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(bx + Math.cos(a) * r2, by + Math.sin(a) * r2, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = bb.flashT ? '#fff' : '#5a0a2a';
+    ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(bx, by, 9 + Math.sin(frame * 0.25) * 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(bx - 6, by - 3, 4, 4); ctx.fillRect(bx + 2, by - 3, 4, 4);
+    ctx.fillStyle = '#000';
+    var look = Math.max(-1, Math.min(1, (player.x - bx) / 80));
+    ctx.fillRect(bx - 5 + look, by - 2, 2, 2); ctx.fillRect(bx + 3 + look, by - 2, 2, 2);
+  }
+  function drawBoss() {
+    if (!bosses.length) return;
+    var total = 0, maxTotal = 0;
+    for (var i = 0; i < bosses.length; i++) {
+      var bb = bosses[i];
+      if (bb.flashT) bb.flashT--;
+      var angry = bb.hp <= bb.maxHp / 2;
+      if (bb.kind === 0) drawMother(bb, angry);
+      else if (bb.kind === 1) drawMoldKing(bb, angry);
+      else drawVirus(bb, angry);
+      total += bb.hp; maxTotal += bb.maxHp;
+    }
     // Health bar, big, at the top
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(W / 2 - 82, 18, 164, 10);
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.fillRect(W / 2 - 80, 20, 160, 6);
-    ctx.fillStyle = angry ? '#ff2d7a' : PINK;
-    ctx.fillRect(W / 2 - 80, 20, 160 * (boss.hp / boss.maxHp), 6);
+    var angryAny = total <= maxTotal / 2;
+    ctx.fillStyle = angryAny ? '#ff2d7a' : PINK;
+    ctx.fillRect(W / 2 - 80, 20, 160 * (total / maxTotal), 6);
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 7px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('MOTHER GERM' + (angry ? ' // ANGRY' : ''), W / 2, 36);
+    ctx.fillText(bossName + (bosses.length > 1 ? ' x' + bosses.length : '') + (angryAny ? ' // ANGRY' : ''), W / 2, 36);
+  }
+  // The name card: the boss descends behind it, untouchable, then the fight is on.
+  function drawBossCard() {
+    if (bossIntroT <= 0 || !bosses.length) return;
+    var a = Math.min(1, bossIntroT / 20, (110 - bossIntroT) / 12 + 0.2);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, H / 2 - 42, W, 70);
+    ctx.fillStyle = bannerColor;
+    ctx.fillRect(0, H / 2 - 42, W, 2); ctx.fillRect(0, H / 2 + 26, W, 2);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('WAVE ' + wave + ' // BOSS', W / 2, H / 2 - 24);
+    ctx.fillStyle = bannerColor;
+    ctx.font = 'bold 26px monospace';
+    ctx.fillText(bossName, W / 2, H / 2 + 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '8px monospace';
+    var tip = bosses[0].kind === 0 ? 'fans of ooze. gets angry at half' : bosses[0].kind === 1 ? 'splits in two at half health' : 'clones your needles back at you';
+    ctx.fillText(tip, W / 2, H / 2 + 20);
+    ctx.globalAlpha = 1;
+  }
+  function drawBeam() {
+    if (beamHold < 18) return;
+    var px = player.x, top = 12;
+    // Stop the drawn beam at whatever it is burning
+    var stopY = top;
+    for (var i = 0; i < germs.length; i++) { var g = germs[i]; if (!g.alive) continue; var x = germX(g); if (px > x && px < x + GW) stopY = Math.max(stopY, germY(g) + GH); }
+    for (var i = 0; i < swarm.length; i++) { var sg = swarm[i]; if (sg.alive && Math.abs(sg.x - px) < 11) stopY = Math.max(stopY, sg.y); }
+    for (var i = 0; i < rain.length; i++) { var rs = rain[i]; if (rs.alive && Math.abs(rs.x - px) < 8) stopY = Math.max(stopY, rs.y); }
+    for (var i = 0; i < bosses.length; i++) { var bb = bosses[i]; if (Math.abs(bb.x - px) < 20) stopY = Math.max(stopY, bb.y); }
+    var h = player.y - 18 - stopY;
+    if (h <= 0) return;
+    var w = 3 + Math.sin(frame * 0.8) * 1;
+    ctx.fillStyle = 'rgba(0,255,255,0.25)';
+    ctx.fillRect(px - w * 2, stopY, w * 4, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(px - w / 2, stopY, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath(); ctx.arc(px, stopY, 5 + Math.random() * 3, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawShields() {
@@ -927,9 +1442,21 @@
     ctx.fillText('SCORE: ' + score, 8, 12);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
+    // Wave counter flips like a station display when the wave changes
     ctx.textAlign = 'right';
     ctx.fillStyle = YELLOW;
-    ctx.fillText('WAVE ' + wave, W - 8, 12);
+    if (waveFlipT > 0) {
+      var ph = waveFlipT / 30; // 1 -> 0
+      var sy2 = Math.abs(Math.cos(ph * Math.PI));
+      var showOld = ph > 0.5;
+      ctx.save();
+      ctx.translate(W - 8, 8);
+      ctx.scale(1, Math.max(0.05, sy2));
+      ctx.fillText('WAVE ' + (showOld ? wave - 1 : wave), 0, 4);
+      ctx.restore();
+    } else {
+      ctx.fillText('WAVE ' + wave, W - 8, 12);
+    }
     // Streak meter: fills toward the next multiplier step
     var m = mult();
     var into = m >= MAX_MULT ? 5 : streak % 5;
@@ -964,6 +1491,21 @@
       ctx.fillStyle = timers[t][2];
       ctx.fillRect(tx, 26, 50 * timers[t][1], 3);
     }
+    // Beam heat, bottom left, with the UV badge beside it
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 7px monospace';
+    ctx.fillStyle = overheat ? '#ff5050' : 'rgba(255,255,255,0.6)';
+    ctx.fillText(overheat ? 'BEAM HOT' : 'BEAM', 8, H - 40);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(34, H - 45, 40, 4);
+    ctx.fillStyle = overheat ? '#ff5050' : beamHeat > 100 ? YELLOW : CYAN;
+    ctx.fillRect(34, H - 45, 40 * (beamHeat / 150), 4);
+    ctx.fillStyle = uvReady ? 'rgba(199,166,255,0.9)' : 'rgba(255,255,255,0.15)';
+    ctx.fillRect(UV_BOX.x, UV_BOX.y, UV_BOX.w, UV_BOX.h);
+    ctx.fillStyle = uvReady ? '#1a0a2e' : 'rgba(255,255,255,0.35)';
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(uvReady ? 'UV READY' : 'UV USED', UV_BOX.x + UV_BOX.w / 2, UV_BOX.y + 10);
     // Lives as little machines
     for (var l = 0; l < lives; l++) {
       ctx.fillStyle = PURPLE;
@@ -980,14 +1522,17 @@
     game: 'shooter', canvas: canvas, ctx: ctx, W: W, H: H,
     title: 'CONTAMINATED', again: 'SPACE or TAP to re-sterilize',
     label: 'Sterile!',
-    levelLabel: function (l) { return 'REACHED WAVE ' + l; },
+    levelLabel: function (l) {
+      var acc = shots ? Math.round(100 * hits / shots) : 0;
+      return 'WAVE ' + l + ' // ' + kills + ' KILLS // ' + acc + '% // STREAK ' + bestStreak + ' // ' + bossesDown + (bossesDown === 1 ? ' BOSS' : ' BOSSES');
+    },
     isActive: function () { return !!window.skateRunning; },
     getMode: function () { return mode; }, setMode: function (m) { mode = m; },
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
   });
   function enterBoard(v) {
-    wall.enter(v, { level: wave, meta: { waves: wave, streak: bestStreak, kills: kills, acc: shots ? Math.round(100 * hits / shots) : 0 } });
+    wall.enter(v, { level: wave, meta: { waves: wave, streak: bestStreak, kills: kills, acc: shots ? Math.round(100 * hits / shots) : 0, bosses: bossesDown, formations: formationKills } });
   }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
@@ -1076,8 +1621,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS move, SPACE fires // vials: Spread, Rapid, Pierce, Double, Glove', W / 2, H - 42);
-    ctx.fillText('chain hits for x5 // clear fast, shoot straight, stay spotless', W / 2, H - 29);
+    ctx.fillText('ARROWS move, SPACE fires, hold it for the BEAM // DOWN is the UV flash', W / 2, H - 42);
+    ctx.fillText('grid, swarm, spore rain, fortress // a boss every fifth wave // chain hits for x5', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -1137,16 +1682,27 @@
       ctx.fillStyle = '#fff'; ctx.fillRect(mn.x - 3, mn.y - 2, 2, 2); ctx.fillRect(mn.x + 1, mn.y - 2, 2, 2);
     }
 
+    drawSwarm();
+    drawRain();
     drawBoss();
     drawShields();
+    drawBeam();
     for (var i = 0; i < drops.length; i++) drawVial(drops[i]);
 
-    // Ooze
+    // Ooze, mold spores, viral shots, and your own needles coming back
     for (var i = 0; i < ebullets.length; i++) {
       var e = ebullets[i];
-      ctx.fillStyle = e.big ? 'rgba(180,92,255,0.35)' : 'rgba(46,204,113,0.3)';
+      if (e.clone) {
+        ctx.fillStyle = 'rgba(255,45,122,0.4)';
+        ctx.fillRect(e.x - 1, e.y - 8, 2, 8);
+        ctx.fillStyle = '#ff2d7a';
+        ctx.fillRect(e.x - 1, e.y - 4, 2, 8);
+        continue;
+      }
+      var col = e.big ? '#b45cff' : e.mold ? '#8fd14f' : e.virus ? '#ff5c9c' : '#2ecc71';
+      ctx.fillStyle = e.big ? 'rgba(180,92,255,0.35)' : e.mold ? 'rgba(143,209,79,0.3)' : e.virus ? 'rgba(255,92,156,0.3)' : 'rgba(46,204,113,0.3)';
       ctx.fillRect(e.x - 2, e.y - 10, 4, 8);
-      ctx.fillStyle = e.big ? '#b45cff' : '#2ecc71';
+      ctx.fillStyle = col;
       ctx.beginPath(); ctx.ellipse(e.x, e.y, e.big ? 4 : 2.5, e.big ? 6 : 4.5, 0, 0, Math.PI * 2); ctx.fill();
     }
 
@@ -1196,8 +1752,13 @@
       ctx.fillRect(0, 0, W, H);
     }
 
+    if (uvFlashT > 0) {
+      ctx.fillStyle = 'rgba(199,166,255,' + (uvFlashT / 26 * 0.45).toFixed(2) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
     drawHud();
-    if (bannerT > 0 && mode === 'play') {
+    drawBossCard();
+    if (bannerT > 0 && mode === 'play' && bossIntroT <= 0) {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
       ctx.fillStyle = bannerColor;
       ctx.font = 'bold 22px monospace';

@@ -21,7 +21,7 @@ function boardSource(): string {
 
 export function buildArcadePreviewHtml(
   gameId: string,
-  opts: { embed?: boolean; flashSrcs?: string[] } = {},
+  opts: { embed?: boolean; flashSrcs?: string[]; crew?: string[] } = {},
 ): string | null {
   const game = GAME_CATALOG.find((g) => g.id === gameId);
   if (!game) return null;
@@ -30,6 +30,9 @@ export function buildArcadePreviewHtml(
   const statB = "statB" in game ? game.statB : "Lives";
   const livesInit = "livesInit" in game ? game.livesInit : "3";
 
+  const crew = opts.crew?.length
+    ? `<script>window.__ARCADE_CREW__=${JSON.stringify(opts.crew).replace(/</g, "\\u003c")};</script>\n`
+    : "";
   const flash =
     gameId === "flashmatch" && opts.flashSrcs?.length
       ? `<script>window.__ROOM_FLASH__=${JSON.stringify(opts.flashSrcs.slice(0, 8)).replace(/</g, "\\u003c")};</script>\n`
@@ -52,7 +55,7 @@ export function buildArcadePreviewHtml(
   </div>
 </div>
 <script>window.__ARCADE_EMBED__=${JSON.stringify(gameId)};</script>
-${flash}<script id="jd-arcade-board">
+${crew}${flash}<script id="jd-arcade-board">
 ${boardSource()}
 </script>
 <script id="jd-arcade-game">
@@ -107,7 +110,7 @@ ${gameSource(gameId)}
   </div>
   <div style="margin-top:12px;color:#9aa;font-size:12px;">Every page has the full cabinet. This is just the test bench. Scores post to the <a href="/arcade" style="color:#FFD700;">shop wall</a>.</div>
 </div>
-${flash}<script>window.__ARCADE_DEVICE__='preview';</script>
+${crew}${flash}<script>window.__ARCADE_DEVICE__='preview';</script>
 <script id="jd-arcade-board">
 ${boardSource()}
 </script>

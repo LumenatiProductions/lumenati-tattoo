@@ -57,6 +57,12 @@
   function sfxCash() { playSfx(900, 0.06, 'square', 0.11); setTimeout(function(){playSfx(1200, 0.06, 'square', 0.11);}, 60); setTimeout(function(){playSfx(1500, 0.1, 'square', 0.11);}, 120); }
   function sfxStorm() { playSfx(240, 0.2, 'sawtooth', 0.14); setTimeout(function(){playSfx(160, 0.28, 'sawtooth', 0.14);}, 160); }
   function sfxDay() { playSfx(700, 0.1, 'square', 0.12); setTimeout(function(){playSfx(950, 0.1, 'square', 0.12);}, 100); setTimeout(function(){playSfx(1250, 0.15, 'square', 0.12);}, 200); }
+  function sfxDing() { playSfx(2093, 0.05, 'sine', 0.14); setTimeout(function(){playSfx(2637, 0.16, 'sine', 0.12);}, 40); }
+  function sfxBuy() { playSfx(523, 0.08, 'square', 0.1); setTimeout(function(){playSfx(659, 0.08, 'square', 0.1);}, 80); setTimeout(function(){playSfx(784, 0.08, 'square', 0.1);}, 160); setTimeout(function(){playSfx(1047, 0.2, 'square', 0.1);}, 240); }
+  function sfxNope() { playSfx(180, 0.12, 'square', 0.1); setTimeout(function(){playSfx(150, 0.16, 'square', 0.1);}, 90); }
+  function sfxSplash() { playSfx(300, 0.1, 'sawtooth', 0.1); setTimeout(function(){playSfx(120, 0.25, 'sawtooth', 0.1);}, 60); }
+  function sfxPower(off) { if (off) { playSfx(220, 0.35, 'sawtooth', 0.12); setTimeout(function(){playSfx(90, 0.5, 'sawtooth', 0.1);}, 200); } else { playSfx(440, 0.1, 'square', 0.1); setTimeout(function(){playSfx(880, 0.2, 'square', 0.1);}, 90); } }
+  function sfxShutter() { for (var i = 0; i < 6; i++) (function(k){ setTimeout(function(){ playSfx(140 + k * 10, 0.05, 'sawtooth', 0.08); }, k * 70); })(i); }
   function sfxGameOver() { playSfx(400, 0.15, 'square', 0.12); setTimeout(function(){playSfx(300, 0.15, 'square', 0.12);}, 150); setTimeout(function(){playSfx(200, 0.3, 'square', 0.12);}, 300); }
 
 
@@ -93,7 +99,7 @@
   function musicTick() {
     if (jingleT > 0) { jingleT--; return; }
     var menu = mode !== 'play';
-    var stepFrames = menu ? 11 : Math.max(9, 15 - day);
+    var stepFrames = menu ? 11 : Math.max(7, 15 - day - ((rush || eventT > 0) ? 3 : 0));
     musicFrame++;
     if (musicFrame < stepFrames) return;
     musicFrame = 0;
@@ -139,6 +145,32 @@
   var DOOR = { x: 30, y: 44 };
   var BENCH = [{ x: 46, y: 110 }, { x: 46, y: 152 }, { x: 46, y: 194 }, { x: 46, y: 236 }];
   var CHAIRS = [{ x: 322, y: 92 }, { x: 322, y: 172 }, { x: 322, y: 252 }];
+  var CHAIR4 = { x: 214, y: 252 }; // the fourth station, bought in the shop
+  var REGISTER = { x: 103, y: 92 };   // where finished clients pay
+  var BACKROOM = { x: 386, y: 300 };  // where deliveries go
+  // Things you cannot walk through: routing is part of the job.
+  var FURNITURE = [
+    { x: 74, y: 54, w: 58, h: 28, name: 'desk' },
+    { x: 364, y: 48, w: 28, h: 30, name: 'plant' },
+    { x: 166, y: 150, w: 60, h: 20, name: 'table' },
+  ];
+  var UPGRADES = [
+    { key: 'chair4',    cost: 400, name: 'FOURTH STATION',  what: 'one more chair on the floor' },
+    { key: 'shoes',     cost: 250, name: 'NEW SHOES',       what: 'you run faster' },
+    { key: 'coffee',    cost: 300, name: 'COFFEE MACHINE',  what: 'the queue waits longer, free round each morning' },
+    { key: 'flashwall', cost: 350, name: 'FLASH WALL',      what: 'more flash clients, flash sells double' },
+    { key: 'artist2',   cost: 600, name: 'SECOND ARTIST',   what: 'seats one client on their own' },
+    { key: 'neon',      cost: 450, name: 'BIG NEON',        what: 'tips pay half again' },
+  ];
+  var LINES = {
+    walk: ['walk-in?', 'got a chair?', 'been thinking about this', 'first one, go easy'],
+    flash: ['that piece on the wall', 'just the flash', 'quick one'],
+    sleeve: ['sleeve. big one', 'full arm, all day', 'we finishing this today?'],
+    celeb: ['you know who I am', 'no photos', 'where do I sit'],
+    inspector: ['health department', 'show me the stations', 'clipboard time'],
+    storm: ['forget it', 'wasted my day', 'one star', 'never again'],
+    pay: ['worth it', 'thanks', 'tip is in there', 'see you next time'],
+  };
 
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
@@ -146,6 +178,8 @@
   var runner, clients, chairs, spawnT, bannerT, bannerText, particles, popups, pickups;
   var streak, lastSeatFrame, quickChain, dayWalkouts, rush, inspectorDone, pickupT, doorT, shake, multFlash, dayProg;
   var stats; // for the wall's record: what this run was made of
+  var bank, owned, helper, spill, bucket, eventT, eventType, eventDone, paparazzi, powerOut, delivery;
+  var dayStart, dayTips, dayTipN, dayServed, starsHistory, perfectStreak, shopT, shopSel, shutterT, bubbles, lastStars;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-shoprush') || '0', 10) || 0; } catch(e) {}
@@ -153,23 +187,30 @@
     if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-shoprush', String(best)); } catch(e) {} }
   }
 
-  function spawnEvery() { var s = Math.max(200, 460 - day * 40); return rush ? s * 0.55 : s; }
-  function patienceMax() { return Math.max(540, 940 - day * 60); }
+  function spawnEvery() { var s = Math.max(200, 460 - day * 40); if (rush) s *= 0.55; if (eventType === 'rushhour' && eventT > 0) s *= 0.5; return s; }
+  function patienceMax() { return Math.max(620, 1060 - day * 50) * (owned.coffee ? 1.3 : 1); }
   function workTime() { return 480 + day * 50 + Math.random() * 240; }
   function mult() { return Math.min(5, 1 + Math.floor(streak / 3)); }
+  function runSpeed() { return owned.shoes ? 3.4 : 2.6; }
+  function tipMult() { return owned.neon ? 1.5 : 1; }
+  function bubble(x, y, text, color, life) { bubbles.push({ x: x, y: y, text: text, color: color || '#fff', life: life || 110 }); }
 
   function init() {
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; hearts = 3; day = 1; frame = 0; served = 0; servedTarget = 5;
     mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0; bannerT = 0; bannerText = '';
     particles = []; popups = []; pickups = [];
+    eventDone = false;
     streak = 0; lastSeatFrame = -999; quickChain = 0; dayWalkouts = 0; rush = false; inspectorDone = false;
     pickupT = 700; doorT = 0; shake = 0; multFlash = 0; dayProg = 0;
-    stats = { clients: 0, bestMult: 1, cleanDays: 0, celebs: 0 };
-    runner = { x: 200, y: 170, tx: null, ty: null, kx: 0, ky: 0, lead: null, face: 1, wasMoving: false };
+    stats = { clients: 0, bestMult: 1, cleanDays: 0, celebs: 0, bestDay: 0, upgrades: 0, stars: 0 };
+    runner = { x: 200, y: 200, tx: null, ty: null, kx: 0, ky: 0, lead: null, face: 1, wasMoving: false, carrying: false, slipT: 0 };
     clients = [];
     chairs = CHAIRS.map(function(c) { return { x: c.x, y: c.y, state: 'free', t: 0, tmax: 1, client: null, tip: 0 }; });
     spawnT = 90;
+    bank = 0; owned = { chair4: false, shoes: false, coffee: false, flashwall: false, artist2: false, neon: false };
+    helper = null; spill = null; bucket = null; eventT = 0; eventType = null; eventDone = false; paparazzi = []; powerOut = 0; delivery = null;
+    dayStart = 0; dayTips = 0; dayTipN = 0; dayServed = 0; starsHistory = []; perfectStreak = 0; shopT = 0; shopSel = 0; shutterT = 0; bubbles = []; lastStars = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     var hintEl = document.getElementById('jd-game-hint');
@@ -203,6 +244,7 @@
   function earn(amount, x, y, label, big) {
     if (amount <= 0) return;
     score += amount;
+    bank += amount;
     setScore();
     pop(x, y - 6, '$' + amount, YELLOW, big);
     if (label) pop(x, y + 8, label, '#fff');
@@ -216,7 +258,7 @@
       var taken = false;
       for (var j = 0; j < clients.length; j++) {
         var st = clients[j].state;
-        if (clients[j].seat === i && (st === 'walkin' || st === 'waiting' || st === 'inspecting')) taken = true;
+        if (clients[j].seat === i && (st === 'walkin' || st === 'waiting' || st === 'inspecting' || st === 'claimed')) taken = true;
       }
       if (!taken) return i;
     }
@@ -232,7 +274,7 @@
     if (day >= 3 && !inspectorDone && served >= 2 && r < 0.18) { inspectorDone = true; return 'inspector'; }
     if (day >= 4 && r < 0.10) return 'celeb';
     if (day >= 2 && r < 0.32) return 'sleeve';
-    if (r < 0.58) return 'flash';
+    if (r < (owned.flashwall ? 0.7 : 0.58)) return 'flash';
     return 'walk';
   }
 
@@ -252,7 +294,9 @@
     });
     doorT = 34;
     sfxBell();
-    if (type === 'celeb') { pop(DOOR.x + 40, DOOR.y + 10, 'CELEBRITY WALK-IN', PINK, true); shake = 6; }
+    var sayLines = LINES[type] || LINES.walk;
+    bubble(DOOR.x + 6, DOOR.y - 14, sayLines[Math.floor(Math.random() * sayLines.length)], type === 'celeb' ? PINK : '#fff', 90);
+    if (type === 'celeb') { pop(DOOR.x + 40, DOOR.y + 10, 'CELEBRITY WALK-IN', PINK, true); shake = 6; if (day >= 4 && !paparazzi.length) spawnPaparazzi(); }
     if (type === 'inspector') pop(DOOR.x + 40, DOOR.y + 10, 'HEALTH INSPECTOR', CYAN, true);
     if (type === 'sleeve') pop(DOOR.x + 34, DOOR.y + 10, 'SLEEVE. BIG TICKET', '#fff');
     return true;
@@ -266,6 +310,7 @@
 
   function walkout(c) {
     dayWalkouts++;
+    bubble(c.x, c.y - 16, LINES.storm[Math.floor(Math.random() * LINES.storm.length)], RED, 80);
     if (streak > 0) pop(c.x + 20, c.y - 20, 'STREAK LOST', RED);
     streak = 0; quickChain = 0;
     loseHeart();
@@ -302,20 +347,116 @@
     }
   }
 
+  // Close the doors: rate the day, then the shop screen (between-day upgrades).
   function endDay() {
+    var dayCash = score - dayStart;
+    if (dayCash > stats.bestDay) stats.bestDay = dayCash;
+    var avgTip = dayTipN ? dayTips / dayTipN : 0;
+    var stars = dayWalkouts === 0 ? (avgTip > 0.6 ? 3 : 2) : (dayWalkouts === 1 ? 1 : 0);
+    lastStars = stars;
+    starsHistory.push(stars);
+    stats.stars += stars;
+    if (stars === 3) { perfectStreak++; } else perfectStreak = 0;
     if (dayWalkouts === 0) {
       var bonus = 60 * day * mult();
       stats.cleanDays++;
       earn(bonus, W / 2, H / 2 + 10, 'CLEAN DAY. NOBODY WALKED', true);
     }
+    if (stars > 0) earn(stars * 40 * day, W / 2, H / 2 + 34, stars + ' STAR DAY', stars === 3);
+    if (perfectStreak >= 2) earn(100 * perfectStreak * day, W / 2, H / 2 + 58, 'PERFECT STREAK x' + perfectStreak, true);
+    // everyone still on the floor finishes up on their own overnight
+    clients = clients.filter(function(c) { return c.state === 'inchair'; });
+    runner.lead = null; runner.carrying = false;
+    paparazzi = []; delivery = null; bucket = null; spill = null; powerOut = 0; eventT = 0; eventType = null;
+    if (helper) { helper.state = 'idle'; helper.lead = null; }
+    shutterT = 70;
+    shopT = 0; shopSel = 0;
+    sfxShutter();
+    mode = 'shop';
+    setAmbience(0, 0);
+  }
+  function openDoors() {
     day++;
-    served = 0;
+    served = 0; dayServed = 0;
     servedTarget = 4 + day;
-    dayWalkouts = 0; rush = false; inspectorDone = false; dayProg = 0;
+    dayWalkouts = 0; rush = false; inspectorDone = false; dayProg = 0; eventDone = false;
+    dayStart = score; dayTips = 0; dayTipN = 0;
     bannerT = 110;
     bannerText = 'DAY ' + day;
     say(day % 2 === 0 ? 'shoprush-c2' : 'shoprush-c3', 300);
     sfxDay();
+    spawnT = 60;
+    // the coffee machine pours a round every morning
+    if (owned.coffee) pop(W / 2, H / 2 + 12, 'MORNING COFFEE. QUEUE CHILLS', CYAN);
+    // deliveries and the mop bucket show up with the day
+    if (day >= 3) { delivery = { x: DOOR.x + 30, y: DOOR.y + 24, held: false, life: 1200 }; pop(DOOR.x + 40, DOOR.y + 40, 'DELIVERY AT THE DOOR', '#fff'); }
+    if (day >= 2) bucket = { x: 120 + Math.random() * 160, y: 100 + Math.random() * 150 };
+    mode = 'play';
+  }
+  function buy(i) {
+    var u = UPGRADES[i];
+    if (owned[u.key]) { sfxNope(); return; }
+    if (bank < u.cost) { sfxNope(); pop(W / 2, 250, 'NOT ENOUGH IN THE BANK', RED); return; }
+    bank -= u.cost;
+    owned[u.key] = true;
+    stats.upgrades++;
+    sfxBuy();
+    pop(W / 2, 250, u.name + ' BOUGHT', LIME, true);
+    if (u.key === 'chair4') chairs.push({ x: CHAIR4.x, y: CHAIR4.y, state: 'free', t: 0, tmax: 1, client: null, tip: 0 });
+    if (u.key === 'artist2') helper = { x: 300, y: 150, state: 'idle', lead: null, face: -1, target: null };
+  }
+  function shopTick() {
+    frame++;
+    musicTick();
+    if (shutterT > 0) shutterT--;
+    shopT++;
+    // Nobody at the controls (or a very patient one): the doors open on their own.
+    if (shopT > 720) openDoors();
+    for (var i = popups.length - 1; i >= 0; i--) { popups[i].y -= 0.5; popups[i].life--; if (popups[i].life <= 0) popups.splice(i, 1); }
+  }
+
+  // Paparazzi crowd the aisle by the door until the celebrity is seated.
+  function spawnPaparazzi() {
+    for (var i = 0; i < 3; i++) paparazzi.push({ x: 70 + i * 22, y: 96 + (i % 2) * 16, ph: Math.random() * 6 });
+  }
+
+  // Runner movement with furniture and crowds in the way; slides along edges.
+  function blocked(x, y) {
+    for (var i = 0; i < FURNITURE.length; i++) {
+      var f = FURNITURE[i];
+      if (x + 6 > f.x && x - 6 < f.x + f.w && y + 12 > f.y && y - 4 < f.y + f.h) return true;
+    }
+    if (owned.chair4) { if (x + 6 > CHAIR4.x - 18 && x - 6 < CHAIR4.x + 48 && y + 12 > CHAIR4.y - 24 && y - 4 < CHAIR4.y + 28) return true; }
+    for (var j = 0; j < paparazzi.length; j++) if (near(x, y, paparazzi[j].x, paparazzi[j].y, 12)) return true;
+    return false;
+  }
+  function blockRect(x, y) {
+    for (var i = 0; i < FURNITURE.length; i++) {
+      var f = FURNITURE[i];
+      if (x + 6 > f.x && x - 6 < f.x + f.w && y + 12 > f.y && y - 4 < f.y + f.h) return f;
+    }
+    if (owned.chair4 && x + 6 > CHAIR4.x - 18 && x - 6 < CHAIR4.x + 48 && y + 12 > CHAIR4.y - 24 && y - 4 < CHAIR4.y + 28) return { x: CHAIR4.x - 18, y: CHAIR4.y - 24, w: 66, h: 52 };
+    return null;
+  }
+  // steer = true (tap moves): when the way is blocked, slide around the
+  // shorter side of whatever is in the way instead of stopping dead.
+  function moveRunner(dx, dy, steer) {
+    var sp = runSpeed() * (runner.slipT > 0 ? 0.5 : 1) * (runner.carrying ? 0.8 : 1);
+    var nx = runner.x + dx * sp, ny = runner.y + dy * sp;
+    var movedX = false, movedY = false;
+    if (!blocked(nx, runner.y)) { runner.x = nx; movedX = dx !== 0; }
+    else if (steer && dx !== 0) {
+      var r1 = blockRect(nx, runner.y);
+      if (r1) { var sy = (runner.y < r1.y + r1.h / 2) ? -1 : 1; var yy = runner.y + sy * sp; if (!blocked(runner.x, yy)) { runner.y = yy; movedY = true; } }
+    }
+    if (movedY) { /* already steered around in y this frame */ }
+    else if (!blocked(runner.x, ny)) { runner.y = ny; movedY = dy !== 0; }
+    else if (steer && dy !== 0 && !movedX) {
+      var r2 = blockRect(runner.x, ny);
+      if (r2) { var sx = (runner.x < r2.x + r2.w / 2) ? -1 : 1; var xx = runner.x + sx * sp; if (!blocked(xx, runner.y)) { runner.x = xx; movedX = true; } }
+    }
+    if (dx !== 0) runner.face = dx > 0 ? 1 : -1;
+    return movedX || movedY;
   }
 
   function update() {
@@ -332,22 +473,130 @@
     for (var i = 0; i < chairs.length; i++) if (chairs[i].state === 'busy') busyN++;
     setAmbience(busyN, clients.length);
 
+    if (runner.slipT > 0) runner.slipT--;
+    if (powerOut > 0) { powerOut--; if (powerOut === 0) { sfxPower(false); pop(W / 2, 120, 'LIGHTS BACK', LIME); } }
+    if (eventT > 0) { eventT--; if (eventT === 0) eventType = null; }
+    for (var bi = bubbles.length - 1; bi >= 0; bi--) { bubbles[bi].life--; if (bubbles[bi].life <= 0) bubbles.splice(bi, 1); }
     // Runner: keys beat taps
     var moving = false;
     if (runner.kx !== 0 || runner.ky !== 0) {
-      runner.x += runner.kx * 2.6;
-      runner.y += runner.ky * 2.6;
+      var kd = Math.hypot(runner.kx, runner.ky);
+      moveRunner(runner.kx / kd, runner.ky / kd);
       runner.tx = null; runner.ty = null;
-      if (runner.kx !== 0) runner.face = runner.kx;
       moving = true;
     } else if (runner.tx !== null) {
       var dx = runner.tx - runner.x, dy = runner.ty - runner.y;
       var d = Math.hypot(dx, dy);
       if (d < 3) { runner.tx = null; runner.ty = null; }
-      else { runner.x += dx / d * 2.6; runner.y += dy / d * 2.6; if (Math.abs(dx) > 1) runner.face = dx > 0 ? 1 : -1; moving = true; }
+      else {
+        if (!moveRunner(dx / d, dy / d, true)) { runner.tx = null; runner.ty = null; } // boxed in: stop
+        else moving = true;
+      }
     }
     runner.x = Math.max(16, Math.min(W - 16, runner.x));
     runner.y = Math.max(60, Math.min(H - 26, runner.y));
+
+    // The mop bucket: kick it and the floor gets slick for a while.
+    if (bucket && near(runner.x, runner.y, bucket.x, bucket.y, 12)) {
+      spill = { x: bucket.x, y: bucket.y, life: 700 };
+      bucket = null;
+      sfxSplash();
+      pop(spill.x, spill.y - 14, 'SPILL. WATCH YOUR STEP', CYAN);
+      shake = 5;
+    }
+    if (spill) {
+      spill.life--;
+      if (spill.life <= 0) spill = null;
+      else if (near(runner.x, runner.y, spill.x, spill.y, 28)) runner.slipT = 8;
+    }
+    // Delivery: carry the box to the back room.
+    if (delivery) {
+      if (!delivery.held) {
+        delivery.life--;
+        if (delivery.life <= 0) { delivery = null; pop(DOOR.x + 40, DOOR.y + 40, 'DELIVERY LEFT ON THE CURB', RED); }
+        else if (!runner.lead && near(runner.x, runner.y, delivery.x, delivery.y, 14)) { delivery.held = true; runner.carrying = true; sfxSeat(); pop(runner.x, runner.y - 24, 'TO THE BACK ROOM', '#fff'); }
+      } else if (near(runner.x, runner.y, BACKROOM.x, BACKROOM.y, 26)) {
+        runner.carrying = false;
+        earn(50 * mult(), runner.x, runner.y - 12, 'SUPPLIES STOCKED');
+        delivery = null;
+      }
+    }
+
+    // The day's event, once, around the middle of the day.
+    if (!eventDone && served >= Math.floor(servedTarget / 2) && day >= 2) {
+      eventDone = true;
+      var pool = ['rushhour'];
+      if (day >= 5) pool.push('power');
+      if (day >= 4) pool.push('celeb');
+      var ev = pool[Math.floor(Math.random() * pool.length)];
+      if (ev === 'rushhour') { eventType = 'rushhour'; eventT = 600; bannerT = 90; bannerText = 'RUSH HOUR'; spawnT = Math.min(spawnT, 30); }
+      else if (ev === 'power') { powerOut = 300; sfxPower(true); bannerT = 90; bannerText = 'POWER FLICKER'; }
+      else if (ev === 'celeb') {
+        var seat0 = freeBenchSeat();
+        if (seat0 !== -1) {
+          var pm0 = Math.round(patienceMax() * TYPES.celeb.pat);
+          clients.push({ x: DOOR.x, y: DOOR.y, seat: seat0, state: 'walkin', type: 'celeb', patience: pm0, pmax: pm0, t: 0, skin: SKINS[1], shirt: '#111', hair: HAIRS[2], ink: [PINK, YELLOW] });
+          doorT = 34; sfxBell(); shake = 6;
+          pop(DOOR.x + 40, DOOR.y + 10, 'CELEBRITY. PAPARAZZI IN THE AISLE', PINK, true);
+          spawnPaparazzi();
+        }
+      }
+    }
+    // Paparazzi mill about; they leave once no celebrity waits.
+    if (paparazzi.length) {
+      var celebWaiting = false;
+      for (var pi = 0; pi < clients.length; pi++) if (clients[pi].type === 'celeb' && (clients[pi].state === 'walkin' || clients[pi].state === 'waiting' || clients[pi].state === 'led')) celebWaiting = true;
+      if (!celebWaiting) { paparazzi = []; pop(100, 110, 'PAPARAZZI GONE', '#fff'); }
+      else for (var pj = 0; pj < paparazzi.length; pj++) { var pp = paparazzi[pj]; pp.ph += 0.05; pp.x += Math.sin(pp.ph) * 0.4; pp.y += Math.cos(pp.ph * 0.7) * 0.3; }
+    }
+
+    // The second artist seats one client at a time on their own.
+    if (helper) {
+      var hs = 1.6;
+      if (helper.state === 'idle') {
+        // nothing to seat: wipe a dirty station on the way
+        var dirtyCh = null;
+        for (var dci = 0; dci < chairs.length; dci++) if (chairs[dci].state === 'dirty') { dirtyCh = chairs[dci]; break; }
+        if (dirtyCh && frame % 20 === 0) { helper.state = 'wiping'; helper.target = dirtyCh; }
+        var waitingC = null, freeCh = null;
+        for (var wi = 0; wi < clients.length; wi++) { var wc = clients[wi]; if (wc.state === 'waiting' && wc.type !== 'inspector' && (!waitingC || wc.patience < waitingC.patience)) waitingC = wc; }
+        for (var fi = 0; fi < chairs.length; fi++) if (chairs[fi].state === 'free') { freeCh = chairs[fi]; break; }
+        if (waitingC && freeCh && frame % 30 === 0) { helper.state = 'toClient'; helper.target = waitingC; waitingC.state = 'claimed'; }
+      } else if (helper.state === 'wiping') {
+        var wch = helper.target;
+        if (!wch || wch.state !== 'dirty') { helper.state = 'idle'; helper.target = null; }
+        else {
+          var wdx = wch.x - 24 - helper.x, wdy = wch.y - helper.y, wd = Math.hypot(wdx, wdy);
+          if (wd < 6) { wch.state = 'free'; pop(wch.x - 10, wch.y - 20, 'CREW WIPED IT', CYAN); helper.state = 'idle'; helper.target = null; }
+          else { helper.x += wdx / wd * hs; helper.y += wdy / wd * hs; helper.face = wdx > 0 ? 1 : -1; }
+        }
+      } else if (helper.state === 'toClient') {
+        var tc = helper.target;
+        if (!tc || clients.indexOf(tc) === -1) { helper.state = 'idle'; helper.target = null; }
+        else {
+          var hdx = tc.x + 14 - helper.x, hdy = tc.y - helper.y, hd = Math.hypot(hdx, hdy);
+          if (hd < 4) { helper.state = 'leading'; tc.state = 'hled'; helper.lead = tc; helper.target = null; }
+          else { helper.x += hdx / hd * hs; helper.y += hdy / hd * hs; helper.face = hdx > 0 ? 1 : -1; }
+        }
+      } else if (helper.state === 'leading') {
+        var lc = helper.lead, dest = null;
+        for (var di = 0; di < chairs.length; di++) if (chairs[di].state === 'free') { dest = chairs[di]; break; }
+        if (!lc || !dest) { if (lc) { lc.state = 'waiting'; } helper.state = 'idle'; helper.lead = null; }
+        else {
+          var ddx = dest.x - 24 - helper.x, ddy = dest.y - helper.y, dd = Math.hypot(ddx, ddy);
+          if (dd < 4) {
+            lc.state = 'inchair'; lc.x = dest.x; lc.y = dest.y;
+            dest.state = 'busy'; var tt2 = TYPES[lc.type];
+            dest.tmax = workTime() * tt2.work; dest.t = dest.tmax; dest.client = lc;
+            dest.tip = Math.ceil(lc.patience / lc.pmax * tt2.base * 0.4 * tipMult());
+            dayTips += lc.patience / lc.pmax; dayTipN++;
+            sfxSeat(); streak++; stats.clients++;
+            pop(dest.x - 10, dest.y - 24, 'SEATED BY THE CREW', CYAN);
+            helper.state = 'idle'; helper.lead = null;
+          } else { helper.x += ddx / dd * hs; helper.y += ddy / dd * hs; helper.face = ddx > 0 ? 1 : -1; if (lc) { lc.x += (helper.x - 14 * helper.face - lc.x) * 0.2; lc.y += (helper.y - lc.y) * 0.2; } }
+        }
+      }
+    }
     if (moving && frame % 7 === 0) particles.push({ x: runner.x - runner.face * 6, y: runner.y + 12, vx: -runner.face * 0.6, vy: -0.3, life: 14, color: 'rgba(255,255,255,0.35)', size: 2 });
     runner.wasMoving = moving;
 
@@ -375,6 +624,25 @@
         var dx = b.x - c.x, dy = b.y - c.y, d = Math.hypot(dx, dy);
         if (d < 2) { c.state = 'waiting'; }
         else { c.x += dx / d * 1.4; c.y += dy / d * 1.4; }
+      } else if (c.state === 'claimed') {
+        c.patience--; // the crew is on the way; still waiting, still ticking
+        if (c.patience <= 0) { c.state = 'storming'; pop(c.x + 22, c.y - 16, 'WALKED OUT', RED, true); }
+      } else if (c.state === 'hled') {
+        // carried along by the helper
+      } else if (c.state === 'paying') {
+        var rdx = REGISTER.x - c.x, rdy = REGISTER.y + 10 - c.y, rd = Math.hypot(rdx, rdy);
+        if (rd < 4) {
+          var ty2 = TYPES[c.type], m2 = mult();
+          var youThere = near(runner.x, runner.y, REGISTER.x, REGISTER.y + 10, 30);
+          var tip2 = youThere ? c.tip * 2 : c.tip;
+          var pay2 = (ty2.base + tip2) * m2;
+          sfxDing();
+          earn(pay2, c.x + 10, c.y - 14, ty2.label + (tip2 > 0 ? ' +$' + tip2 + (youThere ? ' TIP DOUBLED' : ' TIP') : '') + (m2 > 1 ? ' x' + m2 : ''), pay2 >= 150);
+          bubble(c.x, c.y - 18, LINES.pay[Math.floor(Math.random() * LINES.pay.length)], '#fff', 70);
+          c.state = 'leaving';
+          served++; dayServed++;
+          if (served >= servedTarget) { endDay(); return; }
+        } else { c.x += rdx / rd * 1.5; c.y += rdy / rd * 1.5; }
       } else if (c.state === 'waiting') {
         c.patience--;
         if (c.patience <= 0) {
@@ -385,7 +653,7 @@
           c.t = 170;
           pop(c.x + 22, c.y - 16, 'INSPECTING...', CYAN);
           sfxSeat();
-        } else if (c.type !== 'inspector' && !runner.lead && near(runner.x, runner.y, c.x, c.y, 20)) {
+        } else if (c.type !== 'inspector' && !runner.lead && !runner.carrying && near(runner.x, runner.y, c.x, c.y, 20)) {
           runner.lead = c;
           c.state = 'led';
           sfxSeat();
@@ -395,7 +663,7 @@
         if (c.t <= 0) {
           c.state = 'leaving';
           var dirty = 0;
-          for (var k = 0; k < chairs.length; k++) if (chairs[k].state === 'done') dirty++;
+          for (var k = 0; k < chairs.length; k++) if (chairs[k].state === 'dirty') dirty++;
           if (dirty) { pop(c.x + 22, c.y - 16, 'CLEAN THOSE STATIONS', RED); }
           else earn(80 * mult(), c.x + 10, c.y - 10, 'PASSED INSPECTION', true);
         }
@@ -431,22 +699,24 @@
         ch.tmax = workTime() * tt.work;
         ch.t = ch.tmax;
         ch.client = c;
-        ch.tip = Math.ceil(c.patience / c.pmax * tt.base * 0.5);
+        ch.tip = Math.ceil(c.patience / c.pmax * tt.base * 0.5 * tipMult());
+        dayTips += c.patience / c.pmax; dayTipN++;
         sfxSeat();
         seatBonus(c, ch.x - 10, ch.y - 10);
       } else if (ch.state === 'busy') {
-        ch.t--;
-        if (ch.t <= 0) { ch.state = 'done'; sfxBell(); }
-      } else if (ch.state === 'done' && near(runner.x, runner.y, ch.x - 24, ch.y, 24)) {
-        var cl = ch.client, ty = TYPES[cl.type], m = mult();
-        var pay = (ty.base + ch.tip) * m;
-        earn(pay, ch.x - 10, ch.y - 14, ty.label + (ch.tip > 0 ? ' +$' + ch.tip + ' TIP' : '') + (m > 1 ? ' x' + m : ''), pay >= 150);
-        var idx = clients.indexOf(cl);
-        if (idx !== -1) clients.splice(idx, 1);
-        ch.client = null;
+        if (powerOut === 0) ch.t--;
+        if (ch.t <= 0) {
+          // Done: the client heads to the register to pay, the station needs a wipe.
+          var cl = ch.client;
+          cl.state = 'paying'; cl.tip = ch.tip; cl.x = ch.x - 20; cl.y = ch.y + 4;
+          ch.client = null; ch.state = 'dirty'; ch.t = 0;
+          sfxBell();
+        }
+      } else if (ch.state === 'dirty' && near(runner.x, runner.y, ch.x - 24, ch.y, 24)) {
         ch.state = 'free';
-        served++;
-        if (served >= servedTarget) endDay();
+        pop(ch.x - 10, ch.y - 20, 'STATION WIPED', CYAN);
+        spawnParticles(ch.x, ch.y - 6, CYAN, 6);
+        sfxSeat();
       }
     }
 
@@ -464,7 +734,8 @@
           spawnParticles(pk.x, pk.y, CYAN, 8);
           sfxSeat();
         } else {
-          earn(spec.pay * mult(), pk.x, pk.y - 6, spec.label);
+          var pkPay = spec.pay * mult() * (pk.type === 'flash' && owned.flashwall ? 2 : 1);
+          earn(pkPay, pk.x, pk.y - 6, spec.label + (pk.type === 'flash' && owned.flashwall ? ' x2' : ''));
         }
         pickups.splice(i, 1);
       }
@@ -488,8 +759,16 @@
     if (mode === 'ready') mode = 'play';
   }
   var KEYS = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0], KeyW: [0,-1], KeyS: [0,1], KeyA: [-1,0], KeyD: [1,0] };
+  var SHOP_ROWS = UPGRADES.length + 1; // the last row opens the doors
+  function shopKey(code) {
+    if (code === 'ArrowUp' || code === 'KeyW') shopSel = (shopSel + SHOP_ROWS - 1) % SHOP_ROWS;
+    else if (code === 'ArrowDown' || code === 'KeyS') shopSel = (shopSel + 1) % SHOP_ROWS;
+    else if (code === 'Space' || code === 'Enter') { if (shopSel === UPGRADES.length) openDoors(); else buy(shopSel); }
+    else if (code === 'Escape') openDoors();
+  }
   document.addEventListener('keydown', function(e) {
     if (!window.skateRunning) return;
+    if (mode === 'shop') { if (KEYS[e.code] || e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') { e.preventDefault(); if (!e.repeat) shopKey(e.code); } return; }
     var k = KEYS[e.code];
     if (k) {
       e.preventDefault();
@@ -511,15 +790,24 @@
     var r = canvas.getBoundingClientRect();
     return [(cx - r.left) * (W / r.width), (cy - r.top) * (H / r.height)];
   }
+  // Shop screen rows: y positions the tap handler and the drawing share.
+  var SHOP_Y0 = 96, SHOP_ROW = 24;
+  function shopTap(x, y) {
+    var row = Math.floor((y - SHOP_Y0 + 14) / SHOP_ROW);
+    if (row >= 0 && row < UPGRADES.length) { shopSel = row; buy(row); }
+    else if (y > SHOP_Y0 + UPGRADES.length * SHOP_ROW - 6) openDoors();
+  }
   canvas.addEventListener('click', function(e) {
-    if (mode !== 'play') { start(); return; }
     var p = canvasXY(e.clientX, e.clientY);
+    if (mode === 'shop') { shopTap(p[0], p[1]); return; }
+    if (mode !== 'play') { start(); return; }
     runner.tx = p[0]; runner.ty = p[1];
   });
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
-    if (mode !== 'play') { start(); return; }
     var p = canvasXY(e.touches[0].clientX, e.touches[0].clientY);
+    if (mode === 'shop') { shopTap(p[0], p[1]); return; }
+    if (mode !== 'play') { start(); return; }
     runner.tx = p[0]; runner.ty = p[1];
   }, { passive: false });
 
@@ -609,9 +897,9 @@
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
     label: 'Shop Rush',
-    levelLabel: function (l) { return 'CLOSED ON DAY ' + l; },
+    levelLabel: function (l) { return 'CLOSED ON DAY ' + l + ' // ' + stats.clients + ' CLIENTS // BEST DAY $' + stats.bestDay + ' // ' + stats.upgrades + ' UPGRADES'; },
   });
-  function enterBoard(v) { wall.enter(v, { level: day, meta: { clients: stats.clients, bestMult: stats.bestMult, cleanDays: stats.cleanDays, celebs: stats.celebs } }); }
+  function enterBoard(v) { wall.enter(v, { level: day, meta: { clients: stats.clients, bestMult: stats.bestMult, cleanDays: stats.cleanDays, celebs: stats.celebs, bestDay: stats.bestDay, upgrades: stats.upgrades, stars: stats.stars } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -715,8 +1003,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or TAP to run // seat fast for tips, keep the streak for x5', W / 2, H - 42);
-    ctx.fillText('collect the $ when the work is done // 3 walkouts close the shop', W / 2, H - 29);
+    ctx.fillText('ARROWS or TAP to run // seat fast for tips, be at the register when they pay', W / 2, H - 42);
+    ctx.fillText('wipe the station, spend the bank between days // 3 walkouts close the shop', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -792,6 +1080,76 @@
 
   function draw() {
     if (mode === 'intro') { drawIntro(); return; }
+    drawScene();
+    if (mode === 'shop') drawShop();
+    if (mode === 'enter') drawInitials();
+    if (mode === 'over') drawBoard();
+  }
+
+  function drawStar(x, y, on) {
+    ctx.fillStyle = on ? YELLOW : 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x - 1, y - 5, 2, 10); ctx.fillRect(x - 5, y - 1, 10, 2);
+    ctx.fillRect(x - 3, y - 3, 6, 6);
+    ctx.fillStyle = on ? '#fff' : 'rgba(255,255,255,0.1)';
+    ctx.fillRect(x - 1, y - 1, 2, 2);
+  }
+
+  // The between-day screen: the shutter comes down, the till gets counted,
+  // and the bank buys the shop something.
+  function drawShop() {
+    // shutter rolling down over the whole screen
+    var sh = shutterT > 0 ? 1 - shutterT / 70 : 1;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(0, 0, W, H * sh);
+    if (sh < 1) {
+      ctx.fillStyle = '#3a3a44';
+      for (var yy = 0; yy < H * sh; yy += 6) { ctx.fillStyle = yy % 12 === 0 ? '#4a4a56' : '#2e2e38'; ctx.fillRect(0, yy, W, 6); }
+      return;
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = PINK;
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('CLOSED. DAY ' + day + ' IN THE BOOKS', W / 2, 34);
+    for (var st = 0; st < 3; st++) drawStar(W / 2 - 16 + st * 16, 50, st < lastStars);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('BANK $' + bank + '   //   LIFETIME $' + score, W / 2, 72);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '8px monospace';
+    ctx.fillText(perfectStreak >= 2 ? 'PERFECT STREAK x' + perfectStreak + '. KEEP IT.' : lastStars === 3 ? 'THREE STARS. SEAT THEM FAST, NOBODY WALKS.' : lastStars >= 1 ? 'FASTER SEATS MEAN BIGGER TIPS AND MORE STARS.' : 'TWO WALKOUTS TODAY. THE COFFEE MACHINE HELPS.', W / 2, 86);
+    for (var i = 0; i < UPGRADES.length; i++) {
+      var u = UPGRADES[i], y = SHOP_Y0 + i * SHOP_ROW;
+      var sel = i === shopSel, have = owned[u.key], can = bank >= u.cost;
+      if (sel) { ctx.fillStyle = 'rgba(255,20,147,' + (0.22 + 0.08 * Math.sin(frame * 0.15)) + ')'; ctx.fillRect(28, y - 12, W - 56, SHOP_ROW - 3); }
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillStyle = have ? LIME : can ? '#fff' : 'rgba(255,255,255,0.45)';
+      ctx.fillText((sel ? '> ' : '  ') + u.name, 34, y);
+      ctx.font = '7px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillText(u.what, 46, y + 9);
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillStyle = have ? LIME : can ? YELLOW : 'rgba(255,255,255,0.35)';
+      ctx.fillText(have ? 'OWNED' : '$' + u.cost, W - 34, y);
+    }
+    var oy = SHOP_Y0 + UPGRADES.length * SHOP_ROW + 4;
+    var openSel = shopSel === UPGRADES.length;
+    ctx.fillStyle = openSel ? PINK : 'rgba(255,255,255,0.12)';
+    ctx.fillRect(W / 2 - 80, oy - 4, 160, 24);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('OPEN THE DOORS: DAY ' + (day + 1), W / 2, oy + 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '8px monospace';
+    ctx.fillText(('ontouchstart' in window) ? 'TAP an upgrade to buy it // TAP the doors to open' : 'ARROWS pick // SPACE buys // ESC opens the doors', W / 2, H - 14);
+    // the auto-open timer, honest about it
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(40, H - 6, (W - 80) * (1 - shopT / 720), 2);
+  }
+
+  function drawScene() {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     // Wood plank floor with grain
@@ -866,7 +1224,8 @@
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
     var neonOn = Math.floor(frame / 30) % 2 === 0;
-    var glow = 0.25 + dayProg * 0.35;
+    var glow = (0.25 + dayProg * 0.35) * (owned.neon ? 1.8 : 1);
+    if (owned.neon) { ctx.fillStyle = 'rgba(255,20,147,' + (glow * 0.35).toFixed(2) + ')'; ctx.fillRect(W / 2 - 96, 28, 192, 20); }
     ctx.fillStyle = neonOn ? 'rgba(255,20,147,' + glow.toFixed(2) + ')' : 'rgba(200,0,110,0.15)';
     ctx.fillText('* LUMENATI TATTOO *', W / 2 + 1, 41);
     ctx.fillText('* LUMENATI TATTOO *', W / 2 - 1, 39);
@@ -918,6 +1277,49 @@
     ctx.fillRect(372, 66, 12, 10);
     ctx.fillStyle = '#2e8b57';
     ctx.fillRect(370, 54, 6, 8); ctx.fillRect(377, 50, 5, 12); ctx.fillRect(383, 56, 5, 8);
+    // coffee machine on the wall once bought
+    if (owned.coffee) {
+      ctx.fillStyle = '#2a2030'; ctx.fillRect(138, 50, 18, 14);
+      ctx.fillStyle = '#c9a227'; ctx.fillRect(140, 52, 14, 3);
+      ctx.fillStyle = '#efe9dc'; ctx.fillRect(143, 58, 6, 5);
+      if (frame % 40 < 20) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(146, 44, 2, 4); ctx.fillRect(149, 41, 2, 4); }
+    }
+    // the flash table mid-floor: prints, a jar of pens, something to route around
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(168, 168, 60, 4);
+    ctx.fillStyle = '#4a3440'; ctx.fillRect(166, 150, 60, 20);
+    ctx.fillStyle = '#5c4250'; ctx.fillRect(166, 150, 60, 3);
+    ctx.fillStyle = '#efe9dc'; ctx.fillRect(170, 155, 12, 9); ctx.fillRect(186, 154, 12, 9); ctx.fillRect(203, 156, 12, 9);
+    ctx.fillStyle = PINK; ctx.fillRect(173, 158, 5, 3); ctx.fillStyle = '#2d6cdf'; ctx.fillRect(189, 157, 5, 3); ctx.fillStyle = '#14121a'; ctx.fillRect(206, 159, 4, 3);
+    if (owned.flashwall) { ctx.fillStyle = YELLOW; ctx.font = '7px monospace'; ctx.textAlign = 'center'; ctx.fillText('FLASH $', 196, 148); }
+    // the back room door
+    ctx.fillStyle = '#3a2a34'; ctx.fillRect(372, 284, 26, 36);
+    ctx.fillStyle = '#2a2030'; ctx.fillRect(375, 288, 20, 32);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillText('BACK', 385, 296);
+    // spill on the floor
+    if (spill) {
+      ctx.fillStyle = 'rgba(80,160,255,' + Math.min(0.35, spill.life / 900).toFixed(2) + ')';
+      ctx.beginPath(); ctx.ellipse(spill.x, spill.y + 4, 30, 14, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(spill.x - 8, spill.y, 6, 2); ctx.fillRect(spill.x + 6, spill.y + 6, 4, 2);
+    }
+    // the mop bucket, waiting to be kicked
+    if (bucket) {
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(bucket.x, bucket.y + 8, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f2c230'; ctx.fillRect(bucket.x - 7, bucket.y - 4, 14, 12);
+      ctx.fillStyle = '#5aa9ff'; ctx.fillRect(bucket.x - 5, bucket.y - 3, 10, 3);
+      ctx.fillStyle = '#8a8a8a'; ctx.fillRect(bucket.x + 4, bucket.y - 18, 2, 16);
+      ctx.fillStyle = '#ddd'; ctx.fillRect(bucket.x + 1, bucket.y - 21, 8, 4);
+    }
+    // a delivery at the door
+    if (delivery && !delivery.held) {
+      var bl2 = delivery.life < 200 && Math.floor(frame / 8) % 2 === 0;
+      if (!bl2) {
+        ctx.fillStyle = '#b8863b'; ctx.fillRect(delivery.x - 9, delivery.y - 8, 18, 14);
+        ctx.fillStyle = '#8a6228'; ctx.fillRect(delivery.x - 9, delivery.y - 2, 18, 2);
+        ctx.fillStyle = '#fff'; ctx.fillRect(delivery.x - 5, delivery.y - 6, 6, 3);
+        ctx.fillStyle = YELLOW; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillText('CARRY $50', delivery.x, delivery.y - 12);
+      }
+    }
 
     // Bench with cushions
     ctx.fillStyle = '#4a3440';
@@ -989,18 +1391,23 @@
           ctx.fillText(TYPES[ch.client.type].label, ch.x + 14, ch.y - 36);
         }
       }
-      if (ch.state === 'done') {
-        if (ch.client) drawPerson(ch.x, ch.y - 2, ch.client.skin, ch.client.shirt, ch.client.hair, true, false, { type: ch.client.type, mood: 0, ink: ch.client.ink });
-        if (Math.floor(frame / 12) % 2 === 0) {
-          ctx.fillStyle = YELLOW;
-          ctx.font = 'bold 14px monospace';
+      if (ch.state === 'dirty') {
+        // ink and wrap on the chair: wipe it before the next client
+        ctx.fillStyle = 'rgba(20,18,26,0.7)';
+        ctx.fillRect(ch.x - 6, ch.y - 4, 5, 3); ctx.fillRect(ch.x + 3, ch.y, 4, 2); ctx.fillRect(ch.x - 2, ch.y + 4, 6, 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(ch.x + 6, ch.y - 6, 5, 2);
+        if (Math.floor(frame / 14) % 2 === 0) {
+          ctx.fillStyle = CYAN;
+          ctx.font = 'bold 8px monospace';
           ctx.textAlign = 'center';
-          ctx.fillText('$', ch.x - 2, ch.y - 34);
+          ctx.fillText('WIPE IT', ch.x + 2, ch.y - 34);
         }
-        var m0 = mult();
-        ctx.fillStyle = 'rgba(255,215,0,0.7)';
+      }
+      if (powerOut > 0 && ch.state === 'busy') {
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.font = '7px monospace';
-        ctx.fillText('$' + ((TYPES[ch.client.type].base + ch.tip) * m0), ch.x + 14, ch.y - 44);
+        ctx.textAlign = 'center';
+        ctx.fillText('NO POWER', ch.x + 14, ch.y - 44);
       }
     }
 
@@ -1052,9 +1459,37 @@
       }
     }
 
+    // Paparazzi: a knot of cameras by the door
+    for (var pi = 0; pi < paparazzi.length; pi++) {
+      var pz = paparazzi[pi];
+      drawPerson(pz.x, pz.y, SKINS[(pi + 2) % SKINS.length], '#333', '#222', false, true, { face: 1 });
+      ctx.fillStyle = '#111'; ctx.fillRect(pz.x + 6, pz.y - 8, 6, 4);
+      if ((frame + pi * 7) % 24 < 3) { ctx.fillStyle = '#fff'; ctx.fillRect(pz.x + 4, pz.y - 12, 10, 8); }
+    }
+    // The second artist, when hired
+    if (helper) {
+      drawPerson(helper.x, helper.y, SKINS[3], '#1c1418', CYAN, false, helper.state !== 'idle', { face: helper.face });
+      ctx.fillStyle = 'rgba(0,255,255,0.5)';
+      ctx.fillRect(helper.x - 7, helper.y + 13, 14, 2);
+      if (helper.state === 'leading') { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '7px monospace'; ctx.textAlign = 'center'; ctx.fillText('CREW', helper.x, helper.y - 22); }
+    }
     // Runner (you): pink-haired shop runner
     var runnerMoving = runner.kx !== 0 || runner.ky !== 0 || runner.tx !== null;
     drawPerson(runner.x, runner.y, '#f0c8a0', '#14101c', PINK, false, runnerMoving, { face: runner.face });
+    if (runner.carrying) {
+      ctx.fillStyle = '#b8863b'; ctx.fillRect(runner.x - 8, runner.y - 24, 16, 12);
+      ctx.fillStyle = '#8a6228'; ctx.fillRect(runner.x - 8, runner.y - 19, 16, 2);
+    }
+    if (runner.slipT > 0 && frame % 4 < 2) { ctx.fillStyle = 'rgba(90,170,255,0.7)'; ctx.fillRect(runner.x - 10, runner.y + 12, 4, 2); ctx.fillRect(runner.x + 6, runner.y + 13, 4, 2); }
+    // the register glows when someone is coming to pay: be there for the tip
+    var paying = false;
+    for (var ci = 0; ci < clients.length; ci++) if (clients[ci].state === 'paying') paying = true;
+    if (paying) {
+      ctx.fillStyle = 'rgba(255,215,0,' + (0.25 + 0.15 * Math.sin(frame * 0.2)) + ')';
+      ctx.beginPath(); ctx.ellipse(REGISTER.x, REGISTER.y + 14, 22, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = YELLOW; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(near(runner.x, runner.y, REGISTER.x, REGISTER.y + 10, 30) ? 'TIP x2' : 'REGISTER', REGISTER.x, REGISTER.y + 30);
+    }
     ctx.fillStyle = 'rgba(255,20,147,0.5)';
     ctx.fillRect(runner.x - 7, runner.y + 13, 14, 2);
     if (runner.lead) {
@@ -1072,6 +1507,21 @@
       else ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+    // speech bubbles
+    for (var bi2 = 0; bi2 < bubbles.length; bi2++) {
+      var bb = bubbles[bi2];
+      ctx.globalAlpha = Math.min(1, bb.life / 20);
+      ctx.font = '8px monospace';
+      var mt = ctx.measureText ? ctx.measureText(bb.text) : null;
+      var tw = ((mt && mt.width) ? mt.width : bb.text.length * 4.8) + 8;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(bb.x - 2, bb.y - 10, tw, 12);
+      ctx.fillRect(bb.x + 2, bb.y + 2, 4, 3);
+      ctx.fillStyle = bb.color === '#fff' ? '#14121a' : bb.color;
+      ctx.textAlign = 'left';
+      ctx.fillText(bb.text, bb.x + 2, bb.y - 1);
+    }
+    ctx.globalAlpha = 1;
     for (var i = 0; i < popups.length; i++) {
       var pu = popups[i];
       ctx.globalAlpha = Math.min(1, pu.life / 18);
@@ -1083,6 +1533,12 @@
       ctx.fillText(pu.text, pu.x, pu.y);
     }
     ctx.globalAlpha = 1;
+    // the power flicker: the shop goes dark except the neon and the windows
+    if (powerOut > 0) {
+      var flick = powerOut > 280 || powerOut < 20 ? (Math.random() < 0.5 ? 0.35 : 0.7) : 0.7;
+      ctx.fillStyle = 'rgba(0,0,10,' + flick + ')';
+      ctx.fillRect(-8, -8, W + 16, H + 16);
+    }
     ctx.restore();
 
     // HUD
@@ -1092,9 +1548,13 @@
     ctx.fillText('$' + score, 8, 14);
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: $' + Math.max(best, score), 8, 26);
+    ctx.fillStyle = LIME;
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText('BANK $' + bank, 8, 37);
+    if (starsHistory.length) for (var sh2 = 0; sh2 < 3; sh2++) drawStar(64 + sh2 * 10, 34, sh2 < lastStars);
     // the rep multiplier, pulsing when it just climbed
     var m = mult();
-    var mx = 78, my = 20;
+    var mx = 118, my = 20;
     ctx.fillStyle = m > 1 ? (multFlash > 0 && Math.floor(frame / 4) % 2 === 0 ? '#fff' : PINK) : 'rgba(255,255,255,0.35)';
     ctx.font = 'bold ' + (multFlash > 0 ? 13 : 11) + 'px monospace';
     ctx.fillText('x' + m, mx, my);
@@ -1125,11 +1585,11 @@
     }
     if (bannerT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
-      ctx.fillStyle = bannerText === 'CLOSING RUSH' ? RED : LIME;
+      ctx.fillStyle = (bannerText === 'CLOSING RUSH' || bannerText === 'RUSH HOUR' || bannerText === 'POWER FLICKER') ? RED : LIME;
       ctx.font = 'bold 24px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(bannerText, W / 2, H / 2 - 30);
-      if (bannerText !== 'CLOSING RUSH') {
+      if (bannerText !== 'CLOSING RUSH' && bannerText !== 'RUSH HOUR' && bannerText !== 'POWER FLICKER') {
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 10px monospace';
         ctx.fillText(servedTarget + ' CLIENTS TO CLOSE', W / 2, H / 2 - 12);
@@ -1137,9 +1597,6 @@
       ctx.globalAlpha = 1;
       ctx.font = 'bold 10px monospace';
     }
-
-    if (mode === 'enter') drawInitials();
-    if (mode === 'over') drawBoard();
   }
 
   // Fixed-step loop on requestAnimationFrame
@@ -1158,6 +1615,7 @@
     try {
     while (acc >= 16.67) {
       if (mode === 'play') update();
+      else if (mode === 'shop') shopTick();
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 525) introT = 70; }
       acc -= 16.67;
     }

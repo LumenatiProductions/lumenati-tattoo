@@ -90,28 +90,46 @@
   var BLEFT = (W - (COLS * BW + (COLS - 1) * BGAP)) / 2;
 
   // Every sheet is a flash design; break it off the wall tile by tile.
+  // Every sheet is credited to one of the crew on its intro card.
+  // Sheet credits come from the live roster (the shell injects the handles);
+  // the fallback only shows up on a page with no roster at all.
+  var CREW = (window.__ARCADE_CREW__ && window.__ARCADE_CREW__.length) ? window.__ARCADE_CREW__ : ['the crew'];
+  while (CREW.length < 6) CREW = CREW.concat(CREW);
   var DESIGNS = [
-    { name: 'HEART', color: '#FF1493', rows: [
+    { name: 'HEART', artist: CREW[0], color: '#FF1493', rows: [
       '.XXX....XXX.', 'XXXXX..XXXXX', 'XXXXXXXXXXXX', 'XXXXXXXXXXXX',
       '.XXXXXXXXXX.', '..XXXXXXXX..', '....XXXX....', '.....XX.....'] },
-    { name: 'SKULL', color: '#e8e4d8', rows: [
+    { name: 'SKULL', artist: CREW[2], color: '#e8e4d8', rows: [
       '..XXXXXXXX..', '.XXXXXXXXXX.', '.XXXXXXXXXX.', '.XX.XXXX.XX.',
       '.XX.XXXX.XX.', '..XXX..XXX..', '..XXXXXXXX..', '...X.XX.X...'] },
-    { name: 'BOLT', color: '#FFD700', rows: [
+    { name: 'BOLT', artist: CREW[3], color: '#FFD700', rows: [
       '......XXXX..', '.....XXXX...', '....XXXX....', '..XXXXXXXX..',
       '.....XXX....', '....XXX.....', '...XXX......', '..XXX.......'] },
-    { name: 'STAR', color: '#00FFFF', rows: [
+    { name: 'STAR', artist: CREW[1], color: '#00FFFF', rows: [
       '.....XX.....', '....XXXX....', 'XXXXXXXXXXXX', '.XXXXXXXXXX.',
       '..XXXXXXXX..', '..XXX..XXX..', '.XXX....XXX.', '.XX......XX.'] },
-    { name: 'DAGGER', color: '#b8c4d0', rows: [
+    { name: 'DAGGER', artist: CREW[4], color: '#b8c4d0', rows: [
       '.....XX.....', '....XXXX....', '..XXXXXXXX..', '.....XX.....',
       '.....XX.....', '.....XX.....', '.....XX.....', '......X.....'] },
-    { name: 'ANCHOR', color: '#2d6cdf', rows: [
+    { name: 'ANCHOR', artist: CREW[5], color: '#2d6cdf', rows: [
       '.....XX.....', '....XXXX....', '.....XX.....', '..XXXXXXXX..',
       '.....XX.....', '.X...XX...X.', '.XX..XX..XX.', '..XXXXXXXX..'] },
-    { name: 'ROSE', color: '#e8283c', rows: [
+    { name: 'ROSE', artist: CREW[1], color: '#e8283c', rows: [
       '...XXXXXX...', '..XXX.XXXX..', '..XX.XX.XX..', '..XXX.XXXX..',
       '...XXXXXX...', '.X...XX...X.', '.XXX.XX.XXX.', '.....XX.....'] },
+  ];
+  // Boss sheets: every fourth sheet is a big piece with a core that only opens
+  // up once the rest of the design is gone, and it fights back with ink.
+  var BOSSES = [
+    { name: 'DEATH SKULL', artist: CREW[2], color: '#f0ece0', core: [5, 5], rows: [
+      '...XXXXXX...', '..XXXXXXXX..', '.XXXXXXXXXX.', '.XX.XXXX.XX.', '.XX.XXXX.XX.',
+      '.XXXXXCXXXX.', '..XXXXXXXX..', '...X.XX.X...', '...XXXXXX...', '....X.X.X...'] },
+    { name: 'BLOOD ROSE', artist: CREW[1], color: '#ff2d55', core: [3, 5], rows: [
+      '....XXXX....', '..XXXXXXXX..', '.XXX.XX.XXX.', '.XX.XCX.XXX.', '.XXX.XX.XXX.',
+      '..XXXXXXXX..', '....XXXX....', '.X...XX...X.', '.XXX.XX.XXX.', '...XXXXXX...'] },
+    { name: 'IRON DAGGER', artist: CREW[4], color: '#c9d3de', core: [2, 5], rows: [
+      '.....XX.....', '....XXXX....', '..XXXCXXXX..', '.....XX.....', '.....XX.....',
+      '.....XX.....', '.....XX.....', '.....XX.....', '.....XX.....', '......X.....'] },
   ];
   function shade(hex, f) {
     var n = parseInt(hex.slice(1), 16);
@@ -126,6 +144,8 @@
   var drops, lasers, wideT, laserT, laserCd, popups;
   var stickyT, fireT, shake, chain, bestChain, bricksBroken, ceilCd;
   var sheetFrames, sheetMiss, clearT, clearLines, shields, motes, sparks;
+  var sheetKind, sheetCells, shiftRow, scrollDrop, potT, bossN, bossBombs, bossBombCd, bossMax, bossesBeaten;
+  var stunT, magnetT, splitReady, cardT, prevPaddleX, paddleVx, bossSway, edgeCatches, lastSheetKind;
   var keyL = false, keyR = false;
 
   // Chain: bricks broken since the last paddle touch. Every two steps the
@@ -138,31 +158,53 @@
     if (score > best) { best = score; try { localStorage.setItem('lumenati-arcade-bricks', String(best)); } catch(e) {} }
   }
 
-  function design() { return DESIGNS[(level - 1) % DESIGNS.length]; }
+  function isBoss(lv) { return lv % 4 === 0; }
+  function design() {
+    if (isBoss(level)) return BOSSES[(level / 4 - 1) % BOSSES.length];
+    return DESIGNS[(level - 1 - Math.floor(level / 4)) % DESIGNS.length];
+  }
+  // Sheet kinds cycle between bosses: plain, a shifting row, a sheet that
+  // creeps down the wall, a sheet that regrows from an ink pot.
+  var KINDS = ['plain', 'shift', 'scroll', 'pot'];
+  function sheetKindFor(lv) {
+    if (isBoss(lv)) return 'boss';
+    var n = lv - Math.floor(lv / 4);
+    return KINDS[(n - 1) % KINDS.length];
+  }
+  function kindLine(k) {
+    return k === 'boss' ? 'BOSS SHEET // OPEN THE CORE LAST' : k === 'shift' ? 'ONE ROW WILL NOT SIT STILL' : k === 'scroll' ? 'THE SHEET IS SLIDING DOWN. DO NOT GET BURIED' : k === 'pot' ? 'SMASH THE INK POT OR IT REGROWS' : 'BREAK IT OFF THE WALL';
+  }
 
   // Brick types: plain flash, tough (two hits, cracks first), ink bombs (blow
   // the neighbors), gold (worth five, always drops a capsule). The mix gets
   // meaner every sheet; second time through the book every plain tile is tough.
   function buildBricks() {
     bricks = [];
+    sheetCells = [];
     var d = design();
-    var loop2 = level > DESIGNS.length;
-    var toughRate = loop2 ? 1 : Math.min(0.35, (level - 1) * 0.09);
-    var bombs = level >= 3 ? Math.min(5, 1 + Math.floor((level - 1) / 2)) : 0;
-    var golds = 1 + (level % 3 === 0 ? 1 : 0);
+    sheetKind = sheetKindFor(level);
+    var boss = sheetKind === 'boss';
+    var loop2 = level > DESIGNS.length + 3;
+    var toughRate = boss ? 0.22 : loop2 ? 1 : Math.min(0.35, (level - 1) * 0.09);
+    var bombs = boss ? 0 : level >= 3 ? Math.min(5, 1 + Math.floor((level - 1) / 2)) : 0;
+    var golds = boss ? 2 : 1 + (level % 3 === 0 ? 1 : 0);
     var cells = [];
     for (var r = 0; r < d.rows.length; r++) {
       for (var c = 0; c < COLS; c++) {
-        if (d.rows[r][c] !== 'X') continue;
+        var ch = d.rows[r][c];
+        if (ch !== 'X' && ch !== 'C') continue;
         var seed = ((r * 31 + c * 17 + level * 7) % 97) / 97;
         var brick = {
           x: BLEFT + c * (BW + BGAP), y: BTOP + r * (BH + BGAP),
+          bx: BLEFT + c * (BW + BGAP), by: BTOP + r * (BH + BGAP),
           row: r, col: c, hp: 1, maxHp: 1, kind: 'plain',
-          color: shade(d.color, 1 - r * 0.08), seed: seed, pulse: 0,
+          color: shade(d.color, 1 - r * 0.06), seed: seed, pulse: 0,
         };
-        if (seed < toughRate) { brick.kind = 'tough'; brick.hp = 2; brick.maxHp = 2; }
+        if (ch === 'C') { brick.kind = 'core'; brick.hp = 3; brick.maxHp = 3; }
+        else if (seed < toughRate) { brick.kind = 'tough'; brick.hp = 2; brick.maxHp = 2; }
         bricks.push(brick);
-        cells.push(brick);
+        sheetCells.push({ x: brick.bx, y: brick.by, row: r, col: c, color: brick.color, seed: seed });
+        if (brick.kind !== 'core') cells.push(brick);
       }
     }
     // Bombs and gold land on a deterministic spread so a sheet reads the same every run
@@ -176,11 +218,36 @@
     };
     pick(bombs, 'bomb');
     pick(golds, 'gold');
-    // Steel needle bars drift under the sheet from sheet 4; a second from 7
+    // The ink pot: a three-hit jar at the top of the sheet that regrows what you break
+    if (sheetKind === 'pot') {
+      var topRow = bricks.filter(function (b) { return b.row === 0; });
+      var pot = topRow[Math.floor(topRow.length / 2)] || bricks[0];
+      pot.kind = 'pot'; pot.hp = 3; pot.maxHp = 3;
+    }
+    shiftRow = sheetKind === 'shift' ? 3 : -1;
+    scrollDrop = 0; potT = 0;
+    bossN = boss ? level / 4 : 0;
+    bossMax = bricks.length;
+    bossBombs = []; bossBombCd = 150; bossSway = 0;
+    // Steel needle bars drift under the sheet from sheet 5; a second from 9
     shields = [];
-    if (level >= 4) shields.push({ x: 60, y: 160, w: 70, vx: 1.1 });
-    if (level >= 7) shields.push({ x: 260, y: 176, w: 56, vx: -1.5 });
+    if (level >= 5 && !boss) shields.push({ x: 60, y: 160, w: 70, vx: 1.1 });
+    if (level >= 9 && !boss) shields.push({ x: 260, y: 176, w: 56, vx: -1.5 });
     sheetFrames = 0; sheetMiss = false;
+    cardT = 120;
+    stunT = 0; magnetT = 0; splitReady = false;
+  }
+
+  // Pot sheets: a broken cell grows back while the pot still stands
+  function regrow() {
+    var used = {};
+    for (var i = 0; i < bricks.length; i++) used[bricks[i].row + ':' + bricks[i].col] = true;
+    var open = sheetCells.filter(function (c) { return !used[c.row + ':' + c.col]; });
+    if (!open.length) return;
+    var c = open[Math.floor(Math.random() * open.length)];
+    bricks.push({ x: c.x, y: c.y + scrollDrop, bx: c.x, by: c.y, row: c.row, col: c.col, hp: 1, maxHp: 1, kind: 'plain', color: c.color, seed: c.seed, pulse: 0, grow: 24 });
+    spawnParticles(c.x + BW / 2, c.y + scrollDrop + BH / 2, PINK, 6);
+    playSfx(420, 0.08, 'triangle', 0.08);
   }
 
   function makeBall() {
@@ -214,13 +281,13 @@
   }
 
   // ── Capsules: the good stuff falls out of broken bricks ──
-  var DROP_NAMES = { multi: 'M', wide: 'W', slow: 'S', laser: 'L', life: '+', sticky: 'G', fire: 'F' };
-  var DROP_COLORS = { multi: PINK, wide: CYAN, slow: LIME, laser: YELLOW, life: '#7FFF00', sticky: '#5bd75b', fire: '#FF8A00' };
+  var DROP_NAMES = { multi: 'M', wide: 'W', slow: 'S', laser: 'L', life: '+', sticky: 'G', fire: 'F', magnet: 'U', split: '3' };
+  var DROP_COLORS = { multi: PINK, wide: CYAN, slow: LIME, laser: YELLOW, life: '#7FFF00', sticky: '#5bd75b', fire: '#FF8A00', magnet: '#8fd3ff', split: '#ff77ff' };
   function maybeDrop(x, y, force) {
     var rate = Math.max(0.09, 0.15 - (level - 1) * 0.008);
     if (!force && Math.random() > rate) return;
     var r = Math.random();
-    var kind = r < 0.2 ? 'multi' : r < 0.38 ? 'wide' : r < 0.52 ? 'slow' : r < 0.68 ? 'laser' : r < 0.82 ? 'sticky' : r < 0.94 ? 'fire' : 'life';
+    var kind = r < 0.16 ? 'multi' : r < 0.3 ? 'wide' : r < 0.41 ? 'slow' : r < 0.54 ? 'laser' : r < 0.66 ? 'sticky' : r < 0.76 ? 'fire' : r < 0.86 ? 'magnet' : r < 0.95 ? 'split' : 'life';
     drops.push({ x: x, y: y, vy: 1.5, kind: kind, spin: Math.random() * 6 });
   }
 
@@ -266,6 +333,14 @@
       fireT = 480;
       addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'HOT NEEDLE!', '#FF8A00');
       sfxBomb();
+    } else if (kind === 'magnet') {
+      magnetT = 720;
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'MAGNET NEEDLE', '#8fd3ff');
+      sfxCatch();
+    } else if (kind === 'split') {
+      splitReady = true;
+      addPopup(paddle.x + paddle.w / 2, paddle.y - 16, 'CHAIN SHOT ARMED', '#ff77ff');
+      sfxLevel();
     } else {
       if (lives < 5) {
         lives++;
@@ -286,14 +361,29 @@
 
   // A brick takes a hit from a ball, a laser, or a bomb next door. Ball hits
   // feed the chain; lasers and blasts pay out at whatever the chain is.
+  function coreShielded(b) {
+    if (b.kind !== 'core') return false;
+    for (var i = 0; i < bricks.length; i++) if (bricks[i] !== b) return true;
+    return false;
+  }
   function damageBrick(i, hx, hy, src, force) {
     var b = bricks[i];
     if (!b) return;
+    if (coreShielded(b)) {
+      // The core is armored until the rest of the piece is gone
+      sfxWall();
+      addPopup(hx, hy - 6, 'SHIELDED', 'rgba(255,255,255,0.7)');
+      spawnParticles(hx, hy, '#cfd6dd', 3);
+      b.pulse = 12;
+      return;
+    }
+    if (b.kind === 'core' || b.kind === 'pot') force = false; // three real hits each
     b.hp -= force ? b.hp : 1;
     sfxBrick(b.row);
     if (b.hp > 0) {
-      award(5, hx, hy, 'CRACK', 'rgba(255,255,255,0.8)');
-      spawnParticles(hx, hy, '#fff', 4);
+      award(b.kind === 'core' ? 100 : 5, hx, hy, b.kind === 'core' ? 'CORE HIT' : 'CRACK', b.kind === 'core' ? YELLOW : 'rgba(255,255,255,0.8)', b.kind === 'core');
+      spawnParticles(hx, hy, '#fff', b.kind === 'core' ? 10 : 4);
+      if (b.kind === 'core') shake = Math.max(shake, 5);
       return;
     }
     bricks.splice(i, 1);
@@ -304,8 +394,24 @@
       if (chain >= 2 && chain % 2 === 0) sfxChain(Math.min(8, chain / 2));
     }
     var m = mult();
-    var base = b.kind === 'gold' ? 50 : b.kind === 'bomb' ? 30 : b.kind === 'tough' ? 25 : (b.row < 2 ? 15 : 10);
-    var label = b.kind === 'gold' ? 'GOLD' : b.kind === 'bomb' ? 'BOOM' : b.kind === 'tough' ? 'TOUGH' : (b.row < 2 ? 'DEEP' : '');
+    var base = b.kind === 'gold' ? 50 : b.kind === 'bomb' ? 30 : b.kind === 'tough' ? 25 : b.kind === 'pot' ? 60 : (b.row < 2 ? 15 : 10);
+    var label = b.kind === 'gold' ? 'GOLD' : b.kind === 'bomb' ? 'BOOM' : b.kind === 'tough' ? 'TOUGH' : b.kind === 'pot' ? 'POT SMASHED' : (b.row < 2 ? 'DEEP' : '');
+    if (b.kind === 'core') {
+      // Boss down: the whole piece goes up in ink
+      bossesBeaten++;
+      var bonus = 2500 * bossN;
+      award(bonus, W / 2, 150, 'BOSS DOWN', PINK, true);
+      shake = 16;
+      for (var k = 0; k < 40; k++) particles.push({ x: b.x + BW / 2, y: b.y + BH / 2, vx: (Math.random() - 0.5) * 8, vy: -Math.random() * 6 - 1, life: 30 + Math.random() * 30, color: k % 2 ? PINK : YELLOW, size: 2 + Math.random() * 3 });
+      sparks.push({ x: b.x + BW / 2, y: b.y + BH / 2, r: 6, life: 14 });
+      sfxBomb(); sfxGold();
+      say('so-sick', 300);
+      bossBombs = [];
+      return;
+    }
+    if (b.kind === 'pot') { sfxGold(); shake = Math.max(shake, 6); }
+    if (bricks.length === 0 && src === 'ball') award(200 * level, b.x + BW / 2, b.y + 14, 'LAST BRICK', LIME, true);
+    else if (bricks.length === 1 && bricks[0].kind === 'core' && src === 'ball') addPopup(W / 2, 120, 'THE CORE IS OPEN', YELLOW, true);
     if (m > 1) label = (label ? label + ' ' : '') + 'x' + m;
     award(base * m, b.x + BW / 2, b.y, label, b.kind === 'gold' ? YELLOW : b.kind === 'bomb' ? '#FF8A00' : m >= 4 ? YELLOW : m > 1 ? CYAN : '#fff', b.kind !== 'plain' || m >= 4);
     spawnParticles(hx, hy, b.kind === 'gold' ? YELLOW : b.color, b.kind === 'plain' ? 8 : 14);
@@ -332,6 +438,7 @@
       if (Math.abs(n.x - b.x) <= BW + BGAP + 1 && Math.abs(n.y - b.y) <= BH + BGAP + 1) hit.push(n);
     }
     for (var h = 0; h < hit.length; h++) {
+      if (hit[h].kind === 'core' || hit[h].kind === 'pot') continue;
       var idx = bricks.indexOf(hit[h]);
       if (idx >= 0) damageBrick(idx, hit[h].x + BW / 2, hit[h].y + BH / 2, 'blast', true);
     }
@@ -348,6 +455,7 @@
     drops = []; lasers = []; wideT = 0; laserT = 0; laserCd = 0; popups = [];
     stickyT = 0; fireT = 0; shake = 0; chain = 0; bestChain = 0; bricksBroken = 0; ceilCd = 0;
     clearT = 0; clearLines = []; shields = []; sparks = [];
+    bossesBeaten = 0; edgeCatches = 0; prevPaddleX = W / 2 - 30; paddleVx = 0; bossBombs = []; cardT = 0; stunT = 0; magnetT = 0; splitReady = false;
     motes = [];
     for (var i = 0; i < 26; i++) motes.push({ x: Math.random() * W, y: Math.random() * H, s: 0.2 + Math.random() * 0.5, r: 0.6 + Math.random() * 1.4, ph: Math.random() * 6 });
     buildBricks();
@@ -391,10 +499,16 @@
     for (var i = sparks.length - 1; i >= 0; i--) { sparks[i].r += 5; sparks[i].life--; if (sparks[i].life <= 0) sparks.splice(i, 1); }
     for (var i = 0; i < motes.length; i++) { var mo = motes[i]; mo.y -= mo.s; mo.x += Math.sin(frame * 0.02 + mo.ph) * 0.2; if (mo.y < -4) { mo.y = H + 4; mo.x = Math.random() * W; } }
 
-    // Paddle
-    if (keyL) paddle.x -= 6;
-    if (keyR) paddle.x += 6;
+    // Paddle (inked by a boss bomb, it stalls for a beat)
+    if (stunT > 0) { stunT--; }
+    else {
+      if (keyL) paddle.x -= 6;
+      if (keyR) paddle.x += 6;
+    }
     paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
+    paddleVx = paddleVx * 0.5 + (paddle.x - prevPaddleX) * 0.5;
+    prevPaddleX = paddle.x;
+    if (cardT > 0) cardT--;
 
     // ── Sheet clear tally: the field holds while the bonuses land ──
     if (clearT > 0) {
@@ -437,6 +551,61 @@
       if (sh.x + sh.w > W - 4) { sh.x = W - 4 - sh.w; sh.vx = -Math.abs(sh.vx); }
     }
 
+    // ── The sheet itself moves on some walls ──
+    if (magnetT > 0) magnetT--;
+    var anyFlying = false;
+    for (var fb = 0; fb < balls.length; fb++) if (!balls[fb].stuck) anyFlying = true;
+    if (sheetKind === 'scroll' && anyFlying) {
+      scrollDrop += level >= 8 ? 0.11 : 0.075;
+      var lowest = 0;
+      for (var bi2 = 0; bi2 < bricks.length; bi2++) { bricks[bi2].y = bricks[bi2].by + scrollDrop; if (bricks[bi2].y + BH > lowest) lowest = bricks[bi2].y + BH; }
+      if (lowest > paddle.y - 34) {
+        // Buried: the wall reached the machine
+        lives--;
+        document.getElementById('jd-br-lives').textContent = lives;
+        flashT = 14; shake = 10; sheetMiss = true; chain = 0;
+        addPopup(W / 2, 200, 'BURIED', '#ff5050', true);
+        sfxLose();
+        scrollDrop = 0;
+        for (var bi3 = 0; bi3 < bricks.length; bi3++) bricks[bi3].y = bricks[bi3].by;
+        if (lives <= 0) { enterBoard(score); saveBest(); deathJingle(); return; }
+        balls = []; serve();
+      }
+    }
+    if (shiftRow >= 0) {
+      var sx = Math.sin(frame * 0.035) * 22;
+      for (var bi4 = 0; bi4 < bricks.length; bi4++) if (bricks[bi4].row === shiftRow) bricks[bi4].x = bricks[bi4].bx + sx;
+    }
+    if (sheetKind === 'pot' && anyFlying) {
+      var potAlive = false;
+      for (var bi5 = 0; bi5 < bricks.length; bi5++) if (bricks[bi5].kind === 'pot') potAlive = true;
+      if (potAlive && ++potT >= (level >= 9 ? 150 : 210)) { potT = 0; regrow(); }
+    }
+    for (var bi6 = 0; bi6 < bricks.length; bi6++) if (bricks[bi6].grow > 0) bricks[bi6].grow--;
+    if (sheetKind === 'boss') {
+      // The piece breathes and, from the second boss, sways across the wall
+      if (bossN >= 2) {
+        bossSway = Math.sin(frame * 0.02) * 26;
+        for (var bi7 = 0; bi7 < bricks.length; bi7++) bricks[bi7].x = bricks[bi7].bx + bossSway;
+      }
+      if (anyFlying && --bossBombCd <= 0) {
+        bossBombCd = Math.max(80, 190 - bossN * 25);
+        var from = bricks[Math.floor(Math.random() * bricks.length)];
+        if (from) { bossBombs.push({ x: from.x + BW / 2, y: from.y + BH, vy: 1.4, wob: Math.random() * 6 }); playSfx(160, 0.12, 'sawtooth', 0.09); }
+      }
+      for (var bb = bossBombs.length - 1; bb >= 0; bb--) {
+        var ob = bossBombs[bb];
+        ob.y += ob.vy; ob.vy = Math.min(3.2, ob.vy + 0.03); ob.x += Math.sin(frame * 0.1 + ob.wob) * 0.4;
+        if (ob.y > paddle.y - 6 && ob.y < paddle.y + paddle.h + 10 && ob.x > paddle.x - 6 && ob.x < paddle.x + paddle.w + 6) {
+          bossBombs.splice(bb, 1);
+          stunT = 70; flashT = 8; shake = Math.max(shake, 6);
+          addPopup(paddle.x + paddle.w / 2, paddle.y - 18, 'INKED! STALLED', '#ff5050', true);
+          spawnParticles(ob.x, paddle.y, '#2b1a3a', 16);
+          sfxLose();
+        } else if (ob.y > H + 10) bossBombs.splice(bb, 1);
+      }
+    }
+
     // Balls in flight
     for (var bi = balls.length - 1; bi >= 0; bi--) {
       var ball = balls[bi];
@@ -444,6 +613,14 @@
         ball.x = paddle.x + paddle.w / 2 + ball.off;
         ball.y = paddle.y - 6;
         continue;
+      }
+      if (ball.ttl > 0) { ball.ttl--; if (ball.ttl === 0) { if (balls.length > 1) { balls.splice(bi, 1); continue; } } }
+      if (magnetT > 0 && ball.vy > 0 && ball.y > 140) {
+        // The magnet needle bends the ball back toward the machine
+        var pc = paddle.x + paddle.w / 2;
+        ball.vx += (pc - ball.x > 0 ? 1 : -1) * 0.06;
+        var msp = Math.hypot(ball.vx, ball.vy), cap = 8;
+        if (msp > cap) { ball.vx *= cap / msp; ball.vy *= cap / msp; }
       }
       ball.x += ball.vx;
       ball.y += ball.vy;
@@ -487,7 +664,25 @@
         var ang = rel * (Math.PI / 3);
         ball.vx = Math.sin(ang) * sp;
         ball.vy = -Math.abs(Math.cos(ang) * sp);
+        // English: a moving machine bends the shot
+        if (Math.abs(paddleVx) > 1.5) {
+          ball.vx += paddleVx * 0.35;
+          var esp = Math.hypot(ball.vx, ball.vy);
+          if (esp > 8.5) { ball.vx *= 8.5 / esp; ball.vy *= 8.5 / esp; }
+          if (Math.abs(paddleVx) > 3.5) award(10, ball.x, paddle.y - 30, 'ENGLISH', CYAN);
+        }
+        // Edge catch: the risky save pays
+        if (Math.abs(rel) > 0.82) { edgeCatches++; award(30, ball.x, paddle.y - 42, 'EDGE', YELLOW); }
         ball.y = paddle.y - ball.r;
+        if (splitReady) {
+          splitReady = false;
+          for (var sk = -1; sk <= 1; sk += 2) {
+            var sang = Math.atan2(ball.vy, ball.vx) + sk * 0.42;
+            balls.push({ x: ball.x, y: ball.y, vx: Math.cos(sang) * sp, vy: -Math.abs(Math.sin(sang) * sp), r: 4, stuck: false, ttl: 130 });
+          }
+          addPopup(ball.x, paddle.y - 54, 'CHAIN SHOT', '#ff77ff', true);
+          sfxLevel();
+        }
         paddleFlash = 8;
         for (var k = 0; k < 4; k++) particles.push({ x: ball.x, y: paddle.y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2 - 1, life: 10 + Math.random() * 8, color: '#fff', size: 1.5 });
         sfxPaddle();
@@ -502,6 +697,7 @@
             damageBrick(i, ball.x, ball.y, 'ball', true);
             break;
           }
+          if (ball.ttl > 0 && balls.length > 1) ball.ttl = 1; // a chain-shot ball spends itself on one brick
           var overX = Math.min(ball.x + ball.r - b.x, b.x + BW - (ball.x - ball.r));
           var overY = Math.min(ball.y + ball.r - b.y, b.y + BH - (ball.y - ball.r));
           if (overX < overY) ball.vx = ball.x < b.x + BW / 2 ? -Math.abs(ball.vx) : Math.abs(ball.vx);
@@ -556,7 +752,10 @@
       if (fast > 0) clearLines.push({ t: 'FAST CLEAR ' + secs + 's', pts: fast, shown: false });
       if (!sheetMiss) clearLines.push({ t: 'NO MISS', pts: 1000, shown: false });
       if (bestChain >= 6) clearLines.push({ t: 'BEST CHAIN ' + bestChain, pts: bestChain * 50, shown: false });
+      if (sheetKind === 'boss') clearLines.unshift({ t: design().name + ' DOWN', pts: 1000 * bossN, shown: false });
+      clearLines = clearLines.slice(0, 4);
       clearT = 200;
+      bossBombs = []; stunT = 0;
       shake = 8;
       balls = []; lasers = []; drops = [];
       wideT = 0; laserT = 0; stickyT = 0; fireT = 0; chain = 0;
@@ -579,6 +778,7 @@
         deathJingle();
         return;
       }
+      stunT = 0;
       serve();
     }
   }
@@ -589,6 +789,7 @@
     if (mode === 'over') { if (wall.inBeat()) return; init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
     if (clearT > 0) return;
+    if (cardT > 70) { cardT = 70; return; } // first tap dismisses the card, the next one serves
     fireLaser();
     launch();
   }
@@ -630,8 +831,9 @@
     getMode: function () { return mode; }, setMode: function (m) { mode = m; },
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
+    levelLabel: function (lv) { return (lv - 1) + ' SHEETS // ' + bricksBroken + ' BRICKS // CHAIN ' + bestChain + (bossesBeaten ? ' // ' + bossesBeaten + (bossesBeaten === 1 ? ' BOSS' : ' BOSSES') : ''); },
   });
-  function enterBoard(v) { wall.enter(v, { level: level, meta: { sheets: level - 1, chain: bestChain, bricks: bricksBroken } }); }
+  function enterBoard(v) { wall.enter(v, { level: level, meta: { sheets: level - 1, chain: bestChain, bricks: bricksBroken, bosses: bossesBeaten, edges: edgeCatches } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -745,6 +947,49 @@
   // ── Drawing helpers ──
   function drawBrick(b) {
     var x = b.x, y = b.y;
+    if (b.grow > 0) {
+      ctx.globalAlpha = 1 - b.grow / 24;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(x + b.grow / 2, y + b.grow / 4, BW - b.grow, BH - b.grow / 2);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    if (b.kind === 'core') {
+      var armored = coreShielded(b);
+      var cp = 0.5 + 0.5 * Math.sin(frame * 0.12);
+      var cg = ctx.createRadialGradient(x + BW / 2, y + BH / 2, 1, x + BW / 2, y + BH / 2, BW);
+      cg.addColorStop(0, armored ? '#9aa3ad' : PINK);
+      cg.addColorStop(1, armored ? '#2a2f36' : '#5a0030');
+      ctx.fillStyle = cg;
+      ctx.fillRect(x - 1, y - 1, BW + 2, BH + 2);
+      if (armored) {
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.35 + cp * 0.3).toFixed(2) + ')';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, BW - 1, BH - 1);
+        ctx.fillStyle = '#c9d1d9';
+        ctx.fillRect(x + 3, y + 3, 2, 2); ctx.fillRect(x + BW - 5, y + 3, 2, 2); ctx.fillRect(x + 3, y + BH - 5, 2, 2); ctx.fillRect(x + BW - 5, y + BH - 5, 2, 2);
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + cp * 0.5).toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(x + BW / 2, y + BH / 2, 3 + cp * 2, 0, Math.PI * 2); ctx.fill();
+        if (b.pulse > 0) { b.pulse--; ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(x, y, BW, BH); }
+      }
+      for (var hp = 0; hp < b.hp; hp++) { ctx.fillStyle = armored ? '#5e6670' : '#fff'; ctx.fillRect(x + 4 + hp * 8, y - 4, 6, 2); }
+      return;
+    }
+    if (b.kind === 'pot') {
+      var pot = ctx.createLinearGradient(x, y, x, y + BH);
+      pot.addColorStop(0, '#3a2b5a'); pot.addColorStop(1, '#120a1e');
+      ctx.fillStyle = pot;
+      ctx.fillRect(x, y, BW, BH);
+      ctx.fillStyle = PINK;
+      var lvl = BH * (b.hp / b.maxHp);
+      ctx.fillRect(x + 3, y + BH - lvl, BW - 6, lvl - 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(x + 4, y + 2, BW - 8, 1);
+      ctx.strokeStyle = '#8fd3ff'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, BW - 1, BH - 1);
+      return;
+    }
     if (b.kind === 'gold') {
       var gg = ctx.createLinearGradient(x, y, x + BW, y + BH);
       gg.addColorStop(0, '#ffe680'); gg.addColorStop(0.5, '#d4a017'); gg.addColorStop(1, '#ffe680');
@@ -936,10 +1181,34 @@
       ctx.fillRect(sh.x, sh.y + 6, sh.w, 2);
     }
 
+    // Scroll sheets: the line the wall must not cross
+    if (sheetKind === 'scroll') {
+      ctx.strokeStyle = 'rgba(255,80,80,' + (0.25 + 0.2 * Math.sin(frame * 0.2)).toFixed(2) + ')';
+      ctx.setLineDash([6, 6]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, paddle.y - 34); ctx.lineTo(W, paddle.y - 34); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     // Bricks: the flash design, tile by tile
     for (var i = 0; i < bricks.length; i++) drawBrick(bricks[i]);
 
+    // Boss ink bombs falling on the machine
+    for (var i = 0; i < bossBombs.length; i++) {
+      var ob = bossBombs[i];
+      ctx.fillStyle = '#2b1a3a';
+      ctx.beginPath(); ctx.arc(ob.x, ob.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(ob.x - 4, ob.y - 2); ctx.lineTo(ob.x, ob.y - 9); ctx.lineTo(ob.x + 4, ob.y - 2); ctx.fill();
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.arc(ob.x, ob.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+
     drawPaddle();
+    if (stunT > 0) {
+      ctx.fillStyle = 'rgba(43,26,58,0.85)';
+      ctx.fillRect(paddle.x - 3, paddle.y - 4, paddle.w + 6, paddle.h + 8);
+      ctx.fillStyle = PINK; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('INKED', paddle.x + paddle.w / 2, paddle.y + 6);
+    }
 
     // Trails + every ball in flight
     for (var i = 0; i < trail.length; i++) {
@@ -1006,8 +1275,16 @@
     ctx.fillStyle = '#9aa';
     ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
     ctx.textAlign = 'right';
-    ctx.fillStyle = YELLOW;
-    ctx.fillText('SHEET ' + level + ': ' + d0.name, W - 8, 12);
+    ctx.fillStyle = sheetKind === 'boss' ? PINK : YELLOW;
+    ctx.fillText((sheetKind === 'boss' ? 'BOSS ' : 'SHEET ') + level + ': ' + d0.name, W - 8, 12);
+    if (sheetKind === 'boss' && mode === 'play') {
+      // The piece's health: bricks left
+      var hpw = 120, hpx = W / 2 - hpw / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(hpx - 1, 20, hpw + 2, 6);
+      ctx.fillStyle = bricks.length <= 1 ? YELLOW : PINK;
+      ctx.fillRect(hpx, 21, hpw * Math.min(1, bricks.length / Math.max(1, bossMax)), 4);
+    }
     // the chain meter
     if (mode === 'play' && chain > 0) {
       var m = mult();
@@ -1028,6 +1305,26 @@
       if (laserT > 0) { drawGearBar(gx, gy, 'LASER', laserT, 800, YELLOW); gx += 58; }
       if (stickyT > 0) { drawGearBar(gx, gy, 'STICKY', stickyT, 900, '#5bd75b'); gx += 58; }
       if (fireT > 0) { drawGearBar(gx, gy, 'HOT', fireT, 480, '#FF8A00'); gx += 58; }
+      if (magnetT > 0) { drawGearBar(gx, gy, 'MAGNET', magnetT, 720, '#8fd3ff'); gx += 58; }
+      if (splitReady) { drawGearBar(gx, gy, 'SPLIT', 1, 1, '#ff77ff'); gx += 58; }
+    }
+    // Sheet intro card: the design, who drew it, and what this wall does
+    if (cardT > 0 && mode === 'play' && clearT === 0) {
+      ctx.globalAlpha = Math.min(1, cardT / 20);
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(30, 108, W - 60, 96);
+      ctx.strokeStyle = d0.color; ctx.lineWidth = 2; ctx.strokeRect(30, 108, W - 60, 96);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#9aa'; ctx.font = 'bold 9px monospace';
+      ctx.fillText(sheetKind === 'boss' ? 'BOSS SHEET ' + level : 'SHEET ' + level, W / 2, 126);
+      ctx.fillStyle = d0.color; ctx.font = 'bold 22px monospace';
+      ctx.fillText(d0.name, W / 2, 152);
+      ctx.fillStyle = '#fff'; ctx.font = '10px monospace';
+      ctx.fillText('drawn by ' + d0.artist, W / 2, 170);
+      ctx.fillStyle = sheetKind === 'boss' ? PINK : CYAN; ctx.font = 'bold 9px monospace';
+      ctx.fillText(kindLine(sheetKind), W / 2, 190);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10px monospace';
     }
     if (bannerT > 0 && mode === 'play') {
       bannerT--;

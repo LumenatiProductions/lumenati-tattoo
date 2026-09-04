@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildArcadePreviewHtml } from "@/lib/arcade-preview";
 import { getSupabase } from "@/lib/supabase";
+import { fetchArtists } from "@/lib/admin/artists-data";
+
+// The crew's handles, for games that credit designs to the roster.
+async function crewHandles(): Promise<string[]> {
+  try { return (await fetchArtists()).map((a) => a.handle).filter(Boolean); } catch { return []; }
+}
 
 // Bare game cartridge for the room cabinet's selector iframe. A route handler
 // (not a page) on purpose: pages under the (site) group inherit the Y2K
@@ -31,7 +37,8 @@ export async function GET(
   const device = /^[a-z]{2,12}$/.test(req.nextUrl.searchParams.get("device") || "") ? req.nextUrl.searchParams.get("device")! : artist ? "room" : "web";
   const flashSrcs =
     game === "flashmatch" && artist ? await fetchFlashSrcs(artist) : [];
-  const body = buildArcadePreviewHtml(game, { embed: true, flashSrcs });
+  const crew = await crewHandles();
+  const body = buildArcadePreviewHtml(game, { embed: true, flashSrcs, crew });
   if (!body) return new NextResponse("not found", { status: 404 });
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${game}</title></head><body><script>window.__ARCADE_DEVICE__=${JSON.stringify(device)};</script>${body}</body></html>`;
   return new NextResponse(html, {

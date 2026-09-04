@@ -128,6 +128,18 @@
   };
   var GRADE_BONUS = { S: 400, A: 250, B: 120, C: 50, D: 0 };
   var GRADE_TIP = { S: 150, A: 100, B: 50, C: 20, D: 0 };
+  // Who sits down changes the whole session: pay, how still they sit, how
+  // tight the work has to be, how they talk.
+  var CLIENTS = [
+    { kind: 'regular',  name: 'THE REGULAR',   pay: 1.0, tolMod: 0,  flinch: 1.0, patience: 1.35, tip: 1.0, line: 'JUST MAKE IT CLEAN', shirt: '#3a5a8a' },
+    { kind: 'talker',   name: 'THE TALKER',    pay: 1.1, tolMod: 0,  flinch: 1.2, patience: 1.45, tip: 1.0, line: 'SO ANYWAY, MY EX...', shirt: '#8a3a5a', talky: true },
+    { kind: 'flincher', name: 'THE FLINCHER',  pay: 1.4, tolMod: 1,  flinch: 1.9, patience: 1.3,  tip: 1.2, line: 'I JUMP. SORRY IN ADVANCE', shirt: '#5a8a3a' },
+    { kind: 'veteran',  name: 'THE VETERAN',   pay: 1.3, tolMod: -2, flinch: 0.5, patience: 1.25, tip: 2.0, line: 'SLEEVE NUMBER FOUR. GO', shirt: '#2a2a30' },
+    { kind: 'kid',      name: 'FIRST TIMER',   pay: 0.9, tolMod: 2,  flinch: 1.6, patience: 1.5,  tip: 0.8, line: 'IS THIS GONNA HURT', shirt: '#c8a030', kid: true },
+  ];
+  var JOKES = ['WAIT WAIT THAT REMINDS ME', 'HA. HAHA. SORRY', 'OK OK ONE MORE STORY', 'MY COUSIN HAS THE SAME ONE'];
+  var SHADE_SLOT = 6, SHADE_SLOTS = 8; // the packed band: 8 slots of 6px around the line
+  var INK_FULL = 1.35; // pots of ink: one pot is about a design's worth of clean linework
 
   var mode = 'intro'; // intro | ready | play | over
   var introT = 0;
@@ -137,6 +149,9 @@
   var flinch; // { kind, warnT, t, dur, amp, cols, good, shape } | null
   var nextFlinch, bannerT, bannerText, particles, popups, shake, doneAcc, grade, gradeT, gradeLines;
   var speech, speechT, motifs, designsDone, bestAcc, bestCombo, tips;
+  var phase, client, tod, patience, patienceMax, wipeT, shapes, recordS, lineAcc, shadeCov, bleeds, deep, deepT;
+  var pedal, pedalUsed, holdT, dipT, lastDownTap, ink, lowInk, cardT, cardText, cardSub, tipStreak, cleanClients, trustLostThis, lastDeep, jokeCd;
+  var touchHeld = false;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-steady') || '0', 10) || 0; } catch(e) {}
@@ -158,22 +173,73 @@
   }
 
   function talk(text, t) { speech = text; speechT = t || 110; }
+  function pay(n) { return Math.round(n * client.pay * (tod ? 2 : 1)); }
+  function lv() { return 1 + (level - 1) * 0.4; } // bonuses grow with the level, at half speed
+  function pedalDown() { return pedalUsed ? (pedal || touchHeld) : true; }
+
+  // The next client sits down: who they are decides the session.
+  function pickClient() {
+    if (level === 1) return CLIENTS[0];
+    if (level === 2) return pick([CLIENTS[1], CLIENTS[4]]);
+    return pick(CLIENTS);
+  }
+
+  // The shapes for the shading pass: bands around the same line, tapered at
+  // both ends, a few per design and more as the sessions get longer.
+  function makeShapes() {
+    shapes = [];
+    var n = 3 + Math.min(3, Math.floor(level / 2)) + (tod ? 1 : 0);
+    var gap = (pathLen - 500) / n;
+    for (var i = 0; i < n; i++) {
+      var x0 = 260 + i * gap + Math.random() * (gap * 0.25);
+      var wdt = 90 + Math.random() * 50 + level * 4;
+      shapes.push({ x0: x0, x1: x0 + wdt, h: 7 + Math.random() * 6 + Math.min(4, level * 0.5), cov: 0, slots: 0, judged: false });
+    }
+  }
+  function shapeAt(wx) {
+    for (var i = 0; i < shapes.length; i++) { var sh = shapes[i]; if (wx >= sh.x0 && wx <= sh.x1) return sh; }
+    return null;
+  }
+  // Half height of the band at world x (0 outside any shape).
+  function shapeHalf(wx) {
+    var sh = shapeAt(wx);
+    if (!sh) return 0;
+    var p = (wx - sh.x0) / (sh.x1 - sh.x0);
+    var ease = Math.sin(p * Math.PI);
+    return 5 + sh.h * Math.min(1, ease * 1.5);
+  }
 
   function startDesign() {
+    client = pickClient();
+    tod = level >= 4 && level % 4 === 0;
     path = makePath(level);
-    pathLen = 2400 + level * 400;
+    pathLen = 2400 + level * 320 + (tod ? 500 : 0);
     sx = 0;
-    speed = Math.min(3.8, 1.5 + level * 0.22);
-    tol = Math.max(6, 13 - level);
-    record = [];
+    phase = 'line';
+    speed = Math.min(3.8, 1.5 + level * 0.2);
+    tol = Math.max(5, Math.round(13 - level * 0.6 + client.tolMod - (tod ? 1 : 0)));
+    record = []; recordS = [];
     offStreak = 0; offTotal = 0; runCols = 0;
     nextFlinch = 300 + Math.random() * 240;
     flinch = null;
     needleY = path(NEEDLE_X);
     pointerY = null;
     motifs = [];
-    for (var mx = 320; mx < pathLen - 120; mx += MOTIF_GAP) motifs.push({ x: mx, state: 'stencil', judged: false });
-    talk(pick(LINES.start), 130);
+    var mgap = tod ? MOTIF_GAP * 0.7 : MOTIF_GAP;
+    for (var mx = 320; mx < pathLen - 120; mx += mgap) motifs.push({ x: mx, state: 'stencil', judged: false });
+    makeShapes();
+    lineAcc = 0; shadeCov = 0; bleeds = 0; deep = 0; deepT = 0; dipT = 0; lastDownTap = -99; lowInk = false; trustLostThis = false; jokeCd = 400;
+    wipeT = 0;
+    // Patience: the client sits for the whole job with some slack. Lifting the
+    // needle stops the scroll but not the clock.
+    patienceMax = Math.round(((pathLen / speed) * 2 + 200) * client.patience);
+    patience = patienceMax;
+    ink = INK_FULL;
+    cardT = 130;
+    cardText = (tod ? 'TATTOO OF THE DAY // ' : '') + client.name + ' SITS DOWN';
+    cardSub = 'PAY x' + (client.pay * (tod ? 2 : 1)).toFixed(1) + ' // TOLERANCE ' + tol + 'px // ' + (client.flinch >= 1.5 ? 'JUMPY' : client.flinch <= 0.5 ? 'SITS LIKE A ROCK' : 'NORMAL');
+    talk(client.line, 150);
+    if (tod) say('radical', 300);
   }
 
   function init() {
@@ -182,11 +248,12 @@
     combo = 1; grace = 0; bannerT = 0; bannerText = ''; doneAcc = null; grade = null; gradeT = 0; gradeLines = [];
     particles = []; popups = []; shake = 0; keyU = false; keyD = false; prec = 0; lastNick = -999; lastLost = -999;
     speech = ''; speechT = 0; designsDone = 0; bestAcc = 0; bestCombo = 1; tips = 0;
+    pedal = false; pedalUsed = false; holdT = 0; touchHeld = false; ink = INK_FULL; tipStreak = 0; cleanClients = 0; lastDeep = -999;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
     startDesign();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag up + down // stay on the stencil' : 'Up/Down keys // stay on the stencil';
+    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag to steer, hold to ink // lift to reposition' : 'Up/Down steer // hold SPACE to ink // DOWN twice dips for ink';
     var statB = document.getElementById('jd-stat-b');
     if (statB) statB.textContent = 'Trust';
     window.skateRunning = true;
@@ -229,7 +296,7 @@
     flinch = {
       kind: kind, warnT: warnOverride || k.warn, t: 0, shape: k.shape,
       dur: k.dur[0] + Math.random() * (k.dur[1] - k.dur[0]),
-      amp: (Math.random() < 0.5 ? -1 : 1) * (k.amp[0] + Math.random() * (k.amp[1] - k.amp[0]) + level * 3),
+      amp: (Math.random() < 0.5 ? -1 : 1) * (k.amp[0] + Math.random() * (k.amp[1] - k.amp[0]) + level * 2.5) * (client ? client.flinch : 1),
       cols: 0, good: 0,
     };
     talk(k.line, k.warn + 30);
@@ -240,10 +307,101 @@
     if (level >= 2) kinds.push('twitch');
     if (level >= 3) kinds.push('breathe');
     if (level >= 4) kinds.push('twitch');
+    if (client && client.kind === 'flincher') kinds.push('twitch', 'twitch');
+    if (client && client.kind === 'veteran') kinds = ['breathe', 'sneeze'];
     return pick(kinds);
   }
 
   function gradeFor(acc) { return acc >= 97 ? 'S' : acc >= 90 ? 'A' : acc >= 78 ? 'B' : acc >= 60 ? 'C' : 'D'; }
+
+  function loseTrust(reason, line) {
+    trust--;
+    trustLostThis = true;
+    document.getElementById('jd-br-lives').textContent = trust;
+    sfxWince();
+    combo = 1; runCols = 0;
+    grace = 120;
+    lastLost = frame;
+    shake = 14;
+    addPopup(W / 2, 90, reason, '#ff6347', true);
+    talk(line || pick(LINES.lost), 120);
+    sayCallout('steady-c3');
+    offStreak = 0;
+    if (trust <= 0) {
+      setBuzz(0);
+      enterBoard(score);
+      saveBest();
+      deathJingle();
+      return true;
+    }
+    return false;
+  }
+
+  // Grade the client's whole job: linework accuracy, shading coverage,
+  // bleeds, then the money.
+  function finishClient(early) {
+    var goodCount = 0, total = 0;
+    for (var i = NEEDLE_X; i < pathLen; i++) {
+      if (record[i]) { total++; if (record[i].good) goodCount++; }
+    }
+    lineAcc = total ? Math.round(goodCount / total * 100) : 0;
+    var covSum = 0, covN = 0;
+    for (var q = 0; q < shapes.length; q++) { if (shapes[q].judged) { covSum += shapes[q].cov; covN++; } }
+    shadeCov = covN ? Math.round(covSum / covN * 100) : 0;
+    var acc = early ? Math.round(lineAcc * 0.6) : Math.round(lineAcc * 0.6 + shadeCov * 0.4 - Math.min(20, bleeds * 2));
+    acc = Math.max(0, acc);
+    doneAcc = acc;
+    if (acc > bestAcc) bestAcc = acc;
+    grade = gradeFor(acc);
+    gradeLines = [];
+    gradeLines.push({ t: 'LINEWORK ' + lineAcc + '%   SHADING ' + (early ? 'SKIPPED' : shadeCov + '%'), c: '#9aa' });
+    var bonus = pay(GRADE_BONUS[grade] * lv());
+    score += bonus;
+    gradeLines.push({ t: 'GRADE ' + grade + ' (' + acc + '%)   +' + fmtNum(bonus), c: '#fff' });
+    if (offTotal === 0 && !early) {
+      var clean = pay(300 * lv());
+      score += clean;
+      gradeLines.push({ t: 'CLEAN LINE   +' + fmtNum(clean), c: CYAN });
+    }
+    if (!early && shadeCov >= 90 && bleeds === 0) {
+      var solid = pay(200 * lv());
+      score += solid;
+      gradeLines.push({ t: 'PACKED SOLID   +' + fmtNum(solid), c: STENCIL });
+    } else if (bleeds > 0) {
+      gradeLines.push({ t: bleeds + ' BLEED' + (bleeds > 1 ? 'S' : '') + '   no bonus', c: '#ff6347' });
+    }
+    if (grade === 'S' || grade === 'A') tipStreak++; else tipStreak = 0;
+    var tip = Math.round(GRADE_TIP[grade] * client.tip * (1 + 0.5 * Math.max(0, tipStreak - 1)));
+    if (tip) {
+      score += tip; tips += tip;
+      gradeLines.push({ t: 'TIP' + (tipStreak > 1 ? ' (STREAK x' + tipStreak + ')' : '') + '   +' + fmtNum(tip), c: YELLOW });
+    }
+    if (!trustLostThis) {
+      cleanClients++;
+      if (cleanClients % 3 === 0) {
+        var wd = pay(500 * lv());
+        score += wd;
+        gradeLines.push({ t: 'WALK-IN DAY   +' + fmtNum(wd), c: LIME });
+        say('yeah-dude', 300);
+      }
+    } else cleanClients = 0;
+    document.getElementById('jd-br-score').textContent = score;
+    gradeT = 170;
+    designsDone++;
+    talk(pick(LINES[grade]), 170);
+    if (grade === 'S') say('so-sick', 200);
+    else if (acc >= 70) sayCallout(acc >= 90 ? 'steady-c2' : 'steady-c1');
+    var back = acc >= 90 || (client.kid && acc >= 78);
+    if (back && trust < 3) {
+      trust++;
+      document.getElementById('jd-br-lives').textContent = trust;
+      gradeLines.push({ t: 'TRUST BACK', c: PINK });
+    }
+    if (grade === 'S' || grade === 'A') spawnParticles(W / 2, 100, YELLOW, 24, 6);
+    sfxDone();
+    level++;
+    startDesign();
+  }
 
   function update() {
     frame++;
@@ -251,15 +409,44 @@
     if (calloutCd > 0) calloutCd--;
     if (bannerT > 0) bannerT--;
     if (gradeT > 0) gradeT--;
+    if (cardT > 0) cardT--;
     if (speechT > 0) { speechT--; if (speechT === 0) speech = ''; }
     if (grace > 0) grace--;
     if (shake > 0) shake--;
+    if (jokeCd > 0) jokeCd--;
+    if (dipT > 0) dipT--;
+    if (holdT > 0 && !(pedal || touchHeld)) holdT = 0;
+    if (pedal || touchHeld) { holdT++; if (holdT >= 12 && !pedalUsed) { pedalUsed = true; addPopup(NEEDLE_X + 30, needleY - 40, 'PEDAL', CYAN); } }
+
+    // The wipe between passes: the towel sweeps, nothing scrolls
+    if (phase === 'wipe') {
+      wipeT--;
+      if (wipeT <= 0) { phase = 'shade'; sx = 0; needleY = path(NEEDLE_X); offStreak = 0; nextFlinch = 260 + Math.random() * 300; flinch = null; cardT = 90; cardText = 'SHADING PASS'; cardSub = 'hold the pedal inside the shapes // lift at the edges'; }
+      setBuzz(0);
+      return;
+    }
+
+    // The client's clock runs whatever the needle does
+    patience--;
+    if (patience <= 0) {
+      cardT = 120; cardText = 'OUT OF TIME'; cardSub = client.name + ' has to go';
+      if (loseTrust('THEY LEFT EARLY', 'GOTTA RUN. NEXT TIME')) return;
+      finishClient(true);
+      return;
+    }
 
     // Needle control: keys nudge, pointer pulls
     if (keyU) needleY -= 3.4;
     if (keyD) needleY += 3.4;
     if (pointerY !== null) needleY += (pointerY - needleY) * 0.45;
     needleY = Math.max(70, Math.min(285, needleY));
+
+    // Talkers tell a joke and jump at their own punchline
+    if (client.talky && jokeCd <= 0 && !flinch) {
+      jokeCd = 500 + Math.random() * 500;
+      talk(pick(JOKES), 90);
+      startFlinch('twitch', 44);
+    }
 
     // Flinch clock
     if (!flinch) {
@@ -272,138 +459,202 @@
       flinch.t++;
       if (flinch.t >= flinch.dur) {
         if (flinch.cols > 0 && flinch.good / flinch.cols >= 0.8) {
-          addScore(40 * level, NEEDLE_X + 40, needleY - 30, 'RODE THE FLINCH +' + (40 * level), CYAN, true);
+          var rf = pay(40 * lv());
+          addScore(rf, NEEDLE_X + 40, needleY - 30, 'RODE THE FLINCH +' + rf, CYAN, true);
           spawnParticles(NEEDLE_X, needleY, YELLOW, 10, 4);
           sfxDone();
         }
-        var chain = flinch.kind === 'twitch' && level >= 5 && Math.random() < 0.5;
+        var chain = (flinch.kind === 'twitch' && level >= 5 && Math.random() < 0.5) || (client.kind === 'flincher' && Math.random() < 0.35);
         flinch = null;
-        nextFlinch = Math.max(140, 340 - level * 30) + Math.random() * 240;
+        nextFlinch = (Math.max(140, 340 - level * 30) + Math.random() * 240) / client.flinch;
         if (chain) startFlinch('twitch', 14);
       }
     }
 
-    var onNow = record[Math.floor(sx + NEEDLE_X) - 1];
-    setBuzz(mode === 'play' && onNow && onNow.good ? 0.028 : 0);
+    // The pedal: lifted means no scroll, no ink, no judgment. A dip lifts too.
+    var down = pedalDown() && dipT === 0;
+    var onNow = phase === 'line' ? record[Math.floor(sx + NEEDLE_X) - 1] : recordS[Math.floor(sx + NEEDLE_X) - 1];
+    setBuzz(mode === 'play' && down && onNow && onNow.good ? (lowInk ? 0.016 : 0.028) : 0);
+    if (!down) {
+      if (deep > 0) deep = Math.max(0, deep - 4);
+      // particles and popups still drift
+      for (var i0 = particles.length - 1; i0 >= 0; i0--) { var p0 = particles[i0]; p0.x += p0.vx; p0.y += p0.vy; p0.life--; if (p0.life <= 0) particles.splice(i0, 1); }
+      for (var i1 = popups.length - 1; i1 >= 0; i1--) { popups[i1].y -= 0.45; popups[i1].life--; if (popups[i1].life <= 0) popups.splice(i1, 1); }
+      return;
+    }
 
-    // Advance the needle along the design, judging every column crossed
+    // Needle depth: ink too long without a lift and the skin swells
+    if (pedalUsed) {
+      deep += 1;
+      if (deep > 260 + level * 6 && frame - lastDeep > 90) {
+        lastDeep = frame;
+        deepT = 40;
+        addPopup(NEEDLE_X + 16, needleY - 28, 'TOO DEEP', '#ff6347', true);
+        talk(pick(LINES.ow), 60);
+        shake = Math.max(shake, 8);
+        spawnParticles(NEEDLE_X, needleY, '#cc2222', 8, 3);
+        if (combo > 1) combo = Math.max(1, Math.floor(combo / 2));
+        runCols = 0;
+        var mark = phase === 'line' ? record : recordS;
+        mark[Math.floor(sx + NEEDLE_X)] = mark[Math.floor(sx + NEEDLE_X)] || { y: needleY, good: false, ny: needleY, tier: 0 };
+        mark[Math.floor(sx + NEEDLE_X)].deep = true;
+      }
+    }
+
     var newSx = sx + speed;
-    for (var wx = Math.ceil(sx + NEEDLE_X); wx < newSx + NEEDLE_X; wx++) {
-      var ty = targetAt(wx);
-      var err = Math.abs(needleY - ty);
-      var good = err <= tol;
-      var tier = !good ? 0 : err <= tol * 0.35 ? 3 : err <= tol * 0.7 ? 2 : 1;
-      record[wx] = { y: good ? needleY : ty, good: good, ny: needleY, tier: tier };
-      if (flinch && flinch.warnT <= 0) { flinch.cols++; if (good) flinch.good++; }
-      prec += ((good ? 1 - err / tol : 0) - prec) * 0.04;
-      if (good) {
-        offStreak = 0;
-        runCols += tier === 3 ? 2 : 1;
-        if (wx % 20 === 0) {
-          addScore(tier * combo, 0, 0, null);
-          spawnParticles(NEEDLE_X, needleY + 4, INK, 1);
-        }
-        if (tier === 3 && wx % 60 === 0) addPopup(NEEDLE_X + 14, needleY - 16, 'DEAD CENTER +' + (3 * combo), '#fff');
-        if (runCols >= 60) {
-          runCols = 0;
-          if (combo < 8) {
-            combo++;
-            if (combo > bestCombo) bestCombo = combo;
-            addPopup(NEEDLE_X + 20, needleY - 34, 'STEADY x' + combo, YELLOW, true);
-            spawnParticles(NEEDLE_X, needleY, YELLOW, 8, 4);
-            playSfx(600 + combo * 80, 0.08, 'square', 0.1);
-            if (combo === 5) sayCallout('steady-c1');
-          }
-        }
-      } else {
-        offStreak++; offTotal++;
-        if (offStreak === 1) { spawnParticles(NEEDLE_X, needleY, '#cc2222', 3); lastNick = frame; }
-        if (offStreak === 8) {
-          runCols = 0;
-          if (combo > 1) { combo = Math.max(1, Math.floor(combo / 2)); addPopup(NEEDLE_X + 16, needleY - 20, 'WANDER', '#ff6347'); }
-          talk(pick(LINES.ow), 60);
-          shake = Math.max(shake, 5);
-        }
-        if (offStreak > 50 && grace === 0) {
-          trust--;
-          document.getElementById('jd-br-lives').textContent = trust;
-          sfxWince();
-          combo = 1; runCols = 0;
-          grace = 120;
-          lastLost = frame;
-          shake = 14;
-          addPopup(W / 2, 90, '-1 TRUST', '#ff6347', true);
-          talk(pick(LINES.lost), 120);
-          sayCallout('steady-c3');
+    if (phase === 'line') {
+      // Advance the needle along the design, judging every column crossed
+      for (var wx = Math.ceil(sx + NEEDLE_X); wx < newSx + NEEDLE_X; wx++) {
+        var ty = targetAt(wx);
+        var err = Math.abs(needleY - ty);
+        var good = err <= tol;
+        var tier = !good ? 0 : err <= tol * 0.35 ? 3 : err <= tol * 0.7 ? 2 : 1;
+        record[wx] = { y: good ? needleY : ty, good: good, ny: needleY, tier: tier, faint: lowInk };
+        if (flinch && flinch.warnT <= 0) { flinch.cols++; if (good) flinch.good++; }
+        prec += ((good ? 1 - err / tol : 0) - prec) * 0.04;
+        if (good) {
+          ink = Math.max(0, ink - 1 / 5200);
           offStreak = 0;
-          if (trust <= 0) {
-            setBuzz(0);
-            enterBoard(score);
-            saveBest();
-            deathJingle();
-            return;
+          runCols += tier === 3 ? 2 : 1;
+          if (wx % 20 === 0) {
+            addScore(pay(tier * combo) * (lowInk ? 0.5 : 1) | 0, 0, 0, null);
+            spawnParticles(NEEDLE_X, needleY + 4, INK, 1);
           }
+          if (tier === 3 && wx % 60 === 0) addPopup(NEEDLE_X + 14, needleY - 16, 'DEAD CENTER +' + pay(3 * combo), '#fff');
+          if (runCols >= 60) {
+            runCols = 0;
+            if (combo < 8) {
+              combo++;
+              if (combo > bestCombo) bestCombo = combo;
+              addPopup(NEEDLE_X + 20, needleY - 34, 'STEADY x' + combo, YELLOW, true);
+              spawnParticles(NEEDLE_X, needleY, YELLOW, 8, 4);
+              playSfx(600 + combo * 80, 0.08, 'square', 0.1);
+              if (combo === 5) sayCallout('steady-c1');
+            }
+          }
+        } else {
+          offStreak++; offTotal++;
+          if (offStreak === 1) { spawnParticles(NEEDLE_X, needleY, '#cc2222', 3); lastNick = frame; }
+          if (offStreak === 8) {
+            runCols = 0;
+            if (combo > 1) { combo = Math.max(1, Math.floor(combo / 2)); addPopup(NEEDLE_X + 16, needleY - 20, 'WANDER', '#ff6347'); }
+            talk(pick(LINES.ow), 60);
+            shake = Math.max(shake, 5);
+          }
+          if (offStreak > 50 && grace === 0) {
+            if (loseTrust('-1 TRUST')) return;
+          }
+        }
+      }
+      // Motifs get judged once the needle clears them: inked clean, or botched
+      for (var m = 0; m < motifs.length; m++) {
+        var mo = motifs[m];
+        if (mo.judged || newSx + NEEDLE_X < mo.x + MOTIF_SPAN) continue;
+        mo.judged = true;
+        var gc = 0, tc = 0;
+        for (var q = mo.x - MOTIF_SPAN; q <= mo.x + MOTIF_SPAN; q++) if (record[q]) { tc++; if (record[q].good) gc++; }
+        if (tc && gc / tc >= 0.75) {
+          mo.state = 'ink';
+          var mp = pay(20 * lv());
+          addScore(mp, NEEDLE_X - 20, path(mo.x) - 40, design().motif.toUpperCase() + ' +' + mp, LIME);
+          spawnParticles(NEEDLE_X - 30, path(mo.x), LIME, 6, 3);
+        } else {
+          mo.state = 'botched';
+          addPopup(NEEDLE_X - 20, path(mo.x) - 40, 'BOTCHED', '#ff6347');
+        }
+      }
+    } else {
+      // Shading: pack the band. Inside pays and fills slots, outside bleeds.
+      for (var wx2 = Math.ceil(sx + NEEDLE_X); wx2 < newSx + NEEDLE_X; wx2++) {
+        var cy = targetAt(wx2);
+        var half = shapeHalf(wx2);
+        var inside = half > 0 && Math.abs(needleY - cy) <= half + 4;
+        var rec = recordS[wx2] || { slots: 0, good: false, ny: needleY, bleed: false };
+        rec.ny = needleY;
+        if (inside) {
+          ink = Math.max(0, ink - 1 / 3200);
+          // the brush is ~10px tall: it covers the slot it is in and the neighbours
+          var slot = Math.floor((needleY - cy + SHADE_SLOTS * SHADE_SLOT / 2) / SHADE_SLOT);
+          for (var sl = slot - 1; sl <= slot + 1; sl++) if (sl >= 0 && sl < SHADE_SLOTS) rec.slots |= (1 << sl);
+          rec.good = true;
+          offStreak = 0;
+          runCols++;
+          if (wx2 % 20 === 0) addScore(pay(2 * combo) * (lowInk ? 0.5 : 1) | 0, 0, 0, null);
+          if (runCols >= 70 && combo < 8) { runCols = 0; combo++; if (combo > bestCombo) bestCombo = combo; addPopup(NEEDLE_X + 20, needleY - 34, 'STEADY x' + combo, YELLOW, true); playSfx(600 + combo * 80, 0.08, 'square', 0.1); }
+          prec += (1 - prec) * 0.03;
+          if (wx2 % 3 === 0) spawnParticles(NEEDLE_X, needleY, INK, 1, 2);
+        } else if (half >= 9) {
+          // near a shape but outside it: that is a bleed
+          rec.bleed = true;
+          offStreak++;
+          prec += (0 - prec) * 0.03;
+          if (offStreak === 1) { spawnParticles(NEEDLE_X, needleY, '#cc2222', 4, 3); lastNick = frame; }
+          if (offStreak === 14) {
+            bleeds++;
+            addPopup(NEEDLE_X + 16, needleY - 22, 'BLEED', '#ff6347', true);
+            talk(pick(LINES.ow), 60);
+            shake = Math.max(shake, 6);
+            runCols = 0;
+            if (combo > 1) combo = Math.max(1, Math.floor(combo / 2));
+          }
+          if (offStreak > 60 && grace === 0) {
+            if (loseTrust('-1 TRUST')) return;
+          }
+        } else {
+          // open skin between shapes: the pedal should be up here, but no harm
+          offStreak = 0;
+          prec += (0.6 - prec) * 0.01;
+        }
+        if (flinch && flinch.warnT <= 0) { flinch.cols++; if (inside || half === 0) flinch.good++; }
+        recordS[wx2] = rec;
+      }
+      // Shapes get judged once cleared: coverage of their slots
+      for (var si = 0; si < shapes.length; si++) {
+        var sh = shapes[si];
+        if (sh.judged || newSx + NEEDLE_X < sh.x1 + 10) continue;
+        sh.judged = true;
+        // Packing is judged on 24px cells: a wiggle across a cell covers it,
+        // the way a real pass goes back over the same patch.
+        var have = 0, want = 0;
+        for (var cx = Math.ceil(sh.x0); cx < sh.x1; cx += 24) {
+          var hh = shapeHalf(Math.min(sh.x1, cx + 12));
+          var lo = Math.floor((-hh + SHADE_SLOTS * SHADE_SLOT / 2) / SHADE_SLOT), hi = Math.floor((hh + SHADE_SLOTS * SHADE_SLOT / 2) / SHADE_SLOT);
+          var union = 0;
+          for (var cc = cx; cc < cx + 24 && cc <= sh.x1; cc++) if (recordS[cc]) union |= recordS[cc].slots;
+          for (var k2 = Math.max(0, lo); k2 <= Math.min(SHADE_SLOTS - 1, hi); k2++) { want++; if (union & (1 << k2)) have++; }
+        }
+        sh.cov = want ? have / want : 0;
+        var pct = Math.round(sh.cov * 100);
+        if (sh.cov >= 0.8) {
+          var sp = pay(30 * lv());
+          addScore(sp, NEEDLE_X - 30, path(sh.x1) - 44, 'PACKED ' + pct + '% +' + sp, STENCIL);
+          spawnParticles(NEEDLE_X - 30, path(sh.x1), STENCIL, 8, 3);
+        } else {
+          addPopup(NEEDLE_X - 30, path(sh.x1) - 44, sh.cov < 0.5 ? 'PATCHY ' + pct + '%' : 'THIN ' + pct + '%', sh.cov < 0.5 ? '#ff6347' : YELLOW);
         }
       }
     }
     sx = newSx;
 
-    // Motifs get judged once the needle clears them: inked clean, or botched
-    for (var m = 0; m < motifs.length; m++) {
-      var mo = motifs[m];
-      if (mo.judged || sx + NEEDLE_X < mo.x + MOTIF_SPAN) continue;
-      mo.judged = true;
-      var gc = 0, tc = 0;
-      for (var q = mo.x - MOTIF_SPAN; q <= mo.x + MOTIF_SPAN; q++) if (record[q]) { tc++; if (record[q].good) gc++; }
-      if (tc && gc / tc >= 0.75) {
-        mo.state = 'ink';
-        addScore(20 * level, NEEDLE_X - 20, path(mo.x) - 40, design().motif.toUpperCase() + ' +' + (20 * level), LIME);
-        spawnParticles(NEEDLE_X - 30, path(mo.x), LIME, 6, 3);
-      } else {
-        mo.state = 'botched';
-        addPopup(NEEDLE_X - 20, path(mo.x) - 40, 'BOTCHED', '#ff6347');
-      }
-    }
+    // Ink: a pot runs low and the line fades until you dip
+    lowInk = ink < 0.28;
+    if (lowInk && frame % 120 === 0) addPopup(30, 290, 'LOW INK // DOWN x2 DIPS', '#ff6347');
 
-    // Design finished: grade the work
+    // Pass finished: wipe, then shade; after shading, the grade
     if (sx + NEEDLE_X >= pathLen) {
-      var goodCount = 0, total = 0;
-      for (var i = NEEDLE_X; i < pathLen; i++) {
-        if (record[i]) { total++; if (record[i].good) goodCount++; }
+      if (phase === 'line') {
+        phase = 'wipe';
+        wipeT = 70;
+        setBuzz(0);
+        var goodC = 0, totalC = 0;
+        for (var i2 = NEEDLE_X; i2 < pathLen; i2++) { if (record[i2]) { totalC++; if (record[i2].good) goodC++; } }
+        lineAcc = totalC ? Math.round(goodC / totalC * 100) : 0;
+        addPopup(W / 2, 100, 'LINEWORK ' + lineAcc + '% // WIPE', '#fff', true);
+        playSfx(500, 0.1, 'triangle', 0.08);
+      } else {
+        finishClient(false);
+        return;
       }
-      var acc = total ? Math.round(goodCount / total * 100) : 0;
-      doneAcc = acc;
-      if (acc > bestAcc) bestAcc = acc;
-      grade = gradeFor(acc);
-      gradeLines = [];
-      var bonus = GRADE_BONUS[grade] * level;
-      score += bonus;
-      gradeLines.push({ t: 'ACCURACY ' + acc + '%   +' + fmtNum(bonus), c: '#fff' });
-      if (offTotal === 0) {
-        var clean = 300 * level;
-        score += clean;
-        gradeLines.push({ t: 'CLEAN LINE   +' + fmtNum(clean), c: CYAN });
-      }
-      var tip = GRADE_TIP[grade];
-      if (tip) {
-        score += tip; tips += tip;
-        gradeLines.push({ t: 'TIP   +' + fmtNum(tip), c: YELLOW });
-      }
-      document.getElementById('jd-br-score').textContent = score;
-      gradeT = 150;
-      designsDone++;
-      talk(pick(LINES[grade]), 150);
-      if (grade === 'S') say('so-sick', 200);
-      else if (acc >= 70) sayCallout(acc >= 90 ? 'steady-c2' : 'steady-c1');
-      if (acc >= 90 && trust < 3) {
-        trust++;
-        document.getElementById('jd-br-lives').textContent = trust;
-        gradeLines.push({ t: 'TRUST BACK', c: PINK });
-      }
-      if (grade === 'S' || grade === 'A') spawnParticles(W / 2, 100, YELLOW, 24, 6);
-      sfxDone();
-      level++;
-      startDesign();
     }
 
     for (var i = particles.length - 1; i >= 0; i--) {
@@ -423,15 +674,28 @@
     if (mode === 'over') { if (wall.inBeat()) return; init(); mode = 'play'; return; }
     if (mode === 'ready') mode = 'play';
   }
+  function dip() {
+    if (mode !== 'play' || dipT > 0) return;
+    dipT = 30;
+    ink = INK_FULL;
+    lowInk = false;
+    addPopup(NEEDLE_X + 10, needleY - 30, 'DIP', PINK, true);
+    playSfx(320, 0.08, 'triangle', 0.1);
+    spawnParticles(28, 300, PINK, 6, 3);
+  }
   document.addEventListener('keydown', function(e) {
     if (!window.skateRunning) return;
     if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); keyU = true; pointerY = null; start(); }
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); keyD = true; pointerY = null; start(); }
-    if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) start(); }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      e.preventDefault(); keyD = true; pointerY = null; start();
+      if (!e.repeat) { if (frame - lastDownTap < 18) dip(); lastDownTap = frame; }
+    }
+    if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { start(); pedal = true; holdT = 0; } }
   });
   document.addEventListener('keyup', function(e) {
     if (e.code === 'ArrowUp' || e.code === 'KeyW') keyU = false;
     if (e.code === 'ArrowDown' || e.code === 'KeyS') keyD = false;
+    if (e.code === 'Space') pedal = false;
   });
   function canvasY(clientY) {
     var r = canvas.getBoundingClientRect();
@@ -440,16 +704,22 @@
   canvas.addEventListener('mousemove', function(e) { pointerY = canvasY(e.clientY); });
   canvas.addEventListener('mouseleave', function() { pointerY = null; });
   canvas.addEventListener('click', function() { start(); });
+  var lastTouchStart = -99;
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
     start();
     pointerY = canvasY(e.touches[0].clientY);
+    touchHeld = true; holdT = 0;
+    // two quick taps near the ink pot dip the needle
+    if (frame - lastTouchStart < 18 && canvasY(e.touches[0].clientY) > 280) dip();
+    lastTouchStart = frame;
   }, { passive: false });
   canvas.addEventListener('touchmove', function(e) {
     e.preventDefault();
     pointerY = canvasY(e.touches[0].clientY);
   }, { passive: false });
-  canvas.addEventListener('touchend', function(e) { e.preventDefault(); pointerY = null; }, { passive: false });
+  canvas.addEventListener('touchend', function(e) { e.preventDefault(); pointerY = null; touchHeld = false; }, { passive: false });
+  canvas.addEventListener('touchcancel', function() { pointerY = null; touchHeld = false; });
 
   // ── The shop wall: the shared leaderboard (public/arcade-board.js) ──
   // Every cabinet, room and the kiosk post to the same wall; this game only
@@ -457,13 +727,13 @@
   var wall = window.ArcadeBoard.attach({
     game: 'steady', label: 'Steady Hand', canvas: canvas, ctx: ctx, W: W, H: H,
     title: 'THE CLIENT LEFT', again: 'SPACE or TAP for the next client',
-    levelLabel: function (l) { return (l - 1) + ' DESIGNS FINISHED'; },
+    levelLabel: function (l) { return (l - 1) + ' CLIENTS DONE // ' + fmtNum(tips) + ' IN TIPS'; },
     isActive: function () { return !!window.skateRunning; },
     getMode: function () { return mode; }, setMode: function (m) { mode = m; },
     getFrame: function () { return frame; },
     say: function (n) { say(n, 350); },
   });
-  function enterBoard(v) { wall.enter(v, { level: level, meta: { designs: designsDone, bestAcc: bestAcc, bestCombo: bestCombo, tips: tips } }); }
+  function enterBoard(v) { wall.enter(v, { level: level, meta: { designs: designsDone, bestAcc: bestAcc, bestCombo: bestCombo, tips: tips, clean: cleanClients } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -649,8 +919,8 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('UP/DOWN, MOUSE or DRAG to keep the needle on the stencil', W / 2, H - 42);
-    ctx.fillText('dead center pays triple // stay on it to build STEADY x8', W / 2, H - 29);
+    ctx.fillText('UP/DOWN steers // hold SPACE to ink, lift to reposition // DOWN x2 dips', W / 2, H - 42);
+    ctx.fillText('trace the lines, then pack the shading // every client sits different', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
@@ -712,30 +982,71 @@
       ctx.fillRect(x, wr.ny - 7, 2, 14);
     }
 
-    // Finished work behind the needle: real ink where clean, nicks where not
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    var segOpen = false;
-    for (var x = 0; x < NEEDLE_X; x++) {
-      var wx = Math.floor(sx + x);
-      var r = record[wx];
-      if (r && r.good) {
-        if (!segOpen || x % 8 === 0) {
-          if (segOpen) { ctx.lineTo(x, r.y); ctx.stroke(); }
-          ctx.beginPath(); ctx.moveTo(x, r.y);
-          ctx.strokeStyle = INK; ctx.lineWidth = weight(wx);
-          segOpen = true;
-        } else ctx.lineTo(x, r.y);
-      } else {
-        if (segOpen) { ctx.stroke(); segOpen = false; }
-        if (r) {
-          ctx.fillStyle = 'rgba(180,40,40,0.75)';
-          ctx.fillRect(x, r.ny - 1, 1.6, 2);
-          ctx.fillStyle = 'rgba(120,30,30,0.18)';
-          ctx.fillRect(x, r.ny - 4, 1.6, 8);
+    // Where the needle went too deep the skin swells up
+    var recNow = phase === 'line' ? record : recordS;
+    for (var x = 0; x < W; x += 1) {
+      var dr = recNow[Math.floor(sx + x)];
+      if (dr && dr.deep) {
+        ctx.fillStyle = 'rgba(255,255,255,0.16)';
+        ctx.beginPath(); ctx.ellipse(x, dr.ny, 14, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(220,60,60,0.28)';
+        ctx.beginPath(); ctx.ellipse(x, dr.ny, 18, 10, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Shading pass: the packed band behind the needle, slot by slot
+    if (phase !== 'line') {
+      for (var x = 0; x < NEEDLE_X; x++) {
+        var wxs = Math.floor(sx + x);
+        var rs = recordS[wxs];
+        var cyS = path(wxs);
+        if (rs && rs.slots) {
+          for (var sl = 0; sl < SHADE_SLOTS; sl++) {
+            if (!(rs.slots & (1 << sl))) continue;
+            var syy = cyS - SHADE_SLOTS * SHADE_SLOT / 2 + sl * SHADE_SLOT;
+            ctx.fillStyle = 'rgba(28,20,24,' + (0.62 + ((wxs * 7 + sl * 13) % 5) * 0.06) + ')';
+            ctx.fillRect(x, syy, 1.2, SHADE_SLOT);
+          }
+        }
+        if (rs && rs.bleed) {
+          ctx.fillStyle = 'rgba(160,30,30,0.5)';
+          ctx.fillRect(x, rs.ny - 2, 1.4, 4);
+          ctx.fillStyle = 'rgba(120,30,30,0.16)';
+          ctx.fillRect(x, rs.ny - 6, 1.4, 12);
         }
       }
     }
-    if (segOpen) ctx.stroke();
+
+    // Finished linework behind the needle: real ink where clean, nicks where not.
+    // Two layers, a soft wide one under a crisp one with a hair of wobble.
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (var layer = 0; layer < 2; layer++) {
+      var segOpen = false;
+      for (var x = 0; x < NEEDLE_X; x++) {
+        var wx = Math.floor(sx + x);
+        var r = record[wx];
+        if (r && r.good) {
+          var wob = layer ? Math.sin(wx * 0.9) * 0.35 : 0;
+          if (!segOpen || x % 8 === 0) {
+            if (segOpen) { ctx.lineTo(x, r.y + wob); ctx.stroke(); }
+            ctx.beginPath(); ctx.moveTo(x, r.y + wob);
+            var faint = r.faint ? 0.45 : 1;
+            ctx.strokeStyle = layer ? 'rgba(28,20,24,' + faint + ')' : 'rgba(28,20,24,' + (0.28 * faint) + ')';
+            ctx.lineWidth = layer ? weight(wx) : weight(wx) + 1.6;
+            segOpen = true;
+          } else ctx.lineTo(x, r.y + wob);
+        } else {
+          if (segOpen) { ctx.stroke(); segOpen = false; }
+          if (r && layer && !r.deep) {
+            ctx.fillStyle = 'rgba(180,40,40,0.75)';
+            ctx.fillRect(x, r.ny - 1, 1.6, 2);
+            ctx.fillStyle = 'rgba(120,30,30,0.18)';
+            ctx.fillRect(x, r.ny - 4, 1.6, 8);
+          }
+        }
+      }
+      if (segOpen) ctx.stroke();
+    }
     // A thin highlight along the fresh ink so it reads wet
     ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 0.8;
     ctx.beginPath();
@@ -755,21 +1066,50 @@
       drawMotif(d.motif, mxs, path(mo.x), mo.state);
     }
 
-    // Stencil ahead of the needle: dashed purple, weighted like the line
-    for (var x = NEEDLE_X; x < W; x += 3) {
-      if (Math.floor(x / 6) % 2 === 0) {
-        var ty = targetAt(sx + x);
-        var wgt = weight(sx + x);
+    if (phase === 'line') {
+      // Stencil ahead of the needle: dashed purple, weighted like the line
+      for (var x = NEEDLE_X; x < W; x += 3) {
+        if (Math.floor(x / 6) % 2 === 0) {
+          var ty = targetAt(sx + x);
+          var wgt = weight(sx + x);
+          ctx.fillStyle = STENCIL;
+          ctx.fillRect(x, ty - wgt / 2, 2, wgt);
+        }
+      }
+      // Tolerance channel hint right at the needle
+      var tNow = targetAt(sx + NEEDLE_X);
+      ctx.fillStyle = 'rgba(123,47,191,0.18)';
+      ctx.fillRect(NEEDLE_X - 3, tNow - tol, 20, tol * 2);
+      ctx.fillStyle = 'rgba(123,47,191,0.22)';
+      ctx.fillRect(NEEDLE_X - 3, tNow - tol * 0.35, 20, tol * 0.7);
+    } else {
+      // The whole line is inked now; the shapes to pack sit around it as
+      // hatched stencil ahead, outlines everywhere
+      for (var x = 0; x < W; x++) {
+        var wxl = Math.floor(sx + x);
+        var ly = path(wxl);
+        ctx.fillStyle = INK;
+        ctx.fillRect(x, ly - weight(wxl) / 2, 1.2, weight(wxl));
+      }
+      for (var x = 0; x < W; x += 2) {
+        var wxb = sx + x;
+        var hb = shapeHalf(wxb);
+        if (hb <= 0) continue;
+        var cyb = targetAt(wxb);
+        if (x >= NEEDLE_X && Math.floor(x / 4) % 2 === 0) {
+          ctx.fillStyle = 'rgba(123,47,191,0.16)';
+          ctx.fillRect(x, cyb - hb, 2, hb * 2);
+        }
         ctx.fillStyle = STENCIL;
-        ctx.fillRect(x, ty - wgt / 2, 2, wgt);
+        ctx.fillRect(x, cyb - hb - 1, 2, 1.5);
+        ctx.fillRect(x, cyb + hb - 0.5, 2, 1.5);
+      }
+      var tNow2 = targetAt(sx + NEEDLE_X), hNow = shapeHalf(sx + NEEDLE_X);
+      if (hNow > 0) {
+        ctx.fillStyle = 'rgba(123,47,191,0.2)';
+        ctx.fillRect(NEEDLE_X - 3, tNow2 - hNow, 20, hNow * 2);
       }
     }
-    // Tolerance channel hint right at the needle
-    var tNow = targetAt(sx + NEEDLE_X);
-    ctx.fillStyle = 'rgba(123,47,191,0.18)';
-    ctx.fillRect(NEEDLE_X - 3, tNow - tol, 20, tol * 2);
-    ctx.fillStyle = 'rgba(123,47,191,0.22)';
-    ctx.fillRect(NEEDLE_X - 3, tNow - tol * 0.35, 20, tol * 0.7);
 
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
@@ -787,15 +1127,20 @@
     ctx.strokeStyle = '#9aa2ae'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(14, 16, 4, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(14, 16); ctx.lineTo(16, 12); ctx.stroke();
-    var onAir = record[Math.floor(sx + NEEDLE_X) - 1];
-    var inking = onAir && onAir.good;
+    var onAir = (phase === 'line' ? record : recordS)[Math.floor(sx + NEEDLE_X) - 1];
+    var lifted = !(pedalDown() && dipT === 0) || phase === 'wipe';
+    var inking = !lifted && onAir && onAir.good;
+    var liftY = lifted ? -9 : 0;
     ctx.fillStyle = inking ? '#7FFF00' : '#442222';
     ctx.fillRect(26, 12, 4, 4);
     ctx.fillStyle = '#9aa';
     ctx.font = '6px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('PWR', 25, 25);
-    var vib = (Math.random() - 0.5) * (inking ? 2.2 : 1.2);
+    var vib = (Math.random() - 0.5) * (inking ? 2.2 : 1.2) + liftY;
+    ctx.fillStyle = '#9aa';
+    ctx.font = '6px monospace';
+    ctx.fillText(lifted ? 'LIFT' : 'INK', 8, 8);
     ctx.strokeStyle = '#3a3440';
     ctx.beginPath();
     ctx.moveTo(NEEDLE_X - 2, needleY - 30 + vib);
@@ -825,38 +1170,73 @@
     ctx.beginPath();
     ctx.moveTo(NEEDLE_X - 3, needleY - 10 + vib);
     ctx.lineTo(NEEDLE_X + 3, needleY - 10 + vib);
-    ctx.lineTo(NEEDLE_X + 1.5, needleY - 2);
-    ctx.lineTo(NEEDLE_X - 1.5, needleY - 2);
+    ctx.lineTo(NEEDLE_X + 1.5, needleY - 2 + liftY);
+    ctx.lineTo(NEEDLE_X - 1.5, needleY - 2 + liftY);
     ctx.fill();
-    ctx.fillStyle = inking ? INK : '#cc2222';
-    ctx.fillRect(NEEDLE_X - 0.5, needleY - 3, 1.5, 4);
+    ctx.fillStyle = inking ? (lowInk ? 'rgba(28,20,24,0.45)' : INK) : lifted ? '#9aa2ae' : '#cc2222';
+    ctx.fillRect(NEEDLE_X - 0.5, needleY - 3 + liftY, 1.5, 4);
+    if (lifted) { ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.ellipse(NEEDLE_X, needleY + 2, 5, 2, 0, 0, Math.PI * 2); ctx.fill(); }
     if (inking && frame % 3 === 0) { ctx.fillStyle = 'rgba(28,20,24,0.7)'; ctx.fillRect(NEEDLE_X + 1, needleY + 1, 1, 1); }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // The station below: ink pot, towel, and this design's progress
+    // The station below: the ink cap with its level, the towel, the pass
+    // progress with its marks, and the client's clock
     ctx.fillStyle = '#1c1522';
     ctx.fillRect(0, 294, W, 26);
     ctx.fillStyle = '#14121a';
     ctx.fillRect(20, 297, 12, 13);
-    ctx.fillStyle = PINK;
-    ctx.fillRect(22, 295, 8, 4);
-    ctx.fillStyle = '#e8e4d8';
+    var inkLvl = Math.max(0, Math.min(1, ink / INK_FULL));
+    ctx.fillStyle = lowInk && Math.floor(frame / 10) % 2 === 0 ? '#ff6347' : PINK;
+    ctx.fillRect(22, 309 - 12 * inkLvl, 8, 12 * inkLvl);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '6px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('INK', 8, 305);
+    ctx.fillStyle = phase === 'wipe' ? '#fff' : '#e8e4d8';
     ctx.fillRect(44, 299, 22, 10);
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
     ctx.fillRect(44, 303, 22, 1);
     ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fillRect(80, 300, W - 88, 5);
-    ctx.fillStyle = PINK;
-    ctx.fillRect(80, 300, (W - 88) * Math.min(1, (sx + NEEDLE_X) / pathLen), 5);
-    for (var m2 = 0; m2 < motifs.length; m2++) {
-      ctx.fillStyle = motifs[m2].state === 'ink' ? LIME : motifs[m2].state === 'botched' ? '#ff6347' : 'rgba(255,255,255,0.5)';
-      ctx.fillRect(80 + (W - 88) * (motifs[m2].x / pathLen) - 1, 298, 2, 9);
+    ctx.fillRect(80, 300, W - 150, 5);
+    ctx.fillStyle = phase === 'line' ? PINK : STENCIL;
+    ctx.fillRect(80, 300, (W - 150) * Math.min(1, (sx + NEEDLE_X) / pathLen), 5);
+    if (phase === 'line') {
+      for (var m2 = 0; m2 < motifs.length; m2++) {
+        ctx.fillStyle = motifs[m2].state === 'ink' ? LIME : motifs[m2].state === 'botched' ? '#ff6347' : 'rgba(255,255,255,0.5)';
+        ctx.fillRect(80 + (W - 150) * (motifs[m2].x / pathLen) - 1, 298, 2, 9);
+      }
+    } else {
+      for (var s2 = 0; s2 < shapes.length; s2++) {
+        ctx.fillStyle = shapes[s2].judged ? (shapes[s2].cov >= 0.85 ? LIME : shapes[s2].cov >= 0.5 ? YELLOW : '#ff6347') : 'rgba(255,255,255,0.5)';
+        ctx.fillRect(80 + (W - 150) * (shapes[s2].x0 / pathLen), 298, Math.max(2, (W - 150) * ((shapes[s2].x1 - shapes[s2].x0) / pathLen)), 9);
+      }
     }
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.font = '7px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(phase === 'line' ? 'LINES' : phase === 'wipe' ? 'WIPE' : 'SHADE', 80, 314);
+    // The clock: how long they will sit
+    var pt = Math.max(0, patience / patienceMax);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(W - 62, 300, 54, 5);
+    ctx.fillStyle = pt > 0.4 ? CYAN : pt > 0.2 ? YELLOW : '#ff6347';
+    ctx.fillRect(W - 62, 300, 54 * pt, 5);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.textAlign = 'right';
-    ctx.fillText(Math.min(100, Math.floor((sx + NEEDLE_X) / pathLen * 100)) + '%', W - 8, 314);
+    ctx.fillText('SITTING', W - 8, 314);
+
+    // The wipe: a towel sweeps the work
+    if (phase === 'wipe') {
+      var wp = 1 - wipeT / 70;
+      var wxp = -40 + wp * (W + 80);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(wxp - 30, 62, 60, 232);
+      ctx.fillStyle = '#e8e4d8';
+      ctx.fillRect(wxp - 14, 120, 28, 90);
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.fillRect(wxp - 14, 150, 28, 2); ctx.fillRect(wxp - 14, 180, 28, 2);
+    }
 
     // HUD: score and the steady multiplier on the left
     ctx.fillStyle = '#fff';
@@ -878,7 +1258,7 @@
     ctx.fillStyle = LIME;
     ctx.textAlign = 'center';
     ctx.font = 'bold 10px monospace';
-    ctx.fillText('DESIGN ' + level + ': ' + d.name, W / 2, 14);
+    ctx.fillText((tod ? 'TATTOO OF THE DAY: ' : 'CLIENT ' + level + ': ') + d.name, W / 2, 14);
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.font = '7px monospace';
     ctx.fillText('PRECISION', W / 2, 26);
@@ -891,7 +1271,12 @@
     ctx.font = 'bold 7px monospace';
     ctx.fillText(Math.round(pc * 100) + '%', W / 2, 45);
 
-    // The client and their trust, on the right
+    // The client and their trust, on the right: a body under the face, the arm
+    // running down into the skin you're working on
+    ctx.fillStyle = client.shirt;
+    ctx.beginPath(); ctx.moveTo(W - 112, 48); ctx.quadraticCurveTo(W - 86, 34, W - 60, 48); ctx.lineTo(W - 60, 62); ctx.lineTo(W - 112, 62); ctx.fill();
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.moveTo(W - 66, 50); ctx.quadraticCurveTo(W - 50, 52, W - 44, 62); ctx.lineTo(W - 70, 62); ctx.fill();
     drawFace(W - 100, 4, skin);
     for (var i = 0; i < 3; i++) {
       ctx.fillStyle = i < trust ? PINK : 'rgba(255,255,255,0.18)';
@@ -925,6 +1310,30 @@
     }
     ctx.globalAlpha = 1;
 
+    // Who just sat down (and the pass change), a card that fades
+    if (cardT > 0 && mode === 'play' && gradeT === 0) {
+      ctx.globalAlpha = Math.min(1, cardT / 25);
+      ctx.fillStyle = 'rgba(10,6,14,0.86)';
+      ctx.fillRect(W / 2 - 130, 66, 260, 40);
+      ctx.strokeStyle = tod ? YELLOW : STENCIL;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(W / 2 - 130, 66, 260, 40);
+      ctx.fillStyle = tod ? YELLOW : '#fff';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(cardText, W / 2, 82);
+      ctx.fillStyle = '#9aa';
+      ctx.font = '8px monospace';
+      ctx.fillText(cardSub, W / 2, 97);
+      ctx.globalAlpha = 1;
+    }
+    if (patience < patienceMax * 0.2 && mode === 'play' && Math.floor(frame / 12) % 2 === 0 && gradeT === 0) {
+      ctx.fillStyle = '#ff6347';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('THEY NEED TO GO SOON', W / 2, 58);
+    }
+
     // The grade card after each design
     if (gradeT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, gradeT / 25);
@@ -942,7 +1351,7 @@
       ctx.fillText(grade === 'S' ? 'FLAWLESS' : grade === 'A' ? 'CLEAN WORK' : grade === 'B' ? 'SOLID' : grade === 'C' ? 'ROUGH' : 'SCRATCHER', W / 2 - 74, 80);
       ctx.fillStyle = '#9aa';
       ctx.font = '8px monospace';
-      ctx.fillText('DESIGN ' + (level - 1) + ' DONE', W / 2 - 74, 91);
+      ctx.fillText('CLIENT ' + (level - 1) + ' PAID UP', W / 2 - 74, 91);
       for (var g = 0; g < gradeLines.length; g++) {
         ctx.fillStyle = gradeLines[g].c;
         ctx.font = 'bold 9px monospace';
