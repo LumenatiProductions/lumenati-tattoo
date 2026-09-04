@@ -39,6 +39,7 @@ export default async function ArcadeFloorPage() {
           repeating-linear-gradient(45deg,rgba(255,255,255,0.025) 0 2px,transparent 2px 28px),
           repeating-linear-gradient(-45deg,rgba(255,255,255,0.025) 0 2px,transparent 2px 28px);}
         .fl-top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;font-size:8px;color:rgba(255,255,255,0.5);}
+        @media (max-width:640px){.fl-top{flex-direction:column;align-items:flex-start;gap:10px;font-size:7px;}}
         .fl-top a{color:${CYAN};text-decoration:none;border:1px solid ${CYAN};padding:9px 12px;background:rgba(0,0,0,0.6);}
         .fl-top a:hover{color:#fff;border-color:#fff;}
         .fl-sign{position:relative;z-index:2;text-align:center;padding:22px 16px 6px;}

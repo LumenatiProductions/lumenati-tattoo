@@ -53,7 +53,7 @@ export default async function GameWallPage({ params }: { params: Promise<{ game:
         .cw-nav a{color:${CYAN};text-decoration:none;}
         .cw-nav a:hover{color:#fff;}
         .cw-nav .x{color:${PINK};}
-        .cw-title{font-size:clamp(14px,3.4vw,26px);color:${PINK};text-shadow:0 0 16px rgba(255,20,147,0.55);margin:0;text-align:center;letter-spacing:1px;}
+        .cw-title{font-size:clamp(11px,3.4vw,26px);color:${PINK};text-shadow:0 0 16px rgba(255,20,147,0.55);margin:0;text-align:center;letter-spacing:1px;}
         .cw-sub{font-size:9px;color:rgba(255,255,255,0.55);margin:12px 0 30px;text-align:center;line-height:2;}
         .cw-sub b{color:${YELLOW};font-weight:normal;}
         .cw-boards{width:100%;max-width:760px;display:grid;grid-template-columns:1fr;gap:34px;}
