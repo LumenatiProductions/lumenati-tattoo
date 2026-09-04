@@ -39,7 +39,7 @@
     <div class="lmn-gb-bar"><span>guestbook.cgi</span><span>x</span></div>
     <div class="lmn-gb-body">
       <h3 class="lmn-gb-h">Sign my guestbook!</h3>
-      <p class="lmn-gb-sub">Tell us you were here. The shop reads every entry before it goes up.</p>
+      <p class="lmn-gb-sub">Tell us you were here. It goes up on the wall right away.</p>
       <form class="lmn-gb-form" id="lmn-gb-form" autocomplete="off">
         <div><label for="lmn-gb-name">Name</label><input id="lmn-gb-name" maxlength="40" placeholder="your name or handle"></div>
         <div><label for="lmn-gb-from">Where you're from</label><input id="lmn-gb-from" maxlength="40" placeholder="Denver"></div>
@@ -93,7 +93,7 @@
     }).then(function (r) { return r.json(); }).then(function (j) {
       btn.disabled = false;
       if (j.error) { note.className = 'lmn-gb-note bad'; note.textContent = j.error; return; }
-      note.textContent = 'Signed. It shows up once the shop reads it.';
+      note.textContent = 'Signed. You are on the wall.';
       msg.value = ''; count.textContent = '280 left';
     }).catch(function () { btn.disabled = false; note.className = 'lmn-gb-note bad'; note.textContent = 'Could not reach the book. Try again.'; });
   });

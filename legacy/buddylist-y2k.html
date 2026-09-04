@@ -3,7 +3,8 @@
      is online (a session running right now), away (in today, between
      sessions) or offline (not in today). Click a buddy: an IM window opens
      with their away message, a Book button, and a message box that lands in
-     the shop's inbox through /api/site/im. -->
+     each artist's AIM auto-responder (the shop's bot, /api/site/shopbot with
+     the artist slug) so an IM always gets an answer. -->
 <style>
   .bl-wrap { display:flex; justify-content:center; padding:32px 16px; background:#008080; font-family:Arial,Helvetica,sans-serif; }
   .bl-window { width:100%; max-width:300px; background:#ece9d8; border:2px solid; border-color:#fff #808080 #808080 #fff; box-shadow:4px 4px 0 rgba(0,0,0,0.25); }
@@ -60,7 +61,9 @@
   .bl-im-log .err { color:#cc0000; }
   .bl-im-form { display:grid; gap:6px; }
   .bl-im-form input, .bl-im-form textarea { width:100%; box-sizing:border-box; font-family:Tahoma,Arial,sans-serif; font-size:12px; padding:4px 6px; border:1px solid; border-color:#808080 #fff #fff #808080; background:#fff; color:#000; }
-  .bl-im-form textarea { min-height:64px; resize:vertical; }
+  .bl-im-typing { font-family:Tahoma,Arial,sans-serif; font-size:10px; color:#808080; height:13px; }
+  .bl-im-typing.on::after { content:attr(data-who) ' is typing...'; }
+  .bl-im-log .bot { color:#0000c0; font-weight:bold; }
   .bl-im-hp { position:absolute; left:-9999px; }
   .bl-im-bottom { padding:6px 8px; background:#ece9d8; display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
   .bl-im-btn { font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; padding:4px 16px; background:linear-gradient(180deg,#fff 0%,#ece9d8 50%,#d4d0c8 100%); border:1px solid; border-color:#fff #404040 #404040 #fff; cursor:pointer; text-decoration:none; display:inline-block; }
@@ -101,11 +104,9 @@
     <div class="bl-im-body">
       <div class="bl-im-who"><div class="bl-im-dot" id="bl-im-dot"></div><span><b id="bl-im-handle"></b><br><small id="bl-im-status"></small></span></div>
       <div class="bl-im-log" id="bl-im-log"></div>
+      <div class="bl-im-typing" id="bl-im-typing"></div>
       <form class="bl-im-form" id="bl-im-form" autocomplete="off">
-        <input type="text" name="name" placeholder="your name" maxlength="60" required>
-        <input type="text" name="contact" placeholder="IG, email, or phone (so they can hit you back)" maxlength="120">
-        <textarea name="message" placeholder="type your message" maxlength="1000" required></textarea>
-        <input class="bl-im-hp" type="text" name="hp" tabindex="-1" aria-hidden="true">
+        <input type="text" name="message" placeholder="type your message" maxlength="400" required autocomplete="off">
       </form>
     </div>
     <div class="bl-im-bottom">
@@ -189,15 +190,16 @@
     book.href = '/request?artist=' + encodeURIComponent(b.id);
     book.textContent = b.booksClosed ? 'Join ' + b.name.split(' ')[0] + "'s waitlist" : 'Book with ' + b.name.split(' ')[0];
     var line = b.status === 'online'
-      ? 'is on the machine right now. Leave a message and they will read it between clients.'
-      : b.status === 'away' ? 'is away.' : 'is not in today. Leave a message.';
+      ? 'is on the machine right now.'
+      : b.status === 'away' ? 'is away.' : 'is not in today.';
     log.innerHTML = '<div><span class="who">' + esc(b.handle) + '</span> ' + esc(line) + '</div>' +
-      '<div class="auto">Auto response from ' + esc(b.handle) + ': ' + esc(b.away) + '</div>';
+      '<div class="auto">Auto response from ' + esc(b.handle) + ': ' + esc(b.away) + ' // ask me anything, this is my bot.</div>';
+    thread = [];
     form.reset();
     sendBtn.disabled = false;
     sendBtn.textContent = 'Send';
     back.classList.add('open');
-    setTimeout(function() { var f = form.querySelector('[name=name]'); if (f) f.focus(); }, 50);
+    setTimeout(function() { var f = form.querySelector('[name=message]'); if (f) f.focus(); }, 50);
   }
   function closeIm() { back.classList.remove('open'); current = null; }
   document.getElementById('bl-im-close').addEventListener('click', closeIm);
@@ -205,38 +207,59 @@
   back.addEventListener('click', function(e) { if (e.target === back) closeIm(); });
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && back.classList.contains('open')) closeIm(); });
 
+  // The IM: whatever you type gets an answer from the artist's auto-responder
+  // (the shop's bot wearing their name, honest about it if asked).
+  var thread = [];
+  var busy = false;
+  var typing = document.getElementById('bl-im-typing');
+  function botLine(text) {
+    var el = document.createElement('div');
+    el.innerHTML = '<span class="who bot">' + esc(current ? current.handle : 'bot') + ':</span> <span class="txt"></span>';
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el.querySelector('.txt');
+  }
+  function linkify(t) {
+    return esc(t).replace(/(^|[\s(])(\/(?:request\?artist=[A-Za-z0-9-]+|book|flash-wall|arcade(?:\/[a-z]+(?:\/wall)?)?|tv|[a-z0-9-]+))(?=$|[\s.,!?)])/g, function(m, pre, path) { return pre + '<a href="' + path + '">' + path + '</a>'; });
+  }
   form.addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!current) return;
-    var data = {
-      artist: current.slug,
-      name: form.querySelector('[name=name]').value,
-      contact: form.querySelector('[name=contact]').value,
-      message: form.querySelector('[name=message]').value,
-      hp: form.querySelector('[name=hp]').value
-    };
+    if (!current || busy) return;
+    var input = form.querySelector('[name=message]');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    thread.push({ role: 'user', content: text });
+    log.innerHTML += '<div><span class="who sent">you:</span> ' + esc(text) + '</div>';
+    log.scrollTop = log.scrollHeight;
+    busy = true;
     sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending...';
-    log.innerHTML += '<div><span class="who sent">' + esc(data.name || 'you') + ':</span> ' + esc(data.message) + '</div>';
-    fetch('/api/site/im', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-      .then(function(r) { return r.json().then(function(j) { j.__ok = r.ok; return j; }); })
-      .then(function(j) {
-        if (j.__ok) {
-          log.innerHTML += '<div class="ok">Sent. They will see it when they are off the machine.</div>';
-          form.querySelector('[name=message]').value = '';
-          sendBtn.textContent = 'Sent';
-        } else {
-          log.innerHTML += '<div class="err">' + esc(j.error || 'That did not go through. Try again.') + '</div>';
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Send';
+    typing.setAttribute('data-who', current.handle);
+    typing.classList.add('on');
+    var out = null, full = '';
+    fetch('/api/site/shopbot', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: thread.slice(-12), artist: current.slug }) })
+      .then(function(r) {
+        if (!r.ok) return r.json().catch(function() { return {}; }).then(function(j) { throw new Error(j.error || 'no answer'); });
+        if (!r.body || !r.body.getReader) return r.text().then(function(t) { full = t; out = botLine(); out.innerHTML = linkify(t); });
+        var reader = r.body.getReader(), dec = new TextDecoder();
+        typing.classList.remove('on');
+        out = botLine();
+        function pump() {
+          return reader.read().then(function(res) {
+            if (res.done) return;
+            full += dec.decode(res.value, { stream: true });
+            out.innerHTML = linkify(full);
+            log.scrollTop = log.scrollHeight;
+            return pump();
+          });
         }
-        log.scrollTop = log.scrollHeight;
+        return pump();
       })
-      .catch(function() {
-        log.innerHTML += '<div class="err">No connection. Try again in a sec.</div>';
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
-      });
+      .then(function() { if (full) thread.push({ role: 'assistant', content: full }); })
+      .catch(function(err) {
+        log.innerHTML += '<div class="err">' + esc(err && err.message === 'no answer' ? 'no answer right now. email hi@lumenatitattoo.com' : (err && err.message) || 'No connection. Try again in a sec.') + '</div>';
+      })
+      .then(function() { typing.classList.remove('on'); busy = false; sendBtn.disabled = false; log.scrollTop = log.scrollHeight; });
   });
 })();
 </script>

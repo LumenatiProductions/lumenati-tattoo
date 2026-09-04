@@ -3,8 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 import { clean, clientIp, hasBadWords, hashOf, throttled } from "@/lib/site/guestbook";
 
-// The Y2K guestbook. GET: the last 12 entries the shop approved. POST: sign
-// it; the entry waits unapproved until someone reads it in /admin/guestbook.
+// The Y2K guestbook. GET: the last 12 entries on the wall. POST: sign it and
+// it goes up right away (the filter below is the gate); the shop can hide or
+// delete anything from /admin/guestbook.
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   if (/https?:\/\/|www\./i.test(message + " " + name + " " + from)) return NextResponse.json({ error: "No links in the guestbook." }, { status: 400, headers: NO_STORE });
   if (hasBadWords(name + " " + from + " " + message)) return NextResponse.json({ error: "Keep it shop-friendly." }, { status: 400, headers: NO_STORE });
   const { error } = await admin.from("guestbook_entries").insert({
-    shop_id: LUMENATI_SHOP_ID, name, from_where: from || null, message, ip_hash: hashOf(ip),
+    shop_id: LUMENATI_SHOP_ID, name, from_where: from || null, message, ip_hash: hashOf(ip), approved: true,
   });
   if (error) return NextResponse.json({ error: "Couldn't save that." }, { status: 500, headers: NO_STORE });
   return NextResponse.json({ ok: true }, { headers: NO_STORE });
