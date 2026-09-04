@@ -44,7 +44,7 @@
   var THUMBS = {};
   GAMES.forEach(function (g) {
     var im = new Image();
-    im.src = "/arcade/thumbs/" + g.id + ".jpg";
+    im.src = "/arcade/thumbs/" + g.id + ".png";
     THUMBS[g.id] = im;
   });
 

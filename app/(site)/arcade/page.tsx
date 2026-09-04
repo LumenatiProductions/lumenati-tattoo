@@ -25,10 +25,6 @@ export default async function ArcadeFloorPage() {
   }
   const totalPlays = Object.values(walls).reduce((n, w) => n + w.plays, 0);
   const todayPlays = Object.values(walls).reduce((n, w) => n + w.playsToday, 0);
-  const ticker = GAME_CATALOG.map((g) => {
-    const top = walls[g.id]?.alltime[0];
-    return top ? `${g.label.toUpperCase()}  ${top.n}  ${formatScore(g.id, top.s).toUpperCase()}` : `${g.label.toUpperCase()}  WALL OPEN`;
-  }).join("     //     ");
 
   return (
     <main className="floor">
@@ -50,28 +46,22 @@ export default async function ArcadeFloorPage() {
         @keyframes fl-buzz{0%,92%,100%{opacity:1}93%{opacity:0.55}95%{opacity:1}97%{opacity:0.7}}
         .fl-sign p{margin:12px 0 0;font-size:8px;color:rgba(255,255,255,0.55);line-height:2;}
         .fl-sign p b{color:${YELLOW};font-weight:normal;}
-        .fl-ticker{position:relative;z-index:2;margin:18px auto 30px;max-width:1240px;overflow:hidden;border-top:1px solid rgba(255,255,255,0.12);border-bottom:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.5);}
-        .fl-ticker div{white-space:nowrap;padding:10px 0;font-size:9px;color:${YELLOW};display:inline-block;animation:fl-scroll 60s linear infinite;}
-        @keyframes fl-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
         .fl-row{position:relative;z-index:2;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:34px 22px;padding:0 20px;}
         @media (min-width:700px){.fl-row{grid-template-columns:repeat(3,1fr);}}
         .cab{display:flex;flex-direction:column;position:relative;filter:drop-shadow(0 18px 24px rgba(0,0,0,0.7));}
         .cab-marquee{margin:0 6px;padding:12px 8px 10px;text-align:center;font-size:clamp(8px,1.2vw,10px);color:#fff;border:3px solid #1c1c24;border-bottom:0;border-radius:6px 6px 0 0;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(0,0,0,0.2)),var(--trim);text-shadow:0 0 8px rgba(0,0,0,0.8),0 0 14px rgba(255,255,255,0.5);letter-spacing:1px;box-shadow:0 0 22px var(--trim),inset 0 0 18px rgba(0,0,0,0.35);}
         .cab-body{background:linear-gradient(180deg,#1b1b24,#0e0e14);border:3px solid #1c1c24;border-left-color:var(--trim);border-right-color:var(--trim);padding:12px 14px 14px;}
         .cab-screen{display:block;position:relative;background:#000;border:6px solid #06060a;box-shadow:inset 0 0 0 2px #2a2a33,0 0 18px rgba(0,0,0,0.9);aspect-ratio:400/320;overflow:hidden;text-decoration:none;color:#fff;}
-        .cab-screen img{display:block;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;opacity:0.92;transition:opacity .2s;}
+        .cab-screen img{display:block;width:100%;height:100%;object-fit:cover;opacity:0.94;transition:opacity .2s;}
         .cab-screen:hover img{opacity:1;}
         .cab-screen::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.25) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.5) 100%);pointer-events:none;}
-        .cab-top{position:absolute;left:0;right:0;bottom:0;padding:8px;background:linear-gradient(0deg,rgba(0,0,0,0.9),rgba(0,0,0,0));z-index:1;font-size:7px;line-height:1.9;}
-        .cab-top b{display:block;font-weight:normal;color:${YELLOW};font-size:9px;text-shadow:0 0 8px rgba(255,215,0,0.8);}
-        .cab-top i{font-style:normal;color:rgba(255,255,255,0.75);}
-        .cab-top s{text-decoration:none;color:${CYAN};display:block;margin-top:2px;}
-        .cab-panel{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 10px;background:linear-gradient(180deg,#2a2a36,#15151c);border:2px solid #101016;border-radius:4px;}
-        .cab-stick{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7ac8,#c00c6e 60%,#5a0030);box-shadow:0 3px 0 #000,0 0 10px rgba(255,20,147,0.6);position:relative;}
-        .cab-stick::before{content:"";position:absolute;left:9px;top:18px;width:4px;height:9px;background:#333;}
-        .cab-btns{display:flex;gap:6px;}
-        .cab-btn{width:14px;height:14px;border-radius:50%;box-shadow:0 2px 0 #000,inset 0 2px 3px rgba(255,255,255,0.4);}
-        .cab-play{font-family:inherit;font-size:8px;color:#fff;background:${PINK};text-decoration:none;padding:9px 12px;border:2px solid;border-color:#ff8ad0 #8a004a #8a004a #ff8ad0;box-shadow:2px 2px 0 rgba(0,0,0,0.5);}
+        .cab-line{margin-top:10px;font-size:7px;line-height:1.8;color:${YELLOW};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .cab-line b{font-weight:normal;color:rgba(255,255,255,0.5);margin-right:4px;}
+        .cab-line i{font-style:normal;color:rgba(255,255,255,0.5);}
+        .cab-panel{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:linear-gradient(180deg,#2a2a36,#15151c);border:2px solid #101016;border-radius:4px;}
+        .cab-play{font-family:inherit;font-size:8px;text-align:center;color:#fff;background:${PINK};text-decoration:none;padding:10px 8px;border:2px solid;border-color:#ff8ad0 #8a004a #8a004a #ff8ad0;box-shadow:2px 2px 0 rgba(0,0,0,0.5);}
+        .cab-scores{font-family:inherit;font-size:8px;text-align:center;color:${CYAN};background:#000;text-decoration:none;padding:10px 8px;border:2px solid ${CYAN};box-shadow:2px 2px 0 rgba(0,0,0,0.5);}
+        .cab-scores:hover{color:#fff;border-color:#fff;}
         .cab-play:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,0.5);}
         .cab-coin{margin:0 10px;padding:8px 10px;display:flex;justify-content:space-between;font-size:7px;color:rgba(255,255,255,0.5);background:#0a0a0f;border:2px solid #1c1c24;border-top:0;}
         .cab-coin b{color:${YELLOW};font-weight:normal;}
@@ -88,12 +78,8 @@ export default async function ArcadeFloorPage() {
 
       <header className="fl-sign">
         <h1>LUMENATI ARCADE</h1>
-        <p>NINE CABINETS. ONE WALL. SIGN IT AT ANY GAME OVER.<br />TAP A SCREEN FOR ITS HIGH SCORES <b>//</b> PLAY DROPS A COIN</p>
+        <p>SIGN THE WALL AT ANY GAME OVER</p>
       </header>
-
-      <div className="fl-ticker" aria-hidden="true">
-        <div>{ticker}     //     {ticker}     //     </div>
-      </div>
 
       <div className="fl-row">
         {GAME_CATALOG.map((g, i) => {
@@ -105,26 +91,18 @@ export default async function ArcadeFloorPage() {
               <div className="cab-marquee">{g.label.toUpperCase()}</div>
               <div className="cab-body">
                 <Link className="cab-screen" href={`/arcade/${g.id}/wall`} title={`${g.label} high scores`}>
-                  <img src={`/arcade/thumbs/${g.id}.jpg`} alt={`${g.label} screen`} loading="lazy" />
-                  <div className="cab-top">
-                    {top ? (
-                      <>
-                        <b>{top.n}  {formatScore(g.id, top.s).toUpperCase()}</b>
-                        <i>TOP OF THE WALL{today ? `  //  TODAY ${today.n} ${formatScore(g.id, today.s).toUpperCase()}` : ""}</i>
-                      </>
-                    ) : (
-                      <b>WALL IS OPEN. BE FIRST.</b>
-                    )}
-                    <s>HIGH SCORES &#9654;</s>
-                  </div>
+                  <img src={`/arcade/thumbs/${g.id}.png`} alt={`${g.label} screen`} loading="lazy" />
                 </Link>
+                <div className="cab-line">
+                  {top ? (
+                    <><b>HI</b> {top.n} {formatScore(g.id, top.s).toUpperCase()}{today ? <i>  TODAY {today.n} {formatScore(g.id, today.s).toUpperCase()}</i> : null}</>
+                  ) : (
+                    <i>WALL OPEN. BE FIRST.</i>
+                  )}
+                </div>
                 <div className="cab-panel">
-                  <div className="cab-stick" />
-                  <div className="cab-btns">
-                    <span className="cab-btn" style={{ background: TRIM[i] }} />
-                    <span className="cab-btn" style={{ background: "#fff" }} />
-                  </div>
                   <Link className="cab-play" href={`/arcade/${g.id}`}>PLAY</Link>
+                  <Link className="cab-scores" href={`/arcade/${g.id}/wall`}>HIGH SCORES</Link>
                 </div>
               </div>
               <div className="cab-coin">
