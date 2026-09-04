@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { GAME_CATALOG } from "@/lib/arcade/catalog";
+import { VISIBLE_GAMES as GAME_CATALOG } from "@/lib/arcade/catalog";
 
 // The kiosk's arcade: the same multicade cabinet the artist rooms open, on the
 // front-desk iPad. Mounted ONCE in the kiosk layout and toggled with display

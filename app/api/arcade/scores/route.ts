@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GAME_CATALOG, isGameId } from "@/lib/arcade/catalog";
+import { GAME_CATALOG, VISIBLE_GAMES, isGameId } from "@/lib/arcade/catalog";
 import { BLOCKED_INITIALS, hashIp, readWall, shopForArtist, type Wall } from "@/lib/arcade/scores";
 
 // The arcade's shared wall. GET reads a game's boards; POST files a finished
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   // ?all=1: the cabinet menu's one-line-per-game teaser (top score + plays).
   if (url.searchParams.get("all")) {
-    const walls = await Promise.all(GAME_CATALOG.map((g) => readWall(admin, shopId, g.id)));
+    const walls = await Promise.all(VISIBLE_GAMES.map((g) => readWall(admin, shopId, g.id)));
     const summary: Record<string, { top: Wall["alltime"][number] | null; plays: number; playsToday: number }> = {};
     for (const w of walls) summary[w.game] = { top: w.alltime[0] ?? null, plays: w.plays, playsToday: w.playsToday };
     return NextResponse.json({ games: summary }, { headers: NO_STORE });

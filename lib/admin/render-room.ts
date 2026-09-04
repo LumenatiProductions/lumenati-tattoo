@@ -1,6 +1,6 @@
 import { readLegacyBlock, webpifyLegacyAssets } from "@/lib/legacy";
 import type { RoomContent } from "./types";
-import { GAME_CATALOG } from "@/lib/arcade/catalog";
+import { VISIBLE_GAMES as GAME_CATALOG } from "@/lib/arcade/catalog";
 import { MUSIC_VIDEOS, roomTvId, tvChannelById } from "@/lib/kiosk/tv-channels";
 export { GAME_CATALOG };
 

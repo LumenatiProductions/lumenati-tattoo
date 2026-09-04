@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GAME_CATALOG, formatScore } from "@/lib/arcade/catalog";
+import { VISIBLE_GAMES as GAME_CATALOG, formatScore } from "@/lib/arcade/catalog";
 import { readWall, type Wall } from "@/lib/arcade/scores";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 

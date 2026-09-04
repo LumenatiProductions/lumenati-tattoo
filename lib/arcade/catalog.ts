@@ -15,7 +15,13 @@ export const GAME_CATALOG = [
   { id: "shoprush", label: "Shop Rush", exe: "shoprush.exe", hint: "Arrows or tap to run // seat fast, keep the streak", statA: "Cash", statB: "Rep", cap: 1000000, fmt: "dollars", blurb: "Run the front desk on a Saturday. Seat walk-ins fast, collect cash, ride the rep multiplier to x5." },
   { id: "flashmatch", label: "Flash Match", exe: "flashmatch.exe", hint: "Tap a card, or arrows + SPACE // find the pairs", cap: 1000000, fmt: "plain", blurb: "Memory with the artist's own flash. The clock shrinks every session." },
   { id: "inkrun", label: "Ink Run", exe: "inkrun.exe", hint: "Left/Right lanes, UP jumps, DOWN slides // swipe on phones", cap: 5000000, fmt: "plain", blurb: "Run the shop floor at full sprint. Three lanes, jump the carts, slide the stencils, grab the ink." },
+  // hidden: reachable at /arcade/<id> and on the wall, but not on the floor or the cabinet menu yet.
+  // libs: external scripts the cartridge needs before the game boots.
+  { id: "skate3d", label: "Ink or Die 3D", exe: "ink_or_die_3d.exe", hint: "Arrows steer, hold UP to push, SPACE ollie // arrows in the air: tricks", cap: 2000000, fmt: "plain", blurb: "The park in three dimensions. A prototype.", hidden: true, libs: ["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"] },
 ] as const;
+
+export type GameSpec = (typeof GAME_CATALOG)[number];
+export const VISIBLE_GAMES = GAME_CATALOG.filter((g) => !("hidden" in g && g.hidden));
 
 export type GameId = (typeof GAME_CATALOG)[number]["id"];
 

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { GAME_CATALOG } from "@/lib/arcade/catalog";
+import { GAME_CATALOG, VISIBLE_GAMES } from "@/lib/arcade/catalog";
 
 // Two flavors of a standalone, playable arcade window:
 // - /arcade/<game>            — the try-the-games screen with a switcher row.
@@ -30,6 +30,7 @@ export function buildArcadePreviewHtml(
   const statB = "statB" in game ? game.statB : "Lives";
   const livesInit = "livesInit" in game ? game.livesInit : "3";
 
+  const libs = "libs" in game ? game.libs.map((u) => `<script src="${u}"></script>`).join("\n") : "";
   const crew = opts.crew?.length
     ? `<script>window.__ARCADE_CREW__=${JSON.stringify(opts.crew).replace(/</g, "\\u003c")};</script>\n`
     : "";
@@ -55,6 +56,7 @@ export function buildArcadePreviewHtml(
   </div>
 </div>
 <script>window.__ARCADE_EMBED__=${JSON.stringify(gameId)};</script>
+${libs}
 ${crew}${flash}<script id="jd-arcade-board">
 ${boardSource()}
 </script>
@@ -81,7 +83,7 @@ ${gameSource(gameId)}
 </script>`;
   }
 
-  const switcher = GAME_CATALOG.map((g) =>
+  const switcher = VISIBLE_GAMES.map((g) =>
     g.id === gameId
       ? `<span style="padding:4px 8px;background:#FF1493;color:#fff;font-weight:bold;">${g.label}</span>`
       : `<a href="/arcade/${g.id}" style="padding:4px 8px;color:#9ef;text-decoration:none;">${g.label}</a>`,
@@ -110,6 +112,7 @@ ${gameSource(gameId)}
   </div>
   <div style="margin-top:12px;color:#9aa;font-size:12px;">Every page has the full cabinet. This is just the test bench. Scores post to the <a href="/arcade" style="color:#FFD700;">shop wall</a>.</div>
 </div>
+${libs}
 ${crew}${flash}<script>window.__ARCADE_DEVICE__='preview';</script>
 <script id="jd-arcade-board">
 ${boardSource()}
