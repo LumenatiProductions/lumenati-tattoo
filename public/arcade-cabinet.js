@@ -118,6 +118,30 @@
     canvas.style.height = Math.max(1, Math.floor(320 * s)) + "px";
   }
 
+  // Real fullscreen where the browser allows it (Android Chrome, iPad), and a
+  // landscape lock on top so the 5:4 screen gets the most glass. iPhone Safari
+  // has no fullscreen for pages, so there the takeover below is the ceiling.
+  function goFull() {
+    try {
+      var el = document.documentElement;
+      var rq = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (!rq) return;
+      var p = rq.call(el, { navigationUI: "hide" });
+      if (p && p.then) p.then(function () {
+        try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {}); } catch (e) {}
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function leaveFull() {
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        var ex = document.exitFullscreen || document.webkitExitFullscreen;
+        if (ex) ex.call(document);
+      }
+      try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+    } catch (e) {}
+  }
+
   function lockScroll(on) {
     document.documentElement.style.overflow = on ? "hidden" : "";
     document.body.style.overflow = on ? "hidden" : "";
@@ -131,6 +155,7 @@
 
   function enterCabinet() {
     if (saved) return;
+    goFull();
     saved = {
       box: box.style.cssText,
       pad: pad.style.cssText,
@@ -174,6 +199,7 @@
     canvas.style.maxWidth = "none";
     fit();
     window.addEventListener("resize", fit);
+    document.addEventListener("fullscreenchange", fit);
     box.addEventListener("touchmove", blockPan, { passive: false });
 
     if (wantsFire) {
@@ -197,6 +223,7 @@
 
   function exitCabinet() {
     if (!saved) return;
+    leaveFull();
     box.style.cssText = saved.box;
     pad.style.cssText = saved.pad;
     canvas.style.cssText = saved.canvas;
