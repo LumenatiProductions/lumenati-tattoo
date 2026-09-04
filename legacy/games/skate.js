@@ -60,6 +60,8 @@
   var leftHeld = false, rightHeld = false, grabName = '', railUsed = {}, slideT = 0, manualKind = 'manual';
   var continueUsed = false, lastLevel = 1, lastScore = 0, pumpT = 0, lipT = 0;
   var MAX_LIVES = 5;
+  var airFrames = 0, longestAir = 0, floaty = false;
+  var MAX_COMBO = 24, linkWindow = 0, grindDist = 0, grindPaid = 0, lastGrindEnd = -99, lastRailId = -1, railSeq = 0, transfers = 0, longestGrind = 0;
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-skate') || '0', 10) || 0; } catch(e) {}
@@ -113,12 +115,17 @@
 
   // ── Every level is somewhere real: Denver + Colorado, day rolling over ──
   var LOCALES = [
-    { name: 'DOWNTOWN DENVER', scene: 'city',      top: '#1a0a2e', bot: '#2d1b69', ground: '#555',    dash: '#777',    lights: true,  stars: true,  moon: true,  sun: null,      sunY: 0 },
-    { name: 'THE FRONT RANGE', scene: 'range',     top: '#2b1b4e', bot: '#c85a54', ground: '#5c5450', dash: '#7a6e66', lights: true,  stars: false, moon: false, sun: '#ffd27a', sunY: 205 },
-    { name: 'RED ROCKS',       scene: 'redrocks',  top: '#2e78c8', bot: '#93c6e8', ground: '#8a5a46', dash: '#a37058', lights: false, stars: false, moon: false, sun: '#fff3b0', sunY: 58 },
-    { name: 'THE FLATIRONS',   scene: 'flatirons', top: '#3a1c5e', bot: '#e8642c', ground: '#54484e', dash: '#78645e', lights: true,  stars: false, moon: false, sun: '#ff9a3c', sunY: 175 },
-    { name: 'BRECKENRIDGE',    scene: 'range',     top: '#5a6a86', bot: '#c8d2de', ground: '#d8dde4', dash: '#aab2bc', lights: false, stars: false, moon: false, sun: null,      sunY: 0, weather: 'snow' },
-    { name: 'COLFAX AT NIGHT', scene: 'city',      top: '#080614', bot: '#1c1240', ground: '#3e3e48', dash: '#5a5a66', lights: true,  stars: false, moon: true,  sun: null,      sunY: 0, weather: 'rain' },
+    { name: 'DOWNTOWN DENVER', scene: 'city',      top: '#1a0a2e', bot: '#2d1b69', ground: '#555',    dash: '#777',    lights: true,  stars: true,  moon: true,  sun: null,      sunY: 0,   sig: 'kicker' },
+    { name: 'RINO',            scene: 'rino',      top: '#3b1a4a', bot: '#e8683c', ground: '#4e4a52', dash: '#736c76', lights: true,  stars: false, moon: false, sun: '#ffb070', sunY: 200, sig: 'launch' },
+    { name: 'COLFAX AT NIGHT', scene: 'city',      top: '#080614', bot: '#1c1240', ground: '#3e3e48', dash: '#5a5a66', lights: true,  stars: false, moon: true,  sun: null,      sunY: 0,   weather: 'rain', sig: 'kicker' },
+    { name: 'THE FLATIRONS',   scene: 'flatirons', top: '#3a1c5e', bot: '#e8642c', ground: '#54484e', dash: '#78645e', lights: true,  stars: false, moon: false, sun: '#ff9a3c', sunY: 175, sig: 'qp' },
+    { name: 'RED ROCKS',       scene: 'redrocks',  top: '#2e78c8', bot: '#93c6e8', ground: '#8a5a46', dash: '#a37058', lights: false, stars: false, moon: false, sun: '#fff3b0', sunY: 58,  sig: 'steps' },
+    { name: 'GOLDEN',          scene: 'golden',    top: '#6fb3e8', bot: '#dceaf4', ground: '#6a6058', dash: '#8c8078', lights: false, stars: false, moon: false, sun: '#fff8c8', sunY: 70,  sig: 'gap' },
+    { name: 'IDAHO SPRINGS',   scene: 'mining',    top: '#5a5e6a', bot: '#b8b4aa', ground: '#5e5248', dash: '#7e7066', lights: true,  stars: false, moon: false, sun: null,      sunY: 0,   sig: 'kicker' },
+    { name: 'BRECKENRIDGE',    scene: 'range',     top: '#5a6a86', bot: '#c8d2de', ground: '#d8dde4', dash: '#aab2bc', lights: false, stars: false, moon: false, sun: null,      sunY: 0,   weather: 'snow', sig: 'launch' },
+    { name: 'VAIL PASS',       scene: 'vail',      top: '#0e1c3c', bot: '#7a9cc8', ground: '#c9d2dc', dash: '#98a4b2', lights: false, stars: true,  moon: false, sun: '#ffd8a0', sunY: 150, weather: 'snow', sig: 'qp' },
+    { name: 'MOAB',            scene: 'moab',      top: '#ff9a4a', bot: '#ffd9a0', ground: '#a8503a', dash: '#c8785c', lights: false, stars: false, moon: false, sun: '#fff0c0', sunY: 62,  sig: 'launch' },
+    { name: 'THE VEGAS STRIP', scene: 'vegas',     top: '#05030f', bot: '#2a0a4a', ground: '#2c2c36', dash: '#5a5a70', lights: true,  stars: true,  moon: false, sun: null,      sunY: 0,   sig: 'steps' },
   ];
 
   // Colors
@@ -164,6 +171,8 @@
     spinAngle = 0; spinDir = 0; spinStep = 0; leftHold = -1; rightHold = -1; upHold = -1; downHold = -1;
     leftHeld = false; rightHeld = false; grabName = ''; railUsed = {}; slideT = 0; manualKind = 'manual';
     continueUsed = false; lastLevel = 1; lastScore = 0; pumpT = 0; lipT = 0;
+    airFrames = 0; longestAir = 0;
+    linkWindow = 0; grindDist = 0; grindPaid = 0; lastGrindEnd = -99; lastRailId = -1; railSeq = 0; transfers = 0; longestGrind = 0;
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = String(MAX_LIVES);
@@ -184,33 +193,26 @@
     return { x: x, w: 30 + Math.random() * 40, h: h, color: colors[Math.floor(Math.random() * colors.length)] };
   }
 
-  // ── Terrain: a rolling heightmap the whole run rides on ──
-  // Hills per town (gentle downtown, rollers in the foothills, big drops in
-  // the mountains), blended over the first 500px of each town so the ground
-  // never pops, plus placed features (kickers, quarter pipes, bowls, ledges)
-  // baked into the same surface. World y: bigger is lower.
-  var HILLS = [
-    { a1: 8,  a2: 4,  f1: 0.0045, f2: 0.011 },  // downtown Denver
-    { a1: 22, a2: 8,  f1: 0.0038, f2: 0.0095 }, // the Front Range
-    { a1: 34, a2: 12, f1: 0.0034, f2: 0.0088 }, // Red Rocks
-    { a1: 30, a2: 10, f1: 0.0040, f2: 0.0100 }, // the Flatirons
-    { a1: 46, a2: 16, f1: 0.0030, f2: 0.0082 }, // Breckenridge
-    { a1: 14, a2: 6,  f1: 0.0048, f2: 0.0120 }, // Colfax at night
+  // ── Terrain: a flat road with ramps on it (Ski Safari, not a hill climb) ──
+  // The ground lives in one fixed band around GROUND_Y: long flats and
+  // rollers of a few px over a whole screen, never a slope you have to read.
+  // All the air comes from placed ramps: kickers, launch ramps and half-pipe
+  // lips, bigger and more frequent town by town, each with a flat landing
+  // zone kept clear of anything solid. World y: bigger is lower.
+  var ROLL = [
+    { a: 3, f: 0.0016 }, { a: 4, f: 0.0015 }, { a: 3, f: 0.0017 }, { a: 6, f: 0.0015 }, { a: 6, f: 0.0014 },
+    { a: 5, f: 0.0015 }, { a: 7, f: 0.0013 }, { a: 8, f: 0.0013 }, { a: 8, f: 0.0012 }, { a: 6, f: 0.0014 }, { a: 2, f: 0.0018 },
   ];
-  function hillProfile(x) {
-    var lv = 1 + Math.floor(x / 4000);
-    var cur = HILLS[(lv - 1) % HILLS.length];
-    var prev = HILLS[(lv - 2 + HILLS.length) % HILLS.length];
-    if (lv === 1) prev = cur;
-    var u = Math.min(1, (x - (lv - 1) * 4000) / 500);
-    return { a1: prev.a1 + (cur.a1 - prev.a1) * u, a2: prev.a2 + (cur.a2 - prev.a2) * u, f1: cur.f1, f2: cur.f2 };
-  }
   function hillY(x) {
-    if (x < 300) return 0; // a flat start so the first ollie is on level ground
-    var h = hillProfile(x);
-    var ease = Math.min(1, (x - 300) / 400);
-    return ease * (Math.sin(x * h.f1) * h.a1 + Math.sin(x * h.f2 + 1.7) * h.a2);
+    if (x < 300) return 0;
+    var lv = 1 + Math.floor(x / 4000);
+    var r = ROLL[(lv - 1) % ROLL.length];
+    var ease = Math.min(1, (x - 300) / 600);
+    return ease * (Math.sin(x * r.f) * r.a + Math.sin(x * r.f * 2.6 + 1.7) * r.a * 0.35);
   }
+  // Ramp faces. A kicker is a straight wedge, a launch ramp curves up harder
+  // toward the lip, a half-pipe lip goes near vertical. Past the lip the
+  // ground is the flat road again: that is the drop you fly over.
   function featureOffset(x) {
     var off = 0;
     for (var i = 0; i < features.length; i++) {
@@ -218,28 +220,35 @@
       if (x < f.x || x >= f.x + f.w) continue;
       var t = (x - f.x) / f.w;
       if (f.type === 'kicker') off -= f.h * t;
+      else if (f.type === 'launch') off -= f.h * Math.pow(t, 1.6);
       else if (f.type === 'qp') off -= f.h * (1 - Math.cos(t * Math.PI / 2));
-      else if (f.type === 'bowl') off += f.h * Math.sin(t * Math.PI);
-      else if (f.type === 'ledge') off += t < 0.7 ? f.h : f.h * (1 - (t - 0.7) / 0.3);
     }
     return off;
   }
   function terrainY(x) { return GROUND_Y + hillY(x) + featureOffset(x); }
   function slopeAt(x) { return (terrainY(x + 6) - terrainY(x - 6)) / 12; }
+  // The ramp itself plus its landing zone, where nothing solid may sit.
+  function landingZone(f) { return f.type === 'kicker' ? 360 : f.type === 'launch' ? 560 : 700; }
   function featureAt(x) {
-    for (var i = 0; i < features.length; i++) if (x >= features[i].x - 30 && x < features[i].x + features[i].w + 30) return features[i];
+    for (var i = 0; i < features.length; i++) if (x >= features[i].x - 40 && x < features[i].x + features[i].w + landingZone(features[i]) * 0.8) return features[i];
     return null;
   }
+  // Sizes by town: kickers everywhere, launch ramps from town 2, half-pipe
+  // lips from town 3. Heights climb 6px a town.
   function spawnFeature(x) {
     var lv = 1 + Math.floor(x / 4000);
+    var tier = Math.min(8, lv);
+    var town = LOCALES[(lv - 1) % LOCALES.length];
     var r = Math.random();
+    // The town's signature tilts the odds: RiNo, Breck and Moab throw launch
+    // ramps, the Flatirons and Vail pass have the lips, Vegas goes big on everything.
+    if (town.sig === 'launch') r *= 0.6;
+    if (town.sig === 'qp') r = 0.5 + r * 0.5;
     var f;
-    if (lv <= 1) f = { type: 'kicker', x: x, w: 64, h: 26 };
-    else if (lv === 2) f = r < 0.6 ? { type: 'kicker', x: x, w: 70, h: 34 } : { type: 'bowl', x: x, w: 170, h: 36 };
-    else if (r < 0.32) f = { type: 'kicker', x: x, w: 76, h: 40 };
-    else if (r < 0.58) f = { type: 'qp', x: x, w: 72, h: 52 + Math.min(20, lv * 3) };
-    else if (r < 0.8) f = { type: 'bowl', x: x, w: 190, h: 44 };
-    else f = { type: 'ledge', x: x, w: 210, h: 40 + Math.min(24, lv * 4) };
+    if (lv <= 1 || r < 0.35) f = { type: 'kicker', x: x, w: 66 + tier * 4, h: 26 + tier * 6 };
+    else if (lv <= 2 || r < 0.72) f = { type: 'launch', x: x, w: 116 + tier * 6, h: 40 + tier * 7 };
+    else f = { type: 'qp', x: x, w: 72, h: 50 + tier * 7 };
+    if (town.scene === 'vegas') { f.h += 10; f.w += 8; }
     features.push(f);
     return f;
   }
@@ -253,7 +262,12 @@
     // Nothing solid on a ramp or in a bowl: those are for air, not for bails.
     // The mountains throw more at you: obstacles take a bigger share of the road.
     var obShare = level >= 5 ? 0.58 : level >= 3 ? 0.52 : 0.45;
-    if (featureAt(sx) && r < obShare) r = obShare + 0.05;
+    var onRamp = featureAt(sx);
+    if (onRamp && r < obShare) r = obShare + 0.05;
+    // Rails only past the middle of a landing zone, where you are already down.
+    if (onRamp && r >= 0.75 && sx < onRamp.x + onRamp.w + landingZone(onRamp) * 0.55) r = 0.6;
+    var townNow = LOCALES[(level - 1) % LOCALES.length];
+    if ((townNow.sig === 'gap' || townNow.sig === 'steps') && r >= obShare && r < 0.7) r = 0.8;
     if (r < obShare) {
       var types = ['hydrant', 'trashcan', 'cone'];
       if (level >= 2) types.push('pigeon');
@@ -264,20 +278,36 @@
       obstacles.push(makeObstacle(types[Math.floor(Math.random() * types.length)], sx));
     } else if (r < 0.75) {
       var lift = 40 + Math.random() * 30;
-      // Over a ramp the flash hangs where the air is.
+      // Past a ramp the flash hangs in the flight path.
       var ft = featureAt(sx);
-      if (ft && (ft.type === 'kicker' || ft.type === 'qp')) lift = 70 + Math.random() * 50;
+      if (ft && sx > ft.x + ft.w) lift = 80 + Math.random() * 110;
       var k = Math.random();
       // A spare deck shows up rarely, and only once you're down a board.
       var kind = (k < 0.045 && lives < MAX_LIVES) ? 'deck' : k < 0.1 ? 'horseshoe' : k < 0.2 ? 'eagle' : k < 0.36 ? 'skull' : k < 0.58 ? 'heart' : k < 0.8 ? 'bolt' : 'star';
       collectibles.push({ x: sx, y: terrainY(sx) - lift, lift: lift, w: 14, h: 14, collected: false, kind: kind });
     } else {
-      var rw = Math.random() < 0.32 ? 150 + Math.random() * 90 : 60 + Math.random() * 50;
-      var lift2 = 30 + Math.random() * 20;
-      // Rails are flat: they sit on the higher end of whatever slope they span.
-      var top = Math.min(terrainY(sx), terrainY(sx + rw)) - lift2;
-      rails.push({ x: sx, top: top, w: rw, scored: false });
+      spawnRailLine(sx);
     }
+  }
+
+  // A rail line: one to five segments with kinks (a step up or down) and
+  // gaps you hop across to keep the grind alive. Some run a full screen or
+  // more. Red Rocks and Vegas get the long ones.
+  function spawnRailLine(sx) {
+    var town = LOCALES[(level - 1) % LOCALES.length];
+    var long = Math.random() < (town.sig === 'steps' ? 0.75 : town.sig === 'gap' ? 0.6 : 0.35);
+    var segs = long ? (town.sig === 'gap' ? 3 : 2) + Math.floor(Math.random() * 4) : 1;
+    var lift = 30 + Math.random() * 18;
+    var x = sx, id = ++railSeq;
+    for (var i = 0; i < segs; i++) {
+      var w = long ? 110 + Math.random() * 190 : 60 + Math.random() * 90;
+      var top = Math.min(terrainY(x), terrainY(x + w)) - lift;
+      rails.push({ x: x, top: top, w: w, scored: false, id: id, seg: i, segs: segs });
+      // Kink: the next piece steps up or down a little; gap: a hop between them.
+      lift = Math.max(24, Math.min(64, lift + (Math.random() < 0.5 ? -10 : 10)));
+      x += w + 34 + Math.random() * 40;
+    }
+    return x;
   }
 
   function makeObstacle(type, x) {
@@ -330,9 +360,9 @@
     linePts += pts;
     lineTricks.push(label);
     trickCount++;
-    if (!stale && combo < 8) {
+    if (!stale && combo < MAX_COMBO) {
       combo++;
-      if (combo === 5) sayLingo();
+      if (combo === 5 || combo === 12 || combo === 20) sayLingo();
     }
     if (combo > comboMax) comboMax = combo;
     comboTimer = 150;
@@ -340,7 +370,7 @@
     if (combo > 2 && !stale) sfxCombo(combo);
   }
 
-  function resetLine() { linePts = 0; lineTricks = []; combo = 1; comboTimer = 0; }
+  function resetLine() { linePts = 0; lineTricks = []; combo = 1; comboTimer = 0; linkWindow = 0; }
 
   // Wheels down on flat ground: the line pays out. Still spinning when you
   // touch down is a sketchy landing and pays half.
@@ -354,10 +384,12 @@
     addPopup(px, py, label, sketchy ? '#ff9a3c' : LIME);
     if (total >= 300) {
       shake = Math.min(10, 3 + total / 200);
-      spawnParticles(px, GROUND_Y, YELLOW, Math.min(30, 8 + total / 60));
+      spawnParticles(px, player.y + player.h, YELLOW, Math.min(30, 8 + total / 60));
       lineFlashT = 18;
     }
-    if (total >= 1500) { bannerT = 80; bannerText = 'LEGENDARY LINE'; lingoCd = 0; sayLingo(); }
+    // The payout is the event: the bigger the line, the bigger the moment.
+    if (total >= 5000) { bannerT = 120; bannerText = 'LEGENDARY LINE +' + total; shake = 16; lineFlashT = 40; lingoCd = 0; sayLingo(); spawnParticles(px, player.y + player.h, '#fff', 40); say('so-sick', 300); }
+    else if (total >= 2000) { bannerT = 90; bannerText = 'HUGE LINE +' + total; shake = 11; lineFlashT = 28; lingoCd = 0; sayLingo(); spawnParticles(px, player.y + player.h, YELLOW, 24); }
     else if (total >= 500) { bannerT = 60; bannerText = 'SICK LINE'; sayLingo(); }
     if (!sketchy && lineTricks.length >= 2) sfxCombo(6);
     if (total > bestLine) bestLine = total;
@@ -403,7 +435,7 @@
     obstacles = []; collectibles = []; rails = []; features = [];
     spawnInitial();
     player.y = terrainY(scrollX + player.x + player.w / 2) - player.h;
-    camY = terrainY(scrollX + player.x + player.w / 2) - GROUND_Y;
+    camY = 0;
     player.invincible = 120;
     hitsThisLevel = 0;
     bannerT = 110; bannerText = 'CONTINUE: ' + LOCALES[(lv - 1) % LOCALES.length].name;
@@ -427,7 +459,9 @@
       player.vy = -9.2;
       // Off a ramp or the wall of a bowl the pop rides the slope. Pumping the
       // transition (holding SPACE on the way up) adds more.
-      if (sl < -0.15) player.vy += sl * speed * 0.8 - (pumpT > 6 ? 2.2 : 0);
+      if (sl < -0.15) player.vy += sl * speed * 0.8 - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
+      player.vy = Math.max(-16, player.vy);
+      floaty = sl < -0.3 || player.vy < -11;
       player.onGround = false;
       player.popT = 8;
       spawnDust(player.x + 4, player.y + player.h, 3);
@@ -436,7 +470,7 @@
       flipped = false;
       airTop = player.y; airCount++;
       sfxJump();
-      if (player.grinding) { player.grinding = false; player.grindRail = null; }
+      if (player.grinding) { lastGrindEnd = frame; lastRailId = player.grindRail ? player.grindRail.id : -1; player.grinding = false; player.grindRail = null; }
     } else if (!flipped && jumpBuffer > 0 && player.vy > -8) {
       flipped = true;
       jumpBuffer = 0;
@@ -605,7 +639,7 @@
     var cruise = Math.min(9.5, 3.6 + level * 0.55 + dist / 9000);
     var wx = scrollX + player.x + player.w / 2;
     groundSlope = slopeAt(wx);
-    if (player.onGround && !player.grinding) speed += groundSlope * 0.09;
+    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.12) speed += groundSlope * 0.12;
     speed += (cruise - speed) * (player.onGround ? 0.018 : 0.006);
     speed = Math.max(cruise * 0.55, Math.min(12.5, speed));
     if (bannerT > 0) bannerT--;
@@ -635,7 +669,7 @@
     if (coyote > 0) coyote--;
     if (jumpBuffer > 0) { jumpBuffer--; tryJump(); }
     // Pumping: SPACE held while climbing a transition.
-    if (player.onGround && holdingJump && groundSlope < -0.3) pumpT++; else pumpT = 0;
+    if (player.onGround && holdingJump && groundSlope < -0.2) pumpT++; else if (player.onGround) pumpT = 0;
 
     // Player physics: floatier while holding the button on the way up
     var wasOnGround = player.onGround;
@@ -649,18 +683,28 @@
         var followMax = speed * 0.55 + 2;
         if (drop > followMax) {
           player.onGround = false;
-          player.vy = Math.min(0, prevSlope * speed * 1.1);
+          // Off a lip you carry the ramp's angle at your speed, and a pump
+          // on the face adds more. Capped so the sky stays in reach.
+          var launch = prevSlope * speed * 1.5 - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
+          player.vy = Math.max(-16, Math.min(0, launch));
+          floaty = prevSlope < -0.3 || player.vy < -8;
           airTop = player.y; airCount++;
-          if (prevSlope < -0.45) { lipT = 30; spawnDust(player.x + player.w / 2, player.y + player.h, 4); }
+          if (prevSlope < -0.3) { lipT = 30; spawnDust(player.x + player.w / 2, player.y + player.h, 4); if (player.vy < -9) sfxJump(); }
         } else {
           player.y = gyNow - player.h;
           player.vy = 0;
         }
       } else {
-        var g = (holdingJump && player.vy < 0) ? 0.32 : GRAVITY;
+        // Floaty: lighter gravity in the air, and a hang at the top of the arc
+        // so there is time to spin and grab.
+        // Ramp air floats (Ski Safari); a plain ollie stays snappy.
+        var g = floaty ? ((holdingJump && player.vy < 0) ? 0.26 : 0.36) : ((holdingJump && player.vy < 0) ? 0.32 : GRAVITY);
+        if (floaty && Math.abs(player.vy) < 1.4) g *= 0.5;
         player.vy += g;
         player.y += player.vy;
         if (player.y < airTop) airTop = player.y;
+        airFrames++;
+        if (airFrames > longestAir) longestAir = airFrames;
       }
     }
 
@@ -689,6 +733,7 @@
       player.vy = 0;
       var air = Math.max(0, gy - player.h - airTop);
       if (air > maxAir) maxAir = air;
+      airFrames = 0;
       spawnParticles(player.x + player.w / 2, gy, ORANGE, 4);
       spawnDust(player.x + player.w / 2, gy, air > 90 ? 10 : 5);
       player.squash = air > 90 ? 9 : 6;
@@ -701,15 +746,12 @@
       if (landSlope > 0.18 && !sketchy && linePts > 0) { linePts += 15; addPopup(player.x + player.w / 2, player.y - 20, 'LANDED DOWNHILL +15', CYAN); }
       if (air > 60) shake = Math.max(shake, Math.min(8, air / 30));
       if (linePts > 0) {
-        var intoManual = (downHeld || upHeld) && manualBailT === 0 && !sketchy;
-        if ((downHeld || upHeld) && manualBailT === 0) {
-          addPopup(player.x + player.w / 2, player.y - 18, sketchy ? 'SKETCHY LINK' : 'LINKED', sketchy ? '#ff9a3c' : CYAN);
-          if (sketchy) linePts = Math.ceil(linePts / 2);
-          manualKind = downHeld ? 'manual' : 'nose';
-        } else {
-          bank(sketchy);
-        }
-        void intoManual;
+        // A landing never banks on its own: the line stays open for a beat so
+        // the next ramp, rail or manual can carry it. Roll flat and it pays.
+        if (sketchy) { linePts = Math.ceil(linePts / 2); addPopup(player.x + player.w / 2, player.y - 18, 'SKETCHY: LINE HALVED', '#ff9a3c'); }
+        else addPopup(player.x + player.w / 2, player.y - 18, 'CLEAN', CYAN);
+        if ((downHeld || upHeld) && manualBailT === 0) manualKind = downHeld ? 'manual' : 'nose';
+        linkWindow = 42;
       } else if (landSlope < -0.18) {
         addPopup(player.x + player.w / 2, player.y - 18, 'UPHILL LANDING', '#ff9a3c');
       }
@@ -723,6 +765,13 @@
     }
 
     if (player.invincible > 0) player.invincible--;
+
+    // The link window: rolling flat with a line open counts down to the bank.
+    if (linkWindow > 0) {
+      var carrying = !player.onGround || player.grinding || ((downHeld || upHeld) && manualBailT === 0 && slideT === 0) || slideT > 0;
+      if (carrying) linkWindow = 0;
+      else if (--linkWindow === 0 && linePts > 0) bank(false);
+    }
 
     // Grabs: hold UP (melon), DOWN (indy), both (method). Points tick while held.
     var gname = airborne() ? currentGrab() : '';
@@ -765,7 +814,7 @@
         manualT = 0;
       }
     } else {
-      if (wasManual && manualT > 0 && linePts > 0 && manualBailT === 0) bank(false);
+      if (wasManual && manualT > 0 && linePts > 0 && manualBailT === 0) linkWindow = 42;
       manualT = 0;
     }
     wasManual = manual;
@@ -787,10 +836,17 @@
             spinAngle = 0; spinDir = 0; spinStep = 0;
             if (!rail.scored) {
               rail.scored = true;
-              trick(25, player.x + player.w / 2, railTop - 12, '50-50');
+              // Coming off another rail within a second: a transfer, worth more than the landing.
+              if (frame - lastGrindEnd < 60 && lastRailId !== -1) {
+                transfers++;
+                trick(rail.id === lastRailId ? 20 : 30, player.x + player.w / 2, railTop - 12, rail.id === lastRailId ? 'GAP HOP' : 'TRANSFER');
+              } else {
+                trick(25, player.x + player.w / 2, railTop - 12, '50-50');
+              }
               spawnParticles(player.x + player.w / 2, railTop, CYAN, 8);
               spawnSparks(player.x + 4, railTop + 2, 8);
             }
+            grindDist = 0; grindPaid = 0; airFrames = 0; floaty = false;
             if (frame % 6 === 0) sfxGrind();
             break;
           }
@@ -801,16 +857,29 @@
     if (player.grinding) {
       if (frame % 6 === 0) sfxGrind();
       if (frame % 2 === 0) spawnSparks(player.x + 4, player.y + player.h + 2, 2);
-      if (frame % 12 === 0) linePts += 2;
+      // Grinds pay by the foot: three points every 40px, a bonus and a
+      // multiplier step every 200px, so a long rail is worth staying on.
+      grindDist += speed;
+      if (grindDist - grindPaid >= 40) { grindPaid += 40; linePts += 3; }
+      if (grindDist >= 200 && Math.floor(grindDist / 200) > Math.floor((grindDist - speed) / 200)) {
+        var ft = Math.floor(grindDist / 200);
+        linePts += 20;
+        if (combo < MAX_COMBO) combo++;
+        addPopup(player.x + player.w / 2, player.y - 14, 'LONG GRIND ' + (ft * 200) + ' +20', CYAN);
+        if (ft === 3) sayLingo();
+      }
+      if (grindDist > longestGrind) longestGrind = grindDist;
     }
 
     if (player.grinding && player.grindRail) {
       var grx = player.grindRail.x - scrollX;
       if (player.x > grx + player.grindRail.w || player.x + player.w < grx) {
+        lastGrindEnd = frame; lastRailId = player.grindRail.id;
         player.grinding = false;
         player.grindRail = null;
-        coyote = 6;
+        coyote = 12;
         airTop = player.y;
+        floaty = false;
         slideT = 0;
       }
     }
@@ -913,21 +982,21 @@
       if (collectibles[i].collected && collectibles[i].x - scrollX < -50) collectibles.splice(i, 1);
     }
     for (var i = features.length - 1; i >= 0; i--) {
-      if (features[i].x + features[i].w - scrollX < -200) features.splice(i, 1);
+      if (features[i].x + features[i].w + landingZone(features[i]) - scrollX < -200) features.splice(i, 1);
     }
 
     // Features first (the terrain has to exist before things sit on it), then the rest ahead
     while (nextFeatureX < scrollX + W + 700) {
-      var gapF = level <= 1 ? 1100 + Math.random() * 500 : Math.max(420, 900 - level * 60) + Math.random() * 400;
+      var gapF = level <= 1 ? 800 + Math.random() * 600 : Math.max(420, 900 - level * 40) + Math.random() * 600;
       var f = spawnFeature(nextFeatureX);
-      nextFeatureX += f.w + gapF;
+      nextFeatureX += f.w + landingZone(f) + gapF;
     }
     var furthest = 0;
     for (var i = 0; i < obstacles.length; i++) { if (obstacles[i].x > furthest) furthest = obstacles[i].x; }
     for (var i = 0; i < collectibles.length; i++) { if (collectibles[i].x > furthest) furthest = collectibles[i].x; }
-    for (var i = 0; i < rails.length; i++) { if (rails[i].x > furthest) furthest = rails[i].x; }
+    for (var i = 0; i < rails.length; i++) { if (rails[i].x + rails[i].w > furthest) furthest = rails[i].x + rails[i].w; }
     while (furthest < scrollX + W + 400) {
-      furthest += Math.max(84, 120 - level * 5) + Math.random() * 100;
+      furthest += Math.max(48, 120 - level * 7) + Math.random() * Math.max(40, 100 - level * 5);
       spawnAt(furthest);
     }
 
@@ -942,11 +1011,11 @@
     }
 
     // Camera: the ground under the skater stays in the same screen zone
-    var camTarget = terrainY(wx) - GROUND_Y;
-    // Big air: the camera lifts so the skater never leaves the top of the screen.
-    var topOnScreen = player.y - camTarget;
-    if (topOnScreen < 56) camTarget -= (56 - topOnScreen);
-    camY += (camTarget - camY) * (topOnScreen < 56 ? 0.22 : 0.12);
+    // Camera: the road never moves. Only genuine big air (the skater above the
+    // top third of the screen) lifts the view, and it eases back down.
+    var camTarget = 0;
+    if (!player.onGround && !player.grinding && player.y < 100) camTarget = player.y - 100;
+    camY += (camTarget - camY) * (camTarget < camY ? 0.2 : 0.08);
 
     // Particles + popups (world y)
     for (var i = particles.length - 1; i >= 0; i--) {
@@ -988,7 +1057,7 @@
   function enterBoard(v) {
     wallOpts.again = (!continueUsed && level >= 2)
       ? 'SPACE: continue from ' + LOCALES[(level - 1) % LOCALES.length].name + ' (1 credit) // DOWN: new run'
-      : 'SPACE or TAP to ride again'; wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax, air: Math.round(maxAir), airs: airCount, cont: continueUsed ? 1 : 0 } }); }
+      : 'SPACE or TAP to ride again'; wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax, air: Math.round(maxAir), hang: longestAir, airs: airCount, grind: Math.round(longestGrind), transfers: transfers, cont: continueUsed ? 1 : 0 } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -1162,8 +1231,8 @@
     var sheet = [
       ['HOLD SPACE or TAP to ollie // ramps and crests launch you, speed is air', 'tap again mid-air: KICKFLIP // tap LEFT: heelflip // tap RIGHT: shove-it // tap DOWN: impossible'],
       ['HOLD LEFT or RIGHT in the air: spin 180, 360, 540, 720', 'HOLD UP: melon // HOLD DOWN: indy // both: method // spin while grabbing for more'],
-      ['on a rail: LEFT nosegrind, RIGHT 5-0, DOWN boardslide, UP noseslide, switch to combo', 'land clean to bank the line // DOWN or UP on landing: manual keeps it going // LEFT on flat: powerslide'],
-      ['downhill landings pay, uphill landings are sketchy // hearts put a board back', 'five boards, one continue per run, six towns from Denver to the mountains']
+      ['on a rail: LEFT nosegrind, RIGHT 5-0, DOWN boardslide, UP noseslide // hop the gaps, long rails pay by the foot', 'the line rides ramp to air to rail to manual // roll flat for a beat and it banks // LEFT on flat: powerslide'],
+      ['downhill landings pay, uphill landings are sketchy // hearts put a board back', 'five boards, one continue per run, eleven stops from Denver to the Vegas strip']
     ];
     var pageI = Math.floor(t / 120) % sheet.length;
     ctx.fillText(sheet[pageI][0], W / 2, H - 58);
@@ -1390,6 +1459,160 @@
         ctx.fillStyle = '#5a7040';
         ctx.beginPath(); ctx.ellipse(sx2, GY - 4, 9, 5, 0, 0, Math.PI * 2); ctx.fill();
       }
+    } else if (sky.scene === 'rino') {
+      // RiNo: warehouses, water tower, mural walls, the Lumenati block
+      for (var i = 0; i < 6; i++) {
+        var wx6 = ((i * 190 + 30 - scrollX * 0.14) % (W + 260) + W + 260) % (W + 260) - 130;
+        ctx.fillStyle = i % 2 ? '#5a3a44' : '#4a3040';
+        ctx.fillRect(wx6, GY - 70 - (i % 3) * 14, 120, 70 + (i % 3) * 14);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(wx6, GY - 70 - (i % 3) * 14, 120, 6);
+      }
+      var wt = ((120 - scrollX * 0.18) % (W + 200) + W + 200) % (W + 200) - 100;
+      ctx.fillStyle = '#3c2a34'; ctx.fillRect(wt + 10, GY - 150, 4, 90); ctx.fillRect(wt + 36, GY - 150, 4, 90);
+      ctx.fillStyle = '#6a4a5a'; ctx.fillRect(wt, GY - 180, 50, 34);
+      ctx.fillStyle = '#e8e0d0'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillText('RiNo', wt + 25, GY - 160);
+      // Murals: big flat color panels with shapes, the whole block painted
+      var MUR = ['#FF1493', '#00FFFF', '#7FFF00', '#FFD700', '#B026FF', '#FF6347'];
+      for (var mi = 0; mi < 7; mi++) {
+        var mx = ((mi * 160 + 20 - scrollX * 0.3) % (W + 200) + W + 200) % (W + 200) - 100;
+        ctx.fillStyle = '#2a1a24';
+        ctx.fillRect(mx, GY - 56, 130, 56);
+        ctx.fillStyle = MUR[mi % MUR.length];
+        ctx.globalAlpha = 0.8;
+        if (mi % 3 === 0) { ctx.beginPath(); ctx.arc(mx + 40, GY - 30, 18, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(mx + 70, GY - 48, 40, 8); }
+        else if (mi % 3 === 1) { ctx.beginPath(); ctx.moveTo(mx + 10, GY - 6); ctx.lineTo(mx + 60, GY - 50); ctx.lineTo(mx + 110, GY - 6); ctx.fill(); }
+        else { for (var st = 0; st < 5; st++) ctx.fillRect(mx + 8 + st * 24, GY - 46 + (st % 2) * 14, 14, 26); }
+        ctx.globalAlpha = 1;
+        if (mi === 2) {
+          // The Lumenati block: the eye, the sign
+          ctx.fillStyle = '#0e0e11'; ctx.fillRect(mx + 20, GY - 56, 90, 56);
+          ctx.fillStyle = PINK; ctx.beginPath(); ctx.moveTo(mx + 65, GY - 50); ctx.lineTo(mx + 85, GY - 18); ctx.lineTo(mx + 45, GY - 18); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(mx + 65, GY - 30, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#0e0e11'; ctx.beginPath(); ctx.arc(mx + 65, GY - 30, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = Math.floor(frame / 30) % 2 === 0 ? PINK : '#ff8ad0'; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillText('LUMENATI', mx + 65, GY - 8);
+        }
+      }
+    } else if (sky.scene === 'golden') {
+      // Golden: the mesa with the M, the Coors sign, the creek and its bridge
+      for (var x7 = -8; x7 < W + 8; x7 += 4) {
+        var gmx = (x7 + scrollX * 0.08);
+        var gmy = GY - 110 - Math.sin(gmx * 0.009) * 30 - (Math.sin(gmx * 0.02) > 0.6 ? 26 : 0);
+        ctx.fillStyle = '#7a8a6a'; ctx.fillRect(x7, gmy, 4, GY - gmy);
+        ctx.fillStyle = '#5e6e52'; ctx.fillRect(x7, gmy + 40, 4, GY - gmy - 40);
+      }
+      var mM = ((200 - scrollX * 0.08) % (W + 300) + W + 300) % (W + 300) - 150;
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center'; ctx.fillText('M', mM, GY - 118);
+      var cs2 = ((90 - scrollX * 0.2) % (W + 300) + W + 300) % (W + 300) - 150;
+      ctx.fillStyle = '#c8b090'; ctx.fillRect(cs2, GY - 96, 150, 46);
+      ctx.fillStyle = '#d02020'; ctx.fillRect(cs2 + 6, GY - 90, 138, 34);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px monospace'; ctx.fillText('COORS', cs2 + 75, GY - 66);
+      ctx.fillStyle = '#8a7a6a'; for (var ct = 0; ct < 6; ct++) ctx.fillRect(cs2 + 20 + ct * 22, GY - 50, 10, 50);
+      // Clear Creek under a truss bridge, the water sliding by
+      ctx.fillStyle = '#3f86c4'; ctx.fillRect(-8, GY - 14, W + 16, 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      for (var wv = 0; wv < 12; wv++) { var wxx = ((wv * 41 - frame * 1.5 - scrollX * 0.9) % (W + 40) + W + 40) % (W + 40) - 20; ctx.fillRect(wxx, GY - 10 + (wv % 3) * 3, 14, 1); }
+      var br = ((260 - scrollX * 0.45) % (W + 400) + W + 400) % (W + 400) - 200;
+      ctx.fillStyle = '#4a4a52'; ctx.fillRect(br, GY - 40, 160, 5);
+      for (var tb = 0; tb < 8; tb++) { ctx.fillRect(br + tb * 20, GY - 40, 3, 26); if (tb < 7) { ctx.beginPath(); ctx.moveTo(br + tb * 20, GY - 40); ctx.lineTo(br + tb * 20 + 20, GY - 14); ctx.lineTo(br + tb * 20 + 22, GY - 14); ctx.lineTo(br + tb * 20 + 3, GY - 40); ctx.fill(); } }
+    } else if (sky.scene === 'mining') {
+      // Idaho Springs: bare brown hills, mine headframes, tailings, an ore cart on a trestle
+      for (var x8 = -8; x8 < W + 8; x8 += 4) {
+        var hmx = (x8 + scrollX * 0.1);
+        var hmy = GY - 90 - Math.sin(hmx * 0.012) * 40 - Math.sin(hmx * 0.031) * 12;
+        ctx.fillStyle = '#6e6250'; ctx.fillRect(x8, hmy, 4, GY - hmy);
+        ctx.fillStyle = '#5a5044'; ctx.fillRect(x8, hmy + 30, 4, GY - hmy - 30);
+      }
+      for (var hf = 0; hf < 3; hf++) {
+        var hx = ((hf * 300 + 120 - scrollX * 0.22) % (W + 340) + W + 340) % (W + 340) - 170;
+        ctx.fillStyle = '#3a3028';
+        ctx.fillRect(hx, GY - 96, 4, 96); ctx.fillRect(hx + 30, GY - 96, 4, 96);
+        ctx.fillRect(hx - 6, GY - 100, 46, 6);
+        ctx.beginPath(); ctx.moveTo(hx, GY); ctx.lineTo(hx + 17, GY - 96); ctx.lineTo(hx + 34, GY); ctx.lineTo(hx + 30, GY); ctx.lineTo(hx + 17, GY - 84); ctx.lineTo(hx + 4, GY); ctx.fill();
+        ctx.fillStyle = '#8a7a66'; ctx.beginPath(); ctx.arc(hx + 17, GY - 100, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#7a6a56'; ctx.fillRect(hx + 40, GY - 30, 70, 30);
+        ctx.fillStyle = '#9a8a76'; ctx.beginPath(); ctx.moveTo(hx + 120, GY); ctx.lineTo(hx + 160, GY - 34); ctx.lineTo(hx + 200, GY); ctx.fill();
+      }
+      var tr = ((60 - scrollX * 0.35) % (W + 500) + W + 500) % (W + 500) - 250;
+      ctx.fillStyle = '#4a3c30';
+      ctx.fillRect(tr, GY - 58, 220, 4);
+      for (var tt = 0; tt < 11; tt++) ctx.fillRect(tr + tt * 20, GY - 58, 3, 58);
+      var cart = tr + ((frame * 0.7) % 220);
+      ctx.fillStyle = '#5a4a3c'; ctx.fillRect(cart, GY - 74, 22, 14);
+      ctx.fillStyle = '#c8b090'; ctx.fillRect(cart + 3, GY - 78, 16, 5);
+      ctx.fillStyle = '#222'; ctx.fillRect(cart + 3, GY - 60, 5, 3); ctx.fillRect(cart + 14, GY - 60, 5, 3);
+    } else if (sky.scene === 'vail') {
+      // Vail Pass: the big peaks, a switchback road up the far slope, dark pines
+      for (var x9 = -8; x9 < W + 8; x9 += 4) {
+        var vmx = (x9 + scrollX * 0.06);
+        var vmy = GY - 130 - Math.sin(vmx * 0.008) * 50 - Math.abs(Math.sin(vmx * 0.02)) * 30;
+        ctx.fillStyle = '#3a3f66'; ctx.fillRect(x9, vmy, 4, GY - vmy);
+        if (vmy < GY - 150) { ctx.fillStyle = '#eef2fa'; ctx.fillRect(x9, vmy, 4, Math.min(22, GY - 150 - vmy + 8)); }
+      }
+      for (var x10 = -8; x10 < W + 8; x10 += 4) {
+        var vhx = (x10 + scrollX * 0.16);
+        var vhy = GY - 60 - Math.sin(vhx * 0.014) * 26;
+        ctx.fillStyle = '#2b3350'; ctx.fillRect(x10, vhy, 4, GY - vhy);
+      }
+      // The switchbacks: a pale road zigzagging up the slope
+      ctx.strokeStyle = 'rgba(230,236,246,0.5)'; ctx.lineWidth = 2; ctx.beginPath();
+      var sw0 = ((-scrollX * 0.16) % 400 + 400) % 400 - 200;
+      for (var rep3 = 0; rep3 < 3; rep3++) { var sx9 = sw0 + rep3 * 400; ctx.moveTo(sx9, GY - 20); ctx.lineTo(sx9 + 120, GY - 46); ctx.lineTo(sx9 + 30, GY - 68); ctx.lineTo(sx9 + 150, GY - 92); }
+      ctx.stroke(); ctx.lineWidth = 1;
+      for (var pv = 0; pv < 10; pv++) {
+        var pvx = ((pv * 96 + 20 - scrollX * 0.3) % (W + 120) + W + 120) % (W + 120) - 60;
+        var pvh = 22 + (pv * 31) % 16;
+        ctx.fillStyle = '#12261c'; ctx.beginPath(); ctx.moveTo(pvx, GY); ctx.lineTo(pvx + 8, GY - pvh); ctx.lineTo(pvx + 16, GY); ctx.fill();
+        ctx.fillStyle = 'rgba(240,244,250,0.7)'; ctx.fillRect(pvx + 5, GY - pvh + 4, 6, 2);
+      }
+    } else if (sky.scene === 'moab') {
+      // Moab: mesas, a sandstone arch, the desert road out
+      for (var x11 = -8; x11 < W + 8; x11 += 4) {
+        var mmx = (x11 + scrollX * 0.07);
+        var mesa = Math.sin(mmx * 0.006) > 0.3 ? 90 : 40;
+        var mmy = GY - mesa - Math.sin(mmx * 0.03) * 4;
+        ctx.fillStyle = '#c05a3c'; ctx.fillRect(x11, mmy, 4, GY - mmy);
+        ctx.fillStyle = '#a04830'; ctx.fillRect(x11, mmy + 18, 4, 6);
+      }
+      var arch = ((160 - scrollX * 0.2) % (W + 360) + W + 360) % (W + 360) - 180;
+      ctx.fillStyle = '#d0684a';
+      ctx.beginPath(); ctx.moveTo(arch, GY); ctx.lineTo(arch + 10, GY - 80); ctx.quadraticCurveTo(arch + 70, GY - 150, arch + 130, GY - 80); ctx.lineTo(arch + 140, GY); ctx.lineTo(arch + 110, GY); ctx.lineTo(arch + 104, GY - 70); ctx.quadraticCurveTo(arch + 70, GY - 118, arch + 36, GY - 70); ctx.lineTo(arch + 30, GY); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(arch + 10, GY - 80, 6, 80);
+      for (var sh = 0; sh < 6; sh++) {
+        var shx = ((sh * 150 + 70 - scrollX * 0.3) % (W + 80) + W + 80) % (W + 80) - 40;
+        ctx.fillStyle = '#6a7a3a'; ctx.beginPath(); ctx.ellipse(shx, GY - 4, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#5a7040'; ctx.fillRect(shx + 24, GY - 22, 4, 22); ctx.fillRect(shx + 18, GY - 16, 5, 3); ctx.fillRect(shx + 29, GY - 12, 5, 3);
+      }
+      // Heat: the far road shimmers
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.06 + Math.sin(frame * 0.2) * 0.03).toFixed(3) + ')';
+      ctx.fillRect(-8, GY - 2, W + 16, 2);
+    } else if (sky.scene === 'vegas') {
+      // The Strip: casino towers, neon signs, palms, the whole place lit
+      var NEON = [PINK, CYAN, LIME, YELLOW, '#B026FF', '#ff8a00'];
+      for (var tw = 0; tw < 7; tw++) {
+        var twx = ((tw * 130 + 20 - scrollX * 0.12) % (W + 220) + W + 220) % (W + 220) - 110;
+        var twh = 110 + (tw * 47) % 90;
+        ctx.fillStyle = '#16122a'; ctx.fillRect(twx, GY - twh, 70, twh);
+        ctx.fillStyle = NEON[tw % NEON.length]; ctx.fillRect(twx, GY - twh, 70, 3); ctx.fillRect(twx, GY - twh, 3, twh);
+        ctx.fillStyle = 'rgba(255,255,200,0.5)';
+        for (var wy5 = GY - twh + 8; wy5 < GY - 8; wy5 += 9) for (var wx5 = twx + 6; wx5 < twx + 64; wx5 += 9) if (((wy5 + wx5 + tw) >> 3) % 3 !== 0) ctx.fillRect(wx5, wy5, 4, 4);
+      }
+      for (var sg = 0; sg < 4; sg++) {
+        var sgx = ((sg * 260 + 60 - scrollX * 0.3) % (W + 300) + W + 300) % (W + 300) - 150;
+        var on = Math.floor(frame / 16 + sg) % 3 !== 0;
+        ctx.fillStyle = on ? NEON[(sg + 2) % NEON.length] : '#3a2a4a';
+        ctx.fillRect(sgx, GY - 92, 96, 34);
+        ctx.fillStyle = '#0a0612'; ctx.fillRect(sgx + 4, GY - 88, 88, 26);
+        ctx.fillStyle = on ? '#fff' : '#3a3a44'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(['CASINO', 'LOUNGE', 'INK 24H', 'VEGAS'][sg], sgx + 48, GY - 70);
+        ctx.fillStyle = '#4a3a2a'; ctx.fillRect(sgx + 46, GY - 58, 4, 58);
+      }
+      for (var pm = 0; pm < 6; pm++) {
+        var pmx = ((pm * 150 + 100 - scrollX * 0.45) % (W + 120) + W + 120) % (W + 120) - 60;
+        ctx.fillStyle = '#3a2e22'; ctx.fillRect(pmx, GY - 54, 4, 54);
+        ctx.fillStyle = '#2f7a3a';
+        for (var fr = 0; fr < 5; fr++) { ctx.save(); ctx.translate(pmx + 2, GY - 54); ctx.rotate(-1.2 + fr * 0.6); ctx.fillRect(0, -2, 22, 4); ctx.restore(); }
+      }
     } else {
       // The Flatirons lean out of the sunset above Boulder pines
       for (var i = 0; i < 5; i++) {
@@ -1509,23 +1732,46 @@
         ctx.fillRect(gx, ggy + 4, 14, 1); ctx.fillRect(gx + 13, ggy + 5, 9, 1); ctx.fillRect(gx + 21, ggy + 3, 6, 1);
       }
     }
-    // Feature lips: a bright edge on every kicker, pipe, bowl and ledge so you read them coming
+    // Ramps are built things on the road: plywood kickers, steel launch ramps
+    // with a hazard stripe, concrete lips with coping. You should never miss one.
     for (var fi2 = 0; fi2 < features.length; fi2++) {
       var ff = features[fi2];
       var fsx = ff.x - scrollX;
       if (fsx > W + 20 || fsx + ff.w < -20) continue;
-      ctx.fillStyle = ff.type === 'bowl' ? 'rgba(0,255,255,0.7)' : ff.type === 'ledge' ? 'rgba(255,215,0,0.8)' : 'rgba(255,255,255,0.9)';
-      if (ff.type === 'kicker' || ff.type === 'qp') {
-        var lipX = ff.x + ff.w - 1, lipY = terrainY(lipX) - camY;
-        ctx.fillRect(fsx + ff.w - 4, lipY - 2, 5, 3);
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.fillRect(fsx + ff.w, lipY, 2, GROUND_Y + 40 - lipY);
-      } else if (ff.type === 'bowl') {
-        ctx.fillRect(fsx - 2, terrainY(ff.x) - camY - 2, 4, 3);
-        ctx.fillRect(fsx + ff.w - 2, terrainY(ff.x + ff.w) - camY - 2, 4, 3);
+      var roadY = GROUND_Y + hillY(ff.x + ff.w) - camY;
+      ctx.beginPath();
+      ctx.moveTo(fsx, GROUND_Y + hillY(ff.x) - camY + 1);
+      for (var rx0 = 0; rx0 <= ff.w; rx0 += 3) ctx.lineTo(fsx + rx0, terrainY(ff.x + Math.min(rx0, ff.w - 0.01)) - camY);
+      ctx.lineTo(fsx + ff.w, roadY + 1);
+      ctx.closePath();
+      ctx.fillStyle = ff.type === 'kicker' ? '#8a6438' : ff.type === 'launch' ? '#5c5e6a' : '#8c8c92';
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+      if (ff.type === 'kicker') {
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        for (var pl = 0; pl < ff.w; pl += 12) ctx.fillRect(fsx + pl, 0, 2, H);
+      } else if (ff.type === 'launch') {
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        for (var pl2 = 0; pl2 < ff.w; pl2 += 8) ctx.fillRect(fsx + pl2, 0, 4, H);
+        ctx.fillStyle = YELLOW; ctx.fillRect(fsx + ff.w - 14, 0, 4, H); ctx.fillStyle = '#111'; ctx.fillRect(fsx + ff.w - 10, 0, 4, H); ctx.fillStyle = YELLOW; ctx.fillRect(fsx + ff.w - 6, 0, 4, H);
       } else {
-        ctx.fillRect(fsx - 1, terrainY(ff.x - 1) - camY - 2, 3, 3);
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        for (var pl3 = 0; pl3 < ff.w; pl3 += 10) ctx.fillRect(fsx + pl3, 0, 1, H);
       }
+      ctx.restore();
+      // The face edge and the lip
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 2; ctx.beginPath();
+      for (var rx1 = 0; rx1 <= ff.w; rx1 += 3) { var ry1 = terrainY(ff.x + Math.min(rx1, ff.w - 0.01)) - camY; if (rx1 === 0) ctx.moveTo(fsx, ry1); else ctx.lineTo(fsx + rx1, ry1); }
+      ctx.stroke(); ctx.lineWidth = 1;
+      var lipY = terrainY(ff.x + ff.w - 0.5) - camY;
+      ctx.fillStyle = ff.type === 'qp' ? '#d8d8dc' : '#fff';
+      ctx.fillRect(fsx + ff.w - 5, lipY - 3, 7, 4);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(fsx + ff.w + 1, lipY, 3, roadY - lipY);
+      // A launch arrow up the face so the ramp reads as a ramp from a screen away
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.35 + 0.25 * Math.sin(frame * 0.15)).toFixed(2) + ')';
+      var ax0 = fsx + ff.w * 0.45, ay0 = terrainY(ff.x + ff.w * 0.45) - camY - 8;
+      ctx.beginPath(); ctx.moveTo(ax0, ay0); ctx.lineTo(ax0 + 12, ay0 - 8); ctx.lineTo(ax0 + 8, ay0 - 8); ctx.lineTo(ax0 + 8, ay0 - 2); ctx.lineTo(ax0 + 4, ay0 - 2); ctx.lineTo(ax0 + 4, ay0 - 8); ctx.lineTo(ax0, ay0 - 8); ctx.fill();
     }
 
     // Rails
@@ -1659,8 +1905,8 @@
     }
     if (bannerT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
-      ctx.fillStyle = bannerText === 'INK SHIELD!' ? YELLOW : LIME;
-      ctx.font = 'bold 24px monospace';
+      ctx.fillStyle = bannerText.indexOf('LEGENDARY') === 0 ? '#ff5ab0' : bannerText.indexOf('HUGE') === 0 ? YELLOW : LIME;
+      ctx.font = 'bold ' + (bannerText.indexOf('LEGENDARY') === 0 ? 26 : 24) + 'px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(bannerText, W / 2, H / 2 - 40);
       ctx.globalAlpha = 1;
@@ -1669,14 +1915,18 @@
     // The line, live: what it is worth right now and what is in it.
     if (linePts > 0 && mode === 'play') {
       ctx.textAlign = 'right';
-      ctx.fillStyle = lineFlashT > 0 ? '#fff' : YELLOW;
-      ctx.font = 'bold 11px monospace';
-      ctx.fillText('LINE ' + linePts + ' x' + combo + ' = ' + (linePts * combo), W - 8, 14);
+      var lineTotal = linePts * combo;
+      ctx.fillStyle = lineTotal >= 5000 ? '#ff5ab0' : lineTotal >= 2000 ? YELLOW : '#fff';
+      ctx.font = 'bold ' + (lineTotal >= 2000 ? 20 : 16) + 'px monospace';
+      ctx.fillText(String(lineTotal), W - 8, 20);
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = linkWindow > 0 ? (Math.floor(frame / 4) % 2 === 0 ? '#ff9a3c' : '#fff') : 'rgba(255,255,255,0.75)';
+      ctx.fillText(linePts + ' x' + combo + (linkWindow > 0 ? ' // KEEP IT GOING' : ''), W - 8, 31);
       ctx.font = 'bold 8px monospace';
       ctx.fillStyle = 'rgba(255,255,255,0.6)';
       var tail = lineTricks.slice(-3).join(' + ');
       if (lineTricks.length > 3) tail = '.. ' + tail;
-      ctx.fillText(tail, W - 8, 25);
+      ctx.fillText(tail, W - 8, 41);
       ctx.font = 'bold 10px monospace';
     } else if (lineFlashT > 0) {
       ctx.textAlign = 'right';
@@ -1726,8 +1976,15 @@
     // Shadow on the ground under the skater, shrinking with height
     var wxs = scrollX + player.x + player.w / 2;
     var gys = terrainY(wxs) - camY;
+    var air2 = !player.onGround && !player.grinding;
     var height = Math.max(0, gys - (py + player.h));
-    var shAlpha = Math.max(0, 0.38 - height / 260);
+    var shAlpha = Math.max(0.2, 0.38 - height / 400);
+    if (air2 && height > 50) {
+      // Where you land: a ring on the road under you (the road scrolls, you do not)
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 + 0.3 * Math.sin(frame * 0.3)).toFixed(2) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(px + player.w / 2, gys + 2, 14, 4, 0, 0, Math.PI * 2); ctx.stroke();
+    }
     if (shAlpha > 0) {
       ctx.save();
       ctx.translate(px + player.w / 2, gys + 2);

@@ -186,7 +186,7 @@ try {
     if (h.spans["jd-br-lives"].textContent === "0") { h.key("Space"); h.key("Space", true); }
   }
   if (h.sandbox.__arcadeError) throw new Error("arcade error: " + h.sandbox.__arcadeError.split("\n")[0]);
-  console.log("PASS skate-tour   all four Colorado locales drew without error");
+  console.log("PASS skate-tour   every town on the tour drew without error");
 } catch (e) {
   failed++;
   console.log(`FAIL skate-tour   ${e.stack.split("\n").slice(0, 3).join(" | ")}`);
