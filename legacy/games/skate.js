@@ -61,6 +61,10 @@
   var continueUsed = false, lastLevel = 1, lastScore = 0, pumpT = 0, lipT = 0;
   var MAX_LIVES = 5;
   var airFrames = 0, longestAir = 0, floaty = false;
+  var grindBal = 0, nextCarX = 0, lastBailReason = '';
+  // Park goals: each town sets a few, the town's end tallies them into a bonus.
+  var goals = [], goalCardT = 0, tallyT = 0, tallyLines = [], townScoreStart = 0, letters = [], nextLetterX = 0, lettersGot = 0, goalsDoneTotal = 0;
+  var special = 0, specialUsed = 0, grabsLanded = 0, townGrabs = 0;
   var MAX_COMBO = 24, linkWindow = 0, grindDist = 0, grindPaid = 0, lastGrindEnd = -99, lastRailId = -1, railSeq = 0, transfers = 0, longestGrind = 0;
 
   var best = 0;
@@ -157,6 +161,7 @@
   var SKY_BOT = '#2d1b69';
 
   function init() {
+    setupHiRes();
     if (window.skateInt) { clearInterval(window.skateInt); window.skateInt = null; }
     score = 0; lives = MAX_LIVES; speed = 4; frame = 0; dist = 0; mode = 'intro'; introT = 0;
     level = 1; bannerT = 0; bannerText = ''; shieldT = 0;
@@ -171,7 +176,10 @@
     spinAngle = 0; spinDir = 0; spinStep = 0; leftHold = -1; rightHold = -1; upHold = -1; downHold = -1;
     leftHeld = false; rightHeld = false; grabName = ''; railUsed = {}; slideT = 0; manualKind = 'manual';
     continueUsed = false; lastLevel = 1; lastScore = 0; pumpT = 0; lipT = 0;
-    airFrames = 0; longestAir = 0;
+    airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; nextCarX = 1400; lastBailReason = '';
+    goals = []; goalCardT = 0; tallyT = 0; tallyLines = []; townScoreStart = 0; letters = []; nextLetterX = 1200; lettersGot = 0; goalsDoneTotal = 0;
+    special = 0; specialUsed = 0; grabsLanded = 0; townGrabs = 0;
+    setGoals(1);
     linkWindow = 0; grindDist = 0; grindPaid = 0; lastGrindEnd = -99; lastRailId = -1; railSeq = 0; transfers = 0; longestGrind = 0;
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
@@ -203,9 +211,10 @@
     { a: 3, f: 0.0016 }, { a: 4, f: 0.0015 }, { a: 3, f: 0.0017 }, { a: 6, f: 0.0015 }, { a: 6, f: 0.0014 },
     { a: 5, f: 0.0015 }, { a: 7, f: 0.0013 }, { a: 8, f: 0.0013 }, { a: 8, f: 0.0012 }, { a: 6, f: 0.0014 }, { a: 2, f: 0.0018 },
   ];
+  var TOWN_PX = 16000; // one town, in road pixels (4000 of dist)
   function hillY(x) {
     if (x < 300) return 0;
-    var lv = 1 + Math.floor(x / 4000);
+    var lv = 1 + Math.floor(x / TOWN_PX);
     var r = ROLL[(lv - 1) % ROLL.length];
     var ease = Math.min(1, (x - 300) / 600);
     return ease * (Math.sin(x * r.f) * r.a + Math.sin(x * r.f * 2.6 + 1.7) * r.a * 0.35);
@@ -222,13 +231,20 @@
       if (f.type === 'kicker') off -= f.h * t;
       else if (f.type === 'launch') off -= f.h * Math.pow(t, 1.6);
       else if (f.type === 'qp') off -= f.h * (1 - Math.cos(t * Math.PI / 2));
+      else if (f.type === 'stairs') {
+        // Steps down over the first part, a low run, then a bank back up to the road.
+        var stepPart = 0.45;
+        if (t < stepPart) off += f.h * Math.floor(t / stepPart * 5) / 5;
+        else if (t < 0.8) off += f.h;
+        else off += f.h * (1 - (t - 0.8) / 0.2);
+      }
     }
     return off;
   }
   function terrainY(x) { return GROUND_Y + hillY(x) + featureOffset(x); }
   function slopeAt(x) { return (terrainY(x + 6) - terrainY(x - 6)) / 12; }
   // The ramp itself plus its landing zone, where nothing solid may sit.
-  function landingZone(f) { return f.type === 'kicker' ? 360 : f.type === 'launch' ? 560 : 700; }
+  function landingZone(f) { return f.type === 'kicker' ? 360 : f.type === 'launch' ? 560 : f.type === 'stairs' ? 120 : 700; }
   function featureAt(x) {
     for (var i = 0; i < features.length; i++) if (x >= features[i].x - 40 && x < features[i].x + features[i].w + landingZone(features[i]) * 0.8) return features[i];
     return null;
@@ -236,7 +252,7 @@
   // Sizes by town: kickers everywhere, launch ramps from town 2, half-pipe
   // lips from town 3. Heights climb 6px a town.
   function spawnFeature(x) {
-    var lv = 1 + Math.floor(x / 4000);
+    var lv = 1 + Math.floor(x / TOWN_PX);
     var tier = Math.min(8, lv);
     var town = LOCALES[(lv - 1) % LOCALES.length];
     var r = Math.random();
@@ -245,6 +261,16 @@
     if (town.sig === 'launch') r *= 0.6;
     if (town.sig === 'qp') r = 0.5 + r * 0.5;
     var f;
+    // Stair sets with a handrail over them: from town 2, a quarter of the
+    // features (more in the stepped towns). Clear the steps or grind the rail.
+    var stairOdds = lv >= 2 ? (town.sig === 'steps' ? 0.5 : 0.32) : 0.15;
+    if (Math.random() < stairOdds) {
+      f = { type: 'stairs', x: x, w: 150 + tier * 8, h: 22 + Math.min(20, tier * 3) };
+      features.push(f);
+      var railTop = terrainY(x - 4) - 30;
+      rails.push({ x: x - 8, top: railTop, w: f.w * 0.5, scored: false, id: ++railSeq, seg: 0, segs: 1, kind: 'handrail', bodyH: 0, waxed: false });
+      return f;
+    }
     if (lv <= 1 || r < 0.35) f = { type: 'kicker', x: x, w: 66 + tier * 4, h: 26 + tier * 6 };
     else if (lv <= 2 || r < 0.72) f = { type: 'launch', x: x, w: 116 + tier * 6, h: 40 + tier * 7 };
     else f = { type: 'qp', x: x, w: 72, h: 50 + tier * 7 };
@@ -259,66 +285,87 @@
 
   function spawnAt(sx) {
     var r = Math.random();
-    // Nothing solid on a ramp or in a bowl: those are for air, not for bails.
-    // The mountains throw more at you: obstacles take a bigger share of the road.
-    var obShare = level >= 5 ? 0.58 : level >= 3 ? 0.52 : 0.45;
     var onRamp = featureAt(sx);
-    if (onRamp && r < obShare) r = obShare + 0.05;
-    // Rails only past the middle of a landing zone, where you are already down.
-    if (onRamp && r >= 0.75 && sx < onRamp.x + onRamp.w + landingZone(onRamp) * 0.55) r = 0.6;
     var townNow = LOCALES[(level - 1) % LOCALES.length];
-    if ((townNow.sig === 'gap' || townNow.sig === 'steps') && r >= obShare && r < 0.7) r = 0.8;
-    if (r < obShare) {
-      var types = ['hydrant', 'trashcan', 'cone'];
-      if (level >= 2) types.push('pigeon');
-      if (level >= 3) types.push('spill', 'spill');
-      if (level >= 4) types.push('stack');
-      if (level >= 5) types.push('dog');
-      if (level >= 6) types.push('cyclist', 'dog');
+    // A third of the old hazard rate, and none of it deadly: pigeons, a dog,
+    // a cyclist steal the line, a spill scrubs speed. Never in a landing zone.
+    if (r < 0.15 && !onRamp) {
+      var types = ['pigeon'];
+      if (level >= 2) types.push('spill');
+      if (level >= 3) types.push('dog');
+      if (level >= 5) types.push('cyclist');
       obstacles.push(makeObstacle(types[Math.floor(Math.random() * types.length)], sx));
-    } else if (r < 0.75) {
+    } else if (r < 0.5 || onRamp) {
       var lift = 40 + Math.random() * 30;
-      // Past a ramp the flash hangs in the flight path.
-      var ft = featureAt(sx);
+      var ft = onRamp;
       if (ft && sx > ft.x + ft.w) lift = 80 + Math.random() * 110;
       var k = Math.random();
-      // A spare deck shows up rarely, and only once you're down a board.
       var kind = (k < 0.045 && lives < MAX_LIVES) ? 'deck' : k < 0.1 ? 'horseshoe' : k < 0.2 ? 'eagle' : k < 0.36 ? 'skull' : k < 0.58 ? 'heart' : k < 0.8 ? 'bolt' : 'star';
       collectibles.push({ x: sx, y: terrainY(sx) - lift, lift: lift, w: 14, h: 14, collected: false, kind: kind });
     } else {
+      // Everything else on the street is something to skate.
       spawnRailLine(sx);
     }
+    void townNow;
+  }
+
+  function makeObstacle(type, x) {
+    if (type === 'pigeon') return { type: 'pigeon', x: x, y: GROUND_Y - 52, w: 14, h: 10 };
+    if (type === 'spill') return { type: 'spill', x: x, y: GROUND_Y - 4, w: 34, h: 4 };
+    if (type === 'dog') return { type: 'dog', x: x, y: GROUND_Y - 12, w: 18, h: 12, minGap: 99 };
+    if (type === 'cyclist') return { type: 'cyclist', x: x, y: GROUND_Y - 30, w: 18, h: 30, minGap: 99 };
+    // A car pulling out of a spot: the one thing on the road that really hurts.
+    // It sits at the curb flashing and honking for a beat, then it is in the lane.
+    // Later towns: longer cars (a van, a bus) that take a real ollie to clear.
+    var cl = 1 + Math.floor(x / TOWN_PX);
+    var cw = 96 + Math.min(96, Math.max(0, cl - 2) * 14);
+    return { type: 'car', x: x, y: GROUND_Y - 28, w: cw, h: 28 + Math.min(10, Math.max(0, cl - 3) * 2), warnT: 90, out: false, minGap: 99 };
   }
 
   // A rail line: one to five segments with kinks (a step up or down) and
   // gaps you hop across to keep the grind alive. Some run a full screen or
   // more. Red Rocks and Vegas get the long ones.
+  var FURNITURE = {
+    rail:     { h: 34, w: [110, 300], color: '#c8ccd2' },
+    bench:    { h: 14, w: [60, 100],  color: '#8a6438' },
+    planter:  { h: 18, w: [50, 80],   color: '#6a6a72' },
+    ledge:    { h: 22, w: [140, 260], color: '#9a9aa2' },
+    hydrant:  { h: 20, w: [14, 14],   color: '#ff3333' },
+    dumpster: { h: 34, w: [48, 60],   color: '#3a6a3a' },
+    carhood:  { h: 26, w: [96, 110],  color: '#b02040' },
+  };
+  var TOWN_FURNITURE = {
+    city: ['rail', 'bench', 'ledge', 'hydrant', 'dumpster', 'carhood', 'planter'],
+    rino: ['ledge', 'dumpster', 'rail', 'carhood', 'planter'],
+    flatirons: ['bench', 'planter', 'ledge', 'rail'],
+    redrocks: ['ledge', 'rail', 'ledge'],
+    golden: ['rail', 'bench', 'planter', 'hydrant'],
+    mining: ['rail', 'ledge', 'dumpster'],
+    range: ['bench', 'rail', 'planter'],
+    vail: ['rail', 'ledge', 'bench'],
+    moab: ['ledge', 'rail'],
+    vegas: ['rail', 'ledge', 'carhood', 'planter', 'dumpster'],
+  };
+  // A line of street furniture: one to five pieces with kinks and gaps you
+  // hop across to keep the grind alive. Benches, ledges, planters, hydrant
+  // caps, dumpster lids, car hoods and handrails are all things you grind.
   function spawnRailLine(sx) {
     var town = LOCALES[(level - 1) % LOCALES.length];
-    var long = Math.random() < (town.sig === 'steps' ? 0.75 : town.sig === 'gap' ? 0.6 : 0.35);
+    var pool = TOWN_FURNITURE[town.scene] || TOWN_FURNITURE.city;
+    var long = Math.random() < (town.sig === 'steps' ? 0.75 : town.sig === 'gap' ? 0.6 : 0.4);
     var segs = long ? (town.sig === 'gap' ? 3 : 2) + Math.floor(Math.random() * 4) : 1;
-    var lift = 30 + Math.random() * 18;
     var x = sx, id = ++railSeq;
+    var kind = pool[Math.floor(Math.random() * pool.length)];
     for (var i = 0; i < segs; i++) {
-      var w = long ? 110 + Math.random() * 190 : 60 + Math.random() * 90;
-      var top = Math.min(terrainY(x), terrainY(x + w)) - lift;
-      rails.push({ x: x, top: top, w: w, scored: false, id: id, seg: i, segs: segs });
-      // Kink: the next piece steps up or down a little; gap: a hop between them.
-      lift = Math.max(24, Math.min(64, lift + (Math.random() < 0.5 ? -10 : 10)));
+      if (i > 0 && Math.random() < 0.5) kind = pool[Math.floor(Math.random() * pool.length)];
+      var spec = FURNITURE[kind];
+      var w = spec.w[0] + Math.random() * (spec.w[1] - spec.w[0]);
+      if (long && kind !== 'hydrant') w += 40;
+      var top = Math.min(terrainY(x), terrainY(x + w)) - spec.h;
+      rails.push({ x: x, top: top, w: w, scored: false, id: id, seg: i, segs: segs, kind: kind, bodyH: spec.h, waxed: Math.random() < 0.6 });
       x += w + 34 + Math.random() * 40;
     }
     return x;
-  }
-
-  function makeObstacle(type, x) {
-    if (type === 'hydrant') return { type: 'hydrant', x: x, y: GROUND_Y - 18, w: 12, h: 18 };
-    if (type === 'trashcan') return { type: 'trashcan', x: x, y: GROUND_Y - 22, w: 16, h: 22 };
-    if (type === 'pigeon') return { type: 'pigeon', x: x, y: GROUND_Y - 52, w: 14, h: 10 };
-    if (type === 'spill') return { type: 'spill', x: x, y: GROUND_Y - 4, w: 34, h: 4 };
-    if (type === 'stack') return { type: 'stack', x: x, y: GROUND_Y - 40, w: 16, h: 40 };
-    if (type === 'dog') return { type: 'dog', x: x, y: GROUND_Y - 12, w: 18, h: 12, minGap: 99 };
-    if (type === 'cyclist') return { type: 'cyclist', x: x, y: GROUND_Y - 30, w: 18, h: 30, minGap: 99 };
-    return { type: 'cone', x: x, y: GROUND_Y - 14, w: 12, h: 14 };
   }
 
   function spawnParticles(x, y, color, count) {
@@ -366,6 +413,7 @@
     }
     if (combo > comboMax) comboMax = combo;
     comboTimer = 150;
+    addSpecial(pts);
     addPopup(x, y, label + (stale ? ' STALE +' : ' +') + pts, stale ? '#9aa' : (combo > 1 ? YELLOW : '#fff'));
     if (combo > 2 && !stale) sfxCombo(combo);
   }
@@ -393,8 +441,98 @@
     else if (total >= 500) { bannerT = 60; bannerText = 'SICK LINE'; sayLingo(); }
     if (!sketchy && lineTricks.length >= 2) sfxCombo(6);
     if (total > bestLine) bestLine = total;
+    goalProgress('line', total);
+    goalProgress('points', score - townScoreStart);
     resetLine();
   }
+
+  // Losing a board. Only failed tricks and the few real hazards call this:
+  // a car, a missed gap, landing sideways off a big spin, tipping a grind or
+  // a manual. Street furniture never does.
+  function bail(reason) {
+    lives--;
+    hitsThisLevel++;
+    lastBailReason = reason;
+    sfxHit();
+    document.getElementById('jd-br-lives').textContent = lives;
+    addPopup(player.x + player.w / 2, player.y - 34, reason + ' // ' + (lives > 0 ? lives + (lives === 1 ? ' BOARD LEFT' : ' BOARDS LEFT') : 'OUT OF BOARDS'), '#FF5050');
+    player.invincible = 110;
+    player.bailT = 36;
+    player.grinding = false; player.grindRail = null; manualBailT = 40; manualT = 0;
+    looseBoard = { x: player.x + 10, y: player.y + 17, vx: 3 + Math.random() * 2, vy: -5 - Math.random() * 2, rot: 0, t: 60 };
+    loseLine('BAILED');
+    shake = 12;
+    spawnDust(player.x + player.w / 2, player.y + player.h, 8);
+    spawnParticles(player.x + player.w / 2, player.y, '#FF0000', 10);
+    speed = Math.max(2.4, speed * 0.7);
+    if (lives <= 0) {
+      lastScore = score;
+      enterBoard(score);
+      saveBest();
+      deathJingle();
+      return true;
+    }
+    return false;
+  }
+
+  // ── Park goals ──
+  // Three per town from a pool, scaled by the town tier. The card shows at
+  // the town's start; the list rides the HUD; the tally at the town's end
+  // pays 800 a goal times the tier, and a clean sweep pays extra.
+  function setGoals(lv) {
+    var tier = Math.min(8, lv), town = LOCALES[(lv - 1) % LOCALES.length];
+    var pool = [
+      { id: 'line', text: 'SICK LINE ' + (1500 * tier) + ' IN ONE', need: 1500 * tier, have: 0 },
+      { id: 'grind', text: 'GRIND ' + (town.sig === 'steps' ? 'THE STEPS ' : '') + (200 + tier * 40) + ' FEET', need: 200 + tier * 40, have: 0 },
+      { id: 'spin', text: (tier >= 3 ? '720' : '540') + ' OFF A RAMP', need: tier >= 3 ? 4 : 3, have: 0 },
+      { id: 'letters', text: 'COLLECT S-K-A-T-E', need: 5, have: 0 },
+      { id: 'grabs', text: 'LAND ' + (2 + tier) + ' GRABS', need: 2 + tier, have: 0 },
+      { id: 'points', text: (4000 * tier) + ' POINTS THIS TOWN', need: 4000 * tier, have: 0 },
+    ];
+    goals = [];
+    // Letters always, then two more picked from the rest
+    goals.push(pool[3]);
+    var rest = [pool[0], pool[1], pool[2], pool[4], pool[5]];
+    for (var i = 0; i < 2; i++) goals.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
+    for (var g = 0; g < goals.length; g++) goals[g].done = false;
+    goalCardT = 200;
+    townScoreStart = score;
+    lettersGot = 0; townGrabs = 0;
+    letters = [];
+    nextLetterX = scrollX + 900;
+  }
+  function goalProgress(id, value) {
+    for (var g = 0; g < goals.length; g++) {
+      var gl = goals[g];
+      if (gl.id !== id || gl.done) continue;
+      gl.have = Math.max(gl.have, value);
+      if (gl.have >= gl.need) {
+        gl.done = true; goalsDoneTotal++;
+        addPopup(player.x + player.w / 2, player.y - 46, 'GOAL: ' + gl.text, LIME);
+        bannerT = 70; bannerText = 'GOAL DONE';
+        sfxCombo(7); spawnParticles(player.x + player.w / 2, player.y, LIME, 16);
+        say('radical', 100);
+      }
+    }
+  }
+  function tallyTown(lv) {
+    var tier = Math.min(8, lv);
+    var done = 0;
+    tallyLines = [];
+    for (var g = 0; g < goals.length; g++) { if (goals[g].done) done++; tallyLines.push({ text: goals[g].text, ok: goals[g].done }); }
+    var bonus = done * 800 * tier + (done === goals.length ? 1500 * tier : 0);
+    if (bonus > 0) { score += bonus; document.getElementById('jd-br-score').textContent = score; }
+    tallyLines.push({ text: 'TOWN BONUS +' + bonus + (done === goals.length ? ' // CLEAN SWEEP' : ''), ok: bonus > 0 });
+    tallyT = 240;
+  }
+  // The special meter fills with tricks and drains while you coast. Full, it
+  // unlocks the specials: a christ air, a darkslide, and spins past 720.
+  function addSpecial(pts) {
+    special = Math.min(100, special + pts * 0.45);
+    if (special >= 100 && !specialFlashT) { specialFlashT = 60; say('yeah-dude', 100); }
+  }
+  var specialFlashT = 0;
+  function useSpecial() { special = 0; specialUsed++; }
 
   // A bail throws the whole line away.
   function loseLine(reason) {
@@ -431,7 +569,7 @@
     continueUsed = true;
     mode = 'play';
     level = lv; score = keepScore; lives = MAX_LIVES;
-    dist = (lv - 1) * 4000; scrollX = dist; nextFeatureX = dist + 700;
+    dist = (lv - 1) * 4000; scrollX = dist * 4; nextFeatureX = scrollX + 700;
     obstacles = []; collectibles = []; rails = []; features = [];
     spawnInitial();
     player.y = terrainY(scrollX + player.x + player.w / 2) - player.h;
@@ -459,7 +597,7 @@
       player.vy = -9.2;
       // Off a ramp or the wall of a bowl the pop rides the slope. Pumping the
       // transition (holding SPACE on the way up) adds more.
-      if (sl < -0.15) player.vy += sl * speed * 0.8 - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
+      if (sl < -0.15) player.vy += -(2 + Math.abs(sl) * speed * 0.6) - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
       player.vy = Math.max(-16, player.vy);
       floaty = sl < -0.3 || player.vy < -11;
       player.onGround = false;
@@ -485,6 +623,7 @@
   function railTrick(key) {
     // Switching tricks mid-rail is the combo: each new one goes on the line.
     var map = { left: usedNose ? 'CROOKED' : 'NOSEGRIND', right: usedFive ? 'SMITH' : '5-0', down: railUsed.down ? 'TAILSLIDE' : 'BOARDSLIDE', up: railUsed.up ? 'BLUNTSLIDE' : 'NOSESLIDE' };
+    if (key === 'up' && railUsed.down && special >= 100 && !railUsed.DARKSLIDE) { railUsed.DARKSLIDE = true; useSpecial(); grindTilt = 0; slideT = 999; trick(150, player.x + player.w / 2, player.y - 14, 'DARKSLIDE'); bannerT = 70; bannerText = 'SPECIAL: DARKSLIDE'; say('gnarly', 100); return; }
     var name = map[key];
     if (railUsed[name]) return;
     railUsed[name] = true;
@@ -605,7 +744,9 @@
   function update() {
     frame++;
     musicTick();
-    dist += speed;
+    // dist counts town distance at a quarter of the road: 4000 of it is one
+    // town, 16000px, a minute or more at these speeds.
+    dist += speed * 0.25;
     scrollX += speed;
     var nl = 1 + Math.floor(dist / 4000);
     if (nl > level) {
@@ -614,7 +755,8 @@
       bannerText = 'LEVEL ' + level + ': ' + LOCALES[(level - 1) % LOCALES.length].name;
       if (transCtx) {
         try {
-          transCtx.clearRect(0, 0, W, H);
+          if (typeof transCtx.setTransform === 'function') transCtx.setTransform(1, 0, 0, 1, 0, 0);
+          transCtx.clearRect(0, 0, transCanvas.width, transCanvas.height);
           transCtx.drawImage(canvas, 0, 0);
           transT = 55;
         } catch (e) {}
@@ -632,16 +774,26 @@
         addPopup(player.x + player.w / 2, player.y - 44, 'NO BAIL +' + cleanBonus, YELLOW);
       }
       hitsThisLevel = 0;
+      tallyTown(level - 1);
+      setGoals(level);
       lastLevel = level; lastScore = score;
       document.getElementById('jd-br-score').textContent = score;
     }
+    if (goalCardT > 0) goalCardT--;
+    if (tallyT > 0) tallyT--;
+    if (specialFlashT > 0) specialFlashT--;
+    // The meter drains while you coast with nothing going.
+    if (player.onGround && !player.grinding && linePts === 0 && special > 0 && special < 100) special = Math.max(0, special - 0.05);
     // Speed: the town sets a cruise, hills push and pull, pushes and slides nudge it.
-    var cruise = Math.min(9.5, 3.6 + level * 0.55 + dist / 9000);
+    // Cruise starts at a roll and climbs a little per town: 3.0 downtown,
+    // 7.5 the ceiling many towns later.
+    var cruise = Math.min(7.5, 3.0 + dist / 6000);
+    player.x += ((76 - (speed - 3) * 4) - player.x) * 0.04;
     var wx = scrollX + player.x + player.w / 2;
     groundSlope = slopeAt(wx);
-    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.12) speed += groundSlope * 0.12;
+    if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.12) speed += groundSlope * 0.06;
     speed += (cruise - speed) * (player.onGround ? 0.018 : 0.006);
-    speed = Math.max(cruise * 0.55, Math.min(12.5, speed));
+    speed = Math.max(cruise * 0.55, Math.min(9, speed));
     if (bannerT > 0) bannerT--;
     if (shieldT > 0) shieldT--;
     if (lipT > 0) lipT--;
@@ -685,7 +837,7 @@
           player.onGround = false;
           // Off a lip you carry the ramp's angle at your speed, and a pump
           // on the face adds more. Capped so the sky stays in reach.
-          var launch = prevSlope * speed * 1.5 - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
+          var launch = -(6 + Math.abs(prevSlope) * speed * 1.2) * (prevSlope < -0.25 ? 1 : 0.3) - (pumpT > 4 ? Math.min(3, pumpT * 0.25) : 0);
           player.vy = Math.max(-16, Math.min(0, launch));
           floaty = prevSlope < -0.3 || player.vy < -8;
           airTop = player.y; airCount++;
@@ -718,11 +870,16 @@
         spinStep = half;
         var names = ['', '180', '360', '540', '720', '900', '1080'];
         var pts = [0, 15, 35, 60, 100, 150, 220];
+        if (half >= 5 && special < 100) { spinStep = 4; spinAngle = spinDir * 4 * Math.PI; }
+        else {
+        if (half >= 5) { useSpecial(); bannerT = 70; bannerText = 'SPECIAL: ' + names[Math.min(half, names.length - 1)]; }
+        if (floaty) goalProgress('spin', half);
         var nm = names[Math.min(half, names.length - 1)];
         var grabNow = currentGrab();
         trick(pts[Math.min(half, pts.length - 1)] + (grabNow ? 12 : 0), player.x + player.w / 2, player.y - 12, grabNow ? grabNow + ' ' + nm : nm);
         if (half >= 2) spawnParticles(player.x + player.w / 2, player.y + player.h / 2, YELLOW, 6);
         if (half === 4) sayLingo();
+        }
       }
     }
 
@@ -742,6 +899,22 @@
       var midSpin = spinAngle !== 0 && spinOff > 0.55 && spinOff < Math.PI - 0.55;
       var spinning = player.flipT > 0 || player.heelT > 0 || player.shoveT > 0 || player.impT > 0 || player.backT > 0 || midSpin;
       var sketchy = spinning || landSlope < -0.18;
+      // Land sideways off a full rotation and you are on the ground, not the board.
+      if (spinStep >= 2 && spinOff > 1.0 && spinOff < Math.PI - 1.0) {
+        spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
+        player.onGround = true; flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
+        if (bail('LANDED SIDEWAYS')) return;
+        return;
+      }
+      // The steps of a stair set are not a landing zone.
+      var stairsHere = null;
+      for (var sfi = 0; sfi < features.length; sfi++) { var sf = features[sfi]; if (sf.type === 'stairs' && wx > sf.x && wx < sf.x + sf.w * 0.45) stairsHere = sf; }
+      if (stairsHere && !player.grinding) {
+        player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
+        flipped = false; usedHeel = false; usedShove = false; usedImp = false; usedBack = false;
+        if (bail('MISSED THE GAP')) return;
+        return;
+      }
       if (air > 120 && !sketchy) { trick(30, player.x + player.w / 2, player.y - 26, 'BIG AIR'); }
       if (landSlope > 0.18 && !sketchy && linePts > 0) { linePts += 15; addPopup(player.x + player.w / 2, player.y - 20, 'LANDED DOWNHILL +15', CYAN); }
       if (air > 60) shake = Math.max(shake, Math.min(8, air / 30));
@@ -777,7 +950,12 @@
     var gname = airborne() ? currentGrab() : '';
     if (gname) {
       grabT++;
-      if (gname !== grabName) { grabName = gname; trick(10, player.x + player.w / 2, player.y - 10, gname); }
+      if (gname === 'METHOD' && special >= 100) { gname = 'CHRIST AIR'; }
+      if (gname !== grabName) {
+        grabName = gname;
+        if (gname === 'CHRIST AIR') { useSpecial(); trick(200, player.x + player.w / 2, player.y - 14, 'CHRIST AIR'); bannerT = 70; bannerText = 'SPECIAL: CHRIST AIR'; say('so-sick', 100); }
+        else trick(10, player.x + player.w / 2, player.y - 10, gname);
+      }
       if (grabT % 8 === 0) {
         linePts += 2;
         grabTotal += 2;
@@ -785,6 +963,7 @@
       }
     } else {
       if (wasGrabbing && grabTotal >= 10) addPopup(player.x + player.w / 2, player.y - 10, 'HELD +' + grabTotal, CYAN);
+      if (wasGrabbing && player.onGround) { grabsLanded++; townGrabs++; goalProgress('grabs', townGrabs); }
       grabT = 0; grabTotal = 0; grabName = '';
     }
     wasGrabbing = !!gname;
@@ -804,14 +983,8 @@
         spawnParticles(player.x + 2, player.y + player.h, YELLOW, 1);
       }
       if (manualBal > 1 || manualBal < -1) {
-        manualBailT = 40;
-        player.squash = 8;
-        shake = 6;
-        spawnDust(player.x + player.w / 2, player.y + player.h, 6);
-        sfxHit();
-        spawnParticles(player.x + player.w / 2, player.y + player.h, '#fff', 8);
-        loseLine('TIPPED');
         manualT = 0;
+        if (bail('TIPPED THE MANUAL')) return;
       }
     } else {
       if (wasManual && manualT > 0 && linePts > 0 && manualBailT === 0) linkWindow = 42;
@@ -846,7 +1019,7 @@
               spawnParticles(player.x + player.w / 2, railTop, CYAN, 8);
               spawnSparks(player.x + 4, railTop + 2, 8);
             }
-            grindDist = 0; grindPaid = 0; airFrames = 0; floaty = false;
+            grindDist = 0; grindPaid = 0; airFrames = 0; floaty = false; grindBal = (Math.random() - 0.5) * 0.2;
             if (frame % 6 === 0) sfxGrind();
             break;
           }
@@ -855,6 +1028,16 @@
     }
 
     if (player.grinding) {
+      // Balance: the board wants to slip off the rail; hold LEFT or RIGHT to
+      // lean it back. Forgiving early, sharper in the later towns.
+      var drift = 0.004 + level * 0.0006;
+      grindBal += (grindBal >= 0 ? drift : -drift) + Math.abs(grindBal) * 0.012 + (Math.random() - 0.5) * 0.02;
+      if (leftHeld && frame - leftHold >= 8) grindBal -= 0.045;
+      if (rightHeld && frame - rightHold >= 8) grindBal += 0.045;
+      if (grindBal > 1 || grindBal < -1) {
+        grindBal = 0;
+        if (bail('SLIPPED THE GRIND')) return;
+      }
       if (frame % 6 === 0) sfxGrind();
       if (frame % 2 === 0) spawnSparks(player.x + 4, player.y + player.h + 2, 2);
       // Grinds pay by the foot: three points every 40px, a bonus and a
@@ -869,6 +1052,27 @@
         if (ft === 3) sayLingo();
       }
       if (grindDist > longestGrind) longestGrind = grindDist;
+      goalProgress('grind', Math.round(grindDist / 4));
+    }
+
+    // Roll into a bench or a planter on the ground: a bonk, not a bail. It
+    // scrubs your speed and halves the line, then you are past it.
+    if (player.onGround && !player.grinding && player.invincible === 0) {
+      for (var bi = 0; bi < rails.length; bi++) {
+        var bd = rails[bi];
+        if (!bd.bodyH || bd.bonked) continue;
+        var bxs = bd.x - scrollX;
+        if (player.x + player.w - 6 > bxs && player.x + 6 < bxs + bd.w && player.y + player.h > bd.top + 6) {
+          bd.bonked = true;
+          speed = Math.max(2.2, speed * 0.6);
+          shake = 4;
+          player.squash = 6;
+          playSfx(180, 0.1, 'sawtooth', 0.08);
+          spawnParticles(bxs, bd.top, '#fff', 5);
+          if (linePts > 0) { linePts = Math.ceil(linePts / 2); addPopup(player.x + player.w / 2, player.y - 20, 'BONK: LINE HALVED', '#ff9a3c'); }
+          else addPopup(player.x + player.w / 2, player.y - 20, 'BONK', '#ff9a3c');
+        }
+      }
     }
 
     if (player.grinding && player.grindRail) {
@@ -884,17 +1088,25 @@
       }
     }
 
-    // Obstacles ride the terrain (world y)
+    // Hazards ride the terrain (world y). Cars hurt. Spills scrub. The rest steal the line.
     for (var i = obstacles.length - 1; i >= 0; i--) {
       var ob = obstacles[i];
       if (ob.type === 'pigeon') { ob.x -= 1.1; }
       else if (ob.type === 'dog') { ob.x -= 1.5; }
       else if (ob.type === 'cyclist') { ob.x -= 2.3; }
+      else if (ob.type === 'car') {
+        if (!ob.out) {
+          // Telegraphed: it flashes and honks at the curb while you close in.
+          var oxw = ob.x - scrollX;
+          if (oxw < W + 40 && ob.warnT > 0) { ob.warnT--; if (ob.warnT === 60) { addPopup(oxw + 30, ob.y - 20, 'HONK', '#fff'); playSfx(320, 0.18, 'square', 0.1); setTimeout(function() { playSfx(300, 0.22, 'square', 0.1); }, 200); } }
+          if (ob.warnT === 0) { ob.out = true; ob.outT = 260; }
+        } else { ob.x -= 1.4; if (--ob.outT <= 0) { obstacles.splice(i, 1); continue; } }
+      }
       var ogy = terrainY(ob.x + ob.w / 2);
       ob.y = ogy - ob.h - (ob.type === 'pigeon' ? 42 + Math.sin(frame * 0.12 + i) * 5 : 0);
       ob.gy = ogy;
       var ox = ob.x - scrollX;
-      if (ox < -60) { obstacles.splice(i, 1); continue; }
+      if (ox < -80) { obstacles.splice(i, 1); continue; }
       if (ob.type !== 'spill') {
         if (ob.minGap === undefined) ob.minGap = 99;
         if (!player.onGround && player.x + player.w > ox && player.x < ox + ob.w) {
@@ -907,39 +1119,56 @@
         }
       }
       if (player.invincible > 0 || shieldT > 0) continue;
+      if (ob.type === 'car' && !ob.out) continue;
       if (ob.type === 'spill' && !player.onGround) continue;
       if (player.x + player.w - 4 > ox && player.x + 4 < ox + ob.w &&
           player.y + player.h > ob.y && player.y < ob.y + ob.h) {
-        if (ob.type === 'pigeon') {
-          loseLine('PIGEON');
-          addPopup(player.x + player.w / 2, player.y - 32, 'PIGEON! LINE GONE', '#ddd');
-          spawnParticles(ox + ob.w / 2, ob.y, '#cfcfcf', 8);
-          shake = 5;
-          playSfx(1400, 0.06, 'square', 0.08);
+        if (ob.type === 'car') {
           obstacles.splice(i, 1);
+          if (bail('HIT BY A CAR')) return;
           continue;
         }
-        lives--;
-        hitsThisLevel++;
-        sfxHit();
-        document.getElementById('jd-br-lives').textContent = lives;
-        addPopup(player.x + player.w / 2, player.y - 34, lives > 0 ? 'BAILED // ' + lives + (lives === 1 ? ' BOARD LEFT' : ' BOARDS LEFT') : 'BAILED // OUT OF BOARDS', '#FF5050');
-        player.invincible = 110;
-        player.bailT = 36;
-        looseBoard = { x: player.x + 10, y: player.y + 17, vx: 3 + Math.random() * 2, vy: -5 - Math.random() * 2, rot: 0, t: 60 };
-        loseLine('BAILED');
-        shake = 12;
-        spawnDust(player.x + player.w / 2, player.y + player.h, 8);
-        spawnParticles(ox + ob.w / 2, ob.y, '#FF0000', 10);
-        obstacles.splice(i, 1);
-        if (lives <= 0) {
-          lastScore = score;
-          enterBoard(score);
-          saveBest();
-          deathJingle();
-          return;
+        if (ob.type === 'spill') {
+          if (!ob.hit) { ob.hit = true; speed = Math.max(2.2, speed * 0.55); addPopup(player.x + player.w / 2, player.y - 20, 'SPILL', '#ff9a3c'); spawnParticles(ox + ob.w / 2, ob.y, PINK, 6); player.squash = 5; }
+          continue;
         }
+        loseLine(ob.type.toUpperCase());
+        addPopup(player.x + player.w / 2, player.y - 32, ob.type.toUpperCase() + '! LINE GONE', '#ddd');
+        spawnParticles(ox + ob.w / 2, ob.y, '#cfcfcf', 8);
+        shake = 5;
+        playSfx(1400, 0.06, 'square', 0.08);
+        obstacles.splice(i, 1);
       }
+    }
+
+    // The letters: five per town spread along it, floating where the tricks are.
+    var townEndX = level * TOWN_PX;
+    while (nextLetterX < scrollX + W + 300 && lettersGot + letters.length < 5 && nextLetterX < townEndX - 600) {
+      var li2 = lettersGot + letters.length;
+      var ft2 = featureAt(nextLetterX);
+      var liftL = ft2 && nextLetterX > ft2.x + ft2.w ? 110 + Math.random() * 60 : 46 + Math.random() * 30;
+      letters.push({ x: nextLetterX, lift: liftL, ch: 'SKATE'[li2], w: 16, h: 16, y: 0 });
+      nextLetterX += (townEndX - nextLetterX) / (5 - li2) * (0.6 + Math.random() * 0.5);
+    }
+    for (var li3 = letters.length - 1; li3 >= 0; li3--) {
+      var lt = letters[li3];
+      lt.y = terrainY(lt.x + 8) - lt.lift;
+      var lx2 = lt.x - scrollX;
+      if (lx2 < -40) { letters.splice(li3, 1); continue; }
+      if (player.x + player.w > lx2 && player.x < lx2 + lt.w && player.y + player.h > lt.y && player.y < lt.y + lt.h) {
+        lettersGot++;
+        letters.splice(li3, 1);
+        score += 250; document.getElementById('jd-br-score').textContent = score;
+        addPopup(lx2 + 8, lt.y - 8, 'GOT ' + lt.ch + ' +250', YELLOW);
+        sfxCollect(); spawnParticles(lx2 + 8, lt.y + 8, YELLOW, 14);
+        goalProgress('letters', lettersGot);
+      }
+    }
+
+    // Cars: one every so often from town 1, never near a ramp's landing.
+    while (nextCarX < scrollX + W + 600) {
+      if (!featureAt(nextCarX)) obstacles.push(makeObstacle('car', nextCarX));
+      nextCarX += Math.max(560, 1500 - level * 120) + Math.random() * 500;
     }
 
     // Collectibles (world y follows the terrain)
@@ -1057,7 +1286,7 @@
   function enterBoard(v) {
     wallOpts.again = (!continueUsed && level >= 2)
       ? 'SPACE: continue from ' + LOCALES[(level - 1) % LOCALES.length].name + ' (1 credit) // DOWN: new run'
-      : 'SPACE or TAP to ride again'; wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax, air: Math.round(maxAir), hang: longestAir, airs: airCount, grind: Math.round(longestGrind), transfers: transfers, cont: continueUsed ? 1 : 0 } }); }
+      : 'SPACE or TAP to ride again'; wall.enter(v, { level: level, meta: { line: bestLine, dist: Math.round(dist), tricks: trickCount, combo: comboMax, air: Math.round(maxAir), hang: longestAir, airs: airCount, grind: Math.round(longestGrind), transfers: transfers, goals: goalsDoneTotal, specials: specialUsed, cont: continueUsed ? 1 : 0 } }); }
   function drawInitials() { wall.drawInitials(); }
   function drawBoard() { wall.drawBoard(); }
 
@@ -1252,7 +1481,38 @@
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
   }
 
+  // Render at 2x: the canvas is 800x640 inside, every logical coordinate stays
+  // 400x320 through one transform, so the wall module and touch mapping are
+  // untouched. The headless harness has a stub canvas; guard everything.
+  var hiRes = false;
+  function setupHiRes() {
+    try {
+      if (canvas.width !== 800 && typeof ctx.setTransform === 'function') { canvas.width = 800; canvas.height = 640; }
+      if (transCanvas) { transCanvas.width = 800; transCanvas.height = 640; }
+      hiRes = canvas.width === 800;
+    } catch (e) { hiRes = false; }
+  }
+  function frameTransform(c) {
+    try { if (hiRes && typeof c.setTransform === 'function') c.setTransform(2, 0, 0, 2, 0, 0); } catch (e) {}
+  }
+  var concretePat = null;
+  function concrete() {
+    if (concretePat !== null) return concretePat;
+    concretePat = false;
+    try {
+      var pc = document.createElement('canvas'); pc.width = 64; pc.height = 64;
+      var px = pc.getContext('2d');
+      if (!px || typeof px.createImageData !== 'function') return concretePat;
+      var img = px.createImageData(64, 64);
+      for (var i = 0; i < img.data.length; i += 4) { var v = 118 + Math.floor(Math.random() * 30); img.data[i] = v; img.data[i + 1] = v; img.data[i + 2] = v + 4; img.data[i + 3] = 255; }
+      px.putImageData(img, 0, 0);
+      concretePat = ctx.createPattern(pc, 'repeat') || false;
+    } catch (e) { concretePat = false; }
+    return concretePat;
+  }
+
   function draw() {
+    frameTransform(ctx);
     if (mode === 'intro') { drawIntro(); return; }
     ctx.save();
     if (shake > 0.5) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
@@ -1687,14 +1947,46 @@
       }
     }
 
+    // Street layer: parked cars and trees on the far curb, just behind the road
+    if (sky.scene === 'city' || sky.scene === 'rino' || sky.scene === 'golden' || sky.scene === 'vegas' || sky.scene === 'flatirons') {
+      for (var sc = 0; sc < 5; sc++) {
+        var scx = ((sc * 210 + 40 - scrollX * 0.8) % (W + 300) + W + 300) % (W + 300) - 150;
+        if (sc % 2 === 0) {
+          var carCol = ['#4a6aa8', '#8a3a3a', '#d8d8d8', '#3a3a44'][sc % 4];
+          ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(scx + 4, GY - 2, 72, 3);
+          ctx.fillStyle = carCol; ctx.fillRect(scx + 3, GY - 18, 66, 12); ctx.fillRect(scx + 16, GY - 25, 36, 8);
+          ctx.fillStyle = '#9ac8ee'; ctx.fillRect(scx + 19, GY - 24, 14, 6); ctx.fillRect(scx + 36, GY - 24, 13, 6);
+          ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(scx + 16, GY - 5, 5, 0, Math.PI * 2); ctx.arc(scx + 56, GY - 5, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = sky.lights ? '#fff8c0' : '#ccc'; ctx.fillRect(scx + 66, GY - 15, 3, 3);
+        } else {
+          ctx.fillStyle = '#3a2e22'; ctx.fillRect(scx + 30, GY - 34, 5, 34);
+          ctx.fillStyle = sky.scene === 'vegas' ? '#2f7a3a' : '#2f6a3a';
+          ctx.beginPath(); ctx.arc(scx + 32, GY - 42, 16, 0, Math.PI * 2); ctx.arc(scx + 22, GY - 34, 11, 0, Math.PI * 2); ctx.arc(scx + 43, GY - 35, 11, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(scx + 28, GY - 47, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(scx + 26, GY - 2, 18, 3);
+        }
+      }
+    }
+
     // Ground: the terrain, drawn as one surface from the heightmap
     ctx.fillStyle = sky.ground;
     ctx.beginPath();
     ctx.moveTo(-8, H + 8);
+    // (concrete grain is laid over the fill below)
     for (var tx0 = -8; tx0 <= W + 8; tx0 += 4) ctx.lineTo(tx0, terrainY(scrollX + tx0) - camY);
     ctx.lineTo(W + 8, H + 8);
     ctx.closePath();
     ctx.fill();
+    var grain = concrete();
+    if (grain) {
+      ctx.save();
+      ctx.clip();
+      ctx.globalAlpha = 0.16;
+      ctx.fillStyle = grain;
+      ctx.translate(-(scrollX % 64), 0);
+      ctx.fillRect(-64, 0, W + 128, H);
+      ctx.restore();
+    }
     ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -1732,12 +2024,28 @@
         ctx.fillRect(gx, ggy + 4, 14, 1); ctx.fillRect(gx + 13, ggy + 5, 9, 1); ctx.fillRect(gx + 21, ggy + 3, 6, 1);
       }
     }
+    // Stair sets: concrete steps down, the low run, the bank back up
+    for (var sti = 0; sti < features.length; sti++) {
+      var sf2 = features[sti];
+      if (sf2.type !== 'stairs') continue;
+      var ssx = sf2.x - scrollX;
+      if (ssx > W + 20 || ssx + sf2.w < -20) continue;
+      var stepW = sf2.w * 0.45 / 5, roadTop = GROUND_Y + hillY(sf2.x) - camY;
+      for (var st2 = 0; st2 < 5; st2++) {
+        var sy2 = roadTop + sf2.h * st2 / 5;
+        ctx.fillStyle = '#8e8e96'; ctx.fillRect(ssx + st2 * stepW, sy2, stepW + 1, sf2.h - sf2.h * st2 / 5 + 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(ssx + st2 * stepW, sy2, stepW, 1.5);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(ssx + st2 * stepW, sy2 + 2, 1.5, sf2.h - sf2.h * st2 / 5);
+      }
+      ctx.fillStyle = 'rgba(255,60,60,' + (0.25 + 0.2 * Math.sin(frame * 0.2)).toFixed(2) + ')';
+      ctx.fillRect(ssx, roadTop + sf2.h + 2, sf2.w * 0.45, 2);
+    }
     // Ramps are built things on the road: plywood kickers, steel launch ramps
     // with a hazard stripe, concrete lips with coping. You should never miss one.
     for (var fi2 = 0; fi2 < features.length; fi2++) {
       var ff = features[fi2];
       var fsx = ff.x - scrollX;
-      if (fsx > W + 20 || fsx + ff.w < -20) continue;
+      if (ff.type === 'stairs' || fsx > W + 20 || fsx + ff.w < -20) continue;
       var roadY = GROUND_Y + hillY(ff.x + ff.w) - camY;
       ctx.beginPath();
       ctx.moveTo(fsx, GROUND_Y + hillY(ff.x) - camY + 1);
@@ -1774,25 +2082,63 @@
       ctx.beginPath(); ctx.moveTo(ax0, ay0); ctx.lineTo(ax0 + 12, ay0 - 8); ctx.lineTo(ax0 + 8, ay0 - 8); ctx.lineTo(ax0 + 8, ay0 - 2); ctx.lineTo(ax0 + 4, ay0 - 2); ctx.lineTo(ax0 + 4, ay0 - 8); ctx.lineTo(ax0, ay0 - 8); ctx.fill();
     }
 
-    // Rails
+    // Street furniture: every piece has a body and a grind edge on top
     for (var i = 0; i < rails.length; i++) {
       var rail = rails[i];
       var rx = rail.x - scrollX;
       if (rx > W + 10 || rx + rail.w < -10) continue;
       var rty = rail.top - camY;
       var g1 = terrainY(rail.x + 3) - camY, g2 = terrainY(rail.x + rail.w - 4) - camY;
-      ctx.fillStyle = '#888';
-      ctx.fillRect(rx + 2, rty, 3, Math.max(2, g1 - rty));
-      ctx.fillRect(rx + rail.w - 5, rty, 3, Math.max(2, g2 - rty));
-      ctx.fillStyle = '#666';
-      ctx.fillRect(rx, g1 - 2, 9, 2);
-      ctx.fillRect(rx + rail.w - 7, g2 - 2, 9, 2);
-      ctx.fillStyle = rail.scored ? CYAN : '#ccc';
-      ctx.fillRect(rx, rty, rail.w, 3);
+      var gmid = Math.max(g1, g2);
+      var kind = rail.kind || 'rail';
+      // long shadow from the one light
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath(); ctx.ellipse(rx + rail.w / 2 + 6, gmid + 3, rail.w / 2 + 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+      if (kind === 'rail' || kind === 'handrail') {
+        ctx.fillStyle = '#888';
+        ctx.fillRect(rx + 2, rty, 3, Math.max(2, g1 - rty));
+        ctx.fillRect(rx + rail.w - 5, rty, 3, Math.max(2, g2 - rty));
+        if (rail.w > 150) ctx.fillRect(rx + rail.w / 2 - 1, rty, 3, Math.max(2, gmid - rty));
+        ctx.fillStyle = '#666';
+        ctx.fillRect(rx, g1 - 2, 9, 2);
+        ctx.fillRect(rx + rail.w - 7, g2 - 2, 9, 2);
+      } else if (kind === 'bench') {
+        ctx.fillStyle = '#5a4020'; ctx.fillRect(rx + 4, rty + 3, 3, gmid - rty - 3); ctx.fillRect(rx + rail.w - 7, rty + 3, 3, gmid - rty - 3);
+        ctx.fillStyle = '#8a6438'; ctx.fillRect(rx, rty + 2, rail.w, 4); ctx.fillRect(rx, rty + 8, rail.w, 3);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (var sl2 = rx + 8; sl2 < rx + rail.w - 6; sl2 += 14) ctx.fillRect(sl2, rty + 2, 1, 9);
+      } else if (kind === 'planter') {
+        ctx.fillStyle = '#6a6a72'; ctx.fillRect(rx, rty + 2, rail.w, gmid - rty - 2);
+        ctx.fillStyle = '#7c7c84'; ctx.fillRect(rx, rty + 2, rail.w, 3);
+        ctx.fillStyle = '#2f7a3a'; for (var pl4 = rx + 6; pl4 < rx + rail.w - 6; pl4 += 10) { ctx.beginPath(); ctx.arc(pl4, rty - 1, 5, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = '#4aa050'; for (var pl5 = rx + 9; pl5 < rx + rail.w - 6; pl5 += 10) ctx.fillRect(pl5, rty - 4, 2, 2);
+      } else if (kind === 'ledge') {
+        ctx.fillStyle = '#9a9aa2'; ctx.fillRect(rx, rty + 2, rail.w, gmid - rty - 2);
+        ctx.fillStyle = '#b4b4bc'; ctx.fillRect(rx, rty + 2, rail.w, 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.18)'; for (var lj = rx + 30; lj < rx + rail.w; lj += 60) ctx.fillRect(lj, rty + 4, 1, gmid - rty - 4);
+        if (rail.waxed) { ctx.fillStyle = 'rgba(40,30,20,0.35)'; ctx.fillRect(rx + rail.w * 0.2, rty + 1, rail.w * 0.55, 3); }
+      } else if (kind === 'hydrant') {
+        ctx.fillStyle = '#FF3333'; ctx.fillRect(rx + 2, rty + 4, 10, gmid - rty - 4); ctx.fillRect(rx, rty + 8, 14, 4);
+        ctx.fillStyle = '#b01010'; ctx.fillRect(rx + 9, rty + 4, 3, gmid - rty - 4);
+        ctx.fillStyle = '#c8c8d0'; ctx.fillRect(rx + 1, rty + 12, 2, 2); ctx.fillRect(rx + 11, rty + 12, 2, 2);
+      } else if (kind === 'dumpster') {
+        ctx.fillStyle = '#3a6a3a'; ctx.fillRect(rx, rty + 3, rail.w, gmid - rty - 3);
+        ctx.fillStyle = '#2c522c'; ctx.fillRect(rx, rty + 3, rail.w, 5); ctx.fillRect(rx + 2, rty + 14, rail.w - 4, 2);
+        ctx.fillStyle = '#222'; ctx.fillRect(rx + 4, gmid - 4, 6, 4); ctx.fillRect(rx + rail.w - 10, gmid - 4, 6, 4);
+        ctx.fillStyle = '#f0e8d8'; ctx.fillRect(rx + 8, rty + 6, 4, 6); ctx.fillStyle = PINK; ctx.fillRect(rx + rail.w - 14, rty + 6, 3, 8);
+      } else if (kind === 'carhood') {
+        // A parked car, seen from the side: you grind the roofline
+        ctx.fillStyle = '#b02040'; ctx.fillRect(rx + 4, rty + 8, rail.w - 8, gmid - rty - 14);
+        ctx.fillRect(rx + rail.w * 0.22, rty + 2, rail.w * 0.5, 8);
+        ctx.fillStyle = '#7ab8e8'; ctx.fillRect(rx + rail.w * 0.26, rty + 3, rail.w * 0.18, 6); ctx.fillRect(rx + rail.w * 0.5, rty + 3, rail.w * 0.18, 6);
+        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(rx + rail.w * 0.24, gmid - 4, 6, 0, Math.PI * 2); ctx.arc(rx + rail.w * 0.76, gmid - 4, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#999'; ctx.beginPath(); ctx.arc(rx + rail.w * 0.24, gmid - 4, 2.5, 0, Math.PI * 2); ctx.arc(rx + rail.w * 0.76, gmid - 4, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff5c0'; ctx.fillRect(rx + rail.w - 8, rty + 12, 4, 3);
+      }
+      // the grind edge
+      ctx.fillStyle = rail.scored ? CYAN : (kind === 'rail' || kind === 'handrail' ? '#ccc' : 'rgba(255,255,255,0.75)');
+      ctx.fillRect(rx, rty, rail.w, kind === 'rail' || kind === 'handrail' ? 3 : 2);
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillRect(rx, rty, rail.w, 1);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      for (var bx2 = rx + 10; bx2 < rx + rail.w - 6; bx2 += 16) ctx.fillRect(bx2, rty + 1, 1, 1);
     }
 
     for (var i = 0; i < obstacles.length; i++) {
@@ -1811,14 +2157,25 @@
       drawFlashPickup(cx, col.y - camY + Math.sin(frame * 0.08 + col.x) * 2, col.kind);
     }
 
-    if (mode === 'play' && speed > 6) {
-      ctx.fillStyle = 'rgba(255,255,255,' + ((speed - 6) * 0.04).toFixed(3) + ')';
+    if (mode === 'play' && speed > 5.2) {
+      ctx.fillStyle = 'rgba(255,255,255,' + ((speed - 5.2) * 0.05).toFixed(3) + ')';
       for (var i = 0; i < 5; i++) {
         var slx = ((i * 97 - scrollX * 2.2) % (W + 60) + W + 60) % (W + 60) - 30;
         ctx.fillRect(slx, 90 + i * 34, 26 + i * 4, 1);
       }
     }
 
+    // S K A T E
+    for (var lti = 0; lti < letters.length; lti++) {
+      var ltr = letters[lti];
+      var lsx = ltr.x - scrollX, lsy = ltr.y - camY + Math.sin(frame * 0.07 + ltr.x) * 3;
+      if (lsx < -30 || lsx > W + 30) continue;
+      ctx.fillStyle = 'rgba(255,215,0,' + (0.18 + 0.1 * Math.sin(frame * 0.2)).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(lsx + 8, lsy + 8, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(ltr.ch, lsx + 9, lsy + 14);
+      ctx.fillStyle = YELLOW; ctx.fillText(ltr.ch, lsx + 8, lsy + 13);
+    }
     drawPlayer();
     if (looseBoard) {
       ctx.save();
@@ -1855,7 +2212,7 @@
       transT--;
       var tp = 1 - transT / 55;
       var tyy = -(tp * tp) * (H + 26);
-      try { ctx.drawImage(transCanvas, 0, tyy); } catch (e) { transT = 0; }
+      try { ctx.drawImage(transCanvas, 0, tyy, W, H); } catch (e) { transT = 0; }
       var rollG = ctx.createLinearGradient(0, tyy + H, 0, tyy + H + 15);
       rollG.addColorStop(0, 'rgba(238,238,244,0.95)');
       rollG.addColorStop(0.5, 'rgba(150,150,162,0.95)');
@@ -1868,86 +2225,133 @@
       ctx.fillRect(0, tyy + H + 15, W, 7);
     }
 
-    // HUD
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    // HUD: score and boards top-left with the goals under them, the town and its
+    // progress top-center, the running line, multiplier, trick stack and the
+    // special bar top-right.
     ctx.textAlign = 'left';
-    ctx.fillText('SCORE: ' + score, 8, 14);
-    ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, wall.best(), score), 8, 26);
-    // Boards left, on the screen where the run is (the status strip is easy to miss).
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(4, 4, 118, 44);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(String(score), 10, 20);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = 'bold 7px monospace';
+    ctx.fillText('BEST ' + Math.max(best, wall.best(), score), 10, 29);
     for (var li = 0; li < MAX_LIVES; li++) {
       var alive = li < lives;
-      var bx = 8 + li * 18, by = 33;
+      var bx = 10 + li * 17, by = 36;
       ctx.fillStyle = alive ? (lives === 1 && Math.floor(frame / 8) % 2 === 0 ? '#FF5050' : PINK) : 'rgba(255,255,255,0.18)';
-      ctx.fillRect(bx, by, 14, 3);
+      ctx.fillRect(bx, by, 13, 3);
       ctx.fillStyle = alive ? '#fff' : 'rgba(255,255,255,0.18)';
       ctx.fillRect(bx + 2, by + 3, 3, 2);
-      ctx.fillRect(bx + 9, by + 3, 3, 2);
+      ctx.fillRect(bx + 8, by + 3, 3, 2);
     }
-    ctx.fillStyle = LIME;
+    // goals
+    if (mode === 'play' && goalCardT === 0) {
+      ctx.font = 'bold 7px monospace';
+      for (var gi2 = 0; gi2 < goals.length; gi2++) {
+        var gl2 = goals[gi2], gy2 = 60 + gi2 * 11;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(4, gy2 - 8, 118, 10);
+        ctx.fillStyle = gl2.done ? LIME : 'rgba(255,255,255,0.75)';
+        ctx.fillText((gl2.done ? '[x] ' : '[ ] ') + gl2.text, 8, gy2);
+        if (!gl2.done && gl2.id !== 'letters' && gl2.have > 0) { ctx.fillStyle = 'rgba(127,255,0,0.5)'; ctx.fillRect(8, gy2 + 1, Math.min(110, 110 * gl2.have / gl2.need), 1); }
+      }
+      // letters collected so far
+      ctx.font = 'bold 9px monospace';
+      for (var lc = 0; lc < 5; lc++) { ctx.fillStyle = lc < lettersGot ? YELLOW : 'rgba(255,255,255,0.22)'; ctx.fillText('SKATE'[lc], 8 + lc * 10, 104); }
+    }
+    // town + progress
     ctx.textAlign = 'center';
-    ctx.fillText('LEVEL ' + level + (hitsThisLevel === 0 ? ' // NO BAIL' : '') + (continueUsed ? ' // CONTINUED' : ''), W / 2, 14);
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = LIME;
+    ctx.fillText(LOCALES[(level - 1) % LOCALES.length].name + (hitsThisLevel === 0 ? ' // NO BAIL' : '') + (continueUsed ? ' // CONTINUED' : ''), W / 2, 13);
+    var townProg = (dist - (level - 1) * 4000) / 4000;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(W / 2 - 50, 17, 100, 3);
+    ctx.fillStyle = LIME; ctx.fillRect(W / 2 - 50, 17, 100 * Math.max(0, Math.min(1, townProg)), 3);
     if (!player.onGround && !player.grinding && mode === 'play') {
       var airNow = Math.max(0, terrainY(scrollX + player.x + player.w / 2) - (player.y + player.h));
-      if (airNow > 40) {
-        ctx.fillStyle = airNow > 120 ? YELLOW : 'rgba(255,255,255,0.7)';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText('AIR ' + Math.round(airNow), W / 2, 26);
-        ctx.font = 'bold 10px monospace';
-      }
+      if (airNow > 40) { ctx.fillStyle = airNow > 120 ? YELLOW : 'rgba(255,255,255,0.7)'; ctx.font = 'bold 9px monospace'; ctx.fillText('AIR ' + Math.round(airNow), W / 2, 30); }
     }
     if (shieldT > 0) {
-      ctx.fillStyle = YELLOW;
-      ctx.fillText('SHIELD', W / 2, 26);
-      ctx.fillStyle = 'rgba(255,215,0,0.5)';
-      ctx.fillRect(W / 2 - 20, 30, 40 * (shieldT / 300), 3);
+      ctx.fillStyle = YELLOW; ctx.font = 'bold 8px monospace'; ctx.fillText('SHIELD', W / 2, 40);
+      ctx.fillStyle = 'rgba(255,215,0,0.5)'; ctx.fillRect(W / 2 - 20, 43, 40 * (shieldT / 300), 2);
     }
     if (bannerT > 0 && mode === 'play') {
       ctx.globalAlpha = Math.min(1, bannerT / 25);
-      ctx.fillStyle = bannerText.indexOf('LEGENDARY') === 0 ? '#ff5ab0' : bannerText.indexOf('HUGE') === 0 ? YELLOW : LIME;
-      ctx.font = 'bold ' + (bannerText.indexOf('LEGENDARY') === 0 ? 26 : 24) + 'px monospace';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = bannerText.indexOf('LEGENDARY') === 0 ? '#ff5ab0' : bannerText.indexOf('HUGE') === 0 ? YELLOW : bannerText.indexOf('SPECIAL') === 0 ? CYAN : LIME;
+      ctx.font = 'bold ' + (bannerText.indexOf('LEGENDARY') === 0 ? 26 : 22) + 'px monospace';
       ctx.fillText(bannerText, W / 2, H / 2 - 40);
       ctx.globalAlpha = 1;
-      ctx.font = 'bold 10px monospace';
     }
-    // The line, live: what it is worth right now and what is in it.
+    // the line, right side
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(W - 126, 4, 122, 44);
     if (linePts > 0 && mode === 'play') {
-      ctx.textAlign = 'right';
       var lineTotal = linePts * combo;
       ctx.fillStyle = lineTotal >= 5000 ? '#ff5ab0' : lineTotal >= 2000 ? YELLOW : '#fff';
-      ctx.font = 'bold ' + (lineTotal >= 2000 ? 20 : 16) + 'px monospace';
-      ctx.fillText(String(lineTotal), W - 8, 20);
-      ctx.font = 'bold 9px monospace';
-      ctx.fillStyle = linkWindow > 0 ? (Math.floor(frame / 4) % 2 === 0 ? '#ff9a3c' : '#fff') : 'rgba(255,255,255,0.75)';
-      ctx.fillText(linePts + ' x' + combo + (linkWindow > 0 ? ' // KEEP IT GOING' : ''), W - 8, 31);
+      ctx.font = 'bold ' + (lineTotal >= 2000 ? 20 : 17) + 'px monospace';
+      ctx.fillText(String(lineTotal), W - 10, 21);
       ctx.font = 'bold 8px monospace';
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      var tail = lineTricks.slice(-3).join(' + ');
-      if (lineTricks.length > 3) tail = '.. ' + tail;
-      ctx.fillText(tail, W - 8, 41);
+      ctx.fillStyle = linkWindow > 0 ? (Math.floor(frame / 4) % 2 === 0 ? '#ff9a3c' : '#fff') : 'rgba(255,255,255,0.75)';
+      ctx.fillText(linePts + ' x ' + combo + (linkWindow > 0 ? ' // KEEP IT GOING' : ''), W - 10, 31);
+    } else {
+      ctx.fillStyle = lineFlashT > 0 ? LIME : 'rgba(255,255,255,0.35)';
       ctx.font = 'bold 10px monospace';
-    } else if (lineFlashT > 0) {
-      ctx.textAlign = 'right';
-      ctx.fillStyle = LIME;
-      ctx.fillText('BANKED', W - 8, 14);
+      ctx.fillText(lineFlashT > 0 ? 'BANKED' : 'START A LINE', W - 10, 21);
     }
-    if (wasManual && mode === 'play') {
-      // Balance meter: keep the marker in the middle. UP leans forward.
+    // special bar
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(W - 120, 38, 110, 5);
+    ctx.fillStyle = special >= 100 ? (Math.floor(frame / 6) % 2 === 0 ? '#fff' : CYAN) : CYAN;
+    ctx.fillRect(W - 120, 38, 110 * (special / 100), 5);
+    ctx.font = 'bold 6px monospace'; ctx.fillStyle = special >= 100 ? '#fff' : 'rgba(255,255,255,0.55)';
+    ctx.fillText(special >= 100 ? 'SPECIAL READY: UP+DOWN, 900, UP AFTER A BOARDSLIDE' : 'SPECIAL', W - 10, 36);
+    // trick stack: the last tricks of the line, newest at the bottom, fading up
+    if (mode === 'play' && lineTricks.length) {
+      ctx.font = 'bold 8px monospace';
+      var stack = lineTricks.slice(-5);
+      for (var ts = 0; ts < stack.length; ts++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + 0.7 * (ts + 1) / stack.length).toFixed(2) + ')';
+        ctx.fillText(stack[ts], W - 10, 58 + ts * 10);
+      }
+    }
+    // goal card at the town's start, the tally at its end
+    if (goalCardT > 0 && mode === 'play') {
+      var ga = Math.min(1, goalCardT / 30, (200 - goalCardT) / 20 + 0.2);
+      ctx.globalAlpha = ga * 0.92;
+      ctx.fillStyle = '#0a0812'; ctx.fillRect(70, 90, 260, 30 + goals.length * 16);
+      ctx.fillStyle = LIME; ctx.fillRect(70, 90, 260, 3);
+      ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
+      ctx.fillText(LOCALES[(level - 1) % LOCALES.length].name + ' // PARK GOALS', W / 2, 108);
+      ctx.textAlign = 'left'; ctx.font = 'bold 9px monospace';
+      for (var gc = 0; gc < goals.length; gc++) { ctx.fillStyle = goals[gc].done ? LIME : YELLOW; ctx.fillText((goals[gc].done ? '[x] ' : '[ ] ') + goals[gc].text, 84, 126 + gc * 16); }
+      ctx.globalAlpha = 1;
+    }
+    if (tallyT > 0 && mode === 'play') {
+      var ta = Math.min(1, tallyT / 30, (240 - tallyT) / 20 + 0.2);
+      ctx.globalAlpha = ta * 0.92;
+      ctx.fillStyle = '#0a0812'; ctx.fillRect(60, 84, 280, 34 + tallyLines.length * 15);
+      ctx.fillStyle = YELLOW; ctx.fillRect(60, 84, 280, 3);
+      ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
+      ctx.fillText('TOWN CLEARED', W / 2, 102);
+      ctx.textAlign = 'left'; ctx.font = 'bold 9px monospace';
+      for (var tl = 0; tl < tallyLines.length; tl++) { ctx.fillStyle = tallyLines[tl].ok ? LIME : 'rgba(255,255,255,0.5)'; ctx.fillText((tl < tallyLines.length - 1 ? (tallyLines[tl].ok ? '[x] ' : '[ ] ') : '') + tallyLines[tl].text, 74, 120 + tl * 15); }
+      ctx.globalAlpha = 1;
+    }
+    ctx.font = 'bold 10px monospace';
+    if ((wasManual || player.grinding) && mode === 'play') {
+      var balNow = player.grinding ? grindBal : manualBal;
       var mx0 = W / 2 - 40, my0 = 34;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(mx0 - 2, my0 - 2, 84, 9);
-      ctx.fillStyle = Math.abs(manualBal) > 0.7 ? '#ff5050' : 'rgba(255,255,255,0.25)';
+      ctx.fillStyle = Math.abs(balNow) > 0.7 ? '#ff5050' : 'rgba(255,255,255,0.25)';
       ctx.fillRect(mx0, my0, 80, 5);
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillRect(mx0 + 39, my0 - 1, 2, 7);
-      ctx.fillStyle = Math.abs(manualBal) > 0.7 ? '#ff5050' : YELLOW;
-      ctx.fillRect(mx0 + 38 + Math.max(-1, Math.min(1, manualBal)) * 38, my0 - 2, 4, 9);
+      ctx.fillStyle = Math.abs(balNow) > 0.7 ? '#ff5050' : YELLOW;
+      ctx.fillRect(mx0 + 38 + Math.max(-1, Math.min(1, balNow)) * 38, my0 - 2, 4, 9);
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
       ctx.font = 'bold 7px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(manualKind === 'nose' ? 'NOSE MANUAL' : 'BALANCE', W / 2, my0 + 15);
+      ctx.fillText(player.grinding ? 'HOLD L/R TO BALANCE' : manualKind === 'nose' ? 'NOSE MANUAL' : 'BALANCE', W / 2, my0 + 15);
       ctx.font = 'bold 10px monospace';
     }
 
@@ -1987,7 +2391,7 @@
     }
     if (shAlpha > 0) {
       ctx.save();
-      ctx.translate(px + player.w / 2, gys + 2);
+      ctx.translate(px + player.w / 2 + 5 + height * 0.08, gys + 2);
       ctx.rotate(Math.atan(slopeAt(wxs)));
       ctx.fillStyle = 'rgba(0,0,0,' + shAlpha.toFixed(2) + ')';
       ctx.beginPath();
@@ -2020,15 +2424,15 @@
 
     var grab = air ? grabName : '';
     var pushing = player.pushT > 0 && !air && !player.grinding && !wasManual;
-    var pushLeg = pushing ? (player.pushT > 8 ? 2 : 1) : 0;
+    var pushF = pushing ? Math.floor((16 - player.pushT) / 2) % 8 : -1; // 8-frame push cycle
     var popping = player.popT > 0 && air;
     var sliding = slideT > 0;
-    var SKIN = '#e8b48c', TEE = '#1c1826', JEANS = '#3a4a66', SHOE = '#181820';
+    var ACC = (window.__ARCADE_ACCENT__ && /^#[0-9a-f]{6}$/i.test(window.__ARCADE_ACCENT__)) ? window.__ARCADE_ACCENT__ : PINK;
+    var SKIN = '#e8b48c', SKIN2 = '#c9976e', TEE = ACC, JEANS = '#2f3f5a', JEANS2 = '#24324a', SHOE = '#181820';
 
-    // The deck: flips spin it, shove-its whip it flat, grabs tilt it to the
-    // hand, slides turn it across the rail, manuals rock it on one truck.
+    // The deck: trucks and wheels, wheels spin with the road
     ctx.save();
-    ctx.translate(10, 17);
+    ctx.translate(10, 17.5);
     if (player.flipT > 0) ctx.rotate((1 - player.flipT / 24) * Math.PI * 2);
     if (player.heelT > 0) ctx.rotate(-(1 - player.heelT / 24) * Math.PI * 2);
     if (player.shoveT > 0) {
@@ -2042,73 +2446,71 @@
     }
     if (grab === 'MELON' || grab === 'NOSEGRAB') ctx.rotate(0.35);
     else if (grab === 'INDY' || grab === 'STALEFISH') ctx.rotate(-0.3);
-    else if (grab === 'METHOD' || grab === 'TAILGRAB') { ctx.rotate(0.55); ctx.scale(1, 0.85); }
+    else if (grab === 'METHOD' || grab === 'TAILGRAB' || grab === 'CHRIST AIR') { ctx.rotate(0.55); ctx.scale(1, 0.85); }
     if (wasManual) ctx.rotate(manualKind === 'nose' ? 0.28 : -0.28);
     if (sliding) ctx.scale(0.35, 1);
     if (player.grinding && grindTilt) ctx.rotate(grindTilt * 0.22);
-    ctx.fillStyle = '#241a14';
-    ctx.fillRect(-12, -2, 24, 2);
-    ctx.fillStyle = '#a05a24';
-    ctx.fillRect(-12, 0, 24, 2);
-    ctx.fillStyle = '#9aa2ae';
-    ctx.fillRect(-9, 2, 3, 2);
-    ctx.fillRect(6, 2, 3, 2);
-    ctx.fillStyle = YELLOW;
-    ctx.fillRect(-10, 3, 4, 3);
-    ctx.fillRect(6, 3, 4, 3);
+    // deck with a kick at each end
+    ctx.fillStyle = '#2a1c12';
+    ctx.beginPath(); ctx.moveTo(-13, -1.5); ctx.lineTo(-11, -3); ctx.lineTo(11, -3); ctx.lineTo(13, -1.5); ctx.lineTo(13, 0.5); ctx.lineTo(-13, 0.5); ctx.fill();
+    ctx.fillStyle = '#b8743a'; ctx.fillRect(-12.5, 0.5, 25, 1.5);
+    ctx.fillStyle = ACC; ctx.fillRect(-4, 0.5, 8, 1.5);
+    // trucks
+    ctx.fillStyle = '#9aa2ae'; ctx.fillRect(-9, 2, 4, 2.5); ctx.fillRect(5, 2, 4, 2.5);
+    ctx.fillStyle = '#6a7280'; ctx.fillRect(-9.5, 2, 5, 1);
+    ctx.fillRect(4.5, 2, 5, 1);
+    // wheels with a spoke that turns
+    var wheelA = (scrollX * 0.25) % (Math.PI * 2);
+    for (var wi = 0; wi < 2; wi++) {
+      var wxp = wi === 0 ? -7.5 : 7.5;
+      ctx.fillStyle = '#f2e9c8'; ctx.beginPath(); ctx.arc(wxp, 5, 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#8a7a50'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(wxp - Math.cos(wheelA) * 2.2, 5 - Math.sin(wheelA) * 2.2); ctx.lineTo(wxp + Math.cos(wheelA) * 2.2, 5 + Math.sin(wheelA) * 2.2); ctx.stroke();
+      ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(wxp, 5, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 
+    // Legs: knees bend riding, pull up in the air, the back leg swings for the push
     var tuck = popping ? -1 : air ? 3 : 0;
-    if (grab === 'METHOD' || grab === 'TAILGRAB') tuck = 5;
+    if (grab === 'METHOD' || grab === 'TAILGRAB' || grab === 'CHRIST AIR') tuck = 5;
+    var pushSwing = pushF >= 0 ? Math.sin(pushF / 8 * Math.PI * 2) : 0; // -1..1 over the cycle
+    var pushDown = pushF >= 0 ? Math.max(0, Math.sin(pushF / 8 * Math.PI * 2)) : 0;
+    ctx.fillStyle = JEANS2;
+    // back leg (the pushing leg)
+    var blx = 4 - pushSwing * 5, bly = 7 - tuck + squash + pushDown * 3;
+    ctx.fillRect(blx, bly, 3.5, 6);
+    ctx.fillStyle = JEANS; ctx.fillRect(blx - pushSwing * 2, bly + 5, 3.5, 4 + pushDown * 3);
+    // front leg
+    ctx.fillStyle = JEANS; ctx.fillRect(13, 7 - tuck + squash, 3.5, 6); ctx.fillRect(13.5, 12 - tuck + squash, 3.5, 3);
+    ctx.fillStyle = JEANS; ctx.fillRect(5, 5 - tuck + squash, 10, 3.5);
+    // shoes
     ctx.fillStyle = SHOE;
-    if (pushLeg === 2) { ctx.fillRect(-4, 16 + squash / 2, 6, 3); }
-    else if (pushLeg === 1) { ctx.fillRect(-1, 14 + squash / 2, 6, 3); }
-    else ctx.fillRect(2, 12 - tuck + squash / 2, 6, 3);
-    ctx.fillRect(12, 12 - tuck + squash / 2, 6, 3);
-    ctx.fillStyle = JEANS;
-    if (pushLeg === 2) { ctx.fillRect(1, 8 + squash, 3, 5); ctx.fillRect(-2, 12 + squash, 4, 4); }
-    else if (pushLeg === 1) { ctx.fillRect(3, 8 + squash, 3, 5); ctx.fillRect(0, 11 + squash, 4, 4); }
-    else ctx.fillRect(4, 7 - tuck + squash, 3, 6);
-    ctx.fillRect(13, 7 - tuck + squash, 3, 6);
-    ctx.fillRect(5, 5 - tuck + squash, 10, 3);
+    ctx.fillRect(blx - pushSwing * 3, 15 - (pushDown > 0 ? 0 : tuck) + squash / 2 + pushDown * 4, 6, 3);
+    ctx.fillRect(12, 15 - tuck + squash / 2, 6, 3);
+    ctx.fillStyle = '#fff'; ctx.fillRect(blx - pushSwing * 3 + 1, 17.5 - (pushDown > 0 ? 0 : tuck) + squash / 2 + pushDown * 4, 4, 0.8); ctx.fillRect(13, 17.5 - tuck + squash / 2, 4, 0.8);
+    // torso: the shirt in the artist's accent, a lean into the ride
     ctx.fillStyle = TEE;
-    ctx.fillRect(6, -3 + squash, 8, 9);
-    // Arms: skating = trailing, air = thrown out, each grab reaches a different spot
+    ctx.beginPath(); ctx.moveTo(6, -2.5 + squash); ctx.lineTo(14.5, -2.5 + squash); ctx.lineTo(15, 6 + squash); ctx.lineTo(5.5, 6 + squash); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(12, -2.5 + squash, 3, 8.5);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(7.5, -2.5 + squash, 1.5, 8);
+    // arms: trailing riding, thrown wide in the air, reaching the rail for a grab
     ctx.fillStyle = SKIN;
-    if (grab === 'MELON' || grab === 'NOSEGRAB') {
-      ctx.fillRect(13, 0 + squash, 3, 6);
-      ctx.fillRect(14, 6 + squash, 3, 8);
-      ctx.fillRect(2, -4 + squash, 3, 5);
-    } else if (grab === 'INDY' || grab === 'STALEFISH') {
-      ctx.fillRect(4, 0 + squash, 3, 6);
-      ctx.fillRect(3, 6 + squash, 3, 8);
-      ctx.fillRect(15, -4 + squash, 3, 5);
-    } else if (grab === 'METHOD' || grab === 'TAILGRAB') {
-      ctx.fillRect(2, 2 + squash, 3, 7);
-      ctx.fillRect(1, 9 + squash, 3, 6);
-      ctx.fillRect(15, -6 + squash, 3, 5);
-    } else if (air) {
-      ctx.fillRect(1, -5 + squash, 4, 3);
-      ctx.fillRect(15, -5 + squash, 4, 3);
-      ctx.fillRect(3, -3 + squash, 3, 4);
-      ctx.fillRect(14, -3 + squash, 3, 4);
-    } else if (sliding) {
-      ctx.fillRect(0, -2 + squash, 4, 3);
-      ctx.fillRect(16, -2 + squash, 4, 3);
-    } else {
-      ctx.fillRect(3, -1 + squash, 3, 6);
-      ctx.fillRect(14, 0 + squash, 3, 6);
-    }
-    ctx.fillStyle = SKIN;
-    ctx.fillRect(7, -9 + squash, 7, 6);
-    ctx.fillStyle = PINK;
-    ctx.fillRect(6, -11 + squash, 9, 3);
-    ctx.fillRect(4, -10 + squash, 3, 2);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(12, -8 + squash, 2, 2);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(13, -8 + squash, 1, 2);
-
+    if (grab === 'CHRIST AIR') { ctx.fillRect(-1, -1 + squash, 7, 3); ctx.fillRect(14, -1 + squash, 7, 3); }
+    else if (grab === 'MELON' || grab === 'NOSEGRAB') { ctx.fillRect(13.5, 0 + squash, 3, 6); ctx.fillRect(14.5, 6 + squash, 3, 8); ctx.fillRect(2, -4 + squash, 3, 5); }
+    else if (grab === 'INDY' || grab === 'STALEFISH') { ctx.fillRect(4, 0 + squash, 3, 6); ctx.fillRect(3, 6 + squash, 3, 8); ctx.fillRect(15, -4 + squash, 3, 5); }
+    else if (grab === 'METHOD' || grab === 'TAILGRAB') { ctx.fillRect(2, 2 + squash, 3, 7); ctx.fillRect(1, 9 + squash, 3, 6); ctx.fillRect(15, -6 + squash, 3, 5); }
+    else if (air) { ctx.fillRect(1, -5 + squash, 4, 3); ctx.fillRect(15, -5 + squash, 4, 3); ctx.fillRect(3, -3 + squash, 3, 4); ctx.fillRect(14, -3 + squash, 3, 4); }
+    else if (sliding) { ctx.fillRect(0, -2 + squash, 4, 3); ctx.fillRect(16, -2 + squash, 4, 3); }
+    else { ctx.fillRect(3.5, -1 + squash + pushSwing, 3, 6); ctx.fillRect(14, 0 + squash - pushSwing, 3, 6); }
+    ctx.fillStyle = SKIN2; ctx.fillRect(4, 4 + squash, 2, 1.5); ctx.fillRect(14.5, 5 + squash, 2, 1.5);
+    // neck, head, face, the cap in the accent, brim back
+    ctx.fillStyle = SKIN; ctx.fillRect(9, -4.5 + squash, 3, 2.5);
+    ctx.fillRect(6.5, -10 + squash, 8, 6.5);
+    ctx.fillStyle = SKIN2; ctx.fillRect(6.5, -5 + squash, 8, 1.5);
+    ctx.fillStyle = '#fff'; ctx.fillRect(12, -8.5 + squash, 2, 2);
+    ctx.fillStyle = '#000'; ctx.fillRect(13, -8.5 + squash, 1, 2);
+    ctx.fillStyle = '#3a2a22'; ctx.fillRect(6, -6.5 + squash, 2, 3);
+    ctx.fillStyle = ACC; ctx.fillRect(5.5, -12 + squash, 10, 3.5); ctx.fillRect(3, -11 + squash, 3.5, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(5.5, -9 + squash, 10, 0.8);
     ctx.restore();
   }
 
@@ -2152,6 +2554,21 @@
       ctx.fillRect(ox + 9, oy + 1, 5, 4);
       ctx.fillStyle = '#fff';
       ctx.fillRect(ox + 8, oy - 1, 7, 3);
+      return;
+    }
+    if (ob.type === 'car') {
+      // At the curb it sits back in the background lane flashing; out, it is in your lane.
+      var lift = ob.out ? 0 : 10, cw = ob.w, ch = ob.h;
+      var flash = !ob.out && Math.floor(frame / 6) % 2 === 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(ox + cw / 2 + 6, gyS + 2, cw / 2 + 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ob.out ? '#d8d8e0' : '#c0c0c8';
+      ctx.fillRect(ox + 3, oy + 8 - lift, cw - 6, ch - 12);
+      ctx.fillRect(ox + cw * 0.2, oy + 1 - lift, cw * 0.55, 9);
+      ctx.fillStyle = '#7ab8e8'; ctx.fillRect(ox + cw * 0.24, oy + 2 - lift, cw * 0.2, 7); ctx.fillRect(ox + cw * 0.5, oy + 2 - lift, cw * 0.2, 7);
+      ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(ox + cw * 0.22, gyS - 4 - lift, 6, 0, Math.PI * 2); ctx.arc(ox + cw * 0.78, gyS - 4 - lift, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = flash ? '#fff8a0' : '#8a8a60'; ctx.fillRect(ox + cw - 6, oy + 12 - lift, 5, 4);
+      ctx.fillStyle = flash ? '#ff9a3c' : '#804020'; ctx.fillRect(ox + cw - 6, oy + 17 - lift, 5, 3); ctx.fillRect(ox + 1, oy + 17 - lift, 5, 3);
+      if (!ob.out && ob.warnT < 60) { ctx.fillStyle = '#fff'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.fillText('!', ox + cw / 2, oy - 8 - lift); }
       return;
     }
     if (ob.type === 'pigeon') {
