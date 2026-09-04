@@ -260,6 +260,8 @@
   #winamp-volume-thumb { position:absolute; top:-2px; left:75%; width:8px; height:12px; background:linear-gradient(180deg,#8a8a70 0%,#5a5a48 100%); border:1px solid #9a9a80; border-right-color:#3a3a2e; border-bottom-color:#3a3a2e; border-radius:1px; cursor:pointer; transform:translateX(-4px); }
 
   /* Phones: Winamp docks across the bottom, shaded to its title bar until tapped, so it never sits on top of a window. */
+  /* When the desktop's taskbar scrolls into view, Winamp steps up above it. */
+  body.lmn-taskbar-in #winamp-player { bottom:56px; transition:bottom .25s ease; }
   @media (max-width:600px) { #winamp-player { left:0; right:0; bottom:0; width:100%; border-left:0; border-right:0; border-bottom:0; border-radius:0; } #winamp-titlebar { height:30px; } #winamp-elapsed { font-size:14px !important; } #winamp-visualizer { height:14px; } #winamp-transport button { width:30px; height:24px; font-size:9px; } }
   @media (max-width:400px) { #winamp-volume-row { display:none; } }
 </style>
@@ -433,4 +435,9 @@ var was=(mu.oldValue||'').indexOf('is-open')!==-1,is=el.classList.contains('is-o
 if(!was&&is){o.currentTime=0;o.play().catch(function(){});}else if(was&&!is){c.currentTime=0;c.play().catch(function(){});}});});
 a.forEach(function(card){ob.observe(card,{attributes:true,attributeFilter:['class'],attributeOldValue:true});});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',obs);else obs();})();
+</script>
+
+<!-- ═══ WINAMP VS THE TASKBAR ═══ Pages with a desktop taskbar: Winamp steps up while the bar is on screen. -->
+<script>
+(function(){var taskbar=document.querySelector('.taskbar');if(!taskbar)return;var on=null;function check(){var r=taskbar.getBoundingClientRect();var vis=r.top<window.innerHeight&&r.bottom>0;if(vis!==on){on=vis;document.body.classList.toggle('lmn-taskbar-in',vis);}}window.addEventListener('scroll',check,{passive:true});window.addEventListener('resize',check);check();})();
 </script>
