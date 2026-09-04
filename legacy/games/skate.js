@@ -38,11 +38,28 @@
   var holdingJump = false, coyote = 0, jumpBuffer = 0, flipped = false;
   var usedHeel = false, usedShove = false, usedImp = false, usedBack = false, lastUpTap = -99;
   var lingoCd = 0;
-  var YEAHS = ['yeah-dude', 'gnarly', 'so-sick', 'radical', 'shred-it'];
+  // The announcer's vocabulary: the generic hype plus the skate-specific
+  // lines (public/audio/arcade/skate-*.mp3). Never the same line twice in a
+  // row, and a cooldown so he is not talking over himself.
+  var YEAHS = ['gnarly', 'so-sick', 'radical', 'shred-it', 'skate-sick', 'skate-huge', 'skate-fire', 'skate-combo', 'skate-clean', 'skate-keepgoing'];
+  var lastLingo = '';
+  function pickLine(list) {
+    var l = list[Math.floor(Math.random() * list.length)];
+    if (l === lastLingo && list.length > 1) l = list[(list.indexOf(l) + 1) % list.length];
+    lastLingo = l;
+    return l;
+  }
   function sayLingo() {
     if (lingoCd > 0) return;
     lingoCd = 700;
-    say(YEAHS[Math.floor(Math.random() * YEAHS.length)]);
+    say(pickLine(YEAHS));
+  }
+  // A specific call for a specific moment, same cooldown, same no-repeat rule.
+  function sayMoment(name, force) {
+    if (lingoCd > 0 && !force) return;
+    lingoCd = 500;
+    lastLingo = name;
+    say(name, 100);
   }
   var upHeld = false, downHeld = false, grabT = 0, grabTotal = 0, wasGrabbing = false;
   var manualT = 0, wasManual = false, grindTilt = 0, usedNose = false, usedFive = false;
@@ -436,9 +453,9 @@
       lineFlashT = 18;
     }
     // The payout is the event: the bigger the line, the bigger the moment.
-    if (total >= 5000) { bannerT = 120; bannerText = 'LEGENDARY LINE +' + total; shake = 16; lineFlashT = 40; lingoCd = 0; sayLingo(); spawnParticles(px, player.y + player.h, '#fff', 40); say('so-sick', 300); }
-    else if (total >= 2000) { bannerT = 90; bannerText = 'HUGE LINE +' + total; shake = 11; lineFlashT = 28; lingoCd = 0; sayLingo(); spawnParticles(px, player.y + player.h, YELLOW, 24); }
-    else if (total >= 500) { bannerT = 60; bannerText = 'SICK LINE'; sayLingo(); }
+    if (total >= 5000) { bannerT = 120; bannerText = 'LEGENDARY LINE +' + total; shake = 16; lineFlashT = 40; sayMoment('skate-legend', true); spawnParticles(px, player.y + player.h, '#fff', 40); }
+    else if (total >= 2000) { bannerT = 90; bannerText = 'HUGE LINE +' + total; shake = 11; lineFlashT = 28; sayMoment('skate-huge', true); spawnParticles(px, player.y + player.h, YELLOW, 24); }
+    else if (total >= 500) { bannerT = 60; bannerText = 'SICK LINE'; sayMoment('skate-sick'); }
     if (!sketchy && lineTricks.length >= 2) sfxCombo(6);
     if (total > bestLine) bestLine = total;
     goalProgress('line', total);
@@ -461,6 +478,7 @@
     player.grinding = false; player.grindRail = null; manualBailT = 40; manualT = 0;
     looseBoard = { x: player.x + 10, y: player.y + 17, vx: 3 + Math.random() * 2, vy: -5 - Math.random() * 2, rot: 0, t: 60 };
     loseLine('BAILED');
+    sayMoment('skate-bail');
     shake = 12;
     spawnDust(player.x + player.w / 2, player.y + player.h, 8);
     spawnParticles(player.x + player.w / 2, player.y, '#FF0000', 10);
@@ -509,7 +527,7 @@
       if (gl.have >= gl.need) {
         gl.done = true; goalsDoneTotal++;
         addPopup(player.x + player.w / 2, player.y - 46, 'GOAL: ' + gl.text, LIME);
-        bannerT = 70; bannerText = 'GOAL DONE';
+        bannerT = 70; bannerText = 'GOAL DONE'; sayMoment('skate-goal', true);
         sfxCombo(7); spawnParticles(player.x + player.w / 2, player.y, LIME, 16);
         say('radical', 100);
       }
@@ -523,15 +541,16 @@
     var bonus = done * 800 * tier + (done === goals.length ? 1500 * tier : 0);
     if (bonus > 0) { score += bonus; document.getElementById('jd-br-score').textContent = score; }
     tallyLines.push({ text: 'TOWN BONUS +' + bonus + (done === goals.length ? ' // CLEAN SWEEP' : ''), ok: bonus > 0 });
-    tallyT = 240;
+    tallyT = 240; sayMoment('skate-town', true);
   }
   // The special meter fills with tricks and drains while you coast. Full, it
   // unlocks the specials: a christ air, a darkslide, and spins past 720.
   function addSpecial(pts) {
     special = Math.min(100, special + pts * 0.45);
-    if (special >= 100 && !specialFlashT) { specialFlashT = 60; say('yeah-dude', 100); }
+    if (special >= 100 && !specialArmed) { specialArmed = true; specialFlashT = 60; sayMoment('skate-special', true); }
+    if (special < 100) specialArmed = false;
   }
-  var specialFlashT = 0;
+  var specialFlashT = 0, specialArmed = false;
   function useSpecial() { special = 0; specialUsed++; }
 
   // A bail throws the whole line away.
@@ -915,7 +934,7 @@
         if (bail('MISSED THE GAP')) return;
         return;
       }
-      if (air > 120 && !sketchy) { trick(30, player.x + player.w / 2, player.y - 26, 'BIG AIR'); }
+      if (air > 120 && !sketchy) { trick(30, player.x + player.w / 2, player.y - 26, 'BIG AIR'); sayMoment('skate-bigair'); }
       if (landSlope > 0.18 && !sketchy && linePts > 0) { linePts += 15; addPopup(player.x + player.w / 2, player.y - 20, 'LANDED DOWNHILL +15', CYAN); }
       if (air > 60) shake = Math.max(shake, Math.min(8, air / 30));
       if (linePts > 0) {
@@ -1012,7 +1031,7 @@
               // Coming off another rail within a second: a transfer, worth more than the landing.
               if (frame - lastGrindEnd < 60 && lastRailId !== -1) {
                 transfers++;
-                trick(rail.id === lastRailId ? 20 : 30, player.x + player.w / 2, railTop - 12, rail.id === lastRailId ? 'GAP HOP' : 'TRANSFER');
+                trick(rail.id === lastRailId ? 20 : 30, player.x + player.w / 2, railTop - 12, rail.id === lastRailId ? 'GAP HOP' : 'TRANSFER'); if (rail.id !== lastRailId) sayMoment('skate-transfer');
               } else {
                 trick(25, player.x + player.w / 2, railTop - 12, '50-50');
               }
@@ -1049,6 +1068,7 @@
         linePts += 20;
         if (combo < MAX_COMBO) combo++;
         addPopup(player.x + player.w / 2, player.y - 14, 'LONG GRIND ' + (ft * 200) + ' +20', CYAN);
+        if (ft === 2) sayMoment('skate-grind');
         if (ft === 3) sayLingo();
       }
       if (grindDist > longestGrind) longestGrind = grindDist;
@@ -1157,6 +1177,7 @@
       if (lx2 < -40) { letters.splice(li3, 1); continue; }
       if (player.x + player.w > lx2 && player.x < lx2 + lt.w && player.y + player.h > lt.y && player.y < lt.y + lt.h) {
         lettersGot++;
+        if (lettersGot === 5) sayMoment('skate-letters', true);
         letters.splice(li3, 1);
         score += 250; document.getElementById('jd-br-score').textContent = score;
         addPopup(lx2 + 8, lt.y - 8, 'GOT ' + lt.ch + ' +250', YELLOW);
