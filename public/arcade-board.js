@@ -406,7 +406,7 @@
       }
 
       // Left: the all-time wall.
-      var LX = 18, LW = 190, ROW = 15, TOP = 104;
+      var LX = 18, LW = 190, ROW = 15, TOP = 113; // first baseline sits clear of the header rule at 98
       ctx.textAlign = 'left';
       ctx.fillStyle = CYAN;
       ctx.font = 'bold 10px monospace';
