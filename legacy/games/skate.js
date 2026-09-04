@@ -79,6 +79,23 @@
   var MAX_LIVES = 5;
   var airFrames = 0, longestAir = 0, floaty = false;
   var peakHit = false;
+  // The flip book: a tap is a press under 8 frames; two taps within 14 read as one trick.
+  var FLIPS = {
+    'R':  { name: 'KICKFLIP',        pts: 15, roll: 1,  yaw: 0,    dur: 24 },
+    'L':  { name: 'HEELFLIP',        pts: 15, roll: -1, yaw: 0,    dur: 24 },
+    'RR': { name: '360 FLIP',        pts: 45, roll: 1,  yaw: 1,    dur: 32 },
+    'LL': { name: 'LASER FLIP',      pts: 55, roll: -1, yaw: -1,   dur: 34 },
+    'RL': { name: 'VARIAL KICKFLIP', pts: 25, roll: 1,  yaw: 0.5,  dur: 26 },
+    'LR': { name: 'VARIAL HEELFLIP', pts: 25, roll: -1, yaw: -0.5, dur: 26 },
+    'DR': { name: 'HARDFLIP',        pts: 35, roll: 1,  yaw: 0.5,  dur: 28, pop: 1 },
+    'DL': { name: 'INWARD HEELFLIP', pts: 35, roll: -1, yaw: 0.5,  dur: 28, pop: 1 },
+    'UR': { name: 'IMPOSSIBLE',      pts: 40, roll: 0,  yaw: 0,    dur: 28, wrap: 1 },
+    'UL': { name: 'NOLLIE HEELFLIP', pts: 30, roll: -1, yaw: 0,    dur: 22, nose: 1 },
+    'UU': { name: 'DOUBLE KICKFLIP', pts: 60, roll: 2,  yaw: 0,    dur: 30 },
+    'DD': { name: 'POP SHOVE-IT',    pts: 20, roll: 0,  yaw: 1,    dur: 20 },
+  };
+  var FLIP_GOALS = ['360 FLIP', 'LASER FLIP', 'HARDFLIP', 'INWARD HEELFLIP', 'IMPOSSIBLE', 'DOUBLE KICKFLIP', 'VARIAL KICKFLIP'];
+  var flipAnim = null, tapQ = [], lastFlipPts = 0, lastFlipLabel = '', airPeakH = 0, landedFlip = '';
   var grindBal = 0, lastBailReason = '', boost = 0, nextBeatX = 0, lastBeat = 'rail', grindCount = 0, rampAirs = 0, slowT = 0, slowTick = 0, hintT = 0, airName = '', airNameT = 0;
   // Park goals: each town sets a few, the town's end tallies them into a bonus.
   var goals = [], goalCardT = 0, tallyT = 0, tallyLines = [], townScoreStart = 0, letters = [], nextLetterX = 0, lettersGot = 0, goalsDoneTotal = 0;
@@ -194,6 +211,7 @@
     spinAngle = 0; spinDir = 0; spinStep = 0; leftHold = -1; rightHold = -1; upHold = -1; downHold = -1;
     leftHeld = false; rightHeld = false; grabName = ''; railUsed = {}; slideT = 0; manualKind = 'manual';
     continueUsed = false; lastLevel = 1; lastScore = 0; pumpT = 0; lipT = 0;
+    flipAnim = null; tapQ = []; lastFlipPts = 0; lastFlipLabel = ''; airPeakH = 0; landedFlip = '';
     airFrames = 0; longestAir = 0; floaty = false; grindBal = 0; lastBailReason = ''; boost = 0; nextBeatX = 700; lastBeat = 'rail'; grindCount = 0; rampAirs = 0; slowT = 0; slowTick = 0; hintT = 1800; airName = ''; airNameT = 0;
     goals = []; goalCardT = 0; tallyT = 0; tallyLines = []; townScoreStart = 0; letters = []; nextLetterX = 1200; lettersGot = 0; goalsDoneTotal = 0;
     special = 0; specialUsed = 0; grabsLanded = 0; townGrabs = 0;
@@ -503,6 +521,7 @@
   // pays 800 a goal times the tier, and a clean sweep pays extra.
   function setGoals(lv) {
     var tier = Math.min(8, lv), town = LOCALES[(lv - 1) % LOCALES.length];
+    var wantFlip = FLIP_GOALS[Math.floor(Math.random() * FLIP_GOALS.length)];
     var pool = [
       { id: 'bigair', text: 'BIG AIR ' + (240 + tier * 20), need: 240 + tier * 20, have: 0 },
       { id: 'grindtown', text: 'GRIND ' + (1200 + tier * 200) + ' FEET' + (town.sig === 'steps' ? ' OF STEPS' : ''), need: 1200 + tier * 200, have: 0 },
@@ -514,6 +533,7 @@
     // Letters always, then two picked from the air-and-rail set
     goals.push(pool[3]);
     var rest = [pool[0], pool[1], pool[2], pool[4]];
+    if (lv >= 3) rest.push({ id: 'flip', text: 'LAND A ' + wantFlip, need: 1, have: 0, want: wantFlip });
     for (var i = 0; i < 2; i++) goals.push(rest.splice(Math.floor(Math.random() * rest.length), 1)[0]);
     townGrindFeet = 0;
     for (var g = 0; g < goals.length; g++) goals[g].done = false;
@@ -527,6 +547,7 @@
     for (var g = 0; g < goals.length; g++) {
       var gl = goals[g];
       if (gl.id !== id || gl.done) continue;
+      if (id === 'flip') { if (value !== gl.want) continue; value = 1; }
       gl.have = Math.max(gl.have, value);
       if (gl.have >= gl.need) {
         gl.done = true; goalsDoneTotal++;
@@ -611,6 +632,41 @@
     trick(base, player.x + player.w / 2, player.y - 8, name);
     airName = name; airNameT = 50;
   }
+  // A tap in the air. Two taps within 14 frames become one trick and replace
+  // the single that already fired (a kickflip becomes a 360 flip on the second
+  // RIGHT), so nothing waits on the second tap. Late in the air pays double.
+  function flipTap(key) {
+    if (!airborne()) return;
+    var now = frame;
+    var prev = tapQ.length ? tapQ[tapQ.length - 1] : null;
+    var code = null;
+    if (prev && now - prev.f <= 14 && !prev.used) { code = prev.k + key; }
+    else code = key;
+    var spec = FLIPS[code];
+    if (!spec && code.length === 2) { spec = FLIPS[key]; code = key; }
+    tapQ.push({ k: key, f: now, used: false });
+    if (tapQ.length > 4) tapQ.shift();
+    if (!spec) return; // a lone UP or DOWN tap waits for its partner
+    // A pair replaces the single that just fired
+    if (code.length === 2 && lastFlipLabel && prev && !prev.used && now - prev.f <= 14) {
+      linePts = Math.max(0, linePts - lastFlipPts);
+      var li = lineTricks.lastIndexOf(lastFlipLabel);
+      if (li >= 0) lineTricks.splice(li, 1);
+      trickCount = Math.max(0, trickCount - 1);
+    }
+    tapQ[tapQ.length - 1].used = code.length === 2;
+    if (prev && code.length === 2) prev.used = true;
+    var h = heightAboveGround();
+    var late = player.vy > 1 && airPeakH > 60 && h < airPeakH / 3;
+    var pts = late ? spec.pts * 2 : spec.pts;
+    var label = (late ? 'LATE ' : '') + spec.name;
+    flipAnim = { roll: spec.roll, yaw: spec.yaw, dur: spec.dur, t: spec.dur, name: spec.name, pop: spec.pop || 0, wrap: spec.wrap || 0, nose: spec.nose || 0 };
+    player.flipT = spec.dur; player.heelT = 0;
+    player.vy = Math.min(player.vy, -4);
+    sfxFlip();
+    airTrick(pts, label);
+    lastFlipPts = pts; lastFlipLabel = label;
+  }
 
   function tryJump() {
     if (player.onGround || player.grinding || coyote > 0) {
@@ -678,16 +734,10 @@
     if (!window.skateRunning) return;
     if (e.code === 'Space' || e.key === ' ') release();
     var held;
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-      held = frame - leftHold; leftHeld = false;
-      if (airborne() && held < 9 && !usedHeel) { usedHeel = true; player.heelT = 24; player.vy = Math.min(player.vy, -4); sfxFlip(); airTrick(20, 'HEELFLIP'); }
-    }
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-      held = frame - rightHold; rightHeld = false;
-      if (airborne() && held < 9 && !flipped) { flipped = true; player.flipT = 24; player.vy = Math.min(player.vy, -4); sfxFlip(); airTrick(20, 'KICKFLIP'); }
-    }
-    if (e.code === 'ArrowUp' || e.code === 'KeyW') upHeld = false;
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') downHeld = false;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') { held = frame - leftHold; leftHeld = false; if (held < 8) flipTap('L'); }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { held = frame - rightHold; rightHeld = false; if (held < 8) flipTap('R'); }
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') { held = frame - upHold; upHeld = false; if (held < 8) flipTap('U'); }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') { held = frame - downHold; downHeld = false; if (held < 8) flipTap('D'); }
   });
   canvas.addEventListener('mousedown', function(e) { e.preventDefault(); press(); });
   document.addEventListener('mouseup', function() { release(); });
@@ -720,7 +770,7 @@
   // The grab you are doing, from what is held: UP melon, DOWN indy, both
   // method. Add a spin and the names change (nosegrab, stalefish, tailgrab).
   function currentGrab() {
-    var u = upHeld && frame - upHold >= 6, d = downHeld && frame - downHold >= 6;
+    var u = upHeld && frame - upHold >= 8, d = downHeld && frame - downHold >= 8;
     if (!u && !d) return '';
     if (u && d) return 'METHOD';
     return u ? 'MELON' : 'INDY';
@@ -800,6 +850,8 @@
     if (player.squash > 0) player.squash *= 0.8;
     if (player.flipT > 0) player.flipT--;
     if (player.heelT > 0) player.heelT--;
+    if (flipAnim) { flipAnim.t--; if (flipAnim.t <= 0) flipAnim = null; }
+    if (!player.onGround && !player.grinding) airPeakH = Math.max(airPeakH, heightAboveGround());
     if (player.shoveT > 0) player.shoveT--;
     if (player.impT > 0) player.impT--;
     if (player.backT > 0) {
@@ -890,7 +942,7 @@
         if (floaty) goalProgress('spin', half);
         var nm = names[Math.min(half, names.length - 1)];
         var grabNow = currentGrab();
-        var flipNow = player.flipT > 0 ? 'KICKFLIP ' : player.heelT > 0 ? 'HEELFLIP ' : '';
+        var flipNow = flipAnim ? flipAnim.name + ' ' : '';
         airTrick(pts[Math.min(half, pts.length - 1)] + (grabNow ? 12 : 0) + (flipNow ? 10 : 0), flipNow + (grabNow ? grabNow + ' ' : '') + nm);
         if (half >= 2) spawnParticles(player.x + player.w / 2, player.y + player.h / 2, YELLOW, 6);
         if (half === 4) sayLingo();
@@ -912,12 +964,15 @@
       var off360 = Math.abs(spinAngle) % (Math.PI * 2);
       var offFlat = Math.min(off360, Math.PI * 2 - off360); // how far from wheels-down, 0 to 180 degrees
       var midSpin = spinAngle !== 0 && offFlat > Math.PI / 4;
-      var spinning = player.flipT > 0 || player.heelT > 0 || midSpin;
+      var spinning = !!flipAnim || midSpin;
+      if (landedFlip && !spinning) goalProgress('flip', landedFlip);
+      tapQ = []; lastFlipLabel = ''; lastFlipPts = 0; airPeakH = 0; flipAnim = null;
       var sketchy = spinning || landSlope < -0.18;
       // A flip thrown in the last third of the air lands on its edge: a bail.
       // (Half the rotation or more still to go is the line; less is just sketchy.)
-      if (player.flipT > 12 || player.heelT > 12) {
-        player.flipT = 0; player.heelT = 0;
+      landedFlip = (flipAnim && flipAnim.t <= flipAnim.dur / 2) ? flipAnim.name : (player.flipT === 0 && lastFlipLabel ? lastFlipLabel.replace('LATE ', '') : '');
+      if (flipAnim && flipAnim.t > flipAnim.dur / 2) {
+        player.flipT = 0; player.heelT = 0; flipAnim = null; tapQ = []; lastFlipLabel = ''; airPeakH = 0;
         player.onGround = true; spinAngle = 0; spinDir = 0; spinStep = 0; grabName = '';
         flipped = false; usedHeel = false;
         if (bail('FLIPPED TOO LATE')) return;
@@ -1027,7 +1082,7 @@
             player.grinding = true;
             player.grindRail = rail;
             flipped = false; usedNose = false; usedFive = false; grindTilt = 0; railUsed = {}; slideT = 0;
-            spinAngle = 0; spinDir = 0; spinStep = 0;
+            spinAngle = 0; spinDir = 0; spinStep = 0; flipAnim = null; tapQ = []; lastFlipLabel = ''; airPeakH = 0;
             if (!rail.scored) {
               rail.scored = true;
               // Coming off another rail within a second: a transfer, worth more than the landing.
@@ -1487,11 +1542,13 @@
     // The whole sheet cycles: the cabinet shows a few lines at a time.
     var sheet = [
       ['SPACE ollies, hold it for big // hold UP at a lip and the board sends itself', 'in the air: tap LEFT or RIGHT to flip, hold to spin, hold UP or DOWN to grab // rails: LEFT and RIGHT change the grind'],
+      ['TRICK BOOK // tap RIGHT kickflip, LEFT heelflip // RIGHT RIGHT 360 flip, LEFT LEFT laser flip, UP UP double kickflip', 'RIGHT LEFT varial kick, LEFT RIGHT varial heel // DOWN RIGHT hardflip, DOWN LEFT inward heel // UP RIGHT impossible, UP LEFT nollie heel, DOWN DOWN pop shove-it'],
     ];
-    var pageI = 0;
+    var pageI = Math.floor(t / 150) % sheet.length;
     ctx.fillText(sheet[pageI][0], W / 2, H - 58);
     ctx.fillText(sheet[pageI][1], W / 2, H - 44);
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (var pgi = 0; pgi < sheet.length; pgi++) ctx.fillRect(W / 2 - sheet.length * 5 + pgi * 10, H - 32, 6, 2);
 
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
@@ -2484,16 +2541,24 @@
     // The deck: trucks and wheels, wheels spin with the road
     ctx.save();
     ctx.translate(10, 17.5);
-    if (player.flipT > 0) ctx.rotate((1 - player.flipT / 24) * Math.PI * 2);
-    if (player.heelT > 0) ctx.rotate(-(1 - player.heelT / 24) * Math.PI * 2);
-    if (player.shoveT > 0) {
-      var cs = Math.cos((1 - player.shoveT / 20) * Math.PI * 2);
-      ctx.scale(Math.abs(cs) < 0.15 ? 0.15 : cs, 1);
-    }
-    if (player.impT > 0) {
-      var pi2 = (1 - player.impT / 26) * Math.PI * 2;
-      ctx.rotate(pi2);
-      ctx.scale(1, Math.max(0.25, Math.abs(Math.cos(pi2))));
+    if (flipAnim) {
+      // roll = the board flipping over its long axis (a rotation in side view),
+      // yaw = a shove spin (the deck foreshortens as it turns), pop = the
+      // hardflip family kicks up, wrap = the impossible wraps the back foot,
+      // nose = a nollie pops off the front.
+      var fp = 1 - flipAnim.t / flipAnim.dur;
+      if (flipAnim.nose) ctx.translate(4, -2 * Math.sin(fp * Math.PI));
+      if (flipAnim.pop) ctx.translate(0, -5 * Math.sin(fp * Math.PI));
+      if (flipAnim.roll) ctx.rotate(fp * Math.PI * 2 * flipAnim.roll);
+      if (flipAnim.yaw) {
+        var cy = Math.cos(fp * Math.PI * 2 * flipAnim.yaw);
+        ctx.scale(Math.abs(cy) < 0.15 ? 0.15 : cy, 1);
+      }
+      if (flipAnim.wrap) {
+        var wr = fp * Math.PI * 2;
+        ctx.rotate(wr);
+        ctx.scale(1, Math.max(0.25, Math.abs(Math.cos(wr))));
+      }
     }
     if (grab === 'MELON' || grab === 'NOSEGRAB') ctx.rotate(0.35);
     else if (grab === 'INDY' || grab === 'STALEFISH') ctx.rotate(-0.3);
