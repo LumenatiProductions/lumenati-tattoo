@@ -30,6 +30,14 @@ export default function LoginForm() {
     params.get("error") ? "That sign-in link didn't work. Try again." : null,
   );
 
+  // Supabase's messages are for developers; the team gets plain English.
+  const plain = (m: string) => {
+    if (/expired|invalid|otp/i.test(m)) return "That code didn't work. Check it, or send a new one.";
+    if (/security purposes|rate limit|too many/i.test(m)) return "Give it a minute, then try again.";
+    if (/network|fetch/i.test(m)) return "Couldn't reach the server. Check the connection and try again.";
+    return m;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -50,7 +58,7 @@ export default function LoginForm() {
         setError(
           /signups not allowed|not found/i.test(error.message)
             ? "That number isn't on the team yet. Ask an admin to add you."
-            : error.message,
+            : plain(error.message),
         );
       } else setSent(true);
     } else {
@@ -58,12 +66,18 @@ export default function LoginForm() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
+          shouldCreateUser: false, // same rule as phone: the team is added in Staff, not here
           emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         },
       });
       setBusy(false);
-      if (error) setError(error.message);
-      else setSent(true);
+      if (error) {
+        setError(
+          /signups not allowed|not found/i.test(error.message)
+            ? "That email isn't on the team yet. Ask an admin to add you."
+            : plain(error.message),
+        );
+      } else setSent(true);
     }
   };
 
@@ -80,7 +94,7 @@ export default function LoginForm() {
         : await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
     if (error) {
       setBusy(false);
-      setError(error.message);
+      setError(plain(error.message));
       return;
     }
     window.location.href = next;
@@ -131,11 +145,11 @@ export default function LoginForm() {
               >
                 {busy ? "Verifying…" : "Verify & sign in"}
               </button>
-              {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
+              {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
               <button
                 type="button"
                 onClick={reset}
-                className="mt-4 block w-full text-center text-xs text-white/55 hover:text-white/85"
+                className="mt-4 block w-full text-center text-sm text-white/70 hover:text-white"
               >
                 {mode === "phone" ? "Use a different number" : "Use a different email"}
               </button>
@@ -174,18 +188,18 @@ export default function LoginForm() {
               >
                 {busy ? "Sending…" : mode === "phone" ? "Text me a code" : "Email me a code"}
               </button>
-              {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
+              {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
               <button
                 type="button"
                 onClick={() => {
                   setMode((m) => (m === "phone" ? "email" : "phone"));
                   setError(null);
                 }}
-                className="mt-4 block w-full text-center text-xs text-white/55 hover:text-white/85"
+                className="mt-4 block w-full text-center text-sm text-white/70 hover:text-white"
               >
                 {mode === "phone" ? "Use email instead" : "Use phone instead"}
               </button>
-              <p className="mt-3 text-center text-xs text-white/55">
+              <p className="mt-3 text-center text-sm text-white/70">
                 No password needed. Team members only.
               </p>
             </form>
@@ -194,7 +208,7 @@ export default function LoginForm() {
 
         <a
           href="/"
-          className="mt-4 block text-center text-xs text-white/55 hover:text-white/85"
+          className="mt-4 block text-center text-sm text-white/70 hover:text-white"
         >
           ← back to the site
         </a>
