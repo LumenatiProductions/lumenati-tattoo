@@ -83,12 +83,66 @@
 
   // ── Cartridge mode: this page is a game embed inside the selector's iframe.
   // The iframe already fills the cabinet, so no takeover — just the deck.
+  // ── The virtual pad: a d-pad and an A button that press the same keys the
+  // keyboard does, so every game plays the way its hint says on a phone.
+  // Below the screen in portrait, over the bezel beside it in landscape.
+  var padRow = null;
+  function sendPadKey(code, type) {
+    var key = code === "Space" ? " " : code === "KeyH" ? "h" : code;
+    try { document.dispatchEvent(new KeyboardEvent(type, { code: code, key: key, bubbles: true })); } catch (e) {}
+  }
+  function padBtn(label, code, css) {
+    var b = document.createElement("div");
+    b.textContent = label;
+    b.style.cssText = "position:absolute;display:flex;align-items:center;justify-content:center;background:#2c2c2c;color:#fff;border:2px solid #4a4a4a;border-radius:10px;font:bold 15px Tahoma,Arial,sans-serif;box-shadow:0 3px 0 #000;touch-action:none;user-select:none;-webkit-user-select:none;" + css;
+    var down = false;
+    var press = function (e) { e.preventDefault(); e.stopPropagation(); if (down) return; down = true; b.style.filter = "brightness(1.5)"; b.style.transform = "translateY(2px)"; sendPadKey(code, "keydown"); };
+    var lift = function (e) { if (e) { e.preventDefault(); e.stopPropagation(); } if (!down) return; down = false; b.style.filter = ""; b.style.transform = ""; sendPadKey(code, "keyup"); };
+    b.addEventListener("touchstart", press, { passive: false });
+    b.addEventListener("touchend", lift, { passive: false });
+    b.addEventListener("touchcancel", lift, { passive: false });
+    return b;
+  }
+  function buildPad(col) {
+    if (padRow) return padRow;
+    padRow = document.createElement("div");
+    padRow.id = "jd-pad";
+    var dp = document.createElement("div");
+    dp.style.cssText = "position:relative;width:150px;height:150px;flex:none;";
+    dp.appendChild(padBtn("\u25b2", "ArrowUp", "left:50px;top:0;width:50px;height:50px;"));
+    dp.appendChild(padBtn("\u25bc", "ArrowDown", "left:50px;top:100px;width:50px;height:50px;"));
+    dp.appendChild(padBtn("\u25c0", "ArrowLeft", "left:0;top:50px;width:50px;height:50px;"));
+    dp.appendChild(padBtn("\u25b6", "ArrowRight", "left:100px;top:50px;width:50px;height:50px;"));
+    var mid = document.createElement("div");
+    mid.style.cssText = "position:absolute;left:50px;top:50px;width:50px;height:50px;background:#222;border-radius:6px;";
+    dp.appendChild(mid);
+    var right = document.createElement("div");
+    right.style.cssText = "display:flex;align-items:center;gap:14px;flex:none;";
+    right.appendChild(padBtn("?", "KeyH", "position:static;width:44px;height:44px;border-radius:50%;font-size:16px;"));
+    right.appendChild(padBtn("A", "Space", "position:static;width:88px;height:88px;border-radius:50%;font-size:24px;background:radial-gradient(circle at 35% 30%, #ff5fb0 0%, #FF1493 45%, #a10060 100%);border-color:#3a3a3a;"));
+    padRow.appendChild(dp);
+    padRow.appendChild(right);
+    col.style.position = "relative";
+    col.insertBefore(padRow, pad.nextSibling); // after the screen, before the status strip
+    function layout() {
+      var land = window.innerWidth > window.innerHeight;
+      if (land) {
+        padRow.style.cssText = "position:absolute;left:0;right:0;top:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10px 14px;pointer-events:none;z-index:6;";
+        dp.style.pointerEvents = "auto"; right.style.pointerEvents = "auto";
+      } else {
+        padRow.style.cssText = "position:static;flex:none;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#161616;border-top:2px solid #2a2a2a;z-index:6;";
+        dp.style.pointerEvents = "auto"; right.style.pointerEvents = "auto";
+      }
+      try { window.dispatchEvent(new Event("resize")); } catch (e) {}
+    }
+    layout();
+    window.addEventListener("resize", layout);
+    return padRow;
+  }
+
   var embedId = window.__ARCADE_EMBED__ || null;
   if (embedId) {
-    if (embedId === "shooter" || embedId === "bricks") {
-      pad.appendChild(makeFireBtn("left"));
-      pad.appendChild(makeFireBtn("right"));
-    }
+    buildPad(pad.parentElement);
     document.addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
     return;
   }
@@ -202,10 +256,7 @@
     document.addEventListener("fullscreenchange", fit);
     box.addEventListener("touchmove", blockPan, { passive: false });
 
-    if (wantsFire) {
-      deckBtns = [makeFireBtn("left"), makeFireBtn("right")];
-      for (var i = 0; i < deckBtns.length; i++) pad.appendChild(deckBtns[i]);
-    }
+    if (!isRoom) { buildPad(box); padRow.style.display = ""; }
     if (!isRoom && titlebar && !closeBtn) {
       // The preview titlebar has no ✕ — give the takeover a way back out.
       closeBtn = document.createElement("span");
@@ -232,10 +283,7 @@
     lockScroll(false);
     window.removeEventListener("resize", fit);
     box.removeEventListener("touchmove", blockPan);
-    for (var i = 0; i < deckBtns.length; i++) {
-      if (deckBtns[i].parentNode) deckBtns[i].parentNode.removeChild(deckBtns[i]);
-    }
-    deckBtns = [];
+    if (padRow) padRow.style.display = "none";
     if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
     closeBtn = null;
   }
