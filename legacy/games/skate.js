@@ -1440,6 +1440,17 @@
     var airLift = 0;
     if (!player.onGround && !player.grinding && player.y - camY < 100) airLift = (player.y - camY - 100) * 0.2;
     camY += camStep + airLift;
+    // Whatever the easing says, the skater never leaves the frame: hard-clamp
+    // so the top of the air is always on screen (the lag used to lose them).
+    if (player.y - camY < 48) camY = player.y - 48;
+    // And after the air the view comes back down fast enough to keep up: on
+    // the ground, anything past the deadzone closes at 15 percent a frame,
+    // and the skater is never lower than 70px from the bottom.
+    if (player.onGround || player.grinding) {
+      var over = (player.y - camY) - (GROUND_Y + 30);
+      if (over > 0) camY += over * 0.15;
+    }
+    if (player.y - camY > H - 70) camY = player.y - (H - 70);
     camMoved = Math.abs(camStep + airLift);
 
     // Particles + popups (world y)
@@ -1654,12 +1665,15 @@
     ctx.textAlign = 'center';
     // The whole sheet cycles: the cabinet shows a few lines at a time.
     var sheet = [
-      ['SPACE ollies, hold it for big // hold UP at a lip and the board sends itself', 'in the air: tap LEFT or RIGHT to flip, hold to spin, hold UP or DOWN to grab // rails: LEFT and RIGHT change the grind'],
-      ['TRICK BOOK // tap RIGHT kickflip, LEFT heelflip // RIGHT RIGHT 360 flip, LEFT LEFT laser flip, UP UP double kickflip', 'RIGHT LEFT varial kick, LEFT RIGHT varial heel // DOWN RIGHT hardflip, DOWN LEFT inward heel // UP RIGHT impossible, UP LEFT nollie heel, DOWN DOWN pop shove-it'],
+      ['SPACE ollies, hold it for big air', 'hold UP at a lip and the board sends itself', 'hold SPACE in the air: slow backflip'],
+      ['in the air: tap LEFT or RIGHT to flip', 'hold LEFT or RIGHT to spin, hold UP or DOWN to grab', 'on a rail: LEFT and RIGHT change the grind'],
+      ['TRICK BOOK: RIGHT RIGHT 360 flip, LEFT LEFT laser', 'RIGHT LEFT varial kick, DOWN RIGHT hardflip', 'UP RIGHT impossible, UP UP double kickflip'],
+      ['DOWN LEFT inward heel, UP LEFT nollie heel', 'DOWN DOWN pop shove-it, LEFT RIGHT varial heel', 'the ? CONTROLS button in a run shows it all'],
     ];
     var pageI = Math.floor(t / 150) % sheet.length;
-    ctx.fillText(sheet[pageI][0], W / 2, H - 58);
-    ctx.fillText(sheet[pageI][1], W / 2, H - 44);
+    ctx.fillText(sheet[pageI][0], W / 2, H - 64);
+    ctx.fillText(sheet[pageI][1], W / 2, H - 52);
+    ctx.fillText(sheet[pageI][2], W / 2, H - 40);
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     for (var pgi = 0; pgi < sheet.length; pgi++) ctx.fillRect(W / 2 - sheet.length * 5 + pgi * 10, H - 32, 6, 2);
 
