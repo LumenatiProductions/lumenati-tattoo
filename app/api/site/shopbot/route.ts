@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRooms } from "@/lib/admin/room-data";
 import { LUMENATI_SHOP_ID } from "@/lib/shops/ids";
 
-// ShopBot: the Y2K site's AIM front desk, answered by Claude with the shop's
+// Clippy: the Y2K site's AIM front desk, answered by Claude with the shop's
 // real roster. POST { messages } streams plain text back. The system prompt is
 // rebuilt from the database on every call (cached a few minutes) so the bot
 // never quotes a stale artist list, and nothing in it is a secret.
