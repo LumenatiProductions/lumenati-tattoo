@@ -369,7 +369,7 @@ export function ShopTv({
 
       {/* TV remote — bottom corner, isolated from the check-in tap. ARCADE
           switches the set over to the game cabinet (KioskArcade, in the layout). */}
-      <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
+      <div className="absolute bottom-4 left-3 right-3 z-50 flex flex-wrap items-center justify-end gap-2 sm:left-auto sm:right-4">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -380,7 +380,7 @@ export function ShopTv({
             }
             window.dispatchEvent(new Event(ARCADE_OPEN_EVENT));
           }}
-          className="f-pixel rounded-lg border-2 border-pink-500/80 bg-black/70 px-5 py-3.5 text-sm text-pink-400 hover:text-pink-200"
+          className="f-pixel rounded-lg border-2 border-pink-500/80 bg-black/70 px-3 py-2.5 text-xs text-pink-400 hover:text-pink-200 sm:px-5 sm:py-3.5 sm:text-sm"
         >
           ARCADE
         </button>
@@ -391,7 +391,7 @@ export function ShopTv({
               e.stopPropagation();
               setGuideOpen((g) => !g);
             }}
-            className={`f-pixel rounded-lg border-2 bg-black/70 px-4 py-3.5 text-sm ${
+            className={`f-pixel rounded-lg border-2 bg-black/70 px-3 py-2.5 text-xs sm:px-4 sm:py-3.5 sm:text-sm ${
               guideOpen ? "border-yellow-300 text-yellow-200" : "border-yellow-300/70 text-yellow-300 hover:text-yellow-100"
             }`}
           >
@@ -399,19 +399,19 @@ export function ShopTv({
           </button>
           <button
             onClick={changeChannel(-1)}
-            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-4 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
+            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-xs text-cyan-300 hover:text-cyan-100 sm:px-4 sm:py-3.5 sm:text-sm"
           >
             CH ▼
           </button>
           <button
             onClick={changeChannel(1)}
-            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-4 py-3.5 text-sm text-cyan-300 hover:text-cyan-100"
+            className="f-pixel rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-xs text-cyan-300 hover:text-cyan-100 sm:px-4 sm:py-3.5 sm:text-sm"
           >
             CH ▲
           </button>
           <button
             onClick={toggleSound}
-            className={`f-pixel rounded-lg border-2 px-5 py-3.5 text-sm ${
+            className={`f-pixel rounded-lg border-2 px-3 py-2.5 text-xs sm:px-5 sm:py-3.5 sm:text-sm ${
               soundOn
                 ? "border-lime-300/80 bg-black/70 text-lime-300"
                 : "border-white/30 bg-black/70 text-white/85 hover:text-white"

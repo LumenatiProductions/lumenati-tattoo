@@ -385,7 +385,7 @@
   <div id="clippy-bubble">
     <div id="clippy-bubble-text">It looks like you're trying to get a tattoo! Would you like help?</div>
     <div id="clippy-buttons">
-      <a href="/book" id="clippy-btn-book">Get Inked &rarr;</a>
+      <button type="button" id="clippy-btn-book">Ask ShopBot &rarr;</button>
       <button id="clippy-btn-dismiss">Go away</button>
     </div>
     <div id="clippy-bubble-tail"></div>
@@ -416,7 +416,7 @@
   @media (max-width:640px) { #clippy-container { left:12px; } #clippy-character { transform-origin:bottom left; scale:0.75; } #clippy-bubble { max-width:180px; padding:10px 12px; } #clippy-bubble-text { font-size:12px; } #clippy-buttons { flex-direction:column; gap:6px; } #clippy-btn-book,#clippy-btn-dismiss { text-align:center; } }
 </style>
 <script>
-(function(){if(sessionStorage.getItem('clippy-dismissed'))return;var c=document.getElementById('clippy-container'),d=document.getElementById('clippy-btn-dismiss');setTimeout(function(){c.classList.add('clippy-visible');},30000);d.addEventListener('click',function(){c.classList.remove('clippy-visible');c.classList.add('clippy-hiding');sessionStorage.setItem('clippy-dismissed','1');setTimeout(function(){c.style.display='none';},500);});})();
+(function(){if(sessionStorage.getItem('clippy-dismissed'))return;var c=document.getElementById('clippy-container'),d=document.getElementById('clippy-btn-dismiss');setTimeout(function(){c.classList.add('clippy-visible');},30000);d.addEventListener('click',function(){c.classList.remove('clippy-visible');c.classList.add('clippy-hiding');sessionStorage.setItem('clippy-dismissed','1');setTimeout(function(){c.style.display='none';},500);});var b=document.getElementById('clippy-btn-book');if(b)b.addEventListener('click',function(){window.dispatchEvent(new Event('lmn-shopbot-open'));});window.addEventListener('lmn-shopbot-open',function(){c.classList.remove('clippy-visible');});})();
 </script>
 
 <!-- Lumenati OnLine sign-on lives in legacy/aol-signon.html (rendered by the site layout and by /coming-soon). -->

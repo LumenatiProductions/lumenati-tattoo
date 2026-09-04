@@ -1,0 +1,251 @@
+<!-- ── SHOPBOT — the front desk on AIM, answered by Claude ── -->
+<!-- Self-contained: styles, the buddy launcher, the IM window, the script. -->
+<!-- Opens on the launcher click or window event 'lmn-shopbot-open'. -->
+<style>
+  #lmn-sb-launch {
+    /* to the right of Clippy's corner so the two never stack */
+    position: fixed; left: 200px; bottom: 48px; z-index: 990;
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 6px;
+    background: #ece9d8; border: 2px solid; border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+    font-family: Tahoma, Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000;
+    cursor: pointer; user-select: none;
+  }
+  #lmn-sb-launch:hover { background: #f4f1e8; }
+  #lmn-sb-launch .lmn-sb-dot {
+    width: 12px; height: 12px; border-radius: 50%; background: #FFD700;
+    border: 1px solid #806000; box-shadow: 0 0 0 2px #fff inset;
+    animation: lmn-sb-pulse 2.4s infinite;
+  }
+  @keyframes lmn-sb-pulse { 0%, 100% { box-shadow: 0 0 0 2px #fff inset; } 50% { box-shadow: 0 0 0 2px #fff inset, 0 0 8px #FFD700; } }
+  #lmn-sb-launch.lmn-sb-hidden { display: none; }
+
+  #lmn-sb {
+    position: fixed; left: 24px; bottom: 44px; z-index: 995;
+    width: 380px; max-width: calc(100vw - 32px);
+    background: #ece9d8; border: 2px solid; border-color: #fff #808080 #808080 #fff;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+    font-family: Tahoma, Arial, sans-serif; display: none; flex-direction: column;
+  }
+  #lmn-sb.lmn-sb-open { display: flex; }
+  .lmn-sb-title {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 3px 4px; height: 24px;
+    background: linear-gradient(180deg, #0a246a 0%, #3a6ea5 40%, #0a246a 100%);
+  }
+  .lmn-sb-title-left { display: flex; align-items: center; gap: 5px; }
+  .lmn-sb-icon { width: 14px; height: 14px; border-radius: 50%; background: #FFD700; border: 1px solid #806000; }
+  .lmn-sb-title-text { font-size: 11px; font-weight: bold; color: #fff; text-shadow: 1px 1px 0 rgba(0,0,0,0.3); }
+  .lmn-sb-btns { display: flex; gap: 2px; }
+  .lmn-sb-btn {
+    width: 18px; height: 16px; font-size: 10px; line-height: 1; color: #000; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid; border-color: #fff #404040 #404040 #fff;
+  }
+  .lmn-sb-menubar { display: flex; padding: 1px 4px; border-bottom: 1px solid #aca899; }
+  .lmn-sb-menu { font-size: 11px; color: #000; padding: 2px 8px; cursor: default; }
+  .lmn-sb-menu:hover { background: #316ac5; color: #fff; }
+  .lmn-sb-log {
+    margin: 4px; padding: 8px; height: 250px; overflow-y: auto;
+    background: #fff; border: 1px solid; border-color: #808080 #fff #fff #808080;
+    font-family: 'Times New Roman', serif; font-size: 14px; color: #000; line-height: 1.45;
+  }
+  .lmn-sb-line { margin-bottom: 6px; word-wrap: break-word; }
+  .lmn-sb-line .lmn-sb-who { font-weight: bold; }
+  .lmn-sb-line.me .lmn-sb-who { color: #cc0000; }
+  .lmn-sb-line.bot .lmn-sb-who { color: #0000cc; }
+  .lmn-sb-line .lmn-sb-time { color: #808080; font-family: Tahoma, Arial, sans-serif; font-size: 10px; margin-right: 4px; }
+  .lmn-sb-line a { color: #0000ff; text-decoration: underline; }
+  .lmn-sb-line a:hover { color: #ff0000; }
+  .lmn-sb-typing { font-family: Tahoma, Arial, sans-serif; font-size: 10px; color: #808080; padding: 0 8px 2px; height: 14px; }
+  .lmn-sb-typing.on::after { content: 'lumenati_bot is typing...'; }
+  .lmn-sb-compose { display: flex; gap: 4px; padding: 4px; border-top: 1px solid #aca899; }
+  .lmn-sb-input {
+    flex: 1; min-width: 0; padding: 6px 8px; font-family: Tahoma, Arial, sans-serif; font-size: 14px; color: #000;
+    background: #fff; border: 1px solid; border-color: #808080 #fff #fff #808080; outline: none;
+  }
+  .lmn-sb-send {
+    padding: 4px 16px; font-family: Tahoma, Arial, sans-serif; font-size: 12px; font-weight: bold; color: #000;
+    background: linear-gradient(180deg, #fff 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid; border-color: #fff #404040 #404040 #fff; cursor: pointer;
+  }
+  .lmn-sb-send:active { border-color: #404040 #fff #fff #404040; }
+  .lmn-sb-send:disabled { color: #808080; cursor: default; }
+  .lmn-sb-foot { font-size: 10px; color: #808080; padding: 2px 8px 5px; }
+  @media (max-width: 640px) {
+    #lmn-sb { left: 0; right: 0; bottom: 0; width: 100%; max-width: 100%; box-shadow: none; }
+    .lmn-sb-log { height: 44vh; }
+    #lmn-sb-launch { left: auto; right: 12px; bottom: 52px; }
+  }
+</style>
+
+<div id="lmn-sb-launch" role="button" tabindex="0" aria-label="Ask ShopBot">
+  <span class="lmn-sb-dot"></span>
+  <span>Ask ShopBot</span>
+</div>
+
+<div id="lmn-sb" role="dialog" aria-label="ShopBot instant message">
+  <div class="lmn-sb-title">
+    <div class="lmn-sb-title-left">
+      <span class="lmn-sb-icon"></span>
+      <span class="lmn-sb-title-text">lumenati_bot - Instant Message</span>
+    </div>
+    <div class="lmn-sb-btns">
+      <span class="lmn-sb-btn" id="lmn-sb-min" title="Minimize">_</span>
+      <span class="lmn-sb-btn" id="lmn-sb-close" title="Close">&#10005;</span>
+    </div>
+  </div>
+  <div class="lmn-sb-menubar">
+    <span class="lmn-sb-menu">File</span>
+    <span class="lmn-sb-menu">Edit</span>
+    <span class="lmn-sb-menu">Insert</span>
+    <span class="lmn-sb-menu">People</span>
+    <span class="lmn-sb-menu" id="lmn-sb-clear">Clear</span>
+  </div>
+  <div class="lmn-sb-log" id="lmn-sb-log" aria-live="polite"></div>
+  <div class="lmn-sb-typing" id="lmn-sb-typing"></div>
+  <form class="lmn-sb-compose" id="lmn-sb-form" autocomplete="off">
+    <input class="lmn-sb-input" id="lmn-sb-input" type="text" maxlength="400" placeholder="ask about the shop, the artists, booking..." aria-label="Message" />
+    <button class="lmn-sb-send" id="lmn-sb-send" type="submit">Send</button>
+  </form>
+  <div class="lmn-sb-foot">ShopBot is the shop's bot. It can't book you in, but it knows the way.</div>
+</div>
+
+<script>
+(function () {
+  var win = document.getElementById('lmn-sb');
+  var launch = document.getElementById('lmn-sb-launch');
+  var log = document.getElementById('lmn-sb-log');
+  var typing = document.getElementById('lmn-sb-typing');
+  var form = document.getElementById('lmn-sb-form');
+  var input = document.getElementById('lmn-sb-input');
+  var send = document.getElementById('lmn-sb-send');
+  if (!win || !launch || !log || !form || !input) return;
+  // LegacyBlock can run this twice; the second copy of the markup is the live one.
+  if (win.__lmnSbBound) return;
+  win.__lmnSbBound = true;
+
+  var KEY = 'lmn-shopbot';
+  var history = [];
+  try { history = JSON.parse(sessionStorage.getItem(KEY) || '[]') || []; } catch (e) { history = []; }
+  var busy = false;
+
+  function save() { try { sessionStorage.setItem(KEY, JSON.stringify(history.slice(-24))); } catch (e) {} }
+  function stamp(d) {
+    d = d || new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    return '(' + ((h % 12) || 12) + ':' + (m < 10 ? '0' : '') + m + (h < 12 ? ' AM' : ' PM') + ')';
+  }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  // Site paths and emails the bot mentions become real links.
+  function linkify(s) {
+    return esc(s)
+      .replace(/(^|[\s(])(\/(?:request\?artist=[A-Za-z0-9-]+|book|flash-wall|arcade(?:\/[a-z]+(?:\/wall)?)?|tv|[a-z0-9-]+))(?=$|[\s.,!?)])/g, function (m, pre, path) {
+        return pre + '<a href="' + path + '">' + path + '</a>';
+      })
+      .replace(/([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})/gi, '<a href="mailto:$1">$1</a>');
+  }
+  function line(role, text, when) {
+    var el = document.createElement('div');
+    el.className = 'lmn-sb-line ' + (role === 'user' ? 'me' : 'bot');
+    el.innerHTML = '<span class="lmn-sb-time">' + stamp(when ? new Date(when) : null) + '</span>' +
+      '<span class="lmn-sb-who">' + (role === 'user' ? 'you' : 'lumenati_bot') + ':</span> <span class="lmn-sb-text">' + linkify(text) + '</span>';
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el;
+  }
+  function greet() {
+    if (history.length) return;
+    var hello = "hey, front desk here. ask me who's tattooing, how booking works, or what's on the flash wall.";
+    history.push({ role: 'assistant', content: hello, at: Date.now() });
+    save();
+  }
+  function render() {
+    log.innerHTML = '';
+    for (var i = 0; i < history.length; i++) line(history[i].role, history[i].content, history[i].at);
+  }
+
+  function open() {
+    greet();
+    render();
+    win.classList.add('lmn-sb-open');
+    launch.classList.add('lmn-sb-hidden');
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 50);
+  }
+  function close() {
+    win.classList.remove('lmn-sb-open');
+    launch.classList.remove('lmn-sb-hidden');
+  }
+
+  launch.addEventListener('click', open);
+  launch.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  document.getElementById('lmn-sb-close').addEventListener('click', close);
+  document.getElementById('lmn-sb-min').addEventListener('click', close);
+  document.getElementById('lmn-sb-clear').addEventListener('click', function () { history = []; save(); greet(); render(); });
+  window.addEventListener('lmn-shopbot-open', open);
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = input.value.trim();
+    if (!text || busy) return;
+    input.value = '';
+    history.push({ role: 'user', content: text, at: Date.now() });
+    save();
+    line('user', text);
+    ask();
+  });
+
+  function ask() {
+    busy = true;
+    send.disabled = true;
+    typing.classList.add('on');
+    var payload = history.slice(-12).map(function (m) { return { role: m.role, content: m.content }; });
+    var el = null, textEl = null, out = '';
+    function finish(final) {
+      typing.classList.remove('on');
+      busy = false;
+      send.disabled = false;
+      if (final) {
+        history.push({ role: 'assistant', content: final, at: Date.now() });
+        save();
+        if (textEl) textEl.innerHTML = linkify(final);
+      }
+    }
+    fetch('/api/site/shopbot', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: payload })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          var msg = r.status === 503 ? 'ShopBot is away from the desk. email hi@lumenatitattoo.com and a human will get back to you.'
+            : r.status === 429 ? 'slow down a sec, the desk is slammed.' : (j.error || 'hmm, that did not go through. try again?');
+          line('assistant', msg);
+          finish(msg);
+        });
+      }
+      if (!r.body || !r.body.getReader) {
+        return r.text().then(function (t) { line('assistant', t); finish(t); });
+      }
+      var reader = r.body.getReader(), dec = new TextDecoder();
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) { finish(out); return; }
+          out += dec.decode(res.value, { stream: true });
+          if (!el) { el = line('assistant', ''); textEl = el.querySelector('.lmn-sb-text'); }
+          textEl.textContent = out;
+          log.scrollTop = log.scrollHeight;
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function () {
+      var msg = 'lost the connection. try that again?';
+      line('assistant', msg);
+      finish(msg);
+    });
+  }
+})();
+</script>

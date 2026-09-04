@@ -1,0 +1,102 @@
+<!-- ── GUESTBOOK: sign it, the shop reads it, then it shows ── -->
+<style>
+  .lmn-gb { margin: 0; padding: 28px 16px 8px; background: #008080; font-family: Verdana, Geneva, sans-serif; color: #000; }
+  .lmn-gb-win { max-width: 760px; margin: 0 auto; background: #ece9d8; border: 2px solid; border-color: #fff #808080 #808080 #fff; box-shadow: 3px 3px 0 rgba(0,0,0,0.35); }
+  .lmn-gb-bar { display: flex; justify-content: space-between; align-items: center; padding: 3px 6px; background: linear-gradient(90deg, #0a246a 0%, #a6caf0 100%); color: #fff; font-size: 12px; font-weight: bold; height: 24px; }
+  .lmn-gb-bar span:last-child { background: #ece9d8; color: #000; border: 1px solid; border-color: #fff #808080 #808080 #fff; width: 16px; height: 14px; line-height: 12px; text-align: center; font-size: 11px; }
+  .lmn-gb-body { padding: 14px 16px 18px; }
+  .lmn-gb-h { font-family: 'Comic Sans MS', 'Comic Sans', cursive; font-size: 24px; color: #FF1493; text-shadow: 2px 2px 0 #7FFF00; margin: 0 0 4px; }
+  .lmn-gb-sub { font-size: 12px; color: #333; margin: 0 0 14px; }
+  .lmn-gb-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 18px; }
+  .lmn-gb-form label { font-size: 11px; font-weight: bold; display: block; margin-bottom: 3px; }
+  .lmn-gb-form input, .lmn-gb-form textarea { width: 100%; font: 13px Verdana, Geneva, sans-serif; padding: 4px 6px; border: 2px solid; border-color: #808080 #fff #fff #808080; background: #fff; color: #000; box-sizing: border-box; }
+  .lmn-gb-form textarea { height: 68px; resize: vertical; }
+  .lmn-gb-wide { grid-column: 1 / -1; }
+  .lmn-gb-hp { position: absolute; left: -9999px; }
+  .lmn-gb-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .lmn-gb-btn { font: bold 12px Verdana, sans-serif; padding: 5px 16px; background: #ece9d8; border: 2px solid; border-color: #fff #808080 #808080 #fff; cursor: pointer; color: #000; }
+  .lmn-gb-btn:active { border-color: #808080 #fff #fff #808080; }
+  .lmn-gb-note { font-size: 11px; color: #006600; }
+  .lmn-gb-note.bad { color: #cc0000; }
+  .lmn-gb-count { font-size: 10px; color: #666; }
+  .lmn-gb-table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border: 2px solid; border-color: #808080 #fff #fff #808080; }
+  .lmn-gb-table th { background: #000080; color: #fff; text-align: left; padding: 5px 8px; font-size: 11px; }
+  .lmn-gb-table td { padding: 7px 8px; vertical-align: top; border-bottom: 1px solid #ddd; }
+  .lmn-gb-table tr:nth-child(even) td { background: #f3f0ff; }
+  .lmn-gb-who { white-space: nowrap; width: 160px; }
+  .lmn-gb-who b { color: #000080; }
+  .lmn-gb-who small { display: block; color: #666; font-size: 10px; }
+  .lmn-gb-empty { padding: 14px; font-size: 12px; color: #666; text-align: center; }
+  .lmn-gb-foot { margin-top: 8px; font-size: 10px; color: #666; text-align: right; }
+  @media (max-width: 640px) {
+    .lmn-gb { padding: 20px 10px 8px; }
+    .lmn-gb-form { grid-template-columns: 1fr; }
+    .lmn-gb-who { width: auto; white-space: normal; }
+  }
+</style>
+<div class="lmn-gb" id="lmn-guestbook">
+  <div class="lmn-gb-win">
+    <div class="lmn-gb-bar"><span>guestbook.cgi</span><span>x</span></div>
+    <div class="lmn-gb-body">
+      <h3 class="lmn-gb-h">Sign my guestbook!</h3>
+      <p class="lmn-gb-sub">Tell us you were here. The shop reads every entry before it goes up.</p>
+      <form class="lmn-gb-form" id="lmn-gb-form" autocomplete="off">
+        <div><label for="lmn-gb-name">Name</label><input id="lmn-gb-name" maxlength="40" placeholder="your name or handle"></div>
+        <div><label for="lmn-gb-from">Where you're from</label><input id="lmn-gb-from" maxlength="40" placeholder="Denver"></div>
+        <div class="lmn-gb-wide"><label for="lmn-gb-msg">Message</label><textarea id="lmn-gb-msg" maxlength="280" placeholder="say hi, tell us what you want inked, whatever"></textarea></div>
+        <div class="lmn-gb-hp"><label>Website<input id="lmn-gb-web" tabindex="-1"></label></div>
+        <div class="lmn-gb-actions">
+          <button type="submit" class="lmn-gb-btn" id="lmn-gb-submit">Sign it</button>
+          <span class="lmn-gb-count" id="lmn-gb-count">280 left</span>
+          <span class="lmn-gb-note" id="lmn-gb-note"></span>
+        </div>
+      </form>
+      <table class="lmn-gb-table">
+        <thead><tr><th>Who</th><th>Wrote</th></tr></thead>
+        <tbody id="lmn-gb-rows"><tr><td colspan="2" class="lmn-gb-empty">Loading the book...</td></tr></tbody>
+      </table>
+      <div class="lmn-gb-foot" id="lmn-gb-foot"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var rows = document.getElementById('lmn-gb-rows');
+  var form = document.getElementById('lmn-gb-form');
+  if (!rows || !form || form.__bound) return;
+  form.__bound = true;
+  var msg = document.getElementById('lmn-gb-msg');
+  var count = document.getElementById('lmn-gb-count');
+  var note = document.getElementById('lmn-gb-note');
+  var btn = document.getElementById('lmn-gb-submit');
+  var foot = document.getElementById('lmn-gb-foot');
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function when(iso) { try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return ''; } }
+  function render(list) {
+    if (!list.length) { rows.innerHTML = '<tr><td colspan="2" class="lmn-gb-empty">Nobody has signed yet. Be the first.</td></tr>'; foot.textContent = ''; return; }
+    rows.innerHTML = list.map(function (e) {
+      return '<tr><td class="lmn-gb-who"><b>' + esc(e.name) + '</b><small>' + (e.from_where ? 'from ' + esc(e.from_where) + ' // ' : '') + when(e.created_at) + '</small></td><td>' + esc(e.message) + '</td></tr>';
+    }).join('');
+    foot.textContent = list.length + ' of the latest signatures';
+  }
+  function load() {
+    fetch('/api/site/guestbook', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) { render(j.entries || []); }).catch(function () { rows.innerHTML = '<tr><td colspan="2" class="lmn-gb-empty">The book is in the back. Try again in a minute.</td></tr>'; });
+  }
+  msg.addEventListener('input', function () { count.textContent = (280 - msg.value.length) + ' left'; });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    note.className = 'lmn-gb-note'; note.textContent = '';
+    btn.disabled = true;
+    fetch('/api/site/guestbook', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: document.getElementById('lmn-gb-name').value, from: document.getElementById('lmn-gb-from').value, message: msg.value, website: document.getElementById('lmn-gb-web').value })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      btn.disabled = false;
+      if (j.error) { note.className = 'lmn-gb-note bad'; note.textContent = j.error; return; }
+      note.textContent = 'Signed. It shows up once the shop reads it.';
+      msg.value = ''; count.textContent = '280 left';
+    }).catch(function () { btn.disabled = false; note.className = 'lmn-gb-note bad'; note.textContent = 'Could not reach the book. Try again.'; });
+  });
+  load();
+})();
+</script>

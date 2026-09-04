@@ -1,0 +1,68 @@
+<!-- ── POLL: one live question, chunky bars ── -->
+<style>
+  .lmn-poll { margin: 0; padding: 36px 16px 8px; background: #008080; font-family: Verdana, Geneva, sans-serif; color: #000; }
+  .lmn-poll-box { max-width: 420px; margin: 0 auto; background: #fff; border: 3px solid #000080; box-shadow: 4px 4px 0 #FF1493; }
+  .lmn-poll-bar { background: repeating-linear-gradient(90deg, #000080 0 8px, #1c3aa8 8px 16px); color: #fff; font-size: 12px; font-weight: bold; padding: 5px 10px; letter-spacing: 1px; text-transform: uppercase; }
+  .lmn-poll-body { padding: 12px 14px 14px; }
+  .lmn-poll-q { font-size: 14px; font-weight: bold; margin: 0 0 10px; color: #000080; }
+  .lmn-poll-opt { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; cursor: pointer; }
+  .lmn-poll-opt input { margin: 0; }
+  .lmn-poll-btn { margin-top: 8px; font: bold 12px Verdana, sans-serif; padding: 5px 18px; background: #ece9d8; border: 2px solid; border-color: #fff #808080 #808080 #fff; cursor: pointer; color: #000; }
+  .lmn-poll-btn:active { border-color: #808080 #fff #fff #808080; }
+  .lmn-poll-row { margin: 8px 0; font-size: 12px; }
+  .lmn-poll-row .lbl { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .lmn-poll-row .lbl b { color: #000080; }
+  .lmn-poll-row .track { height: 16px; background: #ddd; border: 1px solid #808080; }
+  .lmn-poll-row .fill { height: 100%; background: repeating-linear-gradient(90deg, #FF1493 0 6px, #ff5fb0 6px 12px); width: 0; transition: width .6s ease; }
+  .lmn-poll-row.mine .lbl b { color: #FF1493; }
+  .lmn-poll-row.mine .fill { background: repeating-linear-gradient(90deg, #7FFF00 0 6px, #b8ff70 6px 12px); }
+  .lmn-poll-foot { margin-top: 8px; font-size: 10px; color: #666; display: flex; justify-content: space-between; }
+  .lmn-poll-note { font-size: 11px; color: #cc0000; margin-top: 6px; }
+  @media (max-width: 640px) { .lmn-poll { margin: 24px 10px; } }
+</style>
+<div class="lmn-poll" id="lmn-poll">
+  <div class="lmn-poll-box">
+    <div class="lmn-poll-bar">Poll of the moment</div>
+    <div class="lmn-poll-body" id="lmn-poll-body"><span style="font-size:12px;color:#666;">Loading the poll...</span></div>
+  </div>
+</div>
+<script>
+(function () {
+  var body = document.getElementById('lmn-poll-body');
+  if (!body || body.__bound) return;
+  body.__bound = true;
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function results(p) {
+    var total = p.total || 0;
+    var html = '<p class="lmn-poll-q">' + esc(p.question) + '</p>';
+    p.options.forEach(function (o) {
+      var c = p.counts[o.key] || 0, pct = total ? Math.round(c / total * 100) : 0;
+      html += '<div class="lmn-poll-row' + (p.voted === o.key ? ' mine' : '') + '"><div class="lbl"><b>' + esc(o.label) + '</b><span>' + pct + '% (' + c + ')</span></div><div class="track"><div class="fill" data-w="' + pct + '"></div></div></div>';
+    });
+    html += '<div class="lmn-poll-foot"><span>' + total + ' vote' + (total === 1 ? '' : 's') + '</span><span>' + (p.voted ? 'thanks for voting' : 'results') + '</span></div>';
+    body.innerHTML = html;
+    setTimeout(function () { body.querySelectorAll('.fill').forEach(function (f) { f.style.width = f.getAttribute('data-w') + '%'; }); }, 30);
+  }
+  function ballot(p) {
+    var html = '<p class="lmn-poll-q">' + esc(p.question) + '</p>';
+    p.options.forEach(function (o, i) {
+      html += '<label class="lmn-poll-opt"><input type="radio" name="lmn-poll-opt" value="' + esc(o.key) + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(o.label) + '</label>';
+    });
+    html += '<button type="button" class="lmn-poll-btn" id="lmn-poll-vote">Vote</button> <button type="button" class="lmn-poll-btn" id="lmn-poll-peek">Results</button><div class="lmn-poll-note" id="lmn-poll-note"></div>';
+    body.innerHTML = html;
+    document.getElementById('lmn-poll-peek').onclick = function () { results(p); };
+    document.getElementById('lmn-poll-vote').onclick = function () {
+      var pick = body.querySelector('input[name="lmn-poll-opt"]:checked');
+      if (!pick) return;
+      fetch('/api/site/poll', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pollId: p.id, option: pick.value }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j.poll) results(j.poll); else document.getElementById('lmn-poll-note').textContent = j.error || 'That vote did not count. Try again.'; })
+        .catch(function () { document.getElementById('lmn-poll-note').textContent = 'Could not reach the poll.'; });
+    };
+  }
+  fetch('/api/site/poll', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j.poll) { body.innerHTML = '<span style="font-size:12px;color:#666;">No poll right now. Check back.</span>'; return; }
+    if (j.poll.voted) results(j.poll); else ballot(j.poll);
+  }).catch(function () { body.innerHTML = '<span style="font-size:12px;color:#666;">The poll is down. Try again in a minute.</span>'; });
+})();
+</script>

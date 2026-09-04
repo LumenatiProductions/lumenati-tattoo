@@ -12,13 +12,13 @@ export default function TvPage() {
       extra={
         <a
           href="/"
-          className="f-pixel rounded-lg border-2 border-white/50 bg-black/70 px-4 py-3.5 text-sm text-white/90 hover:text-white"
+          className="f-pixel rounded-lg border-2 border-white/50 bg-black/70 px-3 py-2.5 text-xs text-white/90 hover:text-white sm:px-4 sm:py-3.5 sm:text-sm"
         >
           EXIT
         </a>
       }
     >
-      <div className="pointer-events-none absolute left-5 top-5 z-10 flex items-center gap-3 rounded-xl bg-black/50 px-4 py-3 backdrop-blur-[2px]">
+      <div className="pointer-events-none absolute z-10 flex items-center gap-3 rounded-xl bg-black/50 px-3 py-2 backdrop-blur-[2px]" style={{ left: 14, top: 14 }}>
         <LumenatiLogo bg="dark" className="eye-glow w-10" />
         <div className="text-left">
           <div className="f-pixel text-[10px] text-pink-300">LUMENATI CABLE</div>

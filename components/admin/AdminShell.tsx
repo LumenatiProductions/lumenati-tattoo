@@ -73,6 +73,7 @@ const NAV_SECTIONS: { title: SectionTitle; items: NavItem[] }[] = [
       { href: "/admin/inventory", label: "Inventory", roles: ["owner"], icon: "inventory" },
       { href: "/admin/compliance", label: "Compliance", roles: ["owner"], icon: "compliance" },
       { href: "/admin/social", label: "Social wall", roles: ["owner"], icon: "social" },
+      { href: "/admin/guestbook", label: "Guestbook", roles: ["owner"], icon: "followups" },
     ],
   },
   {

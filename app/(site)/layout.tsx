@@ -15,12 +15,20 @@ export default function SiteLayout({
   children: React.ReactNode;
 }) {
   const signon = readLegacyBlock("aol-signon.html");
+  const presence = readLegacyBlock("presence-y2k.html"); // "N online now": every page beats
+  const shopbot = readLegacyBlock("shopbot-y2k.html"); // the AIM front desk, opened by Clippy
   const bundle = readLegacyBlock("code-injection-footer.html");
+  const saver = readLegacyBlock("screensaver-y2k.html"); // idle a minute and the toasters fly
+  const wallpaper = readLegacyBlock("wallpaper-y2k.html"); // Display Properties, remembered per browser
   return (
     <>
       {children}
       <LegacyBlock html={signon} />
+      <LegacyBlock html={presence} />
+      <LegacyBlock html={shopbot} />
       <LegacyBlock html={bundle} fireLoad />
+      <LegacyBlock html={saver} />
+      <LegacyBlock html={wallpaper} />
     </>
   );
 }

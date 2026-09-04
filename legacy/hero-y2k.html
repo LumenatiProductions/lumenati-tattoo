@@ -493,6 +493,37 @@
     text-align: center;
   }
 
+  /* ── Online now: a real presence count under the visitor sign ── */
+  .lmn-online {
+    position: absolute;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #7FFF00;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 8px rgba(127,255,0,0.4);
+    z-index: 4;
+    white-space: nowrap;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .lmn-online.on { display: flex; }
+  .lmn-online-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #39ff14;
+    box-shadow: 0 0 6px rgba(57,255,20,0.9);
+    animation: lmn-online-pulse 2s ease-in-out infinite;
+  }
+  @keyframes lmn-online-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
   /* ── Mobile ── */
   @media (max-width: 640px) {
     .lmn-hero { height: 80vh; min-height: 400px; }
@@ -518,6 +549,7 @@
     .lmn-marquee span { font-size: 9px; }
     .lmn-sticker { width: 50px !important; opacity: 0.5; }
     .lmn-visitor { font-size: 7px; top: 12px; }
+    .lmn-online { font-size: 6px; top: 32px; }
     .lmn-vnum { padding: 2px 4px; font-size: 8px; min-width: 14px; }
   }
 </style>
@@ -575,6 +607,9 @@
     <!-- Visitor counter -->
     <div class="lmn-visitor">
       You are visitor # <span id="lmn-counter-nums"></span>
+    </div>
+    <div class="lmn-online" id="lmn-online">
+      <span class="lmn-online-dot"></span><span id="lmn-online-text"></span>
     </div>
 
     <span class="lmn-eyebrow">:: now entering the crib ::</span>
@@ -675,5 +710,22 @@
       renderCount(j.count);
     })
     .catch(function() {});
+})();
+
+// Online now: the presence heartbeat (legacy/presence-y2k.html, mounted by
+// the site layout) hands over the live count. This block usually runs first,
+// so the callback waits in a queue the heartbeat drains. The line stays hidden
+// until a real number arrives.
+(function() {
+  var box = document.getElementById('lmn-online');
+  var text = document.getElementById('lmn-online-text');
+  if (!box || !text) return;
+  function show(n) {
+    if (typeof n !== 'number' || n < 1) { box.className = 'lmn-online'; return; }
+    text.textContent = n + (n === 1 ? ' online now' : ' online now');
+    box.className = 'lmn-online on';
+  }
+  if (window.lmnPresence) window.lmnPresence.onCount(show);
+  else (window.__lmnPresenceQ = window.__lmnPresenceQ || []).push(show);
 })();
 </script>

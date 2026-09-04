@@ -1,0 +1,345 @@
+<!-- ── DISPLAY PROPERTIES: the site's wallpaper picker (Win98 dialog) ──
+     Self-contained block. Opens on window event 'lmn-wallpaper-open' (the
+     footer's Display icon and the start menu fire it). The pick is remembered
+     in localStorage and re-applied on every page: the home page desktop
+     (.desktop), the artist rooms (.bedroom) and the page body. -->
+<style>
+  .lwp-window {
+    display: none;
+    position: fixed;
+    z-index: 999998;
+    width: 400px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    overflow: auto;
+    background: #ece9d8;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.35);
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+    color: #000;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .lwp-window.open { display: block; }
+  .lwp-window * { box-sizing: border-box; }
+  .lwp-titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 3px 4px; height: 24px;
+    background: linear-gradient(90deg, #0a246a 0%, #a6caf0 100%);
+    cursor: default; user-select: none;
+  }
+  .lwp-titlebar-text { font-size: 12px; font-weight: bold; color: #fff; text-shadow: 1px 1px 0 rgba(0,0,0,0.3); }
+  .lwp-x {
+    width: 18px; height: 16px; padding: 0; line-height: 1;
+    background: linear-gradient(180deg, #d4d0c8 0%, #ece9d8 50%, #d4d0c8 100%);
+    border: 1px solid; border-color: #fff #404040 #404040 #fff;
+    font: bold 11px Tahoma, Arial, sans-serif; color: #000; cursor: pointer;
+  }
+  .lwp-x:active { border-color: #404040 #fff #fff #404040; }
+  .lwp-tabs { display: flex; gap: 2px; padding: 8px 8px 0; }
+  .lwp-tab {
+    padding: 4px 10px; font-size: 12px; color: #444;
+    background: #d4d0c8; border: 1px solid; border-color: #fff #808080 transparent #fff;
+  }
+  .lwp-tab.on { color: #000; background: #ece9d8; margin-bottom: -1px; padding-bottom: 5px; }
+  .lwp-page { margin: 0 8px 8px; padding: 12px; border: 1px solid; border-color: #fff #808080 #808080 #fff; }
+  .lwp-monitor { width: 184px; margin: 0 auto 10px; text-align: center; }
+  .lwp-screen-bezel {
+    width: 184px; height: 138px; padding: 12px 14px 22px;
+    background: linear-gradient(180deg, #d9d5cc, #b8b4aa);
+    border: 2px solid; border-color: #fff #6e6a62 #6e6a62 #fff; border-radius: 6px 6px 3px 3px;
+    position: relative;
+  }
+  .lwp-screen {
+    width: 100%; height: 100%; border: 2px solid #333; background: #008080;
+    background-position: center; overflow: hidden;
+  }
+  .lwp-screen-btn { position: absolute; right: 18px; bottom: 6px; width: 10px; height: 6px; background: #4a4; border-radius: 1px; }
+  .lwp-stand { width: 60px; height: 10px; margin: 0 auto; background: linear-gradient(180deg, #b8b4aa, #8d8980); border: 1px solid #6e6a62; border-top: 0; border-radius: 0 0 4px 4px; }
+  .lwp-row { display: flex; gap: 10px; align-items: flex-start; }
+  .lwp-list-wrap { flex: 1; min-width: 0; }
+  .lwp-label { font-size: 12px; margin-bottom: 4px; }
+  .lwp-list {
+    height: 150px; overflow-y: auto; background: #fff;
+    border: 2px solid; border-color: #808080 #fff #fff #808080;
+    list-style: none; margin: 0; padding: 2px;
+  }
+  .lwp-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 2px 4px; cursor: default; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px;
+  }
+  .lwp-item .sw { width: 14px; height: 14px; border: 1px solid #555; flex: none; background-size: cover; background-position: center; }
+  .lwp-item.on { background: #0a246a; color: #fff; }
+  .lwp-item.on .sw { border-color: #fff; }
+  .lwp-side { width: 120px; flex: none; }
+  .lwp-select {
+    width: 100%; font: 12px Tahoma, Arial, sans-serif; background: #fff; color: #000;
+    border: 2px solid; border-color: #808080 #fff #fff #808080; padding: 2px;
+  }
+  .lwp-note { font-size: 11px; color: #333; margin-top: 8px; line-height: 1.4; }
+  .lwp-note a { color: #0000ff; }
+  .lwp-buttons { display: flex; gap: 6px; justify-content: flex-end; padding: 0 8px 8px; }
+  .lwp-btn {
+    min-width: 76px; padding: 3px 12px; font: 12px Tahoma, Arial, sans-serif; color: #000; cursor: pointer;
+    background: #ece9d8; border: 2px solid; border-color: #fff #808080 #808080 #fff; text-align: center; text-decoration: none;
+  }
+  .lwp-btn:active { border-color: #808080 #fff #fff #808080; }
+  .lwp-btn.default { outline: 1px solid #000; outline-offset: -3px; }
+  .lwp-btn[disabled] { color: #888; text-shadow: 1px 1px 0 #fff; cursor: default; }
+  @media (max-width: 480px) {
+    .lwp-row { flex-direction: column; }
+    .lwp-side { width: 100%; }
+    .lwp-list { height: 120px; }
+  }
+</style>
+
+<div class="lwp-window" id="lwp-window" role="dialog" aria-label="Display Properties">
+  <div class="lwp-titlebar" id="lwp-titlebar">
+    <span class="lwp-titlebar-text">Display Properties</span>
+    <button class="lwp-x" id="lwp-x" aria-label="Close">x</button>
+  </div>
+  <div class="lwp-tabs">
+    <span class="lwp-tab on">Background</span>
+    <span class="lwp-tab">Screen Saver</span>
+    <span class="lwp-tab">Settings</span>
+  </div>
+  <div class="lwp-page">
+    <div class="lwp-monitor">
+      <div class="lwp-screen-bezel"><div class="lwp-screen" id="lwp-screen"></div><div class="lwp-screen-btn"></div></div>
+      <div class="lwp-stand"></div>
+    </div>
+    <div class="lwp-row">
+      <div class="lwp-list-wrap">
+        <div class="lwp-label">Select an HTML Document or a picture:</div>
+        <ul class="lwp-list" id="lwp-list"></ul>
+      </div>
+      <div class="lwp-side">
+        <div class="lwp-label">Display:</div>
+        <select class="lwp-select" id="lwp-pos">
+          <option value="center">Center</option>
+          <option value="tile">Tile</option>
+          <option value="stretch">Stretch</option>
+        </select>
+        <div class="lwp-note" id="lwp-note">Pick a pattern, or one of the shop's flash sheets. The desktop and the artist rooms wear it.</div>
+      </div>
+    </div>
+  </div>
+  <div class="lwp-buttons">
+    <a class="lwp-btn" id="lwp-save" href="#" download style="display:none">Save as wallpaper</a>
+    <button class="lwp-btn default" id="lwp-ok">OK</button>
+    <button class="lwp-btn" id="lwp-cancel">Cancel</button>
+    <button class="lwp-btn" id="lwp-apply">Apply</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  if (window.lmnWallpaper && window.lmnWallpaper.__live) return; // LegacyBlock re-runs scripts; bind once
+  var KEY = 'lmn-wallpaper';
+  var win = document.getElementById('lwp-window');
+  if (!win) return;
+  var screen = document.getElementById('lwp-screen');
+  var list = document.getElementById('lwp-list');
+  var posSel = document.getElementById('lwp-pos');
+  var note = document.getElementById('lwp-note');
+  var saveBtn = document.getElementById('lwp-save');
+
+  // The built-in patterns. css = the background shorthand; the flash entries
+  // are added after /api/site/flash answers. 'none' puts the page back.
+  var PATTERNS = [
+    { id: 'none', label: '(None)', css: '' },
+    { id: 'teal', label: 'Windows Teal', css: '#008080' },
+    { id: 'clouds', label: 'Clouds', css: 'radial-gradient(ellipse 60% 40% at 20% 30%, rgba(255,255,255,0.9), transparent 70%), radial-gradient(ellipse 50% 35% at 70% 20%, rgba(255,255,255,0.85), transparent 70%), radial-gradient(ellipse 70% 40% at 55% 75%, rgba(255,255,255,0.8), transparent 70%), linear-gradient(180deg, #4a90d9 0%, #7fb6ec 60%, #b7d8f5 100%)' },
+    { id: 'checker', label: 'Pink Checker', css: 'repeating-conic-gradient(#000 0% 25%, #FF1493 0% 50%) 0 0 / 32px 32px' },
+    { id: 'eye', label: 'Lumenati Eye', css: 'url(/brand/lumenati-online-icon-white.png) 0 0 / 96px 96px repeat, #0a246a' },
+    { id: 'stars', label: 'Starfield', css: 'radial-gradient(1px 1px at 20% 30%, #fff 99%, transparent), radial-gradient(1px 1px at 70% 60%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 40% 80%, #fff 99%, transparent), radial-gradient(1px 1px at 85% 15%, #9ef 99%, transparent), radial-gradient(1px 1px at 10% 70%, #fff 99%, transparent), radial-gradient(1.2px 1.2px at 55% 20%, #ffd 99%, transparent), radial-gradient(1px 1px at 30% 55%, #fff 99%, transparent), radial-gradient(1px 1px at 92% 82%, #fff 99%, transparent), #050310' , size: '220px 220px' },
+    { id: 'denver', label: 'Denver at Night', css: 'linear-gradient(180deg, #0b0620 0%, #2a1550 45%, #c8006e 78%, #ff7a3d 100%)' },
+    { id: 'brushed', label: 'Brushed Steel', css: 'repeating-linear-gradient(90deg, #b8b8b8 0 1px, #d6d6d6 1px 3px, #c4c4c4 3px 5px)' },
+    { id: 'lime', label: 'Lime Grid', css: 'linear-gradient(rgba(127,255,0,0.25) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(90deg, rgba(127,255,0,0.25) 1px, transparent 1px) 0 0 / 24px 24px, #06120a' },
+  ];
+  var FLASH = []; // { id, label, src }
+  var pending = null; // pick being previewed, before OK
+  var saved = load();
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; }
+  }
+  function store(v) {
+    try { if (v && v.id !== 'none') localStorage.setItem(KEY, JSON.stringify(v)); else localStorage.removeItem(KEY); } catch (e) {}
+  }
+  function findPattern(id) {
+    for (var i = 0; i < PATTERNS.length; i++) if (PATTERNS[i].id === id) return PATTERNS[i];
+    for (var j = 0; j < FLASH.length; j++) if (FLASH[j].id === id) return FLASH[j];
+    return null;
+  }
+
+  // The surfaces that wear the wallpaper: the home page desktop, an artist
+  // room, and the body behind the rest of the site.
+  function targets() {
+    var out = [];
+    var d = document.querySelector('.desktop'); if (d) out.push(d);
+    var b = document.querySelector('.bedroom'); if (b) out.push(b);
+    return out;
+  }
+  function styleFor(pick, pos) {
+    if (!pick || pick.id === 'none') return null;
+    if (pick.src) {
+      var s = { backgroundImage: 'url("' + pick.src + '")', backgroundColor: '#000' };
+      if (pos === 'tile') { s.backgroundRepeat = 'repeat'; s.backgroundSize = '240px auto'; s.backgroundPosition = '0 0'; }
+      else if (pos === 'stretch') { s.backgroundRepeat = 'no-repeat'; s.backgroundSize = 'cover'; s.backgroundPosition = 'center'; }
+      else { s.backgroundRepeat = 'no-repeat'; s.backgroundSize = 'auto 70%'; s.backgroundPosition = 'center'; }
+      return s;
+    }
+    var st = { background: pick.css };
+    if (pick.size) st.backgroundSize = pick.size;
+    return st;
+  }
+  function paint(el, pick, pos) {
+    if (!el) return;
+    if (!el.__lwpOrig) el.__lwpOrig = el.getAttribute('style') || '';
+    el.setAttribute('style', el.__lwpOrig);
+    var s = styleFor(pick, pos);
+    if (!s) { el.classList.remove('lwp-wearing'); return; }
+    for (var k in s) el.style[k] = s[k];
+    el.classList.add('lwp-wearing');
+  }
+  function apply(pick, pos) {
+    var els = targets();
+    for (var i = 0; i < els.length; i++) paint(els[i], pick, pos);
+    // The body carries it only where there is no desktop or room to wear it.
+    if (!els.length) paint(document.body, pick, pos);
+    // A room's own tint sits on ::before; it stays, the picture goes under it.
+  }
+  function preview(pick, pos) {
+    screen.setAttribute('style', '');
+    var s = styleFor(pick, pos);
+    if (!s) { screen.style.background = '#008080'; return; }
+    for (var k in s) screen.style[k] = s[k];
+    if (pick.src && pos === 'tile') screen.style.backgroundSize = '48px auto';
+    if (pick.src && pos === 'center') screen.style.backgroundSize = 'auto 70%';
+    if (!pick.src && pick.size) screen.style.backgroundSize = '60px 60px';
+    if (pick.id === 'checker') screen.style.backgroundSize = '12px 12px';
+    if (pick.id === 'eye') screen.style.backgroundSize = '28px 28px';
+    if (pick.id === 'lime') screen.style.backgroundSize = '8px 8px';
+  }
+
+  function render() {
+    list.innerHTML = '';
+    var all = PATTERNS.concat(FLASH);
+    for (var i = 0; i < all.length; i++) (function (p) {
+      var li = document.createElement('li');
+      li.className = 'lwp-item' + (pending && pending.id === p.id ? ' on' : '');
+      var sw = document.createElement('span');
+      sw.className = 'sw';
+      if (p.src) sw.style.backgroundImage = 'url("' + p.src + '")';
+      else if (p.css) { sw.style.background = p.css; sw.style.backgroundSize = p.size ? '14px 14px' : ''; }
+      else sw.style.background = '#fff';
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(p.label));
+      li.addEventListener('click', function () { choose(p); });
+      list.appendChild(li);
+    })(all[i]);
+  }
+  function choose(p) {
+    pending = { id: p.id, pos: posSel.value, src: p.src || null };
+    var items = list.querySelectorAll('.lwp-item');
+    for (var i = 0; i < items.length; i++) items[i].classList.toggle('on', items[i].textContent === p.label);
+    preview(p, posSel.value);
+    if (p.src) {
+      saveBtn.style.display = '';
+      saveBtn.href = p.src;
+      saveBtn.setAttribute('download', 'lumenati-flash-' + (FLASH.indexOf(p) + 1) + '.jpg');
+      note.textContent = 'Real flash off the wall. Save as wallpaper downloads the drawing for your own desktop.';
+    } else {
+      saveBtn.style.display = 'none';
+      note.textContent = p.id === 'none' ? 'Back to the page as built.' : 'Pick a pattern, or one of the shop\'s flash sheets. The desktop and the artist rooms wear it.';
+    }
+  }
+  posSel.addEventListener('change', function () {
+    if (!pending) return;
+    pending.pos = posSel.value;
+    preview(findPattern(pending.id), posSel.value);
+  });
+  // Cross-origin images ignore the download attribute; open them instead and say so.
+  saveBtn.addEventListener('click', function (e) {
+    try {
+      var u = new URL(saveBtn.href, location.href);
+      if (u.origin !== location.origin) {
+        e.preventDefault();
+        window.open(saveBtn.href, '_blank', 'noopener');
+        note.textContent = 'Opened the drawing in a new tab. Right-click it and Save Image As to keep it.';
+      }
+    } catch (err) {}
+  });
+
+  function open() {
+    pending = saved ? { id: saved.id, pos: saved.pos || 'center', src: saved.src || null } : { id: 'none', pos: 'center', src: null };
+    posSel.value = pending.pos;
+    render();
+    var p = findPattern(pending.id) || PATTERNS[0];
+    choose(p);
+    posSel.value = pending.pos;
+    win.style.left = '50%'; win.style.top = '50%'; win.style.transform = 'translate(-50%, -50%)';
+    win.classList.add('open');
+    if (!FLASH.length) fetchFlash();
+  }
+  function close() { win.classList.remove('open'); }
+  function ok() { commit(); close(); }
+  function commit() {
+    if (!pending) return;
+    saved = pending.id === 'none' ? null : { id: pending.id, pos: pending.pos, src: pending.src };
+    store(saved);
+    apply(findPattern(pending.id), pending.pos);
+  }
+  function cancel() { close(); }
+
+  function fetchFlash() {
+    try {
+      fetch('/api/site/flash', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.flash || !j.flash.length) return;
+          FLASH = j.flash.slice(0, 12).map(function (f, i) {
+            return { id: 'flash-' + i, label: 'Flash: ' + (f.title || ('sheet ' + (i + 1))), src: f.src };
+          });
+          if (win.classList.contains('open')) render();
+          // A saved flash pick paints once the list is known (the src rides
+          // along in storage, so the page painted already; keep the pick selected).
+        })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
+  document.getElementById('lwp-x').addEventListener('click', close);
+  document.getElementById('lwp-ok').addEventListener('click', ok);
+  document.getElementById('lwp-cancel').addEventListener('click', cancel);
+  document.getElementById('lwp-apply').addEventListener('click', commit);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && win.classList.contains('open')) close(); });
+  window.addEventListener('lmn-wallpaper-open', open);
+
+  // Drag by the title bar (mouse and touch).
+  var bar = document.getElementById('lwp-titlebar'), drag = null;
+  function down(x, y) { var r = win.getBoundingClientRect(); drag = { dx: x - r.left, dy: y - r.top }; win.style.transform = 'none'; win.style.left = r.left + 'px'; win.style.top = r.top + 'px'; }
+  function move(x, y) { if (!drag) return; win.style.left = Math.max(0, x - drag.dx) + 'px'; win.style.top = Math.max(0, y - drag.dy) + 'px'; }
+  bar.addEventListener('mousedown', function (e) { if (e.target.id === 'lwp-x') return; down(e.clientX, e.clientY); e.preventDefault(); });
+  document.addEventListener('mousemove', function (e) { move(e.clientX, e.clientY); });
+  document.addEventListener('mouseup', function () { drag = null; });
+  bar.addEventListener('touchstart', function (e) { if (e.target.id === 'lwp-x') return; down(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  document.addEventListener('touchmove', function (e) { if (drag) move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  document.addEventListener('touchend', function () { drag = null; });
+
+  // On load: wear the saved pick right away (the src is stored, so flash
+  // wallpapers paint without waiting for the list).
+  if (saved) apply(saved.src ? { id: saved.id, src: saved.src } : findPattern(saved.id), saved.pos || 'center');
+
+  window.lmnWallpaper = {
+    __live: true,
+    open: open,
+    apply: function (id, pos) { var p = findPattern(id); if (!p) return false; saved = { id: id, pos: pos || 'center', src: p.src || null }; store(saved); apply(p, saved.pos); return true; },
+    reset: function () { saved = null; store(null); apply(null, 'center'); },
+  };
+})();
+</script>

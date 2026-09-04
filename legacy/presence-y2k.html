@@ -1,0 +1,73 @@
+<!-- ── Presence heartbeat: "N online now" ── -->
+<!-- Mounted once by the (site) layout so every page counts. Each tab gets its
+     own id (sessionStorage), beats /api/site/presence every 30 seconds, and
+     anything on the page that wants the number registers with
+     window.lmnPresence.onCount(cb). Scripts that run before this one (the hero
+     counter, for instance) queue callbacks on window.__lmnPresenceQ and get
+     drained here. Nothing on the page ever shows a made-up number: the count
+     only reaches callbacks when the server actually answered. -->
+<script>
+(function() {
+  if (window.lmnPresence) return;
+  var BEAT_MS = 30000;
+  var callbacks = [];
+  var lastCount = null;
+
+  function sessionId() {
+    try {
+      var sid = sessionStorage.getItem('lmn-presence-sid');
+      if (!sid) {
+        var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        sid = 'tab_';
+        for (var i = 0; i < 20; i++) sid += chars[Math.floor(Math.random() * chars.length)];
+        sessionStorage.setItem('lmn-presence-sid', sid);
+      }
+      return sid;
+    } catch (e) {
+      return null;
+    }
+  }
+  var sid = sessionId();
+
+  function tell(n) {
+    lastCount = n;
+    for (var i = 0; i < callbacks.length; i++) {
+      try { callbacks[i](n); } catch (e) {}
+    }
+  }
+
+  function beat() {
+    if (!sid || typeof fetch !== 'function') return;
+    if (document.visibilityState === 'hidden') return; // a background tab is not "online"
+    fetch('/api/site/presence', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sid: sid, path: location.pathname })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (j && typeof j.online === 'number') tell(j.online); })
+      .catch(function() {});
+  }
+
+  window.lmnPresence = {
+    onCount: function(cb) {
+      if (typeof cb !== 'function') return;
+      callbacks.push(cb);
+      if (lastCount !== null) { try { cb(lastCount); } catch (e) {} }
+    },
+    count: function() { return lastCount; }
+  };
+
+  // Anyone who asked before this script ran.
+  var q = window.__lmnPresenceQ;
+  if (q && q.length) for (var i = 0; i < q.length; i++) window.lmnPresence.onCount(q[i]);
+  window.__lmnPresenceQ = [];
+
+  beat();
+  setInterval(beat, BEAT_MS);
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') beat();
+  });
+})();
+</script>

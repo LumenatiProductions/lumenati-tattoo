@@ -1,0 +1,242 @@
+<!-- ── BUDDY LIST. the crew on AIM, for real ── -->
+<!-- Self-contained block for the home page. GET /api/site/buddies decides who
+     is online (a session running right now), away (in today, between
+     sessions) or offline (not in today). Click a buddy: an IM window opens
+     with their away message, a Book button, and a message box that lands in
+     the shop's inbox through /api/site/im. -->
+<style>
+  .bl-wrap { display:flex; justify-content:center; padding:32px 16px; background:#008080; font-family:Arial,Helvetica,sans-serif; }
+  .bl-window { width:100%; max-width:300px; background:#ece9d8; border:2px solid; border-color:#fff #808080 #808080 #fff; box-shadow:4px 4px 0 rgba(0,0,0,0.25); }
+  .bl-titlebar { display:flex; align-items:center; justify-content:space-between; padding:3px 4px; background:linear-gradient(180deg,#0a246a 0%,#3a6ea5 40%,#0a246a 100%); height:24px; }
+  .bl-title-left { display:flex; align-items:center; gap:5px; }
+  .bl-runner { width:14px; height:14px; border-radius:50%; background:#FFD700; position:relative; }
+  .bl-runner::after { content:""; position:absolute; left:5px; top:3px; width:4px; height:8px; background:#000; border-radius:2px; }
+  .bl-title { font-family:Tahoma,Arial,sans-serif; font-size:11px; font-weight:bold; color:#fff; text-shadow:1px 1px 0 rgba(0,0,0,0.3); }
+  .bl-btns { display:flex; gap:2px; }
+  .bl-btn { width:18px; height:16px; background:linear-gradient(180deg,#d4d0c8 0%,#ece9d8 50%,#d4d0c8 100%); border:1px solid; border-color:#fff #404040 #404040 #fff; font-family:Tahoma,Arial,sans-serif; font-size:10px; color:#000; display:flex; align-items:center; justify-content:center; line-height:1; }
+  .bl-menubar { display:flex; padding:1px 4px; background:#ece9d8; border-bottom:1px solid #aca899; }
+  .bl-menu { font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; padding:2px 8px; cursor:default; }
+  .bl-menu:hover { background:#316ac5; color:#fff; }
+  .bl-me { display:flex; align-items:center; gap:8px; padding:6px 8px; font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; }
+  .bl-me b { font-weight:bold; }
+  .bl-me small { color:#808080; }
+  .bl-body { margin:0 4px 4px; background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; min-height:180px; padding:4px 0; }
+  .bl-group { font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; padding:3px 6px; cursor:pointer; user-select:none; display:flex; align-items:center; gap:4px; }
+  .bl-group .bl-tri { display:inline-block; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #000; margin-right:2px; }
+  .bl-group.closed .bl-tri { border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:6px solid #000; border-right:0; }
+  .bl-group span.n { color:#808080; }
+  .bl-rows { padding-left:14px; }
+  .bl-group.closed + .bl-rows { display:none; }
+  .bl-row { display:flex; align-items:center; gap:6px; padding:2px 6px; font-family:Tahoma,Arial,sans-serif; font-size:12px; color:#000; cursor:pointer; }
+  .bl-row:hover { background:#316ac5; color:#fff; }
+  .bl-row .bl-ic { width:12px; height:12px; flex:none; border-radius:50%; }
+  .bl-row.online .bl-ic { background:#FFD700; box-shadow:inset 0 0 0 2px #FFD700, inset 0 0 0 4px #000; }
+  .bl-row.away .bl-ic { background:#fff; border:1px solid #808080; position:relative; }
+  .bl-row.away .bl-ic::after { content:""; position:absolute; left:2px; top:3px; width:6px; height:1px; background:#808080; box-shadow:0 2px 0 #808080, 0 4px 0 #808080; }
+  .bl-row.offline { color:#808080; }
+  .bl-row.offline .bl-ic { background:#c0c0c0; }
+  .bl-row .bl-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bl-row .bl-tag { font-size:10px; color:#808080; }
+  .bl-row:hover .bl-tag { color:#dce6ff; }
+  .bl-foot { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; font-family:Tahoma,Arial,sans-serif; font-size:10px; color:#808080; }
+  .bl-foot span.on { color:#008000; font-weight:bold; }
+  .bl-empty { padding:16px 10px; font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#808080; }
+
+  /* the IM window */
+  .bl-im-back { position:fixed; inset:0; z-index:99990; background:rgba(0,0,0,0.35); display:none; align-items:center; justify-content:center; padding:16px; }
+  .bl-im-back.open { display:flex; }
+  .bl-im { width:100%; max-width:380px; background:#ece9d8; border:2px solid; border-color:#fff #808080 #808080 #fff; box-shadow:6px 6px 0 rgba(0,0,0,0.3); font-family:Arial,Helvetica,sans-serif; }
+  .bl-im .bl-titlebar { cursor:default; }
+  .bl-im-body { margin:4px; background:#fff; border:1px solid; border-color:#808080 #fff #fff #808080; padding:10px; }
+  .bl-im-who { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .bl-im-dot { width:14px; height:14px; border-radius:50%; border:1px solid rgba(0,0,0,0.3); }
+  .bl-im-who b { font-family:Tahoma,Arial,sans-serif; font-size:12px; }
+  .bl-im-who small { font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#808080; }
+  .bl-im-log { font-family:'Times New Roman',serif; font-size:14px; line-height:1.5; color:#000; min-height:60px; margin-bottom:8px; }
+  .bl-im-log .who { font-weight:bold; }
+  .bl-im-log .auto { color:#808080; font-style:italic; }
+  .bl-im-log .sent { color:#0000ff; }
+  .bl-im-log .ok { color:#008000; }
+  .bl-im-log .err { color:#cc0000; }
+  .bl-im-form { display:grid; gap:6px; }
+  .bl-im-form input, .bl-im-form textarea { width:100%; box-sizing:border-box; font-family:Tahoma,Arial,sans-serif; font-size:12px; padding:4px 6px; border:1px solid; border-color:#808080 #fff #fff #808080; background:#fff; color:#000; }
+  .bl-im-form textarea { min-height:64px; resize:vertical; }
+  .bl-im-hp { position:absolute; left:-9999px; }
+  .bl-im-bottom { padding:6px 8px; background:#ece9d8; display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap; }
+  .bl-im-btn { font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; padding:4px 16px; background:linear-gradient(180deg,#fff 0%,#ece9d8 50%,#d4d0c8 100%); border:1px solid; border-color:#fff #404040 #404040 #fff; cursor:pointer; text-decoration:none; display:inline-block; }
+  .bl-im-btn:hover { background:linear-gradient(180deg,#fff 0%,#f0ece4 50%,#e0dcd0 100%); }
+  .bl-im-btn.book { font-weight:bold; }
+  .bl-im-btn[disabled] { color:#808080; cursor:default; }
+  @media (max-width:640px) {
+    .bl-wrap { padding:20px 10px; }
+    .bl-window { max-width:none; }
+    .bl-im { max-width:none; }
+  }
+</style>
+
+<div class="bl-wrap">
+  <div class="bl-window" id="bl-window">
+    <div class="bl-titlebar">
+      <div class="bl-title-left"><div class="bl-runner"></div><span class="bl-title">Buddy List - lumenati_tattoo</span></div>
+      <div class="bl-btns"><div class="bl-btn">_</div><div class="bl-btn">&#9633;</div><div class="bl-btn">&#10005;</div></div>
+    </div>
+    <div class="bl-menubar">
+      <span class="bl-menu">My AIM</span><span class="bl-menu">People</span><span class="bl-menu">Help</span>
+    </div>
+    <div class="bl-me"><div class="bl-runner"></div><span><b>lumenati_tattoo</b> <small>Online</small></span></div>
+    <div class="bl-body" id="bl-body">
+      <div class="bl-empty">Loading the crew...</div>
+    </div>
+    <div class="bl-foot"><span id="bl-count"></span><span id="bl-hint">click a buddy to IM</span></div>
+  </div>
+</div>
+
+<div class="bl-im-back" id="bl-im-back">
+  <div class="bl-im" role="dialog" aria-label="Instant message">
+    <div class="bl-titlebar">
+      <div class="bl-title-left"><div class="bl-runner"></div><span class="bl-title" id="bl-im-title">IM</span></div>
+      <div class="bl-btns"><div class="bl-btn" id="bl-im-close" style="cursor:pointer">&#10005;</div></div>
+    </div>
+    <div class="bl-menubar"><span class="bl-menu">File</span><span class="bl-menu">Edit</span><span class="bl-menu">Insert</span><span class="bl-menu">People</span></div>
+    <div class="bl-im-body">
+      <div class="bl-im-who"><div class="bl-im-dot" id="bl-im-dot"></div><span><b id="bl-im-handle"></b><br><small id="bl-im-status"></small></span></div>
+      <div class="bl-im-log" id="bl-im-log"></div>
+      <form class="bl-im-form" id="bl-im-form" autocomplete="off">
+        <input type="text" name="name" placeholder="your name" maxlength="60" required>
+        <input type="text" name="contact" placeholder="IG, email, or phone (so they can hit you back)" maxlength="120">
+        <textarea name="message" placeholder="type your message" maxlength="1000" required></textarea>
+        <input class="bl-im-hp" type="text" name="hp" tabindex="-1" aria-hidden="true">
+      </form>
+    </div>
+    <div class="bl-im-bottom">
+      <a class="bl-im-btn book" id="bl-im-book" href="/request">Book</a>
+      <span>
+        <button type="button" class="bl-im-btn" id="bl-im-cancel">Cancel</button>
+        <button type="submit" form="bl-im-form" class="bl-im-btn" id="bl-im-send">Send</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var body = document.getElementById('bl-body');
+  if (!body) return;
+  var count = document.getElementById('bl-count');
+  var back = document.getElementById('bl-im-back');
+  var form = document.getElementById('bl-im-form');
+  var log = document.getElementById('bl-im-log');
+  var sendBtn = document.getElementById('bl-im-send');
+  var buddies = [];
+  var current = null;
+  var closedGroups = {};
+  try { closedGroups = JSON.parse(localStorage.getItem('lmn-buddy-groups') || '{}') || {}; } catch (e) {}
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+
+  function row(b) {
+    var tag = b.status === 'online' ? 'on the machine' : b.status === 'away' ? 'away' : '';
+    return '<div class="bl-row ' + b.status + '" data-slug="' + esc(b.slug) + '">' +
+      '<span class="bl-ic"></span><span class="bl-name">' + esc(b.handle) + '</span>' +
+      (tag ? '<span class="bl-tag">' + tag + '</span>' : '') + '</div>';
+  }
+  function group(key, label, list) {
+    var closed = !!closedGroups[key];
+    var html = '<div class="bl-group' + (closed ? ' closed' : '') + '" data-group="' + key + '"><span class="bl-tri"></span>' + label + ' <span class="n">(' + list.filter(function(b){ return b.status !== 'offline'; }).length + '/' + list.length + ')</span></div>';
+    html += '<div class="bl-rows">' + (list.length ? list.map(row).join('') : '<div class="bl-empty">nobody here</div>') + '</div>';
+    return html;
+  }
+  function render() {
+    var here = buddies.filter(function(b) { return b.status !== 'offline'; });
+    var gone = buddies.filter(function(b) { return b.status === 'offline'; });
+    body.innerHTML = group('crew', 'Lumenati Crew', here) + group('offline', 'Offline', gone);
+    var on = buddies.filter(function(b) { return b.status === 'online'; }).length;
+    if (count) count.innerHTML = on ? '<span class="on">' + on + ' tattooing now</span>' : (here.length ? here.length + ' in today' : 'nobody in yet');
+  }
+  function load() {
+    fetch('/api/site/buddies', { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (j && j.buddies) { buddies = j.buddies; render(); } })
+      .catch(function() { if (!buddies.length) body.innerHTML = '<div class="bl-empty">the list is taking a minute. come back in a sec.</div>'; });
+  }
+  load();
+  setInterval(load, 60000);
+
+  body.addEventListener('click', function(e) {
+    var g = e.target.closest('.bl-group');
+    if (g) {
+      var key = g.getAttribute('data-group');
+      closedGroups[key] = !closedGroups[key];
+      try { localStorage.setItem('lmn-buddy-groups', JSON.stringify(closedGroups)); } catch (err) {}
+      render();
+      return;
+    }
+    var r = e.target.closest('.bl-row');
+    if (!r) return;
+    var slug = r.getAttribute('data-slug');
+    var b = null;
+    for (var i = 0; i < buddies.length; i++) if (buddies[i].slug === slug) b = buddies[i];
+    if (b) openIm(b);
+  });
+
+  function openIm(b) {
+    current = b;
+    document.getElementById('bl-im-title').textContent = 'IM with ' + b.handle;
+    document.getElementById('bl-im-handle').textContent = b.handle;
+    document.getElementById('bl-im-status').textContent = b.name + ' // ' + (b.status === 'online' ? 'Online' : b.status === 'away' ? 'Away' : 'Offline');
+    document.getElementById('bl-im-dot').style.background = b.color || '#FFD700';
+    var book = document.getElementById('bl-im-book');
+    book.href = '/request?artist=' + encodeURIComponent(b.id);
+    book.textContent = b.booksClosed ? 'Join ' + b.name.split(' ')[0] + "'s waitlist" : 'Book with ' + b.name.split(' ')[0];
+    var line = b.status === 'online'
+      ? 'is on the machine right now. Leave a message and they will read it between clients.'
+      : b.status === 'away' ? 'is away.' : 'is not in today. Leave a message.';
+    log.innerHTML = '<div><span class="who">' + esc(b.handle) + '</span> ' + esc(line) + '</div>' +
+      '<div class="auto">Auto response from ' + esc(b.handle) + ': ' + esc(b.away) + '</div>';
+    form.reset();
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send';
+    back.classList.add('open');
+    setTimeout(function() { var f = form.querySelector('[name=name]'); if (f) f.focus(); }, 50);
+  }
+  function closeIm() { back.classList.remove('open'); current = null; }
+  document.getElementById('bl-im-close').addEventListener('click', closeIm);
+  document.getElementById('bl-im-cancel').addEventListener('click', closeIm);
+  back.addEventListener('click', function(e) { if (e.target === back) closeIm(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && back.classList.contains('open')) closeIm(); });
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!current) return;
+    var data = {
+      artist: current.slug,
+      name: form.querySelector('[name=name]').value,
+      contact: form.querySelector('[name=contact]').value,
+      message: form.querySelector('[name=message]').value,
+      hp: form.querySelector('[name=hp]').value
+    };
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+    log.innerHTML += '<div><span class="who sent">' + esc(data.name || 'you') + ':</span> ' + esc(data.message) + '</div>';
+    fetch('/api/site/im', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      .then(function(r) { return r.json().then(function(j) { j.__ok = r.ok; return j; }); })
+      .then(function(j) {
+        if (j.__ok) {
+          log.innerHTML += '<div class="ok">Sent. They will see it when they are off the machine.</div>';
+          form.querySelector('[name=message]').value = '';
+          sendBtn.textContent = 'Sent';
+        } else {
+          log.innerHTML += '<div class="err">' + esc(j.error || 'That did not go through. Try again.') + '</div>';
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Send';
+        }
+        log.scrollTop = log.scrollHeight;
+      })
+      .catch(function() {
+        log.innerHTML += '<div class="err">No connection. Try again in a sec.</div>';
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+      });
+  });
+})();
+</script>
