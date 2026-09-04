@@ -11,6 +11,24 @@
     "ontouchstart" in window ||
     (window.matchMedia && matchMedia("(pointer: coarse)").matches) ||
     /[?&]touch=1/.test(location.search); // desktop demo / test hook
+
+  // Desktop: the screen fills the viewport (fit to height, 5:4) instead of a
+  // fixed 600px window. Cartridges size themselves to their iframe, and the
+  // room's selector iframe rides this canvas's box, so one fit covers both.
+  if (!isTouch && !window.__ARCADE_EMBED__) {
+    var deskCanvas = document.getElementById("jd-skate-canvas");
+    if (deskCanvas) {
+      var deskFit = function () {
+        var w = Math.min(window.innerWidth * 0.94, (window.innerHeight - 170) * 1.25);
+        w = Math.max(600, Math.floor(w));
+        deskCanvas.style.width = w + "px";
+        deskCanvas.style.height = Math.floor(w * 0.8) + "px";
+        deskCanvas.style.maxWidth = "100%";
+      };
+      deskFit();
+      window.addEventListener("resize", deskFit);
+    }
+  }
   if (!isTouch) return;
 
   var canvas = document.getElementById("jd-skate-canvas");
