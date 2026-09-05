@@ -399,13 +399,13 @@ export function ShopTv({
           </button>
           <button
             onClick={changeChannel(-1)}
-            className="f-pixel w-full rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-center text-xs text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
+            className="f-pixel w-full whitespace-nowrap rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-center text-xs text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
           >
             CH ▼
           </button>
           <button
             onClick={changeChannel(1)}
-            className="f-pixel w-full rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-center text-xs text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
+            className="f-pixel w-full whitespace-nowrap rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-center text-xs text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
           >
             CH ▲
           </button>
