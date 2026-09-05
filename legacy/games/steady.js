@@ -2,7 +2,15 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // Logical width comes from the shell on phones (400 to 720 in landscape);
+  // the harness and the desktop stay at 400. Height is always 320.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  // On a phone the shell floats a d-pad and the pedal button in the bottom
+  // corners (120 by 120 each): the station bar keeps clear of them, and the
+  // HUD text runs a touch larger for a screen you hold in your hand.
+  var SL = PHONE ? 130 : 0, FS = PHONE ? 1.25 : 1;
 
   // SFX
   var sfxCtx;
@@ -100,7 +108,7 @@
   var INK = '#1c1418';
   var STENCIL = '#7b2fbf'; // stencils are purple, always
   var SKINS = ['#f0c8a0', '#d9a276', '#b97a4e', '#8d5a3b', '#6b4128'];
-  var NEEDLE_X = 120;
+  var NEEDLE_X = Math.round(W * 0.3);
   var MOTIF_GAP = 230, MOTIF_SPAN = 30;
 
   // ── Every design is a real piece: the line you trace, the linework around it ──
@@ -896,13 +904,15 @@
       var lyy = 210 + Math.sin(x2 * 0.02) * 22 + Math.sin(x2 * 0.055) * 9;
       if (Math.floor(x2 / 6) % 2 === 0) { ctx.fillStyle = STENCIL; ctx.fillRect(x2, lyy - 1, 2, 2); }
     }
-    drawMotif('rose', 300, 210 + Math.sin(300 * 0.02) * 22 + Math.sin(300 * 0.055) * 9, 'stencil');
+    var rx = Math.round(W * 0.75);
+    drawMotif('rose', rx, 210 + Math.sin(rx * 0.02) * 22 + Math.sin(rx * 0.055) * 9, 'stencil');
     var inkReach = Math.max(0, Math.min(W, (t2 - 34) * 2.8));
     for (var x3 = 0; x3 < inkReach; x3 += 1) {
       var iyy = 210 + Math.sin(x3 * 0.02) * 22 + Math.sin(x3 * 0.055) * 9;
       ctx.fillStyle = INK; ctx.fillRect(x3, iyy - 1.5, 1.6, 3);
     }
-    if (inkReach > 100) drawMotif('script', 100, 210 + Math.sin(100 * 0.02) * 22 + Math.sin(100 * 0.055) * 9, 'ink');
+    var scx = Math.round(W * 0.25);
+    if (inkReach > scx) drawMotif('script', scx, 210 + Math.sin(scx * 0.02) * 22 + Math.sin(scx * 0.055) * 9, 'ink');
     if (inkReach > 0 && inkReach < W) {
       var nyy = 210 + Math.sin(inkReach * 0.02) * 22 + Math.sin(inkReach * 0.055) * 9;
       var vib = (Math.random() - 0.5) * 1.6;
@@ -934,8 +944,29 @@
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
   }
 
+  // Portrait phone: the run holds and the card asks for landscape (the shell
+  // reloads the cartridge when the phone turns, so nothing is kept here).
+  function drawTurnCard() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(Math.sin(frame * 0.05) * 0.5 - 0.5);
+    ctx.fillStyle = '#111'; ctx.fillRect(-16, -28, 32, 56);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#2a6ee8'; ctx.fillRect(-12, -22, 24, 42);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-3, 22, 6, 2);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW; ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+    ctx.fillText('Steady Hand plays sideways, full screen', W / 2, H / 2 + 54);
+  }
+
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnCard(); return; }
     var skin = SKINS[(level - 1) % SKINS.length];
     var d = design();
     var shx = shake > 0 ? (Math.random() - 0.5) * shake * 0.7 : 0;
@@ -1185,46 +1216,47 @@
     ctx.fillStyle = '#1c1522';
     ctx.fillRect(0, 294, W, 26);
     ctx.fillStyle = '#14121a';
-    ctx.fillRect(20, 297, 12, 13);
+    ctx.fillRect(20 + SL, 297, 12, 13);
     var inkLvl = Math.max(0, Math.min(1, ink / INK_FULL));
     ctx.fillStyle = lowInk && Math.floor(frame / 10) % 2 === 0 ? '#ff6347' : PINK;
-    ctx.fillRect(22, 309 - 12 * inkLvl, 8, 12 * inkLvl);
+    ctx.fillRect(22 + SL, 309 - 12 * inkLvl, 8, 12 * inkLvl);
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '6px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('INK', 8, 305);
+    ctx.fillText('INK', 8 + SL, 305);
     ctx.fillStyle = phase === 'wipe' ? '#fff' : '#e8e4d8';
-    ctx.fillRect(44, 299, 22, 10);
+    ctx.fillRect(44 + SL, 299, 22, 10);
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(44, 303, 22, 1);
+    ctx.fillRect(44 + SL, 303, 22, 1);
+    var PB0 = 80 + SL, PBW = W - 150 - 2 * SL; // the progress bar, inset from the phone's corners
     ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fillRect(80, 300, W - 150, 5);
+    ctx.fillRect(PB0, 300, PBW, 5);
     ctx.fillStyle = phase === 'line' ? PINK : STENCIL;
-    ctx.fillRect(80, 300, (W - 150) * Math.min(1, (sx + NEEDLE_X) / pathLen), 5);
+    ctx.fillRect(PB0, 300, PBW * Math.min(1, (sx + NEEDLE_X) / pathLen), 5);
     if (phase === 'line') {
       for (var m2 = 0; m2 < motifs.length; m2++) {
         ctx.fillStyle = motifs[m2].state === 'ink' ? LIME : motifs[m2].state === 'botched' ? '#ff6347' : 'rgba(255,255,255,0.5)';
-        ctx.fillRect(80 + (W - 150) * (motifs[m2].x / pathLen) - 1, 298, 2, 9);
+        ctx.fillRect(PB0 + PBW * (motifs[m2].x / pathLen) - 1, 298, 2, 9);
       }
     } else {
       for (var s2 = 0; s2 < shapes.length; s2++) {
         ctx.fillStyle = shapes[s2].judged ? (shapes[s2].cov >= 0.85 ? LIME : shapes[s2].cov >= 0.5 ? YELLOW : '#ff6347') : 'rgba(255,255,255,0.5)';
-        ctx.fillRect(80 + (W - 150) * (shapes[s2].x0 / pathLen), 298, Math.max(2, (W - 150) * ((shapes[s2].x1 - shapes[s2].x0) / pathLen)), 9);
+        ctx.fillRect(PB0 + PBW * (shapes[s2].x0 / pathLen), 298, Math.max(2, PBW * ((shapes[s2].x1 - shapes[s2].x0) / pathLen)), 9);
       }
     }
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.font = '7px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(phase === 'line' ? 'LINES' : phase === 'wipe' ? 'WIPE' : 'SHADE', 80, 314);
+    ctx.fillText(phase === 'line' ? 'LINES' : phase === 'wipe' ? 'WIPE' : 'SHADE', PB0, 314);
     // The clock: how long they will sit
     var pt = Math.max(0, patience / patienceMax);
     ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fillRect(W - 62, 300, 54, 5);
+    ctx.fillRect(W - 62 - SL, 300, 54, 5);
     ctx.fillStyle = pt > 0.4 ? CYAN : pt > 0.2 ? YELLOW : '#ff6347';
-    ctx.fillRect(W - 62, 300, 54 * pt, 5);
+    ctx.fillRect(W - 62 - SL, 300, 54 * pt, 5);
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
     ctx.textAlign = 'right';
-    ctx.fillText('SITTING', W - 8, 314);
+    ctx.fillText('SITTING', W - 8 - SL, 314);
 
     // The wipe: a towel sweeps the work
     if (phase === 'wipe') {
@@ -1240,14 +1272,14 @@
 
     // HUD: score and the steady multiplier on the left
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SCORE ' + fmtNum(score), 54, 14);
     ctx.fillStyle = '#9aa';
-    ctx.font = '8px monospace';
+    ctx.font = Math.round(8 * FS) + 'px monospace';
     ctx.fillText('BEST ' + fmtNum(Math.max(best, wall.best(), score)), 54, 25);
     ctx.fillStyle = combo > 1 ? YELLOW : 'rgba(255,255,255,0.5)';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.fillText('STEADY x' + combo, 54, 38);
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.fillRect(54, 42, 64, 3);
@@ -1257,10 +1289,10 @@
     // Design name and the precision meter in the middle
     ctx.fillStyle = LIME;
     ctx.textAlign = 'center';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.fillText((tod ? 'TATTOO OF THE DAY: ' : 'CLIENT ' + level + ': ') + d.name, W / 2, 14);
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '7px monospace';
+    ctx.font = Math.round(7 * FS) + 'px monospace';
     ctx.fillText('PRECISION', W / 2, 26);
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.fillRect(W / 2 - 50, 30, 100, 6);
@@ -1268,7 +1300,7 @@
     ctx.fillStyle = pc > 0.75 ? LIME : pc > 0.45 ? YELLOW : '#ff6347';
     ctx.fillRect(W / 2 - 50, 30, 100 * pc, 6);
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 7px monospace';
+    ctx.font = 'bold ' + Math.round(7 * FS) + 'px monospace';
     ctx.fillText(Math.round(pc * 100) + '%', W / 2, 45);
 
     // The client and their trust, on the right: a body under the face, the arm
@@ -1285,7 +1317,7 @@
       ctx.fillRect(hx2, 12, 9, 4); ctx.fillRect(hx2 + 2, 16, 5, 3);
     }
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '7px monospace';
+    ctx.font = Math.round(7 * FS) + 'px monospace';
     ctx.textAlign = 'right';
     ctx.fillText('TRUST', W - 8, 30);
     if (speech && mode === 'play') drawSpeech(speech);
@@ -1363,6 +1395,7 @@
 
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
+    if (PORTRAIT) drawTurnCard();
   }
 
   // Fixed-step loop on requestAnimationFrame
@@ -1380,7 +1413,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play') { if (PORTRAIT) frame++; else update(); }
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 520) introT = 70; }
       acc -= 16.67;
     }

@@ -2,8 +2,16 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
-  var CELL = 20, COLS = 20, ROWS = 16;
+  // The shell hands phones a view: a wider logical screen in landscape (400 to
+  // 720), and portrait means hold the run and ask for a turn.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var FS = PHONE ? 1.25 : 1; // phone HUD text runs a touch larger
+  var CELL = 20, COLS = Math.max(20, Math.floor(W / CELL)), ROWS = 16;
+  // Rooms are designed on a 20-column floor; a wider screen keeps that design
+  // centered and opens the extra columns as plain floor on either side.
+  var OX = Math.floor((COLS - 20) / 2);
 
   // SFX
   var sfxCtx;
@@ -129,35 +137,37 @@
     function block(x, y, w, h) { for (var yy = y; yy < y + h; yy++) for (var xx = x; xx < x + w; xx++) wall(xx, yy); }
     var r = {
       n: n, kind: kind, name: roomName(kind), walls: g, wrap: false,
-      door: { x: COLS - 1, y: 8 }, spawn: { x: 6, y: 8 }, cap: 7,
+      door: { x: COLS - 1, y: 8 }, spawn: { x: 6 + OX, y: 8 }, cap: 7,
       mop: false, rival: n >= 4 && kind !== 'cat', client: n >= 6 && kind !== 'cat', cat: kind === 'cat',
       blots: kind === 'cat' ? 0 : Math.min(2 + n, 10), goal: kind === 'cat' ? 8 : Math.min(6 + n, 12),
     };
     if (kind === 'corridor') {
-      for (var x = 0; x < COLS; x++) { if (x < 4 || x > 5) wall(x, 4); if (x < 14 || x > 15) wall(x, 11); }
-      r.wrap = true; r.door = { x: 10, y: 0 };
+      for (var x = 0; x < COLS; x++) { if (x < 4 + OX || x > 5 + OX) wall(x, 4); if (x < 14 + OX || x > 15 + OX) wall(x, 11); }
+      r.wrap = true; r.door = { x: 10 + OX, y: 0 };
     } else if (kind === 'pillars') {
-      block(3, 3, 2, 2); block(15, 3, 2, 2); block(3, 11, 2, 2); block(15, 11, 2, 2); block(9, 4, 2, 2); block(9, 11, 2, 2);
+      block(3 + OX, 3, 2, 2); block(15 + OX, 3, 2, 2); block(3 + OX, 11, 2, 2); block(15 + OX, 11, 2, 2); block(9 + OX, 4, 2, 2); block(9 + OX, 11, 2, 2);
+      if (OX >= 4) { block(OX - 3, 7, 2, 2); block(20 + OX + 1, 7, 2, 2); }
     } else if (kind === 'twin') {
-      for (var y2 = 0; y2 < ROWS; y2++) if (y2 < 7 || y2 > 8) wall(9, y2);
+      for (var y2 = 0; y2 < ROWS; y2++) if (y2 < 7 || y2 > 8) wall(9 + OX, y2);
       r.door = { x: COLS - 1, y: 2 };
     } else if (kind === 'mop') {
-      r.mop = true; r.wrap = true; r.door = { x: 10, y: ROWS - 1 };
+      r.mop = true; r.wrap = true; r.door = { x: 10 + OX, y: ROWS - 1 };
     } else if (kind === 'spiral') {
-      for (var x2 = 1; x2 <= 18; x2++) { wall(x2, 1); wall(x2, 14); }
-      for (var y3 = 1; y3 <= 14; y3++) { wall(1, y3); if (y3 < 7 || y3 > 8) wall(18, y3); }
-      for (var x3 = 4; x3 <= 15; x3++) { wall(x3, 4); wall(x3, 11); }
-      for (var y4 = 4; y4 <= 11; y4++) { wall(15, y4); if (y4 < 7 || y4 > 8) wall(4, y4); }
-      r.spawn = { x: 9, y: 8 }; r.cap = 4;
+      for (var x2 = 1; x2 <= 18; x2++) { wall(x2 + OX, 1); wall(x2 + OX, 14); }
+      for (var y3 = 1; y3 <= 14; y3++) { wall(1 + OX, y3); if (y3 < 7 || y3 > 8) wall(18 + OX, y3); }
+      for (var x3 = 4; x3 <= 15; x3++) { wall(x3 + OX, 4); wall(x3 + OX, 11); }
+      for (var y4 = 4; y4 <= 11; y4++) { wall(15 + OX, y4); if (y4 < 7 || y4 > 8) wall(4 + OX, y4); }
+      r.spawn = { x: 9 + OX, y: 8 }; r.cap = 4;
       r.door = { x: COLS - 1, y: 8 };
       r.blots = Math.min(1 + Math.floor(n / 3), 4);
     } else if (kind === 'checker') {
       var spots = [[2,2],[6,3],[13,2],[17,4],[3,6],[16,7],[12,5],[2,11],[7,12],[12,10],[16,12],[9,13],[5,9],[14,13]];
-      for (var i = 0; i < spots.length; i++) wall(spots[i][0], spots[i][1]);
-      r.door = { x: 10, y: 0 };
+      for (var i = 0; i < spots.length; i++) wall(spots[i][0] + OX, spots[i][1]);
+      if (OX >= 3) { wall(1, 5); wall(OX - 1, 12); wall(COLS - 2, 3); wall(COLS - OX, 10); }
+      r.door = { x: 10 + OX, y: 0 };
     } else if (kind === 'cat') {
-      block(9, 7, 2, 2);
-      r.door = { x: 10, y: 0 }; r.spawn = { x: 4, y: 12 }; r.cap = 5;
+      block(9 + OX, 7, 2, 2);
+      r.door = { x: 10 + OX, y: 0 }; r.spawn = { x: 4 + OX, y: 12 }; r.cap = 5;
     }
     // the door cell is never a wall
     g[r.door.y][r.door.x] = false;
@@ -196,7 +206,7 @@
     var len = carry ? Math.min(snake.length, roomDef.cap) : 4;
     resetSnake(len);
     if (roomDef.mop) spawnMop();
-    if (roomDef.cat) cat = { x: 9, y: 7, t: 0, phase: 'idle', dirIdx: 0, phaseT: 150, swipes: 0 };
+    if (roomDef.cat) cat = { x: 9 + OX, y: 7, t: 0, phase: 'idle', dirIdx: 0, phaseT: 150, swipes: 0 };
     addBlots(roomDef.blots);
     placeFood();
     var ns = Math.max(4, 9 - Math.floor(n / 2));
@@ -842,25 +852,27 @@
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('SNAP! +30', Math.min(320, hx), pts[0].y - 24);
+      ctx.fillText('SNAP! +30', Math.min(W - 80, hx), pts[0].y - 24);
     }
     if (t2 > 140) { ctx.fillStyle = PINK; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('EAT THE GOAL // TAKE THE DOOR // ROOM BY ROOM', W / 2, 146); }
+    // On a phone the floating pad owns the bottom corners, so the sheet rides higher.
+    var PB = PHONE ? 100 : 0;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, H - 58, W, 58);
+    ctx.fillRect(0, H - 58 - PB, W, 58);
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS or SWIPE to steer // a longer snake is worth more per drop', W / 2, H - 42);
-    ctx.fillText('feast fast for x5 // straight shots stack // short rivals are lunch // mind the cat', W / 2, H - 29);
+    ctx.fillText(PHONE ? 'PAD or SWIPE to steer // a longer snake is worth more per drop' : 'ARROWS or SWIPE to steer // a longer snake is worth more per drop', W / 2, H - 42 - PB);
+    ctx.fillText('feast fast for x5 // straight shots stack // short rivals are lunch // mind the cat', W / 2, H - 29 - PB);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
       ctx.font = 'bold 12px monospace';
-      ctx.fillText('PRESS SPACE OR TAP TO START', W / 2, H - 10);
+      ctx.fillText(PHONE ? 'PRESS A OR TAP TO START' : 'PRESS SPACE OR TAP TO START', W / 2, H - 10 - PB);
     } else {
       ctx.fillStyle = '#9aa';
       ctx.font = '10px monospace';
       var top = wall.top();
-      ctx.fillText(top ? 'WALL: ' + top.n + ' ' + top.s + ' // YOUR BEST: ' + best : 'BEST: ' + best, W / 2, H - 10);
+      ctx.fillText(top ? 'WALL: ' + top.n + ' ' + top.s + ' // YOUR BEST: ' + best : 'BEST: ' + best, W / 2, H - 10 - PB);
     }
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     for (var sy2 = 0; sy2 < H; sy2 += 3) ctx.fillRect(0, sy2, W, 1);
@@ -1119,8 +1131,27 @@
     ctx.fillStyle = col; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
     ctx.fillText({ ghost: 'G', slow: 'S', magnet: 'M', double: 'x2' }[power.kind], x, y + 3);
   }
+  // Portrait on a phone: the game plays sideways, so ask for a turn and hold.
+  function drawTurnCard() {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(Math.sin(frame * 0.05) * 0.5 - 0.5);
+    ctx.fillStyle = '#111'; ctx.fillRect(-16, -28, 32, 56);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#2a6ee8'; ctx.fillRect(-12, -22, 24, 42);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-3, 22, 6, 2);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW; ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+    ctx.fillText('Ink Snake plays sideways, full screen', W / 2, H / 2 + 54);
+  }
+
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnCard(); return; }
     var board = BOARDS[room % BOARDS.length];
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
@@ -1157,7 +1188,7 @@
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
     ctx.font = '8px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText('LUMENATI TATTOO', W - 8, H - 8);
+    ctx.fillText('LUMENATI TATTOO', W - 8, PHONE ? H - 130 : H - 8);
 
     if (frenzyT > 0) {
       ctx.fillStyle = 'rgba(255,99,71,' + (0.04 + Math.abs(Math.sin(frame * 0.1)) * 0.05).toFixed(3) + ')';
@@ -1345,7 +1376,7 @@
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fillRect(0, 0, W, 32);
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
@@ -1395,6 +1426,7 @@
 
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
+    if (PORTRAIT && mode === 'play') drawTurnCard();
   }
 
   // Fixed-step loop on requestAnimationFrame
@@ -1412,7 +1444,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play') { if (!PORTRAIT) update(); else frame++; }
       else {
         frame++; musicTick();
         // attract cycle: power-on, title scene, then the wall, then the title again

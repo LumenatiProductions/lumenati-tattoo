@@ -2,7 +2,15 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // Logical width comes from the shell on phones (400 to 720 in landscape);
+  // the harness and the desktop stay at 400. Height is always 320.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var FS = PHONE ? 1.25 : 1; // phone HUD text runs a touch larger
+  // The machine sits on the bottom edge; on a phone it rides 40px higher so
+  // it is never under the floating controls in the corners.
+  var PADDLE_Y = PHONE ? 258 : 298;
 
   // SFX
   var sfxCtx;
@@ -86,7 +94,8 @@
 
   var PINK = '#FF1493', LIME = '#7FFF00', YELLOW = '#FFD700', PURPLE = '#9b59b6', CYAN = '#00FFFF';
 
-  var COLS = 12, BW = 30, BH = 11, BGAP = 2, BTOP = 34;
+  var COLS = 12, BH = 11, BGAP = 2, BTOP = 34;
+  var BW = Math.floor((W - 18 - (COLS - 1) * BGAP) / COLS); // 30 at 400 wide, wider tiles on a wide phone
   var BLEFT = (W - (COLS * BW + (COLS - 1) * BGAP)) / 2;
 
   // Every sheet is a flash design; break it off the wall tile by tile.
@@ -231,8 +240,8 @@
     bossBombs = []; bossBombCd = 150; bossSway = 0;
     // Steel needle bars drift under the sheet from sheet 5; a second from 9
     shields = [];
-    if (level >= 5 && !boss) shields.push({ x: 60, y: 160, w: 70, vx: 1.1 });
-    if (level >= 9 && !boss) shields.push({ x: 260, y: 176, w: 56, vx: -1.5 });
+    if (level >= 5 && !boss) shields.push({ x: W * 0.15, y: 160, w: 70, vx: 1.1 });
+    if (level >= 9 && !boss) shields.push({ x: W * 0.65, y: 176, w: 56, vx: -1.5 });
     sheetFrames = 0; sheetMiss = false;
     cardT = 120;
     stunT = 0; magnetT = 0; splitReady = false;
@@ -450,7 +459,7 @@
     bannerT = 0; bannerText = '';
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
-    paddle = { x: W / 2 - 30, y: 298, w: 60, h: 8 };
+    paddle = { x: W / 2 - 30, y: PADDLE_Y, w: 60, h: 8 };
     particles = []; trail = []; paddleFlash = 0;
     drops = []; lasers = []; wideT = 0; laserT = 0; laserCd = 0; popups = [];
     stickyT = 0; fireT = 0; shake = 0; chain = 0; bestChain = 0; bricksBroken = 0; ceilCd = 0;
@@ -461,7 +470,7 @@
     buildBricks();
     serve();
     var hintEl = document.getElementById('jd-game-hint');
-    if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'Drag the paddle // FIRE launches + lasers' : 'Arrows, mouse or drag // SPACE launches';
+    if (hintEl) hintEl.textContent = PHONE ? 'Drag or the d-pad moves // A launches + fires lasers' : ('ontouchstart' in window) ? 'Drag the paddle // FIRE launches + lasers' : 'Arrows, mouse or drag // SPACE launches';
     window.skateRunning = true;
     startLoop();
   }
@@ -885,8 +894,8 @@
       for (var r2 = 0; r2 < 2; r2++) {
         var lt2 = Math.max(0, Math.min(1, (t2 - 14 - i * 4 - r2 * 12) / 12));
         if (lt2 <= 0) continue;
-        var bx5 = 12 + i * 38, by5 = (150 + r2 * 15) - (1 - lt2) * (1 - lt2) * 170;
-        var smashed = t2 > impactT && Math.abs(bx5 + 17 - 200) < 62;
+        var bx5 = W / 2 - 188 + i * 38, by5 = (150 + r2 * 15) - (1 - lt2) * (1 - lt2) * 170;
+        var smashed = t2 > impactT && Math.abs(bx5 + 17 - W / 2) < 62;
         if (smashed) continue;
         ctx.fillStyle = rowCols[(i + r2) % rowCols.length];
         ctx.fillRect(bx5, by5, 34, 12);
@@ -896,7 +905,7 @@
     }
     // the ball drops, smashes through, shards everywhere
     if (t2 > 68) {
-      var byp, bxp = 200;
+      var byp, bxp = W / 2;
       if (t2 <= impactT) {
         var fp = (t2 - 68) / (impactT - 68);
         byp = -10 + fp * fp * 165;
@@ -919,7 +928,7 @@
         var dist2 = sp2 * (2 + (k % 3));
         ctx.fillStyle = rowCols[k % rowCols.length];
         ctx.globalAlpha = Math.max(0, 1 - sp2 / 26);
-        ctx.fillRect(200 + Math.cos(ang2) * dist2, 158 + Math.sin(ang2) * dist2 + sp2 * sp2 * 0.05, 4, 4);
+        ctx.fillRect(W / 2 + Math.cos(ang2) * dist2, 158 + Math.sin(ang2) * dist2 + sp2 * sp2 * 0.05, 4, 4);
       }
       ctx.globalAlpha = 1;
     }
@@ -929,7 +938,7 @@
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ARROWS, MOUSE or DRAG // SPACE launches and fires lasers', W / 2, H - 42);
+    ctx.fillText(PHONE ? 'DRAG or the D-PAD moves the machine // A launches and fires lasers' : 'ARROWS, MOUSE or DRAG // SPACE launches and fires lasers', W / 2, H - 42);
     ctx.fillText('chain bricks without a paddle touch for up to x8 // catch capsules', W / 2, H - 29);
     if (Math.floor(t / 22) % 2 === 0) {
       ctx.fillStyle = YELLOW;
@@ -1132,8 +1141,28 @@
     ctx.fillText(label, x + 3, y + 7);
   }
 
+  // Portrait phone: the run holds and the card asks for landscape (the shell
+  // reloads the cartridge when the phone turns, so nothing is kept here).
+  function drawTurnCard() {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(Math.sin(frame * 0.05) * 0.5 - 0.5);
+    ctx.fillStyle = '#111'; ctx.fillRect(-16, -28, 32, 56);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#2a6ee8'; ctx.fillRect(-12, -22, 24, 42);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-3, 22, 6, 2);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW; ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+    ctx.fillText('Flash Breaker plays sideways, full screen', W / 2, H / 2 + 54);
+  }
+
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnCard(); return; }
     var d0 = design();
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 1.6, (Math.random() - 0.5) * shake * 1.6);
@@ -1269,11 +1298,11 @@
 
     // ── HUD ──
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SCORE: ' + score, 8, 12);
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
+    ctx.fillText('BEST: ' + Math.max(best, score), Math.round(100 * FS), 12);
     ctx.textAlign = 'right';
     ctx.fillStyle = sheetKind === 'boss' ? PINK : YELLOW;
     ctx.fillText((sheetKind === 'boss' ? 'BOSS ' : 'SHEET ') + level + ': ' + d0.name, W - 8, 12);
@@ -1290,7 +1319,7 @@
       var m = mult();
       var pulse = 1 + 0.08 * Math.sin(frame * 0.35);
       ctx.textAlign = 'right';
-      ctx.font = 'bold ' + Math.round(11 * (m >= 4 ? pulse : 1)) + 'px monospace';
+      ctx.font = 'bold ' + Math.round(11 * FS * (m >= 4 ? pulse : 1)) + 'px monospace';
       ctx.fillStyle = m >= 6 ? PINK : m >= 4 ? YELLOW : m > 1 ? CYAN : '#9aa';
       ctx.fillText('CHAIN ' + chain + '  x' + m, W - 8, 26);
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -1363,21 +1392,22 @@
     for (var i = 0; i < balls.length; i++) if (balls[i].stuck) anyStuck = true;
     if (anyStuck && mode === 'play' && clearT === 0) {
       ctx.fillStyle = '#9aa';
-      ctx.font = '11px monospace';
+      ctx.font = Math.round(11 * FS) + 'px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('SPACE or TAP to launch', W / 2, H / 2 + 40);
+      ctx.fillText(PHONE ? 'A or TAP to launch' : 'SPACE or TAP to launch', W / 2, H / 2 + 40);
     }
 
     // Popups
     ctx.textAlign = 'center';
     for (var i = 0; i < popups.length; i++) {
       ctx.globalAlpha = Math.min(1, popups[i].life / 18);
-      ctx.font = 'bold ' + (popups[i].big ? 14 : 11) + 'px monospace';
+      ctx.font = 'bold ' + Math.round((popups[i].big ? 14 : 11) * FS) + 'px monospace';
       ctx.fillStyle = popups[i].color;
       ctx.fillText(popups[i].text, popups[i].x, popups[i].y);
     }
     ctx.globalAlpha = 1;
 
+    if (PORTRAIT && mode === 'play') drawTurnCard();
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
   }
@@ -1397,7 +1427,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play' && !PORTRAIT) update();
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 525) introT = 70; }
       acc -= 16.67;
     }

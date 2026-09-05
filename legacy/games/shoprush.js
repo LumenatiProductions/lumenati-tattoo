@@ -2,7 +2,15 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // Logical width comes from the shell on phones (400 to 720 in landscape);
+  // the harness and the desktop stay at 400. Height is always 320.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var EX = W - 400, MX = Math.round(EX / 2); // extra width: the right edge moves by EX, the middle by half
+  var HF = PHONE ? 1.25 : 1; // HUD text is a touch larger on a phone's small glass
+  // A 4:3 tablet in landscape is barely wider than the desk; below 480 the floor keeps its desktop plan.
+  var ROOMY = PHONE && W >= 480;
 
   // SFX
   var sfxCtx;
@@ -143,16 +151,21 @@
   };
 
   var DOOR = { x: 30, y: 44 };
-  var BENCH = [{ x: 46, y: 110 }, { x: 46, y: 152 }, { x: 46, y: 194 }, { x: 46, y: 236 }];
-  var CHAIRS = [{ x: 322, y: 92 }, { x: 322, y: 172 }, { x: 322, y: 252 }];
-  var CHAIR4 = { x: 214, y: 252 }; // the fourth station, bought in the shop
+  // On a phone the bench sits inward so the bottom-left corner stays clear for the floating d-pad.
+  var BENCH_X = ROOMY ? 150 : 46, BX = BENCH_X - 46;
+  var BENCH = [{ x: BENCH_X, y: 110 }, { x: BENCH_X, y: 152 }, { x: BENCH_X, y: 194 }, { x: BENCH_X, y: 236 }];
+  // Stations hug the right edge; on a phone they come in so the bottom-right corner is free for the A button.
+  var CHAIR_X = ROOMY ? W - 170 : 322 + EX;
+  var CHAIRS = [{ x: CHAIR_X, y: 92 }, { x: CHAIR_X, y: 172 }, { x: CHAIR_X, y: 252 }];
+  var CHAIR4 = { x: 214 + MX, y: 252 }; // the fourth station, bought in the shop
   var REGISTER = { x: 103, y: 92 };   // where finished clients pay
-  var BACKROOM = { x: 386, y: 300 };  // where deliveries go
+  var BACKROOM = { x: ROOMY ? W - 150 : 386 + EX, y: 300 };  // where deliveries go
+  var BR = BACKROOM.x - 386; // the back room door drawing follows it
   // Things you cannot walk through: routing is part of the job.
   var FURNITURE = [
     { x: 74, y: 54, w: 58, h: 28, name: 'desk' },
-    { x: 364, y: 48, w: 28, h: 30, name: 'plant' },
-    { x: 166, y: 150, w: 60, h: 20, name: 'table' },
+    { x: 364 + EX, y: 48, w: 28, h: 30, name: 'plant' },
+    { x: 166 + MX, y: 150, w: 60, h: 20, name: 'table' },
   ];
   var UPGRADES = [
     { key: 'chair4',    cost: 400, name: 'FOURTH STATION',  what: 'one more chair on the floor' },
@@ -204,7 +217,7 @@
     streak = 0; lastSeatFrame = -999; quickChain = 0; dayWalkouts = 0; rush = false; inspectorDone = false;
     pickupT = 700; doorT = 0; shake = 0; multFlash = 0; dayProg = 0;
     stats = { clients: 0, bestMult: 1, cleanDays: 0, celebs: 0, bestDay: 0, upgrades: 0, stars: 0 };
-    runner = { x: 200, y: 200, tx: null, ty: null, kx: 0, ky: 0, lead: null, face: 1, wasMoving: false, carrying: false, slipT: 0 };
+    runner = { x: 200 + MX, y: 200, tx: null, ty: null, kx: 0, ky: 0, lead: null, face: 1, wasMoving: false, carrying: false, slipT: 0 };
     clients = [];
     chairs = CHAIRS.map(function(c) { return { x: c.x, y: c.y, state: 'free', t: 0, tmax: 1, client: null, tip: 0 }; });
     spawnT = 90;
@@ -305,7 +318,7 @@
   function spawnPickup() {
     var r = Math.random();
     var type = r < 0.45 ? 'aftercare' : r < 0.8 ? 'flash' : 'coffee';
-    pickups.push({ x: 100 + Math.random() * 170, y: 90 + Math.random() * 190, type: type, life: 640 });
+    pickups.push({ x: 100 + Math.random() * (170 + EX), y: 90 + Math.random() * (ROOMY ? 100 : 190), type: type, life: 640 });
   }
 
   function walkout(c) {
@@ -390,7 +403,7 @@
     if (owned.coffee) pop(W / 2, H / 2 + 12, 'MORNING COFFEE. QUEUE CHILLS', CYAN);
     // deliveries and the mop bucket show up with the day
     if (day >= 3) { delivery = { x: DOOR.x + 30, y: DOOR.y + 24, held: false, life: 1200 }; pop(DOOR.x + 40, DOOR.y + 40, 'DELIVERY AT THE DOOR', '#fff'); }
-    if (day >= 2) bucket = { x: 120 + Math.random() * 160, y: 100 + Math.random() * 150 };
+    if (day >= 2) bucket = { x: 120 + Math.random() * (160 + EX), y: 100 + Math.random() * (ROOMY ? 80 : 150) };
     mode = 'play';
   }
   function buy(i) {
@@ -403,7 +416,7 @@
     sfxBuy();
     pop(W / 2, 250, u.name + ' BOUGHT', LIME, true);
     if (u.key === 'chair4') chairs.push({ x: CHAIR4.x, y: CHAIR4.y, state: 'free', t: 0, tmax: 1, client: null, tip: 0 });
-    if (u.key === 'artist2') helper = { x: 300, y: 150, state: 'idle', lead: null, face: -1, target: null };
+    if (u.key === 'artist2') helper = { x: 300 + EX, y: 150, state: 'idle', lead: null, face: -1, target: null };
   }
   function shopTick() {
     frame++;
@@ -887,6 +900,8 @@
   // ── The shop wall: the shared leaderboard (public/arcade-board.js) ──
   // Every cabinet, room and the kiosk post to the same wall; this game only
   // hands over the final score and draws what the module gives back.
+  // Headless checks read the layout through this; it is off unless the shell asks for it.
+  if (window.__ARCADE_DEBUG__) window.__shoprushDebug = { W: W, CHAIRS: CHAIRS, BENCH: BENCH, BACKROOM: BACKROOM, CHAIR4: CHAIR4, FURNITURE: FURNITURE, PHONE: PHONE };
   var wall = window.ArcadeBoard.attach({
     game: 'shoprush', canvas: canvas, ctx: ctx, W: W, H: H,
     title: 'BAD REVIEWS', again: 'SPACE or TAP to reopen the shop',
@@ -1078,12 +1093,35 @@
     ctx.fillText(pk.type === 'coffee' ? 'CALM' : '$' + PICKUPS[pk.type].pay, pk.x, y - 11);
   }
 
+  // A phone held upright: the game plays sideways, so say so and hold.
+  function drawTurnPhone() {
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(Math.sin(frame * 0.05) * 0.5 - 0.5);
+    ctx.fillStyle = '#ece9d8';
+    ctx.fillRect(-14, -26, 28, 52);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-11, -21, 22, 40);
+    ctx.fillStyle = PINK;
+    ctx.fillRect(-6, -10, 12, 18);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW;
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = '#fff';
+    ctx.font = '11px monospace';
+    ctx.fillText('Shop Rush plays sideways, full screen', W / 2, H / 2 + 56);
+  }
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnPhone(); return; }
     drawScene();
     if (mode === 'shop') drawShop();
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
+    if (PORTRAIT && (mode === 'play' || mode === 'shop')) drawTurnPhone();
   }
 
   function drawStar(x, y, on) {
@@ -1170,10 +1208,10 @@
     }
     // A rug in the middle of the floor
     ctx.fillStyle = 'rgba(255,20,147,0.08)';
-    ctx.fillRect(130, 120, 130, 130);
+    ctx.fillRect(130, 120, 130 + EX, 130);
     ctx.strokeStyle = 'rgba(255,20,147,0.18)';
     ctx.lineWidth = 2;
-    ctx.strokeRect(136, 126, 118, 118);
+    ctx.strokeRect(136, 126, 118 + EX, 118);
     // Night falls on the floor too
     if (dayProg > 0.6) { ctx.fillStyle = 'rgba(10,8,30,' + ((dayProg - 0.6) * 0.5).toFixed(2) + ')'; ctx.fillRect(-8, 58, W + 16, H); }
 
@@ -1184,7 +1222,7 @@
     for (var by2 = 4; by2 < 54; by2 += 10) {
       for (var bx2 = (by2 % 20 === 4 ? 0 : 14); bx2 < W; bx2 += 28) ctx.fillRect(bx2, by2, 12, 1);
     }
-    var FRAMES = [84, 118, 344];
+    var FRAMES = [84, 118, 344 + EX];
     for (var i = 0; i < FRAMES.length; i++) {
       var fsx = FRAMES[i];
       ctx.fillStyle = '#3a2a20';
@@ -1208,17 +1246,17 @@
         ctx.fillRect(fsx + 9, 15, 2, 2); ctx.fillRect(fsx + 13, 15, 2, 2);
       }
     }
-    drawWindow(160, 7, 44, 22);
-    drawWindow(236, 7, 44, 22);
+    drawWindow(160 + Math.round(EX * 0.35), 7, 44, 22);
+    drawWindow(236 + Math.round(EX * 0.7), 7, 44, 22);
     // the shop clock reads the day's progress
     ctx.fillStyle = '#efe9dc';
-    ctx.beginPath(); ctx.arc(306, 19, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(306 + EX, 19, 9, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#3a2a20'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(306, 19, 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(306 + EX, 19, 9, 0, Math.PI * 2); ctx.stroke();
     var ang = -Math.PI / 2 + dayProg * Math.PI * 1.6;
     ctx.strokeStyle = '#14121a'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(306, 19); ctx.lineTo(306 + Math.cos(ang) * 6, 19 + Math.sin(ang) * 6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(306, 19); ctx.lineTo(306 + Math.cos(ang * 4) * 4, 19 + Math.sin(ang * 4) * 4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(306 + EX, 19); ctx.lineTo(306 + EX + Math.cos(ang) * 6, 19 + Math.sin(ang) * 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(306 + EX, 19); ctx.lineTo(306 + EX + Math.cos(ang * 4) * 4, 19 + Math.sin(ang * 4) * 4); ctx.stroke();
 
     // Neon sign with a real glow, brighter as the street goes dark
     ctx.font = 'bold 12px monospace';
@@ -1274,9 +1312,9 @@
     ctx.fillRect(74, 80, 58, 3);
     // a plant in the corner
     ctx.fillStyle = '#7a4a2a';
-    ctx.fillRect(372, 66, 12, 10);
+    ctx.fillRect(372 + EX, 66, 12, 10);
     ctx.fillStyle = '#2e8b57';
-    ctx.fillRect(370, 54, 6, 8); ctx.fillRect(377, 50, 5, 12); ctx.fillRect(383, 56, 5, 8);
+    ctx.fillRect(370 + EX, 54, 6, 8); ctx.fillRect(377 + EX, 50, 5, 12); ctx.fillRect(383 + EX, 56, 5, 8);
     // coffee machine on the wall once bought
     if (owned.coffee) {
       ctx.fillStyle = '#2a2030'; ctx.fillRect(138, 50, 18, 14);
@@ -1285,16 +1323,18 @@
       if (frame % 40 < 20) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(146, 44, 2, 4); ctx.fillRect(149, 41, 2, 4); }
     }
     // the flash table mid-floor: prints, a jar of pens, something to route around
+    ctx.save(); ctx.translate(MX, 0);
     ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(168, 168, 60, 4);
     ctx.fillStyle = '#4a3440'; ctx.fillRect(166, 150, 60, 20);
     ctx.fillStyle = '#5c4250'; ctx.fillRect(166, 150, 60, 3);
     ctx.fillStyle = '#efe9dc'; ctx.fillRect(170, 155, 12, 9); ctx.fillRect(186, 154, 12, 9); ctx.fillRect(203, 156, 12, 9);
     ctx.fillStyle = PINK; ctx.fillRect(173, 158, 5, 3); ctx.fillStyle = '#2d6cdf'; ctx.fillRect(189, 157, 5, 3); ctx.fillStyle = '#14121a'; ctx.fillRect(206, 159, 4, 3);
     if (owned.flashwall) { ctx.fillStyle = YELLOW; ctx.font = '7px monospace'; ctx.textAlign = 'center'; ctx.fillText('FLASH $', 196, 148); }
+    ctx.restore();
     // the back room door
-    ctx.fillStyle = '#3a2a34'; ctx.fillRect(372, 284, 26, 36);
-    ctx.fillStyle = '#2a2030'; ctx.fillRect(375, 288, 20, 32);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillText('BACK', 385, 296);
+    ctx.fillStyle = '#3a2a34'; ctx.fillRect(372 + BR, 284, 26, 36);
+    ctx.fillStyle = '#2a2030'; ctx.fillRect(375 + BR, 288, 20, 32);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '6px monospace'; ctx.textAlign = 'center'; ctx.fillText('BACK', 385 + BR, 296);
     // spill on the floor
     if (spill) {
       ctx.fillStyle = 'rgba(80,160,255,' + Math.min(0.35, spill.life / 900).toFixed(2) + ')';
@@ -1321,7 +1361,8 @@
       }
     }
 
-    // Bench with cushions
+    // Bench with cushions (drawn where the seats are, which moves inward on a phone)
+    ctx.save(); ctx.translate(BX, 0);
     ctx.fillStyle = '#4a3440';
     ctx.fillRect(24, 96, 44, 158);
     ctx.fillStyle = '#5c4250';
@@ -1332,6 +1373,7 @@
       ctx.fillStyle = 'rgba(255,255,255,0.08)';
       ctx.fillRect(28, 104 + i * 42, 36, 3);
     }
+    ctx.restore();
 
     // Stations: lit work areas with the kit laid out
     for (var i = 0; i < chairs.length; i++) {
@@ -1543,23 +1585,23 @@
 
     // HUD
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * HF) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('$' + score, 8, 14);
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: $' + Math.max(best, score), 8, 26);
+    ctx.fillText('BEST: $' + Math.max(best, score), 8, Math.round(26 * HF));
     ctx.fillStyle = LIME;
-    ctx.font = 'bold 8px monospace';
-    ctx.fillText('BANK $' + bank, 8, 37);
+    ctx.font = 'bold ' + Math.round(8 * HF) + 'px monospace';
+    ctx.fillText('BANK $' + bank, 8, Math.round(37 * HF));
     if (starsHistory.length) for (var sh2 = 0; sh2 < 3; sh2++) drawStar(64 + sh2 * 10, 34, sh2 < lastStars);
     // the rep multiplier, pulsing when it just climbed
     var m = mult();
     var mx = 118, my = 20;
     ctx.fillStyle = m > 1 ? (multFlash > 0 && Math.floor(frame / 4) % 2 === 0 ? '#fff' : PINK) : 'rgba(255,255,255,0.35)';
-    ctx.font = 'bold ' + (multFlash > 0 ? 13 : 11) + 'px monospace';
+    ctx.font = 'bold ' + Math.round((multFlash > 0 ? 13 : 11) * HF) + 'px monospace';
     ctx.fillText('x' + m, mx, my);
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '7px monospace';
+    ctx.font = Math.round(7 * HF) + 'px monospace';
     ctx.fillText('REP', mx + (multFlash > 0 ? 24 : 18), my);
     // streak pips to the next multiplier
     for (var sp = 0; sp < 3; sp++) {
@@ -1568,13 +1610,13 @@
     }
     ctx.fillStyle = rush ? RED : LIME;
     ctx.textAlign = 'right';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * HF) + 'px monospace';
     ctx.fillText((rush ? 'CLOSING // ' : 'DAY ' + day + ' // ') + served + '/' + servedTarget, W - 8, 14);
     var waiting = 0, hot = false;
     for (var i = 0; i < clients.length; i++) if (clients[i].state === 'waiting') { waiting++; if (clients[i].patience / clients[i].pmax < 0.3) hot = true; }
     if (waiting) {
       ctx.fillStyle = hot ? RED : 'rgba(255,255,255,0.6)';
-      ctx.font = '8px monospace';
+      ctx.font = Math.round(8 * HF) + 'px monospace';
       ctx.fillText(waiting + ' WAITING' + (hot ? ' // HURRY' : ''), W - 8, 36);
     }
     for (var i = 0; i < 3; i++) {
@@ -1614,7 +1656,8 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (PORTRAIT && (mode === 'play' || mode === 'shop')) { frame++; }
+      else if (mode === 'play') update();
       else if (mode === 'shop') shopTick();
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 525) introT = 70; }
       acc -= 16.67;

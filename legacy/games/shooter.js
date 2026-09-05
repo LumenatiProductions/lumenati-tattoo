@@ -2,7 +2,15 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // Logical width comes from the shell on phones (400 to 720 in landscape);
+  // the harness and the desktop stay at 400. Height is always 320.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var WS = W / 400;
+  // On a phone the shell floats the d-pad and the A button in the bottom
+  // corners, so the machine rides higher and the corner HUD moves up.
+  var PLAYER_Y = PHONE ? 248 : 288, FLOOR_Y = PHONE ? 218 : 258;
 
   // SFX
   var sfxCtx;
@@ -83,7 +91,8 @@
   var ROW_COLOR = [PURPLE, '#2ecc71', CYAN];
   var ROW_NAME = ['SPORE', 'BACILLUS', 'COCCUS'];
 
-  var GCOLS = 8, GROWS = 3, GW = 24, GH = 16, GSX = 38, GSY = 26;
+  // Wider screens get more columns of germs (8 at 400, up to 12 at 720).
+  var GCOLS = Math.min(12, 8 + Math.floor((W - 400) / 80)), GROWS = 3, GW = 24, GH = 16, GSX = 38, GSY = 26;
   var MAX_MULT = 5;
 
   var mode = 'intro'; // intro | ready | play | over
@@ -97,7 +106,7 @@
   var uvReady, uvFlashT, bossIntroT, waveFlipT, formationKills, bossesDown, wavesCleared, bossName;
   var keyL = false, keyR = false, keyFire = false;
   var BOSS_NAMES = ['MOTHER GERM', 'MOLD KING', 'THE VIRUS'];
-  var UV_BOX = { x: 8, y: H - 34, w: 44, h: 14 };
+  var UV_BOX = PHONE ? { x: 8, y: 44, w: 52, h: 16 } : { x: 8, y: H - 34, w: 44, h: 14 };
 
   var best = 0;
   try { best = parseInt(localStorage.getItem('lumenati-arcade-shooter') || '0', 10) || 0; } catch(e) {}
@@ -136,7 +145,7 @@
     if (wave < 2) return;
     var cols = 6, rows = 3, bw = 5, bh = 5;
     for (var s = 0; s < 3; s++) {
-      var sx = 70 + s * 110, sy = 236;
+      var sx = W / 2 - 15 + (s - 1) * 110 * WS, sy = PLAYER_Y - 52;
       var blocks = [];
       for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
         // notch the bottom middle like a real bunker
@@ -193,7 +202,7 @@
         germs.push({ c: c, r: r, alive: true, hp: hp, maxHp: hp, wob: Math.random() * 6.28, blink: Math.random() * 200, splitter: splitter, carrier: carrier, wall: wallBlock });
       }
     }
-    gx = 30; gy = 34; gdir = 1;
+    gx = Math.max(16, Math.round((W - ((GCOLS - 1) * GSX + GW)) / 2)); gy = 34; gdir = 1;
   }
 
   // Galaga style: two arcs of germs in formation that sway, and dive in pairs.
@@ -205,7 +214,7 @@
       var k = row === 0 ? i : i - 8;
       var per = row === 0 ? 8 : n - 8;
       var ang = Math.PI * (0.15 + 0.7 * (per > 1 ? k / (per - 1) : 0.5));
-      var sx = W / 2 + Math.cos(ang) * (row === 0 ? 150 : 100);
+      var sx = W / 2 + Math.cos(ang) * (row === 0 ? 150 : 100) * WS;
       var sy = 40 + row * 34 + Math.sin(ang) * 26;
       var r = row === 0 ? (i % 2 === 0 ? 0 : 2) : 1;
       swarm.push({ sx: sx, sy: sy, x: sx, y: -20 - i * 6, r: r, alive: true, hp: 1, maxHp: 1, state: 'enter', t: i * 4, pair: -1, wob: Math.random() * 6.28, blink: Math.random() * 200, carrier: Math.random() < 0.08 });
@@ -284,7 +293,7 @@
     score = 0; lives = 3; wave = 1; frame = 0; bannerT = 0; bannerText = ''; bannerColor = CYAN; mode = 'intro'; introT = 0; musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '3';
-    player = { x: W / 2, y: 288, w: 22, h: 18 };
+    player = { x: W / 2, y: PLAYER_Y, w: 22, h: 18 };
     bullets = []; ebullets = []; particles = []; ufo = null; rings = []; muzzle = 0; recoil = 0;
     drops = []; divers = []; minis = []; boss = null; spreadT = 0; rapidT = 0; pierceT = 0; doubleT = 0; shieldHp = 0; diverT = 0; popups = [];
     streak = 0; bestStreak = 0; shots = 0; hits = 0; shake = 0; flashT = 0; kills = 0;
@@ -1143,24 +1152,24 @@
     // Tile floor: the station tray in perspective, grout lines converging.
     // It reads cleaner the more waves you have scrubbed.
     ctx.fillStyle = 'rgb(' + Math.round(12 + cl * 18) + ',' + Math.round(18 + cl * 26) + ',' + Math.round(32 + cl * 30) + ')';
-    ctx.fillRect(0, 258, W, H - 258);
+    ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
     if (cl > 0.3) {
       ctx.fillStyle = 'rgba(255,255,255,' + ((cl - 0.3) * 0.08).toFixed(3) + ')';
-      ctx.fillRect(0, 258, W, 3);
+      ctx.fillRect(0, FLOOR_Y, W, 3);
     }
     ctx.strokeStyle = 'rgba(255,255,255,' + (0.06 + cl * 0.12).toFixed(2) + ')';
     ctx.lineWidth = 1;
-    for (var k = 0; k <= 8; k++) {
+    for (var k = 0; k <= Math.ceil(W / 50); k++) {
       var xTop = k * 50, xBot = W / 2 + (k * 50 - W / 2) * 1.5;
-      ctx.beginPath(); ctx.moveTo(xTop, 258); ctx.lineTo(xBot, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xTop, FLOOR_Y); ctx.lineTo(xBot, H); ctx.stroke();
     }
-    var rows = [258, 266, 278, 296, H];
+    var rows = [FLOOR_Y, FLOOR_Y + 8, FLOOR_Y + 20, FLOOR_Y + 38, H];
     for (var r = 0; r < rows.length; r++) { ctx.beginPath(); ctx.moveTo(0, rows[r]); ctx.lineTo(W, rows[r]); ctx.stroke(); }
     // Station lights along the tray edge
-    for (var l = 0; l < 6; l++) {
+    for (var l = 0; l < Math.ceil(W / 72); l++) {
       var on = Math.floor(frame / 20 + l) % 6 === 0;
       ctx.fillStyle = on ? LIME : 'rgba(127,255,0,0.2)';
-      ctx.fillRect(20 + l * 72, 260, 4, 2);
+      ctx.fillRect(20 + l * 72, FLOOR_Y + 2, 4, 2);
     }
   }
 
@@ -1437,11 +1446,11 @@
 
   function drawHud() {
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + (PHONE ? 12 : 10) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SCORE: ' + score, 8, 12);
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
+    ctx.fillText('BEST: ' + Math.max(best, score), PHONE ? 120 : 100, 12);
     // Wave counter flips like a station display when the wave changes
     ctx.textAlign = 'right';
     ctx.fillStyle = YELLOW;
@@ -1492,26 +1501,29 @@
       ctx.fillRect(tx, 26, 50 * timers[t][1], 3);
     }
     // Beam heat, bottom left, with the UV badge beside it
+    // Beam heat: bottom-left on desktop, up under the score on a phone (the d-pad lives there).
+    var beamY = PHONE ? 30 : H - 40, beamX = PHONE ? 8 : 8;
     ctx.textAlign = 'left';
-    ctx.font = 'bold 7px monospace';
+    ctx.font = 'bold ' + (PHONE ? 9 : 7) + 'px monospace';
     ctx.fillStyle = overheat ? '#ff5050' : 'rgba(255,255,255,0.6)';
-    ctx.fillText(overheat ? 'BEAM HOT' : 'BEAM', 8, H - 40);
+    ctx.fillText(overheat ? 'BEAM HOT' : 'BEAM', beamX, beamY);
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(34, H - 45, 40, 4);
+    ctx.fillRect(beamX + (PHONE ? 58 : 26), beamY - 5, 40, 4);
     ctx.fillStyle = overheat ? '#ff5050' : beamHeat > 100 ? YELLOW : CYAN;
-    ctx.fillRect(34, H - 45, 40 * (beamHeat / 150), 4);
+    ctx.fillRect(beamX + (PHONE ? 58 : 26), beamY - 5, 40 * (beamHeat / 150), 4);
     ctx.fillStyle = uvReady ? 'rgba(199,166,255,0.9)' : 'rgba(255,255,255,0.15)';
     ctx.fillRect(UV_BOX.x, UV_BOX.y, UV_BOX.w, UV_BOX.h);
     ctx.fillStyle = uvReady ? '#1a0a2e' : 'rgba(255,255,255,0.35)';
-    ctx.font = 'bold 7px monospace';
+    ctx.font = 'bold ' + (PHONE ? 8 : 7) + 'px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(uvReady ? 'UV READY' : 'UV USED', UV_BOX.x + UV_BOX.w / 2, UV_BOX.y + 10);
-    // Lives as little machines
+    ctx.fillText(uvReady ? 'UV READY' : 'UV USED', UV_BOX.x + UV_BOX.w / 2, UV_BOX.y + (PHONE ? 11 : 10));
+    // Lives as little machines: bottom-right on desktop, under the wave on a phone (the A button lives there).
+    var lifeY = PHONE ? 40 : H - 10;
     for (var l = 0; l < lives; l++) {
       ctx.fillStyle = PURPLE;
-      ctx.fillRect(W - 20 - l * 10, H - 10, 6, 6);
+      ctx.fillRect(W - 20 - l * 10, lifeY, 6, 6);
       ctx.fillStyle = '#ddd';
-      ctx.fillRect(W - 18 - l * 10, H - 13, 2, 3);
+      ctx.fillRect(W - 18 - l * 10, lifeY - 3, 2, 3);
     }
   }
 
@@ -1782,6 +1794,33 @@
       rafId = requestAnimationFrame(loop);
     }
   }
+  // A phone held upright: the game plays sideways, full screen. The shell
+  // reloads the cartridge when the phone turns, so nothing needs keeping.
+  function drawPortraitCard() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx.fillRect(0, 0, W, H);
+    var rock = Math.sin(frame * 0.08) * 0.35;
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(rock);
+    ctx.fillStyle = '#ece9d8';
+    ctx.fillRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#060a14';
+    ctx.fillRect(-13, -22, 26, 42);
+    ctx.fillStyle = PINK;
+    ctx.fillRect(-6, 24, 12, 2);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW;
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 26);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '10px monospace';
+    ctx.fillText('Sterile! plays sideways, full screen', W / 2, H / 2 + 44);
+    ctx.restore();
+  }
+
   function loop(t) {
     if (!window.skateRunning) { rafId = null; return; }
     if (!lastT) lastT = t;
@@ -1789,11 +1828,12 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play') { if (!PORTRAIT) update(); }
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > INTRO_LOOP_END) introT = 70; }
       acc -= 16.67;
     }
     draw();
+    if (PORTRAIT) drawPortraitCard();
     } catch (err) {
       window.__arcadeError = String((err && err.stack) || err);
       acc = 0;

@@ -2,7 +2,15 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // The shell hands phones a wider view (400 to 720 logical, always 320 tall);
+  // desktop and the harness get nothing and stay at 400.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var FS = PHONE ? 1.25 : 1; // phone HUD text runs a touch larger
+  // On a phone the shell floats a d-pad and an A button in the bottom corners
+  // (about 120 logical each), so the sheet keeps to the middle band.
+  var SHEET_MARGIN = (PHONE && !PORTRAIT) ? 124 : 8;
 
   // SFX
   var sfxCtx;
@@ -151,11 +159,18 @@
   // matches anything and takes its partner too, bad = a botched tattoo that
   // costs time, freeze = stops the clock, double = twice the points for a
   // while, scramble = the rival forgets everything it has seen.
+  // Card width: the classic sizes on a 400 screen, bigger when a wider view
+  // has the room, never past the band the corners leave free.
+  function cardWidthFor(cols) {
+    var cap = W > 400 ? (cols === 4 ? 100 : cols === 5 ? 84 : 68) : (cols === 4 ? 82 : cols === 5 ? 68 : 56);
+    var fit = Math.floor((W - 2 * SHEET_MARGIN - (cols - 1) * GAP) / cols);
+    return Math.max(40, Math.min(cap, fit));
+  }
   function layoutFor(lvl, m) {
-    if (m === 'order') return { cols: lvl <= 4 ? 4 : 6, rows: 3, cw: lvl <= 4 ? 82 : 56 };
-    if (m === 'trace') return { cols: 4, rows: 3, cw: 82 };
+    if (m === 'order') { var oc = lvl <= 4 ? 4 : 6; return { cols: oc, rows: 3, cw: cardWidthFor(oc) }; }
+    if (m === 'trace') return { cols: 4, rows: 3, cw: cardWidthFor(4) };
     var cols = lvl <= 2 ? 4 : lvl <= 4 ? 5 : 6;
-    return { cols: cols, rows: 4, cw: cols === 4 ? 82 : cols === 5 ? 68 : 56 };
+    return { cols: cols, rows: 4, cw: cardWidthFor(cols) };
   }
   function specialsFor(lvl, m) {
     if (m !== 'classic') return [];
@@ -1054,7 +1069,7 @@
   function drawDoodle(id, x, y, w, h) {
     var g = SPRITES[id];
     if (!g) return;
-    var px = w < 60 ? 2.5 : 3;
+    var px = w < 60 ? 2.5 : w >= 96 ? 3.5 : 3;
     var ox = x + (w - 16 * px) / 2, oy = y + (h - 12 * px) / 2;
     for (var r = 0; r < g.length; r++) {
       for (var c = 0; c < g[r].length; c++) {
@@ -1399,7 +1414,7 @@
     drawTable(0);
     var ids = ['heart', 'swallow', 'crown', 'rose'];
     for (var i = 0; i < 4; i++) {
-      var fx2 = 44 + i * 82, fy2 = 150;
+      var fx2 = W / 2 - 164 + i * 82, fy2 = 150;
       var flipT2 = Math.max(0, Math.min(1, (t2 - 16 - i * 14) / 18));
       var wq = 70 * Math.abs(flipT2 < 0.5 ? 1 - flipT2 * 2 : flipT2 * 2 - 1);
       var open2 = flipT2 >= 0.5;
@@ -1457,8 +1472,29 @@
     ctx.fillRect(0, 0, W, H);
   }
 
+  // Portrait phone: the run holds and the card asks for landscape (the shell
+  // reloads the cartridge when the phone turns, so nothing is kept here).
+  function drawTurnCard() {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(Math.sin(frame * 0.05) * 0.5 - 0.5);
+    ctx.fillStyle = '#111'; ctx.fillRect(-16, -28, 32, 56);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#2a6ee8'; ctx.fillRect(-12, -22, 24, 42);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-3, 22, 6, 2);
+    ctx.restore();
+    ctx.lineWidth = 1;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW; ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+    ctx.fillText('Flash Match plays sideways, full screen', W / 2, H / 2 + 54);
+  }
+
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnCard(); return; }
     var tr2 = Math.max(0, timer / timerMax);
     var nervous = tr2 < 0.25 && mode === 'play' && freezeT === 0;
     ctx.save();
@@ -1523,18 +1559,18 @@
     var barShake = nervous ? Math.sin(frame * 1.3) * 1.2 : 0;
     ctx.fillRect(8, 32 + barShake, (W - 62) * tr2, 5);
     var secs = Math.max(0, Math.ceil(timer / 60));
-    ctx.font = 'bold 11px monospace';
+    ctx.font = 'bold ' + Math.round(11 * FS) + 'px monospace';
     ctx.textAlign = 'right';
     ctx.fillStyle = freezeT > 0 ? '#bff' : nervous ? (Math.floor(frame / 6) % 2 === 0 ? RED : '#fff') : '#fff';
     ctx.fillText(freezeT > 0 ? 'FROZEN' : (Math.floor(secs / 60) + ':' + (secs % 60 < 10 ? '0' : '') + (secs % 60)), W - 8 + (nervous ? (Math.random() - 0.5) * 2 : 0), 39);
 
     // HUD
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillText('SCORE: ' + score, 8, 14);
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, wall.best(), score), 110, 14);
+    ctx.fillText('BEST: ' + Math.max(best, wall.best(), score), Math.round(110 * FS), 14);
     ctx.fillStyle = LIME;
     ctx.textAlign = 'right';
     ctx.fillText('SESSION ' + level + ' // ' + MODE_NAME[sm], W - 8, 14);
@@ -1543,7 +1579,7 @@
       : sm === 'trace' ? ('ROUND ' + tr.round + '/' + tr.rounds + ' // LEN ' + tr.seq.length)
       : (remainingPairs() + ' PAIRS LEFT' + (sm === 'speed' && sp.chain > 1 ? ' // CHAIN x' + sp.chain : ''));
     ctx.fillText(sub, W - 8, 25);
-    if (doubleT > 0) { ctx.fillStyle = YELLOW; ctx.textAlign = 'left'; ctx.fillText('x2 INK ' + Math.ceil(doubleT / 60), 200, 14); }
+    if (doubleT > 0) { ctx.fillStyle = YELLOW; ctx.textAlign = 'left'; ctx.fillText('x2 INK ' + Math.ceil(doubleT / 60), Math.round(200 * FS), 14); }
     if (streak > 1) {
       var m = mult();
       ctx.fillStyle = m >= 5 ? PINK : YELLOW;
@@ -1573,6 +1609,7 @@
     }
     drawRules();
     ctx.restore();
+    if (PORTRAIT && mode === 'play') drawTurnCard();
 
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
@@ -1593,7 +1630,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play') { if (PORTRAIT) frame++; else update(); }
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > ATTRACT_END) introT = 70; }
       acc -= 16.67;
     }

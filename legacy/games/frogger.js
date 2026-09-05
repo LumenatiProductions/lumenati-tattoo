@@ -2,7 +2,13 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // The shell hands phones a wider screen (400 to 720 logical at 320 tall);
+  // desktop and the harness get nothing and stay at 400.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var WS = W / 400;           // how much wider than the cabinet
+  var FS = PHONE ? 1.25 : 1;  // phone HUD text runs a touch larger
 
   // SFX
   var sfxCtx;
@@ -85,10 +91,12 @@
   // The board: ten rows of 32px, twelve columns with an 8px margin each side.
   // Rows top to bottom: 0 shop (the chairs), 1-2 the ink river (ride the
   // stools, carts and rugs), 3 the stoop, 4-8 traffic, 9 the start sidewalk.
-  var CELL = 32, COLS = 12, X0 = 8;
+  var CELL = 32, COLS = Math.floor((W - 16) / CELL), X0 = Math.floor((W - COLS * CELL) / 2);
   var ROW_Y = [0, 32, 64, 96, 128, 160, 192, 224, 256, 288];
   var SHOP_ROW = 0, RIVER_ROWS = [1, 2], STOOP_ROW = 3, START_ROW = 9;
-  var CHAIR_COLS = [1, 4, 7, 10];
+  // Four chairs centered on the board: 1, 4, 7, 10 on the twelve-column cabinet.
+  var MID_COL = Math.floor(COLS / 2);
+  var CHAIR_COLS = [MID_COL - 5, MID_COL - 2, MID_COL + 1, MID_COL + 4];
   var LANE_ROWS = [4, 5, 6, 7, 8];
   var LANE_DIRS = { 4: 1, 5: -1, 6: 1, 7: -1, 8: 1 };
   var CAR_COLORS = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22'];
@@ -179,6 +187,7 @@
       if (wave >= 5 && d.kind === 'car') n++;
       if (isRush(wave)) n++;
       n = Math.min(d.kind === 'bus' ? 3 : 5, n);
+      n = Math.max(1, Math.round(n * WS)); // a wider street carries more traffic at the same spacing
       var cars = [];
       var spacing = (W + d.w + 60) / n;
       for (var j = 0; j < n; j++) {
@@ -212,7 +221,7 @@
     // next one to reach inside a second.
     var slow = 0.45 + Math.min(4, wave - 2) * 0.06, fast = 0.6 + Math.min(4, wave - 2) * 0.07;
     var carts = [];
-    var nCarts = wave === 2 ? 4 : 3;
+    var nCarts = Math.round((wave === 2 ? 4 : 3) * WS);
     var cw = wave === 2 ? 96 : 80, rw = wave === 2 ? 136 : 120;
     var sp2 = (W + 120) / (nCarts + 1);
     for (var j = 0; j < nCarts; j++) carts.push({ x: j * sp2 + Math.random() * 12, w: cw, kind: 'cart' });
@@ -220,7 +229,7 @@
     river.push({ row: 2, dir: -1, speed: slow, items: carts });
     if (riverSet[1]) {
       var stools = [];
-      var nStools = wave >= 6 ? 5 : 6;
+      var nStools = Math.round((wave >= 6 ? 5 : 6) * WS);
       var sw = wave >= 6 ? 48 : 56;
       var sp1 = (W + 60) / nStools;
       for (var i = 0; i < nStools; i++) stools.push({ x: i * sp1 + Math.random() * 10, w: sw, kind: 'stool' });
@@ -238,11 +247,12 @@
 
   function makeCrowd() {
     crowd = [];
-    for (var i = 0; i < 7; i++) crowd.push({ x: X0 + 14 + i * 56 + Math.random() * 12, top: CAR_COLORS[(i * 3) % CAR_COLORS.length], skin: i % 3 === 0 ? '#e8b892' : i % 3 === 1 ? '#f0c8a0' : '#c98a5a', ph: Math.random() * 6 });
+    var nCrowd = Math.round(7 * WS), crowdGap = (COLS * CELL - 28) / nCrowd;
+    for (var i = 0; i < nCrowd; i++) crowd.push({ x: X0 + 14 + i * crowdGap + Math.random() * 12, top: CAR_COLORS[(i * 3) % CAR_COLORS.length], skin: i % 3 === 0 ? '#e8b892' : i % 3 === 1 ? '#f0c8a0' : '#c98a5a', ph: Math.random() * 6 });
   }
 
   function resetPlayer() {
-    var startCol = 5;
+    var startCol = MID_COL - 1;
     player = { x: cx(startCol), row: START_ROW, fx: cx(startCol), fy: ROW_Y[START_ROW] + CELL / 2, fromX: 0, fromY: 0, face: 0, char: CHAR_ORDER[charIdx % CHAR_ORDER.length], slip: null };
     hopT = 0;
     bestRow = START_ROW;
@@ -599,6 +609,7 @@
     KeyW: [0,-1], KeyS: [0,1], KeyA: [-1,0], KeyD: [1,0]
   };
   document.addEventListener('keydown', function(e) {
+    if (PORTRAIT) return; // the run is held under the turn-your-phone card
     if (!window.skateRunning) return;
     var k = KEYS[e.code];
     if (k) {
@@ -619,6 +630,7 @@
   }
   canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
+    if (PORTRAIT) return;
     if (mode !== 'play') { start(); return; }
     var r = canvas.getBoundingClientRect();
     tapHop((e.touches[0].clientX - r.left) * (W / r.width), (e.touches[0].clientY - r.top) * (H / r.height));
@@ -1229,8 +1241,34 @@
     ctx.fillRect(300, ROW_Y[6], 40, 64);
   }
 
+  // A phone held upright: the game plays sideways, so the run holds under a card.
+  function drawTurnCard() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    var rock = Math.sin(frame * 0.08) * 0.35;
+    ctx.translate(W / 2, 128);
+    ctx.rotate(rock);
+    ctx.fillStyle = '#ece9d8';
+    ctx.fillRect(-22, -38, 44, 76);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-17, -30, 34, 58);
+    ctx.fillStyle = PINK;
+    ctx.fillRect(-4, 31, 8, 3);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW;
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, 200);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '10px monospace';
+    ctx.fillText('Walk-In plays sideways, full screen', W / 2, 222);
+    ctx.restore();
+  }
+
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnCard(); return; }
     var night = nightOf(wave);
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
@@ -1326,26 +1364,26 @@
 
     // HUD
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, 0, W, 16);
+    ctx.fillRect(0, 0, W, 16 * FS);
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('SCORE: ' + score, 8, 12);
+    ctx.fillText('SCORE: ' + score, 8, 12 * FS);
     ctx.fillStyle = '#9aa';
-    ctx.fillText('BEST: ' + Math.max(best, score), 100, 12);
+    ctx.fillText('BEST: ' + Math.max(best, score), 100 * FS, 12 * FS);
     ctx.textAlign = 'right';
     if (bonus) {
       ctx.fillStyle = YELLOW;
-      ctx.fillText('TIP RUN ' + Math.ceil(bonus.t / 60) + 's', W - 8, 12);
+      ctx.fillText('TIP RUN ' + Math.ceil(bonus.t / 60) + 's', W - 8, 12 * FS);
     } else {
       ctx.fillStyle = isRush(wave) ? ORANGE : YELLOW;
-      ctx.fillText((isRush(wave) ? 'RUSH ' : '') + 'NIGHT ' + wave, W - 8, 12);
+      ctx.fillText((isRush(wave) ? 'RUSH ' : '') + 'NIGHT ' + wave, W - 8, 12 * FS);
     }
     // Who is walking in, and the chair that wants them
     if (mode === 'play') {
       ctx.textAlign = 'left';
       ctx.fillStyle = LIME;
-      ctx.font = 'bold 8px monospace';
+      ctx.font = 'bold ' + Math.round(8 * FS) + 'px monospace';
       var wantsMe = null;
       for (var c2 = 0; c2 < chairs.length; c2++) if (!chairs[c2].filled && chairs[c2].want === player.char) wantsMe = chairs[c2];
       ctx.fillText('NOW: ' + who().name + (wantsMe ? '  //  CHAIR ' + (CHAIR_COLS.indexOf(wantsMe.col) + 1) + ' WANTS YOU' : (bonus ? '' : '  //  ANY OPEN CHAIR')), 8, 42);
@@ -1353,10 +1391,10 @@
     if (streak > 0 && mode === 'play') {
       ctx.textAlign = 'right';
       ctx.fillStyle = mult() >= 4 ? PINK : YELLOW;
-      ctx.font = 'bold 10px monospace';
+      ctx.font = 'bold ' + Math.round(10 * FS) + 'px monospace';
       ctx.fillText('STREAK ' + fmtMult(), W - 8, 44);
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '7px monospace';
+      ctx.font = Math.round(7 * FS) + 'px monospace';
       ctx.fillText(streak + ' CHAIR' + (streak === 1 ? '' : 'S') + ' IN A ROW', W - 8, 53);
     }
     // Client patience: the walk-in walks if you dawdle
@@ -1416,6 +1454,7 @@
 
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
+    if (PORTRAIT) drawTurnCard();
   }
 
   // ── The shop wall: the shared leaderboard (public/arcade-board.js) ──
@@ -1556,7 +1595,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play') { if (PORTRAIT) frame++; else update(); }
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 540) introT = 70; }
       acc -= 16.67;
     }

@@ -151,6 +151,20 @@
         var kids = [].slice.call(right.children);
         kids[0].style.cssText += "width:46px;height:46px;border-radius:50%;background:rgba(20,20,20,0.55);";
         kids[1].style.cssText += "width:104px;height:104px;border-radius:50%;font-size:28px;";
+        // The pad shows itself for a few seconds, then fades to a ghost that
+        // brightens under a thumb. Everyone knows where the buttons are.
+        if (!padRow.__fade) {
+          padRow.__fade = true;
+          dp.style.transition = "opacity .4s"; right.style.transition = "opacity .4s";
+          var fadeT = null;
+          var ghost = function () { dp.style.opacity = "0.16"; right.style.opacity = "0.2"; };
+          var wake = function () {
+            dp.style.opacity = "0.55"; right.style.opacity = "0.62";
+            clearTimeout(fadeT); fadeT = setTimeout(ghost, 1600);
+          };
+          fadeT = setTimeout(ghost, 3500);
+          padRow.addEventListener("touchstart", wake, { passive: true, capture: true });
+        }
         try { window.dispatchEvent(new Event("resize")); } catch (e) {}
         return;
       }

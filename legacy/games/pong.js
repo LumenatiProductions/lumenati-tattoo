@@ -2,7 +2,14 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // The shell sets __ARCADE_VIEW__ on phones: a wider logical screen in
+  // landscape (400 to 720), the same 320 tall. Desktop and the harness get 400.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  // A wider table means longer flights; the ball gets a touch quicker to match.
+  var SPEEDK = 1 + (W / 400 - 1) * 0.6;
+  var HUDK = PHONE ? 1.25 : 1;
 
   // SFX
   var sfxCtx;
@@ -167,7 +174,8 @@
     pickup = null; pickupCd = 240; fx = { big: 0, small: 0, freeze: 0 }; curveLeft = 0;
     stage = 'match'; bonus = null; phase = 1; replayT = 0; deuceMatch = false; cheerT = 0; groanT = 0; fxLog = []; tableIntroT = 150;
     crowd = [];
-    for (var i = 0; i < 12; i++) crowd.push({ x: 42 + i * 29 + (i % 2) * 6, hair: ['#222', '#8b4513', '#FF1493', '#ffd700', '#3a3a3a', '#7FFF00'][i % 6], skin: ['#f1c27d', '#c68642', '#8d5524', '#ffdbac'][i % 4], hat: i % 5 === 0, seed: Math.random() * 6 });
+    var crowdN = Math.round(12 * W / 400);
+    for (var i = 0; i < crowdN; i++) crowd.push({ x: 42 + i * ((W - 84) / (crowdN - 1)) + (i % 2) * 6, hair: ['#222', '#8b4513', '#FF1493', '#ffd700', '#3a3a3a', '#7FFF00'][i % 6], skin: ['#f1c27d', '#c68642', '#8d5524', '#ffdbac'][i % 4], hat: i % 5 === 0, seed: Math.random() * 6 });
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = '0';
     serve(Math.random() < 0.5 ? 1 : -1);
@@ -186,7 +194,7 @@
   }
   function serve(towards) {
     var a = (Math.random() * 0.6 - 0.3);
-    var sp = 4 + tier * 0.15;
+    var sp = (4 + tier * 0.15) * SPEEDK;
     balls = [newBall(W / 2, H / 2, towards * Math.cos(a) * sp, Math.sin(a) * sp)];
     serveT = 50;
     rally = 0;
@@ -316,7 +324,7 @@
     var n = bonus.fired;
     var y = 40 + Math.random() * (H - 80);
     var a = (Math.random() - 0.5) * 1.1;
-    var sp = 5 + n * 0.16;
+    var sp = (5 + n * 0.16) * SPEEDK;
     var b = newBall(W - 30, y, -Math.cos(a) * sp, Math.sin(a) * sp);
     balls = [b];
     bonus.fired++;
@@ -588,7 +596,7 @@
     addStain(ball.x, ball.y, 4);
     var rel = (ball.y - (py + ph / 2)) / (ph / 2);
     rel = Math.max(-1, Math.min(1, rel));
-    var cap = 8.2 + tier * 0.45 + (phase >= 3 ? 0.6 : 0);
+    var cap = (8.2 + tier * 0.45 + (phase >= 3 ? 0.6 : 0)) * SPEEDK;
     var sp = Math.min(cap, Math.hypot(ball.vx, ball.vy) * 1.06 + 0.1);
     var kind = '';
     if (mine) {
@@ -1009,8 +1017,31 @@
     ctx.globalAlpha = 1;
   }
 
+  // Phones play sideways: in portrait the run holds under a card until the
+  // phone turns (the shell reloads the cartridge on rotation).
+  function drawTurnCard() {
+    if (!PORTRAIT) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    var rock = Math.sin(frame * 0.08) * 0.35;
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(rock);
+    ctx.fillStyle = '#ece9d8'; ctx.fillRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#111'; ctx.fillRect(-12, -22, 24, 42);
+    ctx.fillStyle = PINK; ctx.fillRect(-3, 22, 6, 3);
+    ctx.restore();
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW; ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+    ctx.fillText('Needle Pong plays sideways, full screen', W / 2, H / 2 + 54);
+    ctx.restore();
+  }
+
   function draw() {
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); drawTurnCard(); return; }
     var opp = OPPONENTS[tier];
     var tb = table();
     ctx.save();
@@ -1172,10 +1203,10 @@
     ctx.globalAlpha = 1;
 
     // HUD
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold ' + Math.round(10 * HUDK) + 'px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = dispPts < pts ? YELLOW : '#fff';
-    ctx.fillText('PTS ' + withNum(dispPts), 8, 11);
+    ctx.fillText('PTS ' + withNum(dispPts), 8, 11 + (HUDK - 1) * 6);
     ctx.textAlign = 'center';
     ctx.fillStyle = opp.color;
     if (stage === 'bonus' && bonus) ctx.fillText('BALL MACHINE ' + bonus.returned + '/' + bonus.total + ' // ' + Math.ceil(Math.max(0, bonus.timer) / 60) + 's', W / 2, 11);
@@ -1240,6 +1271,7 @@
     }
     ctx.restore();
 
+    drawTurnCard();
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
   }
@@ -1259,7 +1291,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play' && !PORTRAIT) update();
       else { frame++; musicTick(); if (mode === 'intro' && ++introT > 525) introT = 70; }
       acc -= 16.67;
     }

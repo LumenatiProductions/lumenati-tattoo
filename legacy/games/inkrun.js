@@ -2,11 +2,16 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // Logical width comes from the shell on phones (400 to 720 in landscape);
+  // the harness and the desktop stay at 400. Height is always 320.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var WS = W / 400; // how much wider than the cabinet: lanes, the runner and the props grow with it
   // Modern render path: the canvas holds 2x pixels, every draw() scales the
-  // logical 400x320 space up, so game math and the wall module stay as is.
+  // logical W x 320 space up, so game math and the wall module stay as is.
   var HIRES = false;
-  try { if (canvas.width !== 800) { canvas.width = 800; canvas.height = 640; } HIRES = canvas.width === 800; } catch (e) {}
+  try { if (canvas.width !== W * 2) { canvas.width = W * 2; canvas.height = 640; } HIRES = canvas.width === W * 2; } catch (e) {}
   function offscreen(w, h) {
     try { var c = document.createElement('canvas'); if (!c || typeof c.getContext !== 'function') return null; c.width = w; c.height = h; var x = c.getContext('2d'); return x ? { c: c, x: x } : null; } catch (e) { return null; }
   }
@@ -100,7 +105,7 @@
   var HOR = 108;          // horizon line
   var FLOOR_Y = 292;      // where the player's feet sit
   var NEAR = 5.5;         // camera depth; bigger = flatter perspective
-  var LANE_W = 96;        // lane width in px at the player
+  var LANE_W = 96 * WS;   // lane width in px at the player (wider screens get wider lanes)
   var Z_FAR = 64;         // spawn distance in track units
   function scaleAt(z) { return NEAR / (z + NEAR); }
   function yAt(z) { return HOR + (FLOOR_Y - HOR) * scaleAt(z); }
@@ -673,8 +678,8 @@
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       for (var i = 0; i < stars.length; i++) { if ((frame + i * 7) % 90 < 80) ctx.fillRect(stars[i].x, stars[i].y, stars[i].s, stars[i].s); }
       // the moon, with a real halo
-      ctx.save(); glow('rgba(220,230,255,0.9)', 22); ctx.fillStyle = '#e8eefc'; ctx.beginPath(); ctx.arc(318, 36, 12, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.fillStyle = 'rgba(200,210,230,0.35)'; ctx.beginPath(); ctx.arc(322, 33, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(313, 40, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); glow('rgba(220,230,255,0.9)', 22); ctx.fillStyle = '#e8eefc'; ctx.beginPath(); ctx.arc(W - 82, 36, 12, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.fillStyle = 'rgba(200,210,230,0.35)'; ctx.beginPath(); ctx.arc(W - 78, 33, 3, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(W - 87, 40, 2, 0, Math.PI * 2); ctx.fill();
     }
     var layers = layersFor(zd);
     if (layers) {
@@ -701,8 +706,8 @@
     // light shafts in the shop: slow diagonal beams from the ceiling lights
     if (zd.name === 'THE SHOP FLOOR') {
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      for (var s = 0; s < 3; s++) {
-        var sx = 60 + s * 140 + Math.sin(frame * 0.01 + s) * 8;
+      for (var s = 0; s < Math.round(3 * WS); s++) {
+        var sx = (60 + s * 140) + Math.sin(frame * 0.01 + s) * 8;
         var sg = ctx.createLinearGradient(sx, 0, sx + 30, HOR + 60);
         sg.addColorStop(0, 'rgba(255,120,200,0.07)'); sg.addColorStop(1, 'rgba(255,120,200,0)');
         ctx.fillStyle = sg; ctx.beginPath(); ctx.moveTo(sx - 10, 0); ctx.lineTo(sx + 26, 0); ctx.lineTo(sx + 90, HOR + 70); ctx.lineTo(sx - 40, HOR + 70); ctx.closePath(); ctx.fill();
@@ -771,7 +776,7 @@
     if (s < 0.1) return;
     setFog(p.z, zd);
     var x = xAt(p.side * 1.95, p.z), y = yAt(p.z);
-    var u = 60 * s;
+    var u = 60 * s * WS;
     var k = p.kind;
     ctx.globalAlpha = Math.min(0.7, s * 2.2);
     softShadow(x, y, u * 0.6, u * 0.16, 0.3);
@@ -828,7 +833,7 @@
     if (s < 0.06) return;
     setFog(ob.z, zd);
     FOG *= 0.6; // hazards stay readable further out than scenery
-    var y = yAt(ob.z), u = 80 * s;
+    var y = yAt(ob.z), u = 80 * s * WS;
     var x = xAt(ob.lane, ob.z);
     var c = CLS[ob.type] || CLS.low;
     ctx.globalAlpha = Math.min(1, s * 5);
@@ -969,6 +974,10 @@
   // The runner, from behind: an 8-frame cycle sampled from a continuous phase,
   // shaded shapes, a cap, the machine cord trailing, folds in the tee.
   function drawRunner() {
+    if (WS !== 1) { ctx.save(); ctx.translate(xAt(player.x, 0), FLOOR_Y); ctx.scale(WS, WS); ctx.translate(-xAt(player.x, 0), -FLOOR_Y); drawRunnerAt(); ctx.restore(); }
+    else drawRunnerAt();
+  }
+  function drawRunnerAt() {
     var x = xAt(player.x, 0);
     var lift = player.h * 70;
     var sliding = player.slideT > 0;
@@ -1052,15 +1061,16 @@
   }
 
   // ── HUD: thin bars, glow numbers, the chain as a ring ──
+  var HT = PHONE ? 1.25 : 1; // HUD text scale on the small physical screen
   function drawHud(zd) {
     var hg = ctx.createLinearGradient(0, 0, 0, 44);
     hg.addColorStop(0, 'rgba(0,0,0,0.55)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = hg; ctx.fillRect(0, 0, W, 44);
     ctx.save(); glow('rgba(255,255,255,0.7)', 6);
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.round(15 * HT) + 'px monospace'; ctx.textAlign = 'left';
     ctx.fillText(String(score), 10, 20);
     ctx.restore();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '8px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = Math.round(8 * HT) + 'px monospace';
     ctx.fillText('BEST ' + Math.max(best, wall.best(), score), 10, 31);
     // lives: three pills
     for (var i = 0; i < 3; i++) {
@@ -1071,9 +1081,9 @@
     }
     // center: distance and zone
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = 'bold ' + Math.round(11 * HT) + 'px monospace';
     ctx.fillText(Math.round(dist) + 'm', W / 2, 16);
-    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = '7px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = Math.round(7 * HT) + 'px monospace';
     ctx.fillText(zd.name, W / 2, 27);
     // chain ring, top right
     var m = mult();
@@ -1089,7 +1099,7 @@
     ctx.fillStyle = m > 1 ? col : 'rgba(255,255,255,0.7)'; ctx.font = 'bold ' + (m > 1 ? 11 : 9) + 'px monospace'; ctx.textAlign = 'center';
     ctx.fillText('x' + m, cx, cy + 4);
     ctx.restore();
-    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = '7px monospace'; ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = Math.round(7 * HT) + 'px monospace'; ctx.textAlign = 'right';
     ctx.fillText('CHAIN ' + chain, W - 44, 25);
     // timed powers as thin bars under the ring
     var py = 44;
@@ -1116,8 +1126,27 @@
     }
   }
 
+  // Portrait on a phone: Ink Run plays sideways. The card sits over whatever
+  // is on screen and the run holds until the shell reloads in landscape.
+  function drawTurnCard() {
+    ctx.setTransform(HIRES ? 2 : 1, 0, 0, HIRES ? 2 : 1, 0, 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.78)'; ctx.fillRect(0, 0, W, H);
+    var rock = Math.sin(frame * 0.05) * 0.35 - 0.6;
+    ctx.save(); ctx.translate(W / 2, H / 2 - 30); ctx.rotate(rock);
+    ctx.fillStyle = '#e8eefc'; rrect(-16, -30, 32, 60, 6); ctx.fill();
+    ctx.fillStyle = '#0a0a14'; ctx.fillRect(-13, -24, 26, 46);
+    ctx.fillStyle = PINK; ctx.fillRect(-9, -14, 18, 3);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.save(); glow(PINK, 12); ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace'; ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34); ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '10px monospace'; ctx.fillText('Ink Run plays sideways, full screen', W / 2, H / 2 + 54);
+  }
   var blurBuf = null, blurTried = false, blurFresh = false;
   function draw() {
+    drawScene();
+    if (PHONE && PORTRAIT) drawTurnCard();
+  }
+  function drawScene() {
     ctx.setTransform(HIRES ? 2 : 1, 0, 0, HIRES ? 2 : 1, 0, 0);
     if (mode === 'intro') { drawIntro(); return; }
     var zd = zoneDef(zone);
@@ -1312,7 +1341,7 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') update();
+      if (mode === 'play' && !(PHONE && PORTRAIT)) update();
       else { frame++; musicTick(); if (shake > 0) shake *= 0.85; if (mode === 'intro' && ++introT > 540) introT = 70; }
       acc -= 16.67;
     }
