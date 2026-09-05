@@ -142,15 +142,16 @@
         if (strip && strip !== padRow) strip.style.display = "none";
         canvas.style.boxShadow = "none";
         padRow.style.cssText = "position:absolute;left:0;right:0;top:0;bottom:0;display:block;pointer-events:none;z-index:6;";
-        dp.style.cssText = "position:absolute;left:14px;bottom:14px;width:174px;height:174px;pointer-events:auto;opacity:0.62;";
-        right.style.cssText = "position:absolute;right:14px;bottom:18px;display:flex;align-items:flex-end;gap:16px;pointer-events:auto;opacity:0.7;";
-        [].slice.call(dp.children).forEach(function (b) { if (b !== mid) { b.style.width = "58px"; b.style.height = "58px"; b.style.background = "rgba(20,20,20,0.55)"; b.style.borderColor = "rgba(255,255,255,0.35)"; } });
-        var pos = [["58px", "0"], ["58px", "116px"], ["0", "58px"], ["116px", "58px"]]; // up, down, left, right
+        // Sized like a phone game's, not a cabinet's: 40px keys, a 64px A.
+        dp.style.cssText = "position:absolute;left:12px;bottom:12px;width:120px;height:120px;pointer-events:auto;opacity:0.62;";
+        right.style.cssText = "position:absolute;right:12px;bottom:14px;display:flex;align-items:flex-end;gap:12px;pointer-events:auto;opacity:0.7;";
+        [].slice.call(dp.children).forEach(function (b) { if (b !== mid) { b.style.width = "40px"; b.style.height = "40px"; b.style.fontSize = "12px"; b.style.borderRadius = "8px"; b.style.background = "rgba(20,20,20,0.55)"; b.style.borderColor = "rgba(255,255,255,0.35)"; } });
+        var pos = [["40px", "0"], ["40px", "80px"], ["0", "40px"], ["80px", "40px"]]; // up, down, left, right
         [].slice.call(dp.children).filter(function (b) { return b !== mid; }).forEach(function (b, i) { b.style.left = pos[i][0]; b.style.top = pos[i][1]; });
-        mid.style.cssText = "position:absolute;left:58px;top:58px;width:58px;height:58px;background:rgba(0,0,0,0.25);border-radius:8px;";
+        mid.style.cssText = "position:absolute;left:40px;top:40px;width:40px;height:40px;background:rgba(0,0,0,0.25);border-radius:6px;";
         var kids = [].slice.call(right.children);
-        kids[0].style.cssText += "width:46px;height:46px;border-radius:50%;background:rgba(20,20,20,0.55);";
-        kids[1].style.cssText += "width:104px;height:104px;border-radius:50%;font-size:28px;";
+        kids[0].style.cssText += "width:34px;height:34px;border-radius:50%;font-size:13px;background:rgba(20,20,20,0.55);";
+        kids[1].style.cssText += "width:64px;height:64px;border-radius:50%;font-size:20px;";
         // The pad shows itself for a few seconds, then fades to a ghost that
         // brightens under a thumb. Everyone knows where the buttons are.
         if (!padRow.__fade) {
