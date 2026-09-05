@@ -369,7 +369,7 @@ export function ShopTv({
 
       {/* TV remote — bottom corner, isolated from the check-in tap. ARCADE
           switches the set over to the game cabinet (KioskArcade, in the layout). */}
-      <div className="absolute bottom-3 left-3 right-3 z-50 grid grid-cols-3 gap-2 sm:bottom-4 sm:left-auto sm:right-4 sm:flex sm:items-center">
+      <div className="absolute bottom-4 left-3 right-3 z-50 grid grid-cols-3 gap-2 sm:left-auto sm:right-4 sm:flex sm:items-center">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -380,7 +380,7 @@ export function ShopTv({
             }
             window.dispatchEvent(new Event(ARCADE_OPEN_EVENT));
           }}
-          className="f-pixel w-full rounded-lg border-2 border-pink-500/80 bg-black/70 px-2 py-3 text-center text-[10px] text-pink-400 hover:text-pink-200 sm:w-auto sm:px-5 sm:py-3.5 sm:text-sm"
+          className="f-pixel w-full rounded-lg border-2 border-pink-500/80 bg-black/70 px-3 py-2.5 text-center text-xs text-pink-400 hover:text-pink-200 sm:w-auto sm:px-5 sm:py-3.5 sm:text-sm"
         >
           ARCADE
         </button>
@@ -391,7 +391,7 @@ export function ShopTv({
               e.stopPropagation();
               setGuideOpen((g) => !g);
             }}
-            className={`f-pixel w-full rounded-lg border-2 bg-black/70 px-2 py-3 text-center text-[10px] sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm ${
+            className={`f-pixel w-full rounded-lg border-2 bg-black/70 px-3 py-2.5 text-center text-xs sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm ${
               guideOpen ? "border-yellow-300 text-yellow-200" : "border-yellow-300/70 text-yellow-300 hover:text-yellow-100"
             }`}
           >
@@ -399,19 +399,19 @@ export function ShopTv({
           </button>
           <button
             onClick={changeChannel(-1)}
-            className="f-pixel w-full rounded-lg border-2 border-cyan-300/70 bg-black/70 px-2 py-3 text-center text-[10px] text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
+            className="f-pixel w-full rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-center text-xs text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
           >
             CH ▼
           </button>
           <button
             onClick={changeChannel(1)}
-            className="f-pixel w-full rounded-lg border-2 border-cyan-300/70 bg-black/70 px-2 py-3 text-center text-[10px] text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
+            className="f-pixel w-full rounded-lg border-2 border-cyan-300/70 bg-black/70 px-3 py-2.5 text-center text-xs text-cyan-300 hover:text-cyan-100 sm:w-auto sm:px-4 sm:py-3.5 sm:text-sm"
           >
             CH ▲
           </button>
           <button
             onClick={toggleSound}
-            className={`f-pixel w-full rounded-lg border-2 px-2 py-3 text-center text-[10px] sm:w-auto sm:px-5 sm:py-3.5 sm:text-sm ${
+            className={`f-pixel w-full rounded-lg border-2 px-3 py-2.5 text-center text-xs sm:w-auto sm:px-5 sm:py-3.5 sm:text-sm ${
               soundOn
                 ? "border-lime-300/80 bg-black/70 text-lime-300"
                 : "border-white/30 bg-black/70 text-white/85 hover:text-white"
