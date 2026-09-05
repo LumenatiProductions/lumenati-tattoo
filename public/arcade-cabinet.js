@@ -122,7 +122,8 @@
     right.appendChild(padBtn("A", "Space", "position:static;width:88px;height:88px;border-radius:50%;font-size:24px;background:radial-gradient(circle at 35% 30%, #ff5fb0 0%, #FF1493 45%, #a10060 100%);border-color:#3a3a3a;"));
     padRow.appendChild(dp);
     padRow.appendChild(right);
-    col.style.position = "relative";
+    // The landscape overlay needs a positioned parent; never override fixed (the bench takeover).
+    if (getComputedStyle(col).position === "static") col.style.position = "relative";
     col.insertBefore(padRow, pad.nextSibling); // after the screen, before the status strip
     function layout() {
       var land = window.innerWidth > window.innerHeight;
@@ -257,7 +258,7 @@
     box.addEventListener("touchmove", blockPan, { passive: false });
 
     if (!isRoom) { buildPad(box); padRow.style.display = ""; }
-    if (!isRoom && titlebar && !closeBtn) {
+    if (!isRoom && titlebar && !closeBtn && !/\u2715/.test(titlebar.textContent || "")) {
       // The preview titlebar has no ✕ — give the takeover a way back out.
       closeBtn = document.createElement("span");
       closeBtn.textContent = "✕";
