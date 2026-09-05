@@ -6,6 +6,8 @@
   // the harness and the desktop stay at 400. Height is always 320.
   var VIEW = window.__ARCADE_VIEW__ || null;
   var W = (VIEW && VIEW.w) || 400, H = 320;
+  // Where the skater rests: 18 percent in, but on a phone clear of the floating d-pad in the corner.
+  var REST_X = (VIEW && VIEW.phone) ? Math.max(W * 0.18, 200) : W * 0.18;
   var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
   var WS = W / 400;
   function N(n) { return Math.ceil(n * WS); } // scene item counts scale with the width
@@ -229,7 +231,7 @@
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = String(MAX_LIVES);
-    player = { x: W * 0.18, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0, pushT: 0, popT: 0, bailT: 0 };
+    player = { x: REST_X, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0, pushT: 0, popT: 0, bailT: 0 };
     looseBoard = null;
     obstacles = []; collectibles = []; rails = []; particles = []; buildings = []; popups = [];
     for (var i = 0; i < N(10); i++) buildings.push(makeBuilding(i * 80));
@@ -863,7 +865,7 @@
     var cruise = Math.min(6.5, 2.4 + dist / 40000);
     var target = cruise + boost;
     if (boost > 0) boost = Math.max(0, boost - 0.0025);
-    player.x += ((W * 0.18 - (speed - 2.4) * 4) - player.x) * 0.04;
+    player.x += ((REST_X - (speed - 2.4) * 4) - player.x) * 0.04;
     var wx = scrollX + player.x + player.w / 2;
     groundSlope = slopeAt(wx);
     if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.3) speed += groundSlope * 0.05;
