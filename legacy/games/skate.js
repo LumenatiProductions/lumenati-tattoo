@@ -2,7 +2,14 @@
   var canvas = document.getElementById('jd-skate-canvas');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
-  var W = 400, H = 320;
+  // Logical width comes from the shell on phones (400 to 720 in landscape);
+  // the harness and the desktop stay at 400. Height is always 320.
+  var VIEW = window.__ARCADE_VIEW__ || null;
+  var W = (VIEW && VIEW.w) || 400, H = 320;
+  var PHONE = !!(VIEW && VIEW.phone), PORTRAIT = !!(VIEW && VIEW.portrait);
+  var WS = W / 400;
+  function N(n) { return Math.ceil(n * WS); } // scene item counts scale with the width
+  var FS = PHONE ? 1.25 : 1; // phone HUD text runs a touch larger
 
   // SFX
   var sfxCtx;
@@ -122,8 +129,8 @@
   var transT = 0, transCanvas = null, transCtx = null;
   try {
     transCanvas = document.createElement('canvas');
-    transCanvas.width = W;
-    transCanvas.height = H;
+    transCanvas.width = W * 2;
+    transCanvas.height = H * 2;
     transCtx = transCanvas.getContext ? transCanvas.getContext('2d') : null;
   } catch (e) { transCtx = null; }
   function musicTick() {
@@ -222,10 +229,10 @@
     musicStep = -1; musicFrame = 0;
     document.getElementById('jd-br-score').textContent = '0';
     document.getElementById('jd-br-lives').textContent = String(MAX_LIVES);
-    player = { x: 60, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0, pushT: 0, popT: 0, bailT: 0 };
+    player = { x: W * 0.18, y: GROUND_Y - 20, w: 20, h: 20, vy: 0, onGround: true, grinding: false, grindRail: null, invincible: 0, flipT: 0, heelT: 0, shoveT: 0, impT: 0, backT: 0, squash: 0, pushT: 0, popT: 0, bailT: 0 };
     looseBoard = null;
     obstacles = []; collectibles = []; rails = []; particles = []; buildings = []; popups = [];
-    for (var i = 0; i < 10; i++) buildings.push(makeBuilding(i * 80));
+    for (var i = 0; i < N(10); i++) buildings.push(makeBuilding(i * 80));
     spawnInitial();
     var hintEl = document.getElementById('jd-game-hint');
     if (hintEl) hintEl.textContent = ('ontouchstart' in window) ? 'TAP ollie // swipe + hold: spins, grabs // swipe down + hold on landing: manual' : 'SPACE ollie // hold UP at a lip // tap L/R flip, hold to spin // hold UP/DOWN grab // DOWN: manual';
@@ -767,7 +774,7 @@
   function sendArrow(type, code) {
     try { document.dispatchEvent(new KeyboardEvent(type, { code: code, key: code, bubbles: true })); } catch (err) {}
   }
-  var BOOK_BTN = { x: W - 74, y: H - 20, w: 68, h: 15 };
+  var BOOK_BTN = PHONE ? { x: W - 84, y: 50, w: 78, h: 18 } : { x: W - 74, y: H - 20, w: 68, h: 15 };
   function bookHit(clientX, clientY) {
     var r = canvas.getBoundingClientRect();
     var x = (clientX - r.left) * (W / r.width), y = (clientY - r.top) * (H / r.height);
@@ -856,7 +863,7 @@
     var cruise = Math.min(6.5, 2.4 + dist / 40000);
     var target = cruise + boost;
     if (boost > 0) boost = Math.max(0, boost - 0.0025);
-    player.x += ((76 - (speed - 2.4) * 4) - player.x) * 0.04;
+    player.x += ((W * 0.18 - (speed - 2.4) * 4) - player.x) * 0.04;
     var wx = scrollX + player.x + player.w / 2;
     groundSlope = slopeAt(wx);
     if (player.onGround && !player.grinding && Math.abs(groundSlope) < 0.3) speed += groundSlope * 0.05;
@@ -1526,6 +1533,14 @@
       return;
     }
     var t2 = t - 70;
+    // The title scene was built 400 wide: it sits centered, the sky spans the view.
+    var introGrad = ctx.createLinearGradient(0, 0, 0, H);
+    introGrad.addColorStop(0, '#1a0a2e'); introGrad.addColorStop(1, '#2d1b69');
+    ctx.fillStyle = introGrad; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#555'; ctx.fillRect(0, 232, W, 88);
+    ctx.save();
+    ctx.translate((W - 400) / 2, 0);
+    var W0 = W; W = 400;
     function slam(title, y, size, color) {
       ctx.textAlign = 'center';
       var tw = size * 0.68;
@@ -1550,7 +1565,7 @@
       ctx.fillStyle = 'rgba(46,38,72,0.6)';
       ctx.fillRect(x4, rmy2, 6, 232 - rmy2);
     }
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < N(8); i++) {
       var bx3 = i * 54 - 10, bh3 = 46 + (i * 37) % 60;
       ctx.fillStyle = 'rgba(30,26,56,0.9)';
       ctx.fillRect(bx3, 232 - bh3, 40, bh3);
@@ -1658,8 +1673,10 @@
       introSkater(sx3, sy3, rot3, pose3);
     }
     if (t2 > 145) { ctx.fillStyle = CYAN; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('HILLS. AIR. GRIND. FLIP. REPEAT.', W / 2, 156); }
+    W = W0;
+    ctx.restore();
     ctx.fillStyle = 'rgba(0,0,0,0.62)';
-    ctx.fillRect(0, H - 82, W, 82);
+    if (PHONE) ctx.fillRect(130, H - 82, W - 260, 82); else ctx.fillRect(0, H - 82, W, 82);
     ctx.fillStyle = '#cfd6dd';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
@@ -1696,9 +1713,9 @@
   var hiRes = false;
   function setupHiRes() {
     try {
-      if (canvas.width !== 800 && typeof ctx.setTransform === 'function') { canvas.width = 800; canvas.height = 640; }
-      if (transCanvas) { transCanvas.width = 800; transCanvas.height = 640; }
-      hiRes = canvas.width === 800;
+      if (canvas.width !== W * 2 && typeof ctx.setTransform === 'function') { canvas.width = W * 2; canvas.height = 640; }
+      if (transCanvas) { transCanvas.width = W * 2; transCanvas.height = 640; }
+      hiRes = canvas.width === W * 2;
     } catch (e) { hiRes = false; }
   }
   function frameTransform(c) {
@@ -1722,7 +1739,7 @@
 
   function draw() {
     frameTransform(ctx);
-    if (mode === 'intro') { drawIntro(); return; }
+    if (mode === 'intro') { drawIntro(); if (PORTRAIT) drawTurnCard(); return; }
     ctx.save();
     if (shake > 0.5) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
@@ -1736,7 +1753,7 @@
 
     if (sky.stars) {
       ctx.fillStyle = '#fff';
-      for (var i = 0; i < 30; i++) {
+      for (var i = 0; i < N(30); i++) {
         var sx = ((i * 137 + 50) % W + W) % W;
         var sy = ((i * 91 + 20) % (GY - 80));
         var twinkle = Math.sin(frame * 0.05 + i) > 0.5 ? 2 : 1;
@@ -1745,23 +1762,23 @@
     }
     if (sky.moon) {
       ctx.fillStyle = '#f4f0d8';
-      ctx.beginPath(); ctx.arc(340, 46, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W - 60, 46, 14, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = sky.top;
-      ctx.beginPath(); ctx.arc(345, 42, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W - 55, 42, 12, 0, Math.PI * 2); ctx.fill();
     }
     if (sky.sun) {
-      var sunGlow = ctx.createRadialGradient(340, sky.sunY, 6, 340, sky.sunY, 60);
+      var sunGlow = ctx.createRadialGradient(W - 60, sky.sunY, 6, W - 60, sky.sunY, 60);
       sunGlow.addColorStop(0, sky.sun);
       sunGlow.addColorStop(1, 'rgba(255,210,120,0)');
       ctx.fillStyle = sunGlow;
-      ctx.fillRect(280, sky.sunY - 60, 120, 120);
+      ctx.fillRect(W - 120, sky.sunY - 60, 120, 120);
       ctx.fillStyle = sky.sun;
-      ctx.beginPath(); ctx.arc(340, sky.sunY, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W - 60, sky.sunY, 13, 0, Math.PI * 2); ctx.fill();
     }
     if (!sky.stars) {
       // Slow clouds ride the daylight skies
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      for (var i = 0; i < 4; i++) {
+      for (var i = 0; i < N(4); i++) {
         var cx2 = ((i * 143 + 60 - scrollX * 0.06) % (W + 120) + W + 120) % (W + 120) - 60;
         var cy2 = 34 + i * 26;
         ctx.beginPath();
@@ -1781,7 +1798,7 @@
       }
       // Far skyline for depth
       ctx.fillStyle = 'rgba(20,16,34,0.5)';
-      for (var i = 0; i < 9; i++) {
+      for (var i = 0; i < N(9); i++) {
         var fx = ((i * 150 + 40 - scrollX * 0.12) % (W + 200) + W + 200) % (W + 200) - 100;
         var fh = 60 + ((i * 53) % 70);
         ctx.fillRect(fx, GY - fh - 26, 46 + (i * 31) % 40, fh + 26);
@@ -1789,7 +1806,7 @@
       // Denver landmarks ride the middle distance: the cash register
       // tower (with its DENVER rooftop sign), the D&F clocktower
       var lmBase = ((-scrollX * 0.2) % 420 + 420) % 420 - 100;
-      for (var rep2 = 0; rep2 < 3; rep2++) {
+      for (var rep2 = 0; rep2 < N(3); rep2++) {
         var lx = lmBase + rep2 * 420;
         ctx.fillStyle = '#4c4880';
         ctx.fillRect(lx, GY - 168, 48, 168);
@@ -1905,7 +1922,7 @@
       }
     } else if (sky.scene === 'redrocks') {
       // The amphitheatre monoliths: giant tilted sandstone slabs
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < N(5); i++) {
         var rx2 = ((i * 190 + 40 - scrollX * 0.18) % (W + 260) + W + 260) % (W + 260) - 130;
         var rh2 = 95 + (i * 43) % 45;
         ctx.fillStyle = i % 2 === 0 ? '#b0452a' : '#c1553a';
@@ -1923,14 +1940,14 @@
         ctx.lineTo(rx2, GY);
         ctx.fill();
       }
-      for (var i = 0; i < 6; i++) {
+      for (var i = 0; i < N(6); i++) {
         var sx2 = ((i * 160 + 90 - scrollX * 0.3) % (W + 80) + W + 80) % (W + 80) - 40;
         ctx.fillStyle = '#5a7040';
         ctx.beginPath(); ctx.ellipse(sx2, GY - 4, 9, 5, 0, 0, Math.PI * 2); ctx.fill();
       }
     } else if (sky.scene === 'rino') {
       // RiNo: warehouses, water tower, mural walls, the Lumenati block
-      for (var i = 0; i < 6; i++) {
+      for (var i = 0; i < N(6); i++) {
         var wx6 = ((i * 190 + 30 - scrollX * 0.14) % (W + 260) + W + 260) % (W + 260) - 130;
         ctx.fillStyle = i % 2 ? '#5a3a44' : '#4a3040';
         ctx.fillRect(wx6, GY - 70 - (i % 3) * 14, 120, 70 + (i % 3) * 14);
@@ -1943,7 +1960,7 @@
       ctx.fillStyle = '#e8e0d0'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.fillText('RiNo', wt + 25, GY - 160);
       // Murals: big flat color panels with shapes, the whole block painted
       var MUR = ['#FF1493', '#00FFFF', '#7FFF00', '#FFD700', '#B026FF', '#FF6347'];
-      for (var mi = 0; mi < 7; mi++) {
+      for (var mi = 0; mi < N(7); mi++) {
         var mx = ((mi * 160 + 20 - scrollX * 0.3) % (W + 200) + W + 200) % (W + 200) - 100;
         ctx.fillStyle = '#2a1a24';
         ctx.fillRect(mx, GY - 56, 130, 56);
@@ -1980,7 +1997,7 @@
       // Clear Creek under a truss bridge, the water sliding by
       ctx.fillStyle = '#3f86c4'; ctx.fillRect(-8, GY - 14, W + 16, 14);
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      for (var wv = 0; wv < 12; wv++) { var wxx = ((wv * 41 - frame * 1.5 - scrollX * 0.9) % (W + 40) + W + 40) % (W + 40) - 20; ctx.fillRect(wxx, GY - 10 + (wv % 3) * 3, 14, 1); }
+      for (var wv = 0; wv < N(12); wv++) { var wxx = ((wv * 41 - frame * 1.5 - scrollX * 0.9) % (W + 40) + W + 40) % (W + 40) - 20; ctx.fillRect(wxx, GY - 10 + (wv % 3) * 3, 14, 1); }
       var br = ((260 - scrollX * 0.45) % (W + 400) + W + 400) % (W + 400) - 200;
       ctx.fillStyle = '#4a4a52'; ctx.fillRect(br, GY - 40, 160, 5);
       for (var tb = 0; tb < 8; tb++) { ctx.fillRect(br + tb * 20, GY - 40, 3, 26); if (tb < 7) { ctx.beginPath(); ctx.moveTo(br + tb * 20, GY - 40); ctx.lineTo(br + tb * 20 + 20, GY - 14); ctx.lineTo(br + tb * 20 + 22, GY - 14); ctx.lineTo(br + tb * 20 + 3, GY - 40); ctx.fill(); } }
@@ -1992,7 +2009,7 @@
         ctx.fillStyle = '#6e6250'; ctx.fillRect(x8, hmy, 4, GY - hmy);
         ctx.fillStyle = '#5a5044'; ctx.fillRect(x8, hmy + 30, 4, GY - hmy - 30);
       }
-      for (var hf = 0; hf < 3; hf++) {
+      for (var hf = 0; hf < N(3); hf++) {
         var hx = ((hf * 300 + 120 - scrollX * 0.22) % (W + 340) + W + 340) % (W + 340) - 170;
         ctx.fillStyle = '#3a3028';
         ctx.fillRect(hx, GY - 96, 4, 96); ctx.fillRect(hx + 30, GY - 96, 4, 96);
@@ -2026,9 +2043,9 @@
       // The switchbacks: a pale road zigzagging up the slope
       ctx.strokeStyle = 'rgba(230,236,246,0.5)'; ctx.lineWidth = 2; ctx.beginPath();
       var sw0 = ((-scrollX * 0.16) % 400 + 400) % 400 - 200;
-      for (var rep3 = 0; rep3 < 3; rep3++) { var sx9 = sw0 + rep3 * 400; ctx.moveTo(sx9, GY - 20); ctx.lineTo(sx9 + 120, GY - 46); ctx.lineTo(sx9 + 30, GY - 68); ctx.lineTo(sx9 + 150, GY - 92); }
+      for (var rep3 = 0; rep3 < N(3); rep3++) { var sx9 = sw0 + rep3 * 400; ctx.moveTo(sx9, GY - 20); ctx.lineTo(sx9 + 120, GY - 46); ctx.lineTo(sx9 + 30, GY - 68); ctx.lineTo(sx9 + 150, GY - 92); }
       ctx.stroke(); ctx.lineWidth = 1;
-      for (var pv = 0; pv < 10; pv++) {
+      for (var pv = 0; pv < N(10); pv++) {
         var pvx = ((pv * 96 + 20 - scrollX * 0.3) % (W + 120) + W + 120) % (W + 120) - 60;
         var pvh = 22 + (pv * 31) % 16;
         ctx.fillStyle = '#12261c'; ctx.beginPath(); ctx.moveTo(pvx, GY); ctx.lineTo(pvx + 8, GY - pvh); ctx.lineTo(pvx + 16, GY); ctx.fill();
@@ -2047,7 +2064,7 @@
       ctx.fillStyle = '#d0684a';
       ctx.beginPath(); ctx.moveTo(arch, GY); ctx.lineTo(arch + 10, GY - 80); ctx.quadraticCurveTo(arch + 70, GY - 150, arch + 130, GY - 80); ctx.lineTo(arch + 140, GY); ctx.lineTo(arch + 110, GY); ctx.lineTo(arch + 104, GY - 70); ctx.quadraticCurveTo(arch + 70, GY - 118, arch + 36, GY - 70); ctx.lineTo(arch + 30, GY); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(arch + 10, GY - 80, 6, 80);
-      for (var sh = 0; sh < 6; sh++) {
+      for (var sh = 0; sh < N(6); sh++) {
         var shx = ((sh * 150 + 70 - scrollX * 0.3) % (W + 80) + W + 80) % (W + 80) - 40;
         ctx.fillStyle = '#6a7a3a'; ctx.beginPath(); ctx.ellipse(shx, GY - 4, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#5a7040'; ctx.fillRect(shx + 24, GY - 22, 4, 22); ctx.fillRect(shx + 18, GY - 16, 5, 3); ctx.fillRect(shx + 29, GY - 12, 5, 3);
@@ -2058,7 +2075,7 @@
     } else if (sky.scene === 'vegas') {
       // The Strip: casino towers, neon signs, palms, the whole place lit
       var NEON = [PINK, CYAN, LIME, YELLOW, '#B026FF', '#ff8a00'];
-      for (var tw = 0; tw < 7; tw++) {
+      for (var tw = 0; tw < N(7); tw++) {
         var twx = ((tw * 130 + 20 - scrollX * 0.12) % (W + 220) + W + 220) % (W + 220) - 110;
         var twh = 110 + (tw * 47) % 90;
         ctx.fillStyle = '#16122a'; ctx.fillRect(twx, GY - twh, 70, twh);
@@ -2066,7 +2083,7 @@
         ctx.fillStyle = 'rgba(255,255,200,0.5)';
         for (var wy5 = GY - twh + 8; wy5 < GY - 8; wy5 += 9) for (var wx5 = twx + 6; wx5 < twx + 64; wx5 += 9) if (((wy5 + wx5 + tw) >> 3) % 3 !== 0) ctx.fillRect(wx5, wy5, 4, 4);
       }
-      for (var sg = 0; sg < 4; sg++) {
+      for (var sg = 0; sg < N(4); sg++) {
         var sgx = ((sg * 260 + 60 - scrollX * 0.3) % (W + 300) + W + 300) % (W + 300) - 150;
         var on = Math.floor(frame / 16 + sg) % 3 !== 0;
         ctx.fillStyle = on ? NEON[(sg + 2) % NEON.length] : '#3a2a4a';
@@ -2076,7 +2093,7 @@
         ctx.fillText(['CASINO', 'LOUNGE', 'INK 24H', 'VEGAS'][sg], sgx + 48, GY - 70);
         ctx.fillStyle = '#4a3a2a'; ctx.fillRect(sgx + 46, GY - 58, 4, 58);
       }
-      for (var pm = 0; pm < 6; pm++) {
+      for (var pm = 0; pm < N(6); pm++) {
         var pmx = ((pm * 150 + 100 - scrollX * 0.45) % (W + 120) + W + 120) % (W + 120) - 60;
         ctx.fillStyle = '#3a2e22'; ctx.fillRect(pmx, GY - 54, 4, 54);
         ctx.fillStyle = '#2f7a3a';
@@ -2084,7 +2101,7 @@
       }
     } else {
       // The Flatirons lean out of the sunset above Boulder pines
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < N(5); i++) {
         var fx2 = ((i * 170 + 20 - scrollX * 0.15) % (W + 260) + W + 260) % (W + 260) - 130;
         var fh2 = 90 + (i * 31) % 40;
         ctx.fillStyle = '#241a30';
@@ -2100,7 +2117,7 @@
         ctx.lineTo(fx2 + 52, GY - fh2 + 26);
         ctx.fill();
       }
-      for (var i = 0; i < 9; i++) {
+      for (var i = 0; i < N(9); i++) {
         var px3 = ((i * 105 + 50 - scrollX * 0.3) % (W + 120) + W + 120) % (W + 120) - 60;
         var ph3 = 16 + (i * 29) % 12;
         ctx.fillStyle = '#161f18';
@@ -2114,14 +2131,14 @@
 
     if (sky.weather === 'snow') {
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      for (var fi = 0; fi < 46; fi++) {
+      for (var fi = 0; fi < N(46); fi++) {
         var fx5 = ((fi * 73 + frame * (0.4 + (fi % 3) * 0.3) + Math.sin(frame * 0.02 + fi) * 8) % (W + 20) + W + 20) % (W + 20) - 10;
         var fy5 = ((fi * 41 + frame * (0.9 + (fi % 4) * 0.35)) % (GY + 30));
         ctx.fillRect(fx5, fy5, fi % 5 === 0 ? 2 : 1, fi % 5 === 0 ? 2 : 1);
       }
     } else if (sky.weather === 'rain') {
       ctx.fillStyle = 'rgba(170,190,255,0.35)';
-      for (var ri = 0; ri < 40; ri++) {
+      for (var ri = 0; ri < N(40); ri++) {
         var rx5 = ((ri * 97 - frame * 1.2 - scrollX * 0.5) % (W + 40) + W + 40) % (W + 40) - 20;
         var ry5 = ((ri * 53 + frame * 7) % (GY + 20));
         ctx.fillRect(rx5, ry5, 1, 7);
@@ -2134,7 +2151,7 @@
     // Street lamps ride between the buildings and the street; at night they
     // throw a cone on the pavement the skater rolls through.
     if (sky.scene === 'city') {
-      for (var li = 0; li < 3; li++) {
+      for (var li = 0; li < N(3); li++) {
         var lpx = ((li * 230 + 90 - scrollX * 0.6) % (W + 120) + W + 120) % (W + 120) - 60;
         ctx.fillStyle = '#2a2a34';
         ctx.fillRect(lpx, GY - 92, 3, 92);
@@ -2158,7 +2175,7 @@
 
     // Street layer: parked cars and trees on the far curb, just behind the road
     if (sky.scene === 'city' || sky.scene === 'rino' || sky.scene === 'golden' || sky.scene === 'vegas' || sky.scene === 'flatirons') {
-      for (var sc = 0; sc < 5; sc++) {
+      for (var sc = 0; sc < N(5); sc++) {
         var scx = ((sc * 210 + 40 - scrollX * 0.8) % (W + 300) + W + 300) % (W + 300) - 150;
         if (sc % 2 === 0) {
           var carCol = ['#4a6aa8', '#8a3a3a', '#d8d8d8', '#3a3a44'][sc % 4];
@@ -2204,7 +2221,7 @@
     ctx.lineWidth = 1;
     // Lane dashes and street detail follow the surface
     ctx.fillStyle = sky.dash;
-    for (var di = 0; di < 22; di++) {
+    for (var di = 0; di < N(22); di++) {
       var dwx = Math.floor(scrollX / 40) * 40 + (di - 1) * 40;
       var dsx = dwx - scrollX;
       if (dsx < -30 || dsx > W + 10) continue;
@@ -2215,7 +2232,7 @@
       ctx.fillRect(0, 0, 20, 2);
       ctx.restore();
     }
-    for (var gi = 0; gi < 3; gi++) {
+    for (var gi = 0; gi < N(3); gi++) {
       var gwx = Math.floor(scrollX / 310) * 310 + gi * 310 + 140;
       var gx = gwx - scrollX;
       if (gx < -40 || gx > W + 40) continue;
@@ -2459,10 +2476,10 @@
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(4, 4, 118, 44);
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px monospace';
+    ctx.font = 'bold ' + Math.round(16 * FS) + 'px monospace';
     ctx.fillText(String(score), 10, 20);
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = 'bold 7px monospace';
+    ctx.font = 'bold ' + Math.round(7 * FS) + 'px monospace';
     ctx.fillText('BEST ' + Math.max(best, wall.best(), score), 10, 29);
     for (var li = 0; li < MAX_LIVES; li++) {
       var alive = li < lives;
@@ -2475,9 +2492,9 @@
     }
     // goals
     if (mode === 'play' && goalCardT === 0) {
-      ctx.font = 'bold 7px monospace';
+      ctx.font = 'bold ' + Math.round(7 * FS) + 'px monospace';
       for (var gi2 = 0; gi2 < goals.length; gi2++) {
-        var gl2 = goals[gi2], gy2 = 60 + gi2 * 11;
+        var gl2 = goals[gi2], gy2 = 60 + gi2 * Math.round(11 * FS);
         ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(4, gy2 - 8, 118, 10);
         ctx.fillStyle = gl2.done ? LIME : 'rgba(255,255,255,0.75)';
         ctx.fillText((gl2.done ? '[x] ' : '[ ] ') + gl2.text, 8, gy2);
@@ -2489,7 +2506,7 @@
     }
     // town + progress
     ctx.textAlign = 'center';
-    ctx.font = 'bold 9px monospace';
+    ctx.font = 'bold ' + Math.round(9 * FS) + 'px monospace';
     ctx.fillStyle = LIME;
     ctx.fillText(LOCALES[(level - 1) % LOCALES.length].name + (hitsThisLevel === 0 ? ' // NO BAIL' : '') + (continueUsed ? ' // CONTINUED' : ''), W / 2, 13);
     var townProg = (dist - (level - 1) * 4000) / 4000;
@@ -2527,8 +2544,8 @@
       ctx.fillStyle = bookOpen ? YELLOW : 'rgba(0,0,0,0.55)';
       ctx.fillRect(BOOK_BTN.x, BOOK_BTN.y, BOOK_BTN.w, BOOK_BTN.h);
       ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(BOOK_BTN.x + 0.5, BOOK_BTN.y + 0.5, BOOK_BTN.w - 1, BOOK_BTN.h - 1);
-      ctx.fillStyle = bookOpen ? '#000' : '#fff'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
-      ctx.fillText('? CONTROLS', BOOK_BTN.x + BOOK_BTN.w / 2, BOOK_BTN.y + 11);
+      ctx.fillStyle = bookOpen ? '#000' : '#fff'; ctx.font = 'bold ' + (PHONE ? 9 : 8) + 'px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('? CONTROLS', BOOK_BTN.x + BOOK_BTN.w / 2, BOOK_BTN.y + (PHONE ? 13 : 11));
     }
     if (bookOpen && mode === 'play') {
       ctx.fillStyle = 'rgba(0,0,0,0.86)';
@@ -2567,7 +2584,7 @@
     if (linePts > 0 && mode === 'play') {
       var lineTotal = linePts * combo;
       ctx.fillStyle = lineTotal >= 5000 ? '#ff5ab0' : lineTotal >= 2000 ? YELLOW : '#fff';
-      ctx.font = 'bold ' + (lineTotal >= 2000 ? 20 : 17) + 'px monospace';
+      ctx.font = 'bold ' + Math.round((lineTotal >= 2000 ? 20 : 17) * FS) + 'px monospace';
       ctx.fillText(String(lineTotal), W - 10, 21);
       ctx.font = 'bold 8px monospace';
       ctx.fillStyle = linkWindow > 0 ? (Math.floor(frame / 4) % 2 === 0 ? '#ff9a3c' : '#fff') : 'rgba(255,255,255,0.75)';
@@ -2585,34 +2602,34 @@
     ctx.fillText(special >= 100 ? 'SPECIAL READY: NEXT LINE PAYS x1.5' : 'SPECIAL', W - 10, 36);
     // trick stack: the last tricks of the line, newest at the bottom, fading up
     if (mode === 'play' && lineTricks.length) {
-      ctx.font = 'bold 8px monospace';
+      ctx.font = 'bold ' + Math.round(8 * FS) + 'px monospace';
       var stack = lineTricks.slice(-5);
       for (var ts = 0; ts < stack.length; ts++) {
         ctx.fillStyle = 'rgba(255,255,255,' + (0.3 + 0.7 * (ts + 1) / stack.length).toFixed(2) + ')';
-        ctx.fillText(stack[ts], W - 10, 58 + ts * 10);
+        ctx.fillText(stack[ts], W - 10, (PHONE ? 78 : 58) + ts * Math.round(10 * FS));
       }
     }
     // goal card at the town's start, the tally at its end
     if (goalCardT > 0 && mode === 'play' && !bookOpen) {
       var ga = Math.min(1, goalCardT / 30, (200 - goalCardT) / 20 + 0.2);
       ctx.globalAlpha = ga * 0.92;
-      ctx.fillStyle = '#0a0812'; ctx.fillRect(70, 90, 260, 30 + goals.length * 16);
-      ctx.fillStyle = LIME; ctx.fillRect(70, 90, 260, 3);
+      ctx.fillStyle = '#0a0812'; ctx.fillRect(W / 2 - 130, 90, 260, 30 + goals.length * 16);
+      ctx.fillStyle = LIME; ctx.fillRect(W / 2 - 130, 90, 260, 3);
       ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
       ctx.fillText(LOCALES[(level - 1) % LOCALES.length].name + ' // PARK GOALS', W / 2, 108);
       ctx.textAlign = 'left'; ctx.font = 'bold 9px monospace';
-      for (var gc = 0; gc < goals.length; gc++) { ctx.fillStyle = goals[gc].done ? LIME : YELLOW; ctx.fillText((goals[gc].done ? '[x] ' : '[ ] ') + goals[gc].text, 84, 126 + gc * 16); }
+      for (var gc = 0; gc < goals.length; gc++) { ctx.fillStyle = goals[gc].done ? LIME : YELLOW; ctx.fillText((goals[gc].done ? '[x] ' : '[ ] ') + goals[gc].text, W / 2 - 116, 126 + gc * 16); }
       ctx.globalAlpha = 1;
     }
     if (tallyT > 0 && mode === 'play') {
       var ta = Math.min(1, tallyT / 30, (240 - tallyT) / 20 + 0.2);
       ctx.globalAlpha = ta * 0.92;
-      ctx.fillStyle = '#0a0812'; ctx.fillRect(60, 84, 280, 34 + tallyLines.length * 15);
-      ctx.fillStyle = YELLOW; ctx.fillRect(60, 84, 280, 3);
+      ctx.fillStyle = '#0a0812'; ctx.fillRect(W / 2 - 140, 84, 280, 34 + tallyLines.length * 15);
+      ctx.fillStyle = YELLOW; ctx.fillRect(W / 2 - 140, 84, 280, 3);
       ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
       ctx.fillText('TOWN CLEARED', W / 2, 102);
       ctx.textAlign = 'left'; ctx.font = 'bold 9px monospace';
-      for (var tl = 0; tl < tallyLines.length; tl++) { ctx.fillStyle = tallyLines[tl].ok ? LIME : 'rgba(255,255,255,0.5)'; ctx.fillText((tl < tallyLines.length - 1 ? (tallyLines[tl].ok ? '[x] ' : '[ ] ') : '') + tallyLines[tl].text, 74, 120 + tl * 15); }
+      for (var tl = 0; tl < tallyLines.length; tl++) { ctx.fillStyle = tallyLines[tl].ok ? LIME : 'rgba(255,255,255,0.5)'; ctx.fillText((tl < tallyLines.length - 1 ? (tallyLines[tl].ok ? '[x] ' : '[ ] ') : '') + tallyLines[tl].text, W / 2 - 126, 120 + tl * 15); }
       ctx.globalAlpha = 1;
     }
     ctx.font = 'bold 10px monospace';
@@ -2636,6 +2653,7 @@
 
     if (mode === 'enter') drawInitials();
     if (mode === 'over') drawBoard();
+    if (PORTRAIT) drawTurnCard();
 
 
 
@@ -2799,6 +2817,26 @@
     ctx.fillStyle = ACC; ctx.fillRect(5.5, -12 + squash, 10, 3.5); ctx.fillRect(3, -11 + squash, 3.5, 2);
     ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(5.5, -9 + squash, 10, 0.8);
     ctx.restore();
+  }
+
+  // Portrait phone: the run holds and the card asks for landscape (the shell
+  // reloads the cartridge when the phone turns, so nothing is kept here).
+  function drawTurnCard() {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2 - 30);
+    ctx.rotate(Math.sin(frame * 0.05) * 0.5 - 0.5);
+    ctx.fillStyle = '#111'; ctx.fillRect(-16, -28, 32, 56);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-16, -28, 32, 56);
+    ctx.fillStyle = '#2a6ee8'; ctx.fillRect(-12, -22, 24, 42);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-3, 22, 6, 2);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YELLOW; ctx.font = 'bold 18px monospace';
+    ctx.fillText('TURN YOUR PHONE', W / 2, H / 2 + 34);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px monospace';
+    ctx.fillText('Ink or Die plays sideways, full screen', W / 2, H / 2 + 54);
   }
 
   function drawObstacle(ob, ox, oy, gyS) {
@@ -3027,7 +3065,8 @@
     lastT = t;
     try {
     while (acc >= 16.67) {
-      if (mode === 'play') {
+      if (PORTRAIT) { /* held until the phone turns */ }
+      else if (mode === 'play') {
         // The peak of a big air runs at half speed for a beat so you can read
         // the height and pick the trick.
         if (slowT > 0 && (slowTick++ & 1)) slowT--;

@@ -293,7 +293,7 @@
       ctx.fillStyle = 'rgba(255,255,255,0.45)';
       ctx.font = '9px monospace';
       ctx.fillText((o.label || LABELS[game] || game).toUpperCase() + ' // THE SHOP WALL', W / 2, 62);
-      var LX = 30, LW = 170, RX = 226, RW = 150, TOP = 100, ROW = 17;
+      var LX = W / 2 - 170, LW = 170, RX = W / 2 + 26, RW = 150, TOP = 100, ROW = 17;
       ctx.textAlign = 'left';
       ctx.font = 'bold 10px monospace';
       ctx.fillStyle = CYAN; ctx.fillText('ALL TIME', LX, 86);
@@ -406,7 +406,7 @@
       }
 
       // Left: the all-time wall.
-      var LX = 18, LW = 190, ROW = 15, TOP = 113; // first baseline sits clear of the header rule at 98
+      var LX = W / 2 - 182, LW = 190, ROW = 15, TOP = 113; // columns keyed to the view width; first baseline sits clear of the header rule
       ctx.textAlign = 'left';
       ctx.fillStyle = CYAN;
       ctx.font = 'bold 10px monospace';
@@ -434,7 +434,7 @@
       }
 
       // Right: today's board, then the play count.
-      var RX = 232, RW = 152;
+      var RX = W / 2 + 32, RW = 152;
       ctx.textAlign = 'left';
       ctx.fillStyle = LIME;
       ctx.font = 'bold 10px monospace';
