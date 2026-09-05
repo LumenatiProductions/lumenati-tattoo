@@ -56,6 +56,26 @@ export function buildArcadePreviewHtml(
   </div>
 </div>
 <script>window.__ARCADE_EMBED__=${JSON.stringify(gameId)};</script>
+<script>
+  // Phone play: in landscape the screen is as wide as the phone (same height in
+  // logical pixels), so a game that reads __ARCADE_VIEW__ draws a wider world
+  // instead of bars. Decided once at load; a rotation reloads the cartridge.
+  (function () {
+    var touch = 'ontouchstart' in window || (window.matchMedia && matchMedia('(pointer: coarse)').matches) || /[?&]touch=1/.test(location.search);
+    if (!touch) return;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var land = vw > vh;
+    var w = land ? Math.max(400, Math.min(720, Math.round(320 * vw / vh))) : 400;
+    window.__ARCADE_VIEW__ = { w: w, h: 320, phone: true, portrait: !land };
+    var c = document.getElementById('jd-skate-canvas');
+    if (c) { c.width = w; c.height = 320; }
+    var was = land;
+    window.addEventListener('resize', function () {
+      var nowLand = window.innerWidth > window.innerHeight;
+      if (nowLand !== was) { was = nowLand; setTimeout(function () { location.reload(); }, 250); }
+    });
+  })();
+</script>
 ${libs}
 ${crew}${flash}<script id="jd-arcade-board">
 ${boardSource()}
@@ -69,10 +89,18 @@ ${gameSource(gameId)}
     var c = document.getElementById('jd-skate-canvas');
     var wrap = c.parentElement;
     function fit() {
+      var v = window.__ARCADE_VIEW__;
+      var lw = v ? v.w : 400, lh = v ? v.h : 320;
+      if (v && v.phone && !v.portrait) {
+        // Phone landscape: the screen is the whole display, no bezel.
+        c.style.width = wrap.clientWidth + 'px';
+        c.style.height = wrap.clientHeight + 'px';
+        return;
+      }
       // -20 leaves room for the bezel shadow so it never bleeds off the wrap.
-      var s = Math.min((wrap.clientWidth - 20) / 400, (wrap.clientHeight - 20) / 320);
-      c.style.width = Math.max(1, Math.floor(400 * s)) + 'px';
-      c.style.height = Math.max(1, Math.floor(320 * s)) + 'px';
+      var s = Math.min((wrap.clientWidth - 20) / lw, (wrap.clientHeight - 20) / lh);
+      c.style.width = Math.max(1, Math.floor(lw * s)) + 'px';
+      c.style.height = Math.max(1, Math.floor(lh * s)) + 'px';
     }
     window.addEventListener('resize', fit);
     // the games boot when the overlay's style attribute changes; the wrap

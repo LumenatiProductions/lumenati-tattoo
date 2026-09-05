@@ -131,8 +131,29 @@
     // The landscape overlay needs a positioned parent; never override fixed (the bench takeover).
     if (getComputedStyle(col).position === "static") col.style.position = "relative";
     col.insertBefore(padRow, pad.nextSibling); // after the screen, before the status strip
+    var view = window.__ARCADE_VIEW__ || null;
     function layout() {
       var land = window.innerWidth > window.innerHeight;
+      if (view && view.phone && !view.portrait && embedId) {
+        // Phone landscape: the game is the whole display. The pad floats over
+        // it, translucent, big, in the outside corners; no bezel, no strip.
+        pad.style.backgroundImage = "none"; pad.style.backgroundColor = "#000";
+        var strip = pad.nextElementSibling === padRow ? padRow.nextElementSibling : pad.nextElementSibling;
+        if (strip && strip !== padRow) strip.style.display = "none";
+        canvas.style.boxShadow = "none";
+        padRow.style.cssText = "position:absolute;left:0;right:0;top:0;bottom:0;display:block;pointer-events:none;z-index:6;";
+        dp.style.cssText = "position:absolute;left:14px;bottom:14px;width:174px;height:174px;pointer-events:auto;opacity:0.62;";
+        right.style.cssText = "position:absolute;right:14px;bottom:18px;display:flex;align-items:flex-end;gap:16px;pointer-events:auto;opacity:0.7;";
+        [].slice.call(dp.children).forEach(function (b) { if (b !== mid) { b.style.width = "58px"; b.style.height = "58px"; b.style.background = "rgba(20,20,20,0.55)"; b.style.borderColor = "rgba(255,255,255,0.35)"; } });
+        var pos = [["58px", "0"], ["58px", "116px"], ["0", "58px"], ["116px", "58px"]]; // up, down, left, right
+        [].slice.call(dp.children).filter(function (b) { return b !== mid; }).forEach(function (b, i) { b.style.left = pos[i][0]; b.style.top = pos[i][1]; });
+        mid.style.cssText = "position:absolute;left:58px;top:58px;width:58px;height:58px;background:rgba(0,0,0,0.25);border-radius:8px;";
+        var kids = [].slice.call(right.children);
+        kids[0].style.cssText += "width:46px;height:46px;border-radius:50%;background:rgba(20,20,20,0.55);";
+        kids[1].style.cssText += "width:104px;height:104px;border-radius:50%;font-size:28px;";
+        try { window.dispatchEvent(new Event("resize")); } catch (e) {}
+        return;
+      }
       if (land) {
         padRow.style.cssText = "position:absolute;left:0;right:0;top:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10px 14px;pointer-events:none;z-index:6;";
         dp.style.pointerEvents = "auto"; right.style.pointerEvents = "auto";
