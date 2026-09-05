@@ -105,6 +105,12 @@
   }
   function buildPad(col) {
     if (padRow) return padRow;
+    // On a phone the pad and the ? button explain the controls; the status
+    // strip only has room for the score and lives, larger.
+    var hint = document.getElementById("jd-game-hint");
+    if (hint) hint.style.display = "none";
+    var strip = pad.nextElementSibling;
+    if (strip && strip !== padRow) { strip.style.fontSize = "13px"; strip.style.padding = "6px 12px"; }
     padRow = document.createElement("div");
     padRow.id = "jd-pad";
     var dp = document.createElement("div");
